@@ -1,7 +1,11 @@
 package com.slb.qasker.global.error;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 import org.springframework.http.HttpStatus;
 
+@Getter
+@AllArgsConstructor
 public enum ExceptionMessage {
 
     NO_FILE_UPLOADED(HttpStatus.BAD_REQUEST, "파일이 업로드되지 않았습니다."),
@@ -13,18 +17,4 @@ public enum ExceptionMessage {
     private final HttpStatus httpStatus;
     private final String message;
 
-    ExceptionMessage(
-        HttpStatus httpStatus,
-        String message) {
-        this.httpStatus = httpStatus;
-        this.message = message;
-    }
-
-    public HttpStatus getHttpStatus() {
-        return httpStatus;
-    }
-
-    public String getMessage() {
-        return message;
-    }
 }
