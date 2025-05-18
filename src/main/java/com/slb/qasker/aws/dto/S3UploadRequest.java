@@ -7,5 +7,6 @@ import org.springframework.web.multipart.MultipartFile;
 @Getter
 @Setter
 public class S3UploadRequest {
-    MultipartFile multipartFile;
+
+    MultipartFile file;
 }
