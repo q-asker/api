@@ -1,7 +1,7 @@
 package com.slb.qasker.aws.util;
 
-import com.slb.qasker.global.error.CustomError;
-import com.slb.qasker.global.error.ErrorMessage;
+import com.slb.qasker.global.error.CustomException;
+import com.slb.qasker.global.error.ExceptionMessage;
 import lombok.Builder;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -16,19 +16,19 @@ public class FileUploadValidator {
         String contentType = multipartFile.getContentType();
 
         if (multipartFile.isEmpty()) {
-            throw new CustomError(ErrorMessage.NO_FILE_UPLOADED);
+            throw new CustomException(ExceptionMessage.NO_FILE_UPLOADED);
         }
         if (fileName == null) {
-            throw new CustomError(ErrorMessage.FILE_NAME_NOT_EXIST);
+            throw new CustomException(ExceptionMessage.FILE_NAME_NOT_EXIST);
         }
         if (fileName.length() > maxFileNameLength) {
-            throw new CustomError(ErrorMessage.FILE_NAME_TOO_LONG);
+            throw new CustomException(ExceptionMessage.FILE_NAME_TOO_LONG);
         }
         if (contentType == null) {
-            throw new CustomError(ErrorMessage.EXTENSION_NOT_EXIST);
+            throw new CustomException(ExceptionMessage.EXTENSION_NOT_EXIST);
         }
         if (!allowedExtensions.contains(contentType)) {
-            throw new CustomError(ErrorMessage.EXTENSION_INVALID);
+            throw new CustomException(ExceptionMessage.EXTENSION_INVALID);
         }
     }
 }

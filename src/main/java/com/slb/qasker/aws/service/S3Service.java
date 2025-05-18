@@ -30,7 +30,7 @@ public class S3Service {
     }
 
     public S3UploadResponse uploadFile(S3UploadRequest s3UploadRequest) {
-        MultipartFile multipartFile = s3UploadRequest.getMultipartFile();
+        MultipartFile multipartFile = s3UploadRequest.getFile();
         fileUploadValidator.checkOf(multipartFile);
 
         String timestamp = LocalDateTime.now()
@@ -52,6 +52,6 @@ public class S3Service {
             throw new RuntimeException(e);
         }
 
-        return S3UploadResponse.builder().url(cloudFrontBaseUrl + "/" + keyName).build();
+        return S3UploadResponse.builder().uploadedUrl(cloudFrontBaseUrl + "/" + keyName).build();
     }
 }
