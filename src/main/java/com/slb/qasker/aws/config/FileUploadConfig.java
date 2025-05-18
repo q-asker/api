@@ -1,5 +1,7 @@
 package com.slb.qasker.aws.config;
 
+import com.slb.qasker.aws.util.FileUploadValidator;
+import com.slb.qasker.aws.util.FileUrlValidator;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -21,8 +23,6 @@ public class FileUploadConfig {
     private int maxFileNameLength;
     @Value("${aws.s3.allowed-extensions}")
     private String allowedExtensions;
-    @Value("${aws.s3.allowed-content-types}")
-    private String allowedContentTypes;
     @Value("${aws.cloudfront.base-url}")
     private String cloudFrontBaseUrl;
 
@@ -32,5 +32,21 @@ public class FileUploadConfig {
 
         return S3Client.builder().region(Region.of(region))
             .credentialsProvider(StaticCredentialsProvider.create(awsCredentials)).build();
+    }
+
+    @Bean
+    public FileUploadValidator createFileUploadValidator() {
+        return FileUploadValidator.builder()
+            .maxFileNameLength(maxFileNameLength)
+            .allowedExtensions(allowedExtensions)
+            .build();
+    }
+
+    @Bean
+    public FileUrlValidator createFileUrlValidator() {
+        return FileUrlValidator.builder()
+            .cloudFrontBaseUrl(cloudFrontBaseUrl)
+            .allowedExtensions(allowedExtensions)
+            .build();
     }
 }

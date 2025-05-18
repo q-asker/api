@@ -2,6 +2,7 @@ package com.slb.qasker.aws.service;
 
 import com.slb.qasker.aws.dto.S3UploadRequest;
 import com.slb.qasker.aws.dto.S3UploadResponse;
+import com.slb.qasker.aws.util.FileUploadValidator;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -20,10 +21,17 @@ public class S3Service {
     @Value("${aws.cloudfront.base-url}")
     private String cloudFrontBaseUrl;
 
-    private S3Client s3Client;
+    private final FileUploadValidator fileUploadValidator;
+    private final S3Client s3Client;
+
+    public S3Service(FileUploadValidator fileUploadValidator, S3Client s3Client) {
+        this.fileUploadValidator = fileUploadValidator;
+        this.s3Client = s3Client;
+    }
 
     public S3UploadResponse uploadFile(S3UploadRequest s3UploadRequest) {
         MultipartFile multipartFile = s3UploadRequest.getMultipartFile();
+        fileUploadValidator.checkOf(multipartFile);
 
         String timestamp = LocalDateTime.now()
             .format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmssSSS"));
