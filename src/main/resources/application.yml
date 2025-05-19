@@ -1,0 +1,5 @@
+spring:
+  application:
+    name: q-asker
+  profiles:
+    include: secret
