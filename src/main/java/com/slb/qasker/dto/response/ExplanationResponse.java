@@ -1,8 +1,11 @@
 package com.slb.qasker.dto.response;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import java.util.List;
+
+@Getter
+@AllArgsConstructor
 public class ExplanationResponse {
-    private Long problemId;
-    private String corretAnswer;
-    private boolean isCorrect;
-    private String explantion;
+    private List<ResultResponse> results;
 }
