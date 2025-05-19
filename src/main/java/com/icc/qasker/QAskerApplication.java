@@ -1,4 +1,4 @@
-package com.slb.qasker;
+package com.icc.qasker;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

@@ -1,4 +1,4 @@
-package com.slb.qasker.global.error;
+package com.icc.qasker.global.error;
 
 import lombok.Getter;
 import org.springframework.http.HttpStatus;
