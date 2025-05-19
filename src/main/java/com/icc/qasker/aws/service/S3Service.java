@@ -1,8 +1,8 @@
-package com.slb.qasker.aws.service;
+package com.icc.qasker.aws.service;
 
-import com.slb.qasker.aws.dto.S3UploadRequest;
-import com.slb.qasker.aws.dto.S3UploadResponse;
-import com.slb.qasker.aws.util.FileUploadValidator;
+import com.icc.qasker.aws.dto.S3UploadRequest;
+import com.icc.qasker.aws.dto.S3UploadResponse;
+import com.icc.qasker.aws.util.FileUploadValidator;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;

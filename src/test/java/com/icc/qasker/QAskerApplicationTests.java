@@ -1,4 +1,4 @@
-package com.slb.qasker;
+package com.icc.qasker;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

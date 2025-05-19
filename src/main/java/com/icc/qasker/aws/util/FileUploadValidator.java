@@ -1,7 +1,7 @@
-package com.slb.qasker.aws.util;
+package com.icc.qasker.aws.util;
 
-import com.slb.qasker.global.error.CustomException;
-import com.slb.qasker.global.error.ExceptionMessage;
+import com.icc.qasker.global.error.CustomException;
+import com.icc.qasker.global.error.ExceptionMessage;
 import lombok.Builder;
 import org.springframework.web.multipart.MultipartFile;
 

@@ -1,4 +1,4 @@
-package com.slb.qasker.aws.util;
+package com.icc.qasker.aws.util;
 
 import lombok.Builder;
 
