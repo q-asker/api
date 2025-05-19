@@ -1,0 +1,19 @@
+services:
+  q-asker-test-db:
+    image: mysql:8.0.35
+    container_name: q-asker-test-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    expose:
+      - "3306"
+    ports:
+      - "3306:3306"
+    volumes:
+      - q-asker-test-db:/var/lib/mysql
+
+volumes:
+  q-asker-test-db:
