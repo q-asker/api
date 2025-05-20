@@ -1,7 +1,7 @@
-package com.slb.qasker.aws.config;
+package com.icc.qasker.aws.config;
 
-import com.slb.qasker.aws.util.FileUploadValidator;
-import com.slb.qasker.aws.util.FileUrlValidator;
+import com.icc.qasker.aws.util.FileUploadValidator;
+import com.icc.qasker.aws.util.FileUrlValidator;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

@@ -1,4 +1,4 @@
-package com.slb.qasker.aws.dto;
+package com.icc.qasker.aws.dto;
 
 import lombok.Getter;
 import lombok.Setter;
