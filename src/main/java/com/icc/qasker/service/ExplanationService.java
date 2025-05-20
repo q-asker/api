@@ -1,11 +1,10 @@
-package com.slb.qasker.service;
+package com.icc.qasker.service;
 
-import com.slb.qasker.dto.request.AnswerRequest;
-import com.slb.qasker.dto.request.ExplanationRequest;
-import com.slb.qasker.dto.response.ExplanationResponse;
-import com.slb.qasker.dto.response.ResultResponse;
-import com.slb.qasker.entity.Problem;
-import com.slb.qasker.repository.ProblemRepository;
+import com.icc.qasker.dto.response.ResultResponse;
+import com.icc.qasker.repository.ProblemRepository;
+import com.icc.qasker.dto.request.AnswerRequest;
+import com.icc.qasker.dto.request.ExplanationRequest;
+import com.icc.qasker.entity.Problem;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -22,16 +21,19 @@ public class ExplanationService {
 
         for(AnswerRequest answer : request.getAnswers()){
             Problem problem = problemRepository.findById(answer.getProblemId())
-                    .orElse(new Problem(answer.getProblemId(), "?",
-                            "문제 " + answer.getProblemId() + " 에 대한 해설이 존재하지 않습니다."));
+                    .orElseThrow(() -> new IllegalArgumentException("해당 문제 ID가 존재하지 않습니다: " + answer.getProblemId()));
 
             boolean isCorrect = problem.getCorrectAnswer().equalsIgnoreCase(answer.getUserAnswer());
 
+            String explanationText = problem.getExplanation() != null
+                    ? problem.getExplanation().getContent()
+                    : "해당 문제에 대한 해설이 존재하지 않습니다.";
+
             responses.add(new ResultResponse(
-                    problem.getProblemId(),
+                    problem.getId(),
                     problem.getCorrectAnswer(),
                     isCorrect,
-                    problem.getExplanation()
+                    explanationText
             ));
         }
 

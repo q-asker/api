@@ -1,4 +1,4 @@
-package com.slb.qasker.dto.request;
+package com.icc.qasker.dto.request;
 
 import lombok.Getter;
 import java.util.List;

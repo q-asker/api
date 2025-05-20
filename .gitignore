@@ -39,3 +39,4 @@ out/
 ### Custom ###
 **/src/main/resources/**secret**
 .env
+**/src/main/resources/data.sql

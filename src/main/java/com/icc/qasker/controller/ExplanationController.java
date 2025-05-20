@@ -1,9 +1,9 @@
-package com.slb.qasker.controller;
+package com.icc.qasker.controller;
 
-import com.slb.qasker.dto.request.ExplanationRequest;
-import com.slb.qasker.dto.response.ExplanationResponse;
-import com.slb.qasker.dto.response.ResultResponse;
-import com.slb.qasker.service.ExplanationService;
+import com.icc.qasker.dto.request.ExplanationRequest;
+import com.icc.qasker.dto.response.ExplanationResponse;
+import com.icc.qasker.dto.response.ResultResponse;
+import com.icc.qasker.service.ExplanationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;

@@ -1,4 +1,4 @@
-package com.slb.qasker.dto.response;
+package com.icc.qasker.dto.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
