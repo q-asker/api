@@ -2,6 +2,7 @@ plugins {
     id 'java'
     id 'org.springframework.boot' version '3.4.5'
     id 'io.spring.dependency-management' version '1.1.7'
+    id 'com.google.cloud.tools.jib' version '3.4.0'
 }
 
 group = 'com.slb'
@@ -30,4 +31,21 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform()
+}
+
+jib {
+    from {
+        image = 'openjdk:17-slim'
+    }
+    to {
+        image = project.findProperty("DOCKER_ID") + "/" + project.findProperty("DOCKER_IMAGE_NAME")
+        tags = ['latest']
+        auth {
+            username = project.findProperty("DOCKER_ID")
+            password = project.findProperty("DOCKER_PASSWORD")
+        }
+    }
+    container {
+        jvmFlags = ['-Xms512m', '-Xmx512m', '-Dspring.profiles.active=prod']
+    }
 }
