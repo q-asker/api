@@ -9,5 +9,5 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class AnswerRequest {
     private Long problemId;
-    private String userAnswer;
+    private Long userAnswer;
 }

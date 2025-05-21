@@ -29,12 +29,12 @@ public class ExplanationService {
                 throw new CustomException(ExceptionMessage.INVALID_CORRECT_ANSWER);
             }
 
-            if (answer.getUserAnswer() == null || answer.getUserAnswer().isBlank()) {
+            if (answer.getUserAnswer() == null) {
                 throw new CustomException(ExceptionMessage.NULL_ANSWER_INPUT);
             }
 
 
-            boolean isCorrect = problem.getCorrectAnswer().equalsIgnoreCase(answer.getUserAnswer());
+            boolean isCorrect = problem.getCorrectAnswer().equals(answer.getUserAnswer());
 
             String explanationText = problem.getExplanation() != null
                     ? problem.getExplanation().getContent()
