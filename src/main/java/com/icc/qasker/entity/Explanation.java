@@ -5,6 +5,7 @@ import lombok.*;
 
 @Entity
 @Getter @NoArgsConstructor @AllArgsConstructor
+@Builder
 public class Explanation {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

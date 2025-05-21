@@ -1,6 +1,8 @@
 package com.icc.qasker.service;
 
 import com.icc.qasker.dto.response.ResultResponse;
+import com.icc.qasker.global.error.CustomException;
+import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.repository.ProblemRepository;
 import com.icc.qasker.dto.request.AnswerRequest;
 import com.icc.qasker.dto.request.ExplanationRequest;
@@ -21,7 +23,16 @@ public class ExplanationService {
 
         for(AnswerRequest answer : request.getAnswers()){
             Problem problem = problemRepository.findById(answer.getProblemId())
-                    .orElseThrow(() -> new IllegalArgumentException("해당 문제 ID가 존재하지 않습니다: " + answer.getProblemId()));
+                    .orElseThrow(() -> new CustomException(ExceptionMessage.DATA_NOT_FOUND));
+
+            if (problem.getCorrectAnswer() == null) {
+                throw new CustomException(ExceptionMessage.INVALID_CORRECT_ANSWER);
+            }
+
+            if (answer.getUserAnswer() == null || answer.getUserAnswer().isBlank()) {
+                throw new CustomException(ExceptionMessage.NULL_ANSWER_INPUT);
+            }
+
 
             boolean isCorrect = problem.getCorrectAnswer().equalsIgnoreCase(answer.getUserAnswer());
 

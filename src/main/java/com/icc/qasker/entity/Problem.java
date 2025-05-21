@@ -2,6 +2,7 @@ package com.icc.qasker.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -11,6 +12,7 @@ import java.util.List;
 @AllArgsConstructor
 @Entity
 @NoArgsConstructor
+@Builder   
 public class Problem {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
