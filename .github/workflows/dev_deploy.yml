@@ -80,7 +80,7 @@ jobs:
             docker stop ${{ env.CONTAINER_NAME }} || true
             docker rm ${{ env.CONTAINER_NAME }} || true
             docker run -d --name ${{ env.CONTAINER_NAME }} -p 8080:8080 \
-              -e SPRING_MYSQL_URL=${{ env.MYSQL_URL }} \
+              -e SPRING_DATASOURCE_URL=${{ env.MYSQL_URL }} \
               -e Q-ASKER_FRONTEND-URL=${{ env.FRONTEND_URL }} \
               -e AI-SERVER-URL=${{ env.AI_SERVER_URL }}
               ${{ env.DOCKER_ID }}/${{ env.DOCKER_IMAGE_NAME }}
