@@ -1,9 +1,9 @@
-package com.icc.qasker.controller;
+package com.icc.qasker.quiz.controller;
 
-import com.icc.qasker.dto.request.ExplanationRequest;
-import com.icc.qasker.dto.response.ExplanationResponse;
-import com.icc.qasker.dto.response.ResultResponse;
-import com.icc.qasker.service.ExplanationService;
+import com.icc.qasker.quiz.dto.request.ExplanationRequest;
+import com.icc.qasker.quiz.dto.response.ExplanationResponse;
+import com.icc.qasker.quiz.dto.response.ResultResponse;
+import com.icc.qasker.quiz.service.ExplanationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;

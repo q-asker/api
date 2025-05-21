@@ -1,4 +1,4 @@
-package com.icc.qasker.entity;
+package com.icc.qasker.quiz.entity;
 
 import jakarta.persistence.*;
 import lombok.*;

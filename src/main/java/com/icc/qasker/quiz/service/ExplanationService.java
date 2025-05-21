@@ -1,12 +1,12 @@
-package com.icc.qasker.service;
+package com.icc.qasker.quiz.service;
 
-import com.icc.qasker.dto.response.ResultResponse;
+import com.icc.qasker.quiz.dto.response.ResultResponse;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
-import com.icc.qasker.repository.ProblemRepository;
-import com.icc.qasker.dto.request.AnswerRequest;
-import com.icc.qasker.dto.request.ExplanationRequest;
-import com.icc.qasker.entity.Problem;
+import com.icc.qasker.quiz.repository.ProblemRepository;
+import com.icc.qasker.quiz.dto.request.AnswerRequest;
+import com.icc.qasker.quiz.dto.request.ExplanationRequest;
+import com.icc.qasker.quiz.entity.Problem;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

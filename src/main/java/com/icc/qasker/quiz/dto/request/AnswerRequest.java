@@ -1,6 +1,4 @@
-package com.icc.qasker.dto.request;
-
-import java.util.List;
+package com.icc.qasker.quiz.dto.request;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -9,6 +7,7 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
-public class ExplanationRequest {
-    private List<AnswerRequest> answers;
+public class AnswerRequest {
+    private Long problemId;
+    private Long userAnswer;
 }

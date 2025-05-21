@@ -1,11 +1,12 @@
 package com.icc.qasker.service;
 
-import com.icc.qasker.dto.request.AnswerRequest;
-import com.icc.qasker.dto.request.ExplanationRequest;
-import com.icc.qasker.dto.response.ResultResponse;
-import com.icc.qasker.entity.Explanation;
-import com.icc.qasker.entity.Problem;
-import com.icc.qasker.repository.ProblemRepository;
+import com.icc.qasker.quiz.dto.request.AnswerRequest;
+import com.icc.qasker.quiz.dto.request.ExplanationRequest;
+import com.icc.qasker.quiz.dto.response.ResultResponse;
+import com.icc.qasker.quiz.entity.Explanation;
+import com.icc.qasker.quiz.entity.Problem;
+import com.icc.qasker.quiz.repository.ProblemRepository;
+import com.icc.qasker.quiz.service.ExplanationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
