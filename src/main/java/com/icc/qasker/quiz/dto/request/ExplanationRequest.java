@@ -10,5 +10,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ExplanationRequest {
+    private Long problemSetId;
     private List<AnswerRequest> answers;
 }

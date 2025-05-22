@@ -13,9 +13,8 @@ import java.util.List;
 @AllArgsConstructor
 public class ProblemSet {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    private String title;
+    private Long id; // 기본키
+    private String title; // 문제집 이름
 
     @OneToMany(mappedBy = "problemSet", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Problem> problems;

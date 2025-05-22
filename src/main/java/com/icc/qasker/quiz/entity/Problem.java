@@ -8,21 +8,18 @@ import lombok.NoArgsConstructor;
 
 import java.util.List;
 
-@Getter
-@AllArgsConstructor
 @Entity
-@NoArgsConstructor
-@Builder   
+@Getter @NoArgsConstructor @AllArgsConstructor
 public class Problem {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @EmbeddedId
+    private ProblemId id; // 복합키로 변경 -> problem_set_id + number
 
-    private String title;
+    private String title; // 문제
 
     private Long correctAnswer;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @MapsId("problemSetId")
     @JoinColumn(name = "problem_set_id")
     private ProblemSet problemSet;
 

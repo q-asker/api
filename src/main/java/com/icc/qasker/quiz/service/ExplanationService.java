@@ -3,45 +3,46 @@ package com.icc.qasker.quiz.service;
 import com.icc.qasker.quiz.dto.response.ResultResponse;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
+import com.icc.qasker.quiz.entity.ProblemId;
 import com.icc.qasker.quiz.repository.ProblemRepository;
 import com.icc.qasker.quiz.dto.request.AnswerRequest;
 import com.icc.qasker.quiz.dto.request.ExplanationRequest;
 import com.icc.qasker.quiz.entity.Problem;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import com.icc.qasker.quiz.util.ExplanationValidator;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
 public class ExplanationService {
     private final ProblemRepository problemRepository;
 
-    public List<ResultResponse> gradeUserAnswers(ExplanationRequest request){
+    public List<ResultResponse> gradeUserAnswers(ExplanationRequest request) {
         List<ResultResponse> responses = new ArrayList<>();
 
-        for(AnswerRequest answer : request.getAnswers()){
-            Problem problem = problemRepository.findById(answer.getProblemId())
-                    .orElseThrow(() -> new CustomException(ExceptionMessage.DATA_NOT_FOUND));
+        Long problemSetId = request.getProblemSetId();
 
-            if (problem.getCorrectAnswer() == null) {
-                throw new CustomException(ExceptionMessage.INVALID_CORRECT_ANSWER);
-            }
+        for (AnswerRequest answer : request.getAnswers()) {
+            ProblemId problemId = new ProblemId(problemSetId, answer.getNumber());
 
-            if (answer.getUserAnswer() == null) {
-                throw new CustomException(ExceptionMessage.NULL_ANSWER_INPUT);
-            }
+            Optional<Problem> optionalProblem = problemRepository.findById(problemId);
 
+            Problem problem = optionalProblem.orElse(null);
+
+            ExplanationValidator.checkOf(problem, answer);
 
             boolean isCorrect = problem.getCorrectAnswer().equals(answer.getUserAnswer());
 
-            String explanationText = problem.getExplanation() != null
+            String explanationText = (problem.getExplanation() != null)
                     ? problem.getExplanation().getContent()
-                    : "해당 문제에 대한 해설이 존재하지 않습니다.";
+                    : "해설 없음";
 
             responses.add(new ResultResponse(
-                    problem.getId(),
+                    problemId.getNumber(),
                     problem.getCorrectAnswer(),
                     isCorrect,
                     explanationText
