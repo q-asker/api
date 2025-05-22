@@ -10,7 +10,6 @@ import com.icc.qasker.quiz.dto.request.ExplanationRequest;
 import com.icc.qasker.quiz.entity.Problem;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import com.icc.qasker.quiz.util.ExplanationValidator;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,16 +25,16 @@ public class ExplanationService {
 
         Long problemSetId = request.getProblemSetId();
 
-        for (AnswerRequest answer : request.getAnswers()) {
-            ProblemId problemId = new ProblemId(problemSetId, answer.getNumber());
+        for (AnswerRequest answerRequest : request.getAnswers()) {
+            ProblemId problemId = new ProblemId(problemSetId, answerRequest.getNumber());
 
             Optional<Problem> optionalProblem = problemRepository.findById(problemId);
 
             Problem problem = optionalProblem.orElse(null);
 
-            ExplanationValidator.checkOf(problem, answer);
+            validate(problem, answerRequest);
 
-            boolean isCorrect = problem.getCorrectAnswer().equals(answer.getUserAnswer());
+            boolean isCorrect = problem.getCorrectAnswer().equals(answerRequest.getUserAnswer());
 
             String explanationText = (problem.getExplanation() != null)
                     ? problem.getExplanation().getContent()
@@ -50,5 +49,16 @@ public class ExplanationService {
         }
 
         return responses;
+    }
+    private void validate(Problem problem,AnswerRequest answerRequest){
+        if (problem == null){
+            throw new CustomException(ExceptionMessage.PROBLEM_NOT_FOUND);
+        }
+        if (problem.getCorrectAnswer() == null) {
+            throw new CustomException(ExceptionMessage.INVALID_CORRECT_ANSWER);
+        }
+        if (answerRequest.getUserAnswer() == null) {
+            throw new CustomException(ExceptionMessage.NULL_ANSWER_INPUT);
+        }
     }
 }
