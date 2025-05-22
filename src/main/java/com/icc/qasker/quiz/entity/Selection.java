@@ -7,9 +7,9 @@ import lombok.*;
 @Getter @NoArgsConstructor @AllArgsConstructor
 public class Selection {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id; // 기본키
+    private Long id;
 
-    private String content; // 선택지 내용
+    private String content;
     private boolean isAnswer;
 
     @ManyToOne(fetch = FetchType.LAZY)

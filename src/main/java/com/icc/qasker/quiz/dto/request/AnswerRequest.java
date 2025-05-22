@@ -8,6 +8,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class AnswerRequest {
-    private Long number; // 보기의 번호
-    private Long userAnswer; // client의 답
+    private Long number;
+    private Long userAnswer;
 }

@@ -12,10 +12,8 @@ import java.util.List;
 @Getter @NoArgsConstructor @AllArgsConstructor
 public class Problem {
     @EmbeddedId
-    private ProblemId id; // 복합키로 변경 -> problem_set_id + number
-
-    private String title; // 문제
-
+    private ProblemId id;
+    private String title;
     private Long correctAnswer;
 
     @ManyToOne(fetch = FetchType.LAZY)
