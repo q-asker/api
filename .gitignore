@@ -39,4 +39,5 @@ out/
 ### Custom ###
 **/src/main/resources/**secret**
 .env
+gradle.properties
 **/src/main/resources/data.sql
