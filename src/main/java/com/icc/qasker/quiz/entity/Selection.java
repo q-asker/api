@@ -10,7 +10,6 @@ public class Selection {
     private Long id;
 
     private String content;
-    private boolean isAnswer;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumns({
