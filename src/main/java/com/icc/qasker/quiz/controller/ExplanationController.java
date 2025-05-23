@@ -20,7 +20,7 @@ public class ExplanationController {
     private final ExplanationService explanationService;
 
     @PostMapping
-    public ResponseEntity<ExplanationResponse> getExplanations(@RequestBody ExplanationRequest request) {
+    public ResponseEntity<ExplanationResponse> postExplanation(@RequestBody ExplanationRequest request) {
         List<ResultResponse> results = explanationService.gradeUserAnswers(request);
         return ResponseEntity.ok(new ExplanationResponse(results));
     }
