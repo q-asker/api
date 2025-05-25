@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Getter @NoArgsConstructor @AllArgsConstructor
+@Getter @NoArgsConstructor @AllArgsConstructor @Setter
 public class Selection {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
