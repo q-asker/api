@@ -14,6 +14,6 @@ import java.io.Serializable;
 
 public class ProblemId implements Serializable {
     private Long problemSetId;
-    private Long number;
+    private int number;
 
 }
