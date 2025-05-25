@@ -11,4 +11,5 @@ public class QuizGeneratedByAI {
     private String title;
     private List<String> selections;
     private String explanation;
+    private int correctAnswer;
 }
