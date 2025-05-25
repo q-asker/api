@@ -17,7 +17,7 @@ public class GenerationController {
     private final GenerationService generationService;
     @PostMapping
     public Mono<FeGenerationResponse> postQuiz(@RequestBody FeGenerationRequest feGenerationRequest){
-        return generationService.generateQuiz(feGenerationRequest);
+        return generationService.processGenerationRequest(feGenerationRequest);
     }
 
 }
