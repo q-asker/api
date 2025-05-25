@@ -42,7 +42,8 @@ public class GenerationService {
     private Mono<ProblemSet> saveToDB(AiGenerationResponse aiResponse){
         return Mono.fromCallable(() -> saveProblemSet(aiResponse));
     }
-    private ProblemSet saveProblemSet(AiGenerationResponse aiResponse){
+    public ProblemSet saveProblemSet(AiGenerationResponse aiResponse){
+        // for test, private -> public
         // generate problem set
         ProblemSet problemSet = new ProblemSet();
         problemSet.setTitle(aiResponse.getTitle());
