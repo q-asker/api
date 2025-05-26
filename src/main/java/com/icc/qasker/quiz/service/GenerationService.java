@@ -15,7 +15,9 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import com.icc.qasker.quiz.repository.ProblemSetRepository;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -42,14 +44,14 @@ public class GenerationService {
     private Mono<ProblemSet> saveToDB(AiGenerationResponse aiResponse){
         return Mono.fromCallable(() -> saveProblemSet(aiResponse));
     }
-    public ProblemSet saveProblemSet(AiGenerationResponse aiResponse){
+    private ProblemSet saveProblemSet(AiGenerationResponse aiResponse){
         // for test, private -> public
-        // generate problem set
-        ProblemSet problemSet = new ProblemSet();
-        problemSet.setTitle(aiResponse.getTitle());
+        // - problem set
+        ProblemSet problemSet = new ProblemSet(); // generate id
+        problemSet.setTitle(aiResponse.getTitle()); // set title
         problemSet = problemSetRepository.save(problemSet);
 
-        // create problems
+        // - create problems
         List<Problem> problems = new ArrayList<>();
 
         for (QuizGeneratedByAI quiz : aiResponse.getQuiz()) {
@@ -61,36 +63,37 @@ public class GenerationService {
         return problemSetRepository.save(problemSet);
     }
     private Problem createProblemEntity(ProblemSet problemSet,QuizGeneratedByAI quiz){
-        //
+        // problem
         ProblemId problemId = new ProblemId(problemSet.getId(), quiz.getNumber());
         Problem problem = new Problem();
         problem.setId(problemId);
         problem.setTitle(quiz.getTitle());
+        problem.setProblemSet(problemSet);
+        problem = problemRepository.save(problem); // generate id
 
-        // correctAnswer later
 
-        // set Selections
+        // selection
         List<Selection> selections = new ArrayList<>();
-        Selection correctSelection = null;
-
         List<String> selectionTexts = quiz.getSelections();
-        int correctIdx = quiz.getCorrectAnswer();
-
-        for (int i = 0; i < selectionTexts.size(); i++) {
+        for (int i=0;i<selectionTexts.size();i++){
             String content = selectionTexts.get(i);
             Selection selection = new Selection();
             selection.setContent(content);
+
             selection.setProblem(problem);
             selections.add(selection);
+
         }
-
         List<Selection> savedSelections = selectionRepository.saveAll(selections);
-        problem.setSelections(savedSelections);
 
-        if (correctIdx >= 0 && correctIdx < savedSelections.size()) {
-            correctSelection = savedSelections.get(correctIdx);
+        // set correct_answer of problem
+        int correctAnswerIndex = quiz.getCorrectAnswer();
+        if(correctAnswerIndex >= 0 && correctAnswerIndex < savedSelections.size()) {
+            Selection correctSelection = savedSelections.get(correctAnswerIndex);
             problem.setCorrectAnswer(correctSelection.getId());
         }
+        problem.setSelections(savedSelections);
+
         // explanation
         Explanation explanation = new Explanation();
         explanation.setId(problemId);
@@ -98,7 +101,7 @@ public class GenerationService {
         explanation.setProblem(problem);
         problem.setExplanation(explanation);
 
-        return problem;
+        return problemRepository.save(problem);
     }
     private FeGenerationResponse convertToFeResponse(ProblemSet problemSet){
         // convert
