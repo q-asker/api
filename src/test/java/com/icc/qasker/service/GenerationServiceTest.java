@@ -15,33 +15,32 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.web.reactive.function.client.WebClient;
 
 
 import java.util.Arrays;
 import java.util.List;
 
 
-import static net.bytebuddy.matcher.ElementMatchers.any;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.internal.verification.VerificationModeFactory.times;
 
 @ExtendWith(MockitoExtension.class)
-public class GenerationServiceForDBTest {
+public class GenerationServiceTest {
+    @Mock @Qualifier("aiWebClient")
+    private WebClient aiWebClient;
     @Mock
     private ProblemSetRepository problemSetRepository;
-
     @Mock
     private ProblemRepository problemRepository;
-
     @Mock
     private SelectionRepository selectionRepository;
-
     @InjectMocks
     private GenerationService generationService;
-    private AiGenerationResponse response;
 
+    private AiGenerationResponse response;
     private QuizGeneratedByAI quiz1;
     private QuizGeneratedByAI quiz2;
     private ProblemSet savedSet;
@@ -66,7 +65,6 @@ public class GenerationServiceForDBTest {
 
         response.setQuiz(Arrays.asList(quiz1,quiz2));
 
-        savedSet = new ProblemSet();
     }
     @Test
     void givenAiResponse_whenSaveToDB_thenSavedToRepositoriesCorrectly(){
@@ -78,7 +76,7 @@ public class GenerationServiceForDBTest {
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
         // when
-        ProblemSet result = generationService.saveProblemSet(response); // saveProblemSet private -> public
+        ProblemSet result = generationService.saveProblemSet(response); // for test
         // then
         assertThat(result.getTitle()).isEqualTo(response.getTitle());
         assertThat(result.getProblems()).hasSize(response.getQuiz().size());
