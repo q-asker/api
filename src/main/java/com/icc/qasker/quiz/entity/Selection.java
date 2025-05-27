@@ -4,18 +4,18 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Getter @NoArgsConstructor @AllArgsConstructor @Setter
+@Getter @RequiredArgsConstructor @Setter
 public class Selection {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private String content;
+    private final String content;
     @Column(nullable = false)
-    private boolean isCorrect;
+    private final boolean isCorrect;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumns({
             @JoinColumn(name = "problem_set_id", referencedColumnName = "problem_set_id"),
             @JoinColumn(name = "number", referencedColumnName = "number")
     })
-    private Problem problem;
+    private final Problem problem;
 }
