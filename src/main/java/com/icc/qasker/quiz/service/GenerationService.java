@@ -69,7 +69,7 @@ public class GenerationService {
             if (aiResponse == null || aiResponse.getQuiz() == null) {
                 throw new CustomException(ExceptionMessage.NULL_AI_RESPONSE);
             }
-            if (aiResponse.getQuiz().size()!=feRequestQuizCount) {
+            if (aiResponse.getQuiz().size() != feRequestQuizCount) {
                 throw new CustomException(ExceptionMessage.INVALID_AI_RESPONSE);
             }
             return saveProblemSet(aiResponse);
@@ -77,58 +77,32 @@ public class GenerationService {
     }
     private ProblemSet saveProblemSet(AiGenerationResponse aiResponse){
         // for test, private -> public
-        // - problem set
-        ProblemSet problemSet = new ProblemSet(); // generate id
-        problemSet.setTitle(aiResponse.getTitle()); // set title
-        problemSet = problemSetRepository.save(problemSet);
-
-        // - create problems
-        List<Problem> problems = new ArrayList<>();
-
+        // - 1. problem set
+        ProblemSet problemSet = new ProblemSet(aiResponse.getTitle());
+        problemSet = problemSetRepository.save(problemSet); // generate problem_set_id for a later process
+        List<Problem> problems = new ArrayList<>(); // problems of problem_set
         for (QuizGeneratedByAI quiz : aiResponse.getQuiz()) {
             Problem problem = createProblemEntity(problemSet, quiz);
             problems.add(problem);
         }
         problemSet.setProblems(problems);
-
-        return problemSetRepository.save(problemSet);
+        return problemSetRepository.save(problemSet); // reflect problems of problem_set to DB
     }
     private Problem createProblemEntity(ProblemSet problemSet,QuizGeneratedByAI quiz){
-        // problem
+        // - 2. problem
         ProblemId problemId = new ProblemId(problemSet.getId(), quiz.getNumber());
-        Problem problem = new Problem();
-        problem.setId(problemId);
-        problem.setTitle(quiz.getTitle());
-        problem.setProblemSet(problemSet);
-        problem = problemRepository.save(problem); // generate id
+        Problem problem = new Problem(problemId, quiz.getTitle(), problemSet);
 
-        // selection
+        // - 3. selection
         List<Selection> selections = new ArrayList<>();
-        List<String> selectionTexts = quiz.getSelections();
-        for (int i=0;i<selectionTexts.size();i++){
-            String content = selectionTexts.get(i);
-            Selection selection = new Selection();
-            selection.setContent(content);
-
-            selection.setProblem(problem);
+        for (QuizGeneratedByAI.SelectionWithAnswer sel : quiz.getSelections()) {
+            Selection selection = new Selection(sel.getContent(),sel.isCorrect(),problem);
             selections.add(selection);
-
         }
-        List<Selection> savedSelections = selectionRepository.saveAll(selections);
+        problem.setSelections(selections);
 
-        // set correct_answer of problem
-        int correctAnswerIndex = quiz.getCorrectAnswer();
-        if(correctAnswerIndex >= 0 && correctAnswerIndex < savedSelections.size()) {
-            Selection correctSelection = savedSelections.get(correctAnswerIndex);
-            problem.setCorrectAnswer(correctSelection.getId());
-        }
-        problem.setSelections(savedSelections);
-
-        // explanation
-        Explanation explanation = new Explanation();
-        explanation.setId(problemId);
-        explanation.setContent(quiz.getExplanation());
-        explanation.setProblem(problem);
+        // - 4. explanation
+        Explanation explanation = new Explanation(problemId, quiz.getExplanation(), problem);
         problem.setExplanation(explanation);
 
         return problemRepository.save(problem);

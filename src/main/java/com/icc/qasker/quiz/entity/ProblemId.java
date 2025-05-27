@@ -7,13 +7,11 @@ import java.io.Serializable;
 
 @Embeddable
 @Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
+@RequiredArgsConstructor
 @EqualsAndHashCode
 
 public class ProblemId implements Serializable {
-    private Long problemSetId;
-    private int number;
+    private final Long problemSetId;
+    private final int number;
 
 }
