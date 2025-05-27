@@ -1,5 +1,6 @@
 package com.icc.qasker.quiz.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -15,6 +16,7 @@ public class QuizGeneratedByAI {
     @Getter
     public static class SelectionWithAnswer {
         private String content;
-        private boolean isCorrect;
+        @JsonProperty("isCorrect")
+        private boolean correct;
     }
 }

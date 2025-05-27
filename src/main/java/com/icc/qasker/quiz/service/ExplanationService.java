@@ -31,9 +31,7 @@ public class ExplanationService {
             ProblemId problemId = new ProblemId(problemSetId, answerRequest.getNumber());
 
             Optional<Problem> optionalProblem = problemRepository.findById(problemId);
-
             Problem problem = optionalProblem.orElse(null);
-
             validate(problem, answerRequest);
 
             Long correctAnswerId = problem.getSelections().stream()
@@ -63,7 +61,7 @@ public class ExplanationService {
             throw new CustomException(ExceptionMessage.PROBLEM_NOT_FOUND);
         }
         if (problem.getSelections().stream()
-                .anyMatch(Selection::isCorrect)) {
+                .noneMatch(Selection::isCorrect)) {
             throw new CustomException(ExceptionMessage.INVALID_CORRECT_ANSWER);
         }
         if (answerRequest.getUserAnswer() == null) {
