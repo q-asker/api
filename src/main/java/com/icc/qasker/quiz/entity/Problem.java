@@ -12,7 +12,6 @@ public class Problem {
     @EmbeddedId
     private ProblemId id;
     private String title;
-    private Long correctAnswer;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @MapsId("problemSetId")
