@@ -8,12 +8,17 @@ import lombok.Setter;
 import java.util.List;
 @Getter
 @AllArgsConstructor
-@NoArgsConstructor
 @Setter
 public class QuizGeneratedByAI {
     private int number;
     private String title;
-    private List<String> selections;
+    private List<SelectionWithAnswer> selections;
     private String explanation;
-    private int correctAnswer;
+    @Getter
+    @AllArgsConstructor
+    @Setter
+    public static class SelectionWithAnswer {
+        private String content;
+        private boolean isCorrect;
+    }
 }
