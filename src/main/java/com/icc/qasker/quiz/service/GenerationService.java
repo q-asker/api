@@ -183,14 +183,8 @@ public class GenerationService {
         if (request.getUploadedUrl() == null && request.getQuizCount() <= 0 && request.getType() ==null) {
             throw new CustomException(ExceptionMessage.NULL_GENERATION_REQUEST);
         }
-        if (request.getUploadedUrl() == null || request.getUploadedUrl().trim().isEmpty()) {
-            throw new CustomException(ExceptionMessage.INVALID_URL);
-        }
-        if (request.getQuizCount() <= 0) {
-            throw new CustomException(ExceptionMessage.INVALID_QUESTION_COUNT);
-        }
-        if (request.getType() == null) {
-            throw new CustomException(ExceptionMessage.INVALID_TYPE);
+        if (request.getUploadedUrl() == null || request.getUploadedUrl().trim().isEmpty() || request.getQuizCount() <= 0 || request.getType() == null) {
+            throw new CustomException(ExceptionMessage.INVALID_FE_REQUEST);
         }
     }
 

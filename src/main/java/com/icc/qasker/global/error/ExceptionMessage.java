@@ -21,21 +21,19 @@ public enum ExceptionMessage {
 
     // GenerationService.java
     // AI ISSUE
-    AI_SERVER_TIMEOUT(HttpStatus.REQUEST_TIMEOUT,"AI서버 응답 시간이 초과되었습니다."),
+    AI_SERVER_TIMEOUT(HttpStatus.GATEWAY_TIMEOUT,"AI서버 응답 시간이 초과되었습니다."),
     AI_SERVER_CONNECTION_FAILED(HttpStatus.BAD_GATEWAY, "AI서버에 연결할 수 없습니다."),
-    AI_SERVER_RESPONSE_ERROR(HttpStatus.SERVICE_UNAVAILABLE, "AI서버에서 오류가 발생했습니다."),
+    AI_SERVER_RESPONSE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "AI서버에서 오류가 발생했습니다."),
 
-    NULL_AI_RESPONSE(HttpStatus.BAD_REQUEST,"AI 응답이 null입니다."),
-    INVALID_AI_RESPONSE(HttpStatus.BAD_REQUEST,"유효하지 않은 AI의 응답입니다."),
+    NULL_AI_RESPONSE(HttpStatus.INTERNAL_SERVER_ERROR,"AI 응답이 null입니다."),
+    INVALID_AI_RESPONSE(HttpStatus.UNPROCESSABLE_ENTITY,"유효하지 않은 AI의 응답입니다."),
 
     // FE ISSUE
     NULL_GENERATION_REQUEST(HttpStatus.BAD_REQUEST, "생성 요청이 null입니다."),
-    INVALID_URL(HttpStatus.BAD_REQUEST,"URL이 없습니다."),
-    INVALID_QUESTION_COUNT(HttpStatus.BAD_REQUEST,"문제 개수가 유효하지 않습니다."),
-    INVALID_TYPE(HttpStatus.BAD_REQUEST,"난이도가 유효하지 않습니다."),
+    INVALID_FE_REQUEST(HttpStatus.UNPROCESSABLE_ENTITY,"유효하지 않은 요청입니다."),
 
     // Default
-    DEFAULT_ERROR(HttpStatus.BAD_REQUEST,"에러가 발생했습니다.");
+    DEFAULT_ERROR(HttpStatus.INTERNAL_SERVER_ERROR,"에러가 발생했습니다.");
 
     private final HttpStatus httpStatus;
     private final String message;
