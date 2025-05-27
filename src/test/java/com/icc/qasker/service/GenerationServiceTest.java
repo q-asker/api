@@ -48,8 +48,6 @@ public class GenerationServiceTest {
 
     @BeforeEach
     void setUp() {
-        response = new AiGenerationResponse();
-        response.setTitle("예시 문제집 1");
 
         quiz1 = new QuizGeneratedByAI();
         quiz1.setNumber(1);
@@ -63,8 +61,7 @@ public class GenerationServiceTest {
         quiz2.setSelections(Arrays.asList("서울","인천","부산","광주"));
         quiz2.setCorrectAnswer(0);
 
-        response.setQuiz(Arrays.asList(quiz1,quiz2));
-
+        response = new AiGenerationResponse("예시 문제집 1",Arrays.asList(quiz1,quiz2));
     }
     @Test
     void givenAiResponse_whenSaveToDB_thenSavedToRepositoriesCorrectly(){
