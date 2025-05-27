@@ -8,8 +8,9 @@ import lombok.*;
 public class Selection {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
     private String content;
+    @Column(nullable = false)
+    private boolean isCorrect;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumns({
