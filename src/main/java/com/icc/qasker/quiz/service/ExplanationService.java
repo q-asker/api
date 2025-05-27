@@ -8,6 +8,8 @@ import com.icc.qasker.quiz.repository.ProblemRepository;
 import com.icc.qasker.quiz.dto.request.AnswerRequest;
 import com.icc.qasker.quiz.dto.request.ExplanationRequest;
 import com.icc.qasker.quiz.entity.Problem;
+import com.icc.qasker.quiz.entity.Selection;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -34,7 +36,13 @@ public class ExplanationService {
 
             validate(problem, answerRequest);
 
-            boolean isCorrect = problem.getCorrectAnswer().equals(answerRequest.getUserAnswer());
+            Long correctAnswerId = problem.getSelections().stream()
+                    .filter(Selection::isCorrect)
+                    .map(Selection::getId)
+                    .findFirst()
+                    .orElseThrow(() -> new CustomException(ExceptionMessage.INVALID_CORRECT_ANSWER));
+
+            boolean isCorrect = correctAnswerId.equals(answerRequest.getUserAnswer());
 
             String explanationText = (problem.getExplanation() != null)
                     ? problem.getExplanation().getContent()
@@ -42,7 +50,7 @@ public class ExplanationService {
 
             responses.add(new ResultResponse(
                     problemId.getNumber(),
-                    problem.getCorrectAnswer(),
+                    correctAnswerId,
                     isCorrect,
                     explanationText
             ));
@@ -54,7 +62,8 @@ public class ExplanationService {
         if (problem == null){
             throw new CustomException(ExceptionMessage.PROBLEM_NOT_FOUND);
         }
-        if (problem.getCorrectAnswer() == null) {
+        if (problem.getSelections().stream()
+                .anyMatch(Selection::isCorrect)) {
             throw new CustomException(ExceptionMessage.INVALID_CORRECT_ANSWER);
         }
         if (answerRequest.getUserAnswer() == null) {
