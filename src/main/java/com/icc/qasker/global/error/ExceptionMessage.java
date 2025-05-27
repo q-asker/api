@@ -26,12 +26,7 @@ public enum ExceptionMessage {
     AI_SERVER_RESPONSE_ERROR(HttpStatus.SERVICE_UNAVAILABLE, "AI서버에서 오류가 발생했습니다."),
 
     NULL_AI_RESPONSE(HttpStatus.BAD_REQUEST,"AI 응답이 null입니다."),
-    EMPTY_QUIZ_LIST(HttpStatus.BAD_REQUEST,"퀴즈 목록이 비어있습니다."),
-    NULL_QUIZ(HttpStatus.BAD_REQUEST,"퀴즈가 null입니다."),
-    INVALID_QUIZ_TITLE(HttpStatus.BAD_REQUEST,"유효하지 않은 지문입니다."),
-    INVALID_SELECTIONS(HttpStatus.BAD_REQUEST,"유효하지 않은 선택지들입니다."),
-    INVALID_CORRECT_ANSWER_INDEX(HttpStatus.BAD_REQUEST,"유효하지 않은 정답입니다."),
-    INVALID_EXPLANATION(HttpStatus.BAD_REQUEST,"유효하지 않은 해설입니다."),
+    INVALID_AI_RESPONSE(HttpStatus.BAD_REQUEST,"유효하지 않은 AI의 응답입니다."),
 
     // FE ISSUE
     NULL_GENERATION_REQUEST(HttpStatus.BAD_REQUEST, "생성 요청이 null입니다."),

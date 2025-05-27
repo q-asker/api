@@ -1,5 +1,6 @@
-package com.icc.qasker.quiz.config;
+package com.icc.qasker.global.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
@@ -7,10 +8,12 @@ import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.WebClient;
 @Configuration
 public class WebClientConfig {
+    @Value("${q-asker.ai-url}")
+    private String aiServerUrl;
     @Bean("aiWebClient")
     public WebClient aiWebClient(WebClient.Builder builder) {
         return builder
-                .baseUrl("http://localhost:8000")
+                .baseUrl(aiServerUrl)
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .build();
     }
