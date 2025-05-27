@@ -4,11 +4,11 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Getter @RequiredArgsConstructor @Setter
+@Getter @NoArgsConstructor @Setter
 public class Explanation {
     @EmbeddedId
-    private final ProblemId id;
-    private final String content;
+    private ProblemId id;
+    private String content;
 
     @OneToOne
     @MapsId
@@ -16,5 +16,5 @@ public class Explanation {
             @JoinColumn(name = "problem_set_id", referencedColumnName = "problem_set_id"),
             @JoinColumn(name = "number", referencedColumnName = "number")
     })
-    private final Problem problem;
+    private Problem problem;
 }

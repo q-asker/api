@@ -7,12 +7,13 @@ import java.util.List;
 
 @Entity
 @Getter
-@RequiredArgsConstructor
+@NoArgsConstructor
+@AllArgsConstructor
 @Setter
 public class ProblemSet {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private final String title;
+    private String title;
 
     @OneToMany(mappedBy = "problemSet", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Problem> problems;

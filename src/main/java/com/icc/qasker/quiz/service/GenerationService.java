@@ -78,7 +78,8 @@ public class GenerationService {
     private ProblemSet saveProblemSet(AiGenerationResponse aiResponse){
         // for test, private -> public
         // - 1. problem set
-        ProblemSet problemSet = new ProblemSet(aiResponse.getTitle());
+        ProblemSet problemSet = new ProblemSet();
+        problemSet.setTitle(aiResponse.getTitle());
         problemSet = problemSetRepository.save(problemSet); // generate problem_set_id for a later process
         List<Problem> problems = new ArrayList<>(); // problems of problem_set
         for (QuizGeneratedByAI quiz : aiResponse.getQuiz()) {
@@ -91,18 +92,27 @@ public class GenerationService {
     private Problem createProblemEntity(ProblemSet problemSet,QuizGeneratedByAI quiz){
         // - 2. problem
         ProblemId problemId = new ProblemId(problemSet.getId(), quiz.getNumber());
-        Problem problem = new Problem(problemId, quiz.getTitle(), problemSet);
+        Problem problem = new Problem();
+        problem.setId(problemId);
+        problem.setTitle(quiz.getTitle());
+        problem.setProblemSet(problemSet);
 
         // - 3. selection
         List<Selection> selections = new ArrayList<>();
         for (QuizGeneratedByAI.SelectionWithAnswer sel : quiz.getSelections()) {
-            Selection selection = new Selection(sel.getContent(),sel.isCorrect(),problem);
+            Selection selection = new Selection();
+            selection.setContent(sel.getContent());
+            selection.setCorrect(sel.isCorrect());
+            selection.setProblem(problem);
             selections.add(selection);
         }
         problem.setSelections(selections);
 
         // - 4. explanation
-        Explanation explanation = new Explanation(problemId, quiz.getExplanation(), problem);
+        Explanation explanation = new Explanation();
+        explanation.setId(problemId);
+        explanation.setContent(quiz.getExplanation());
+        explanation.setProblem(problem);
         problem.setExplanation(explanation);
 
         return problemRepository.save(problem);
