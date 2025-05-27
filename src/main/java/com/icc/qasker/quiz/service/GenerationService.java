@@ -2,7 +2,6 @@ package com.icc.qasker.quiz.service;
 
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
-import com.icc.qasker.quiz.domain.enums.QuizType;
 import com.icc.qasker.quiz.dto.request.FeGenerationRequest;
 import com.icc.qasker.quiz.dto.response.AiGenerationResponse;
 import com.icc.qasker.quiz.dto.response.FeGenerationResponse;
@@ -13,7 +12,6 @@ import com.icc.qasker.quiz.repository.ProblemRepository;
 import com.icc.qasker.quiz.repository.SelectionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientRequestException;
@@ -22,9 +20,7 @@ import com.icc.qasker.quiz.repository.ProblemSetRepository;
 
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
 @Service
@@ -39,8 +35,7 @@ public class GenerationService {
     public Mono<FeGenerationResponse> processGenerationRequest(FeGenerationRequest feGenerationRequest){
         return Mono.fromRunnable(() -> validateGenerationRequest(feGenerationRequest))
                 .then(callAiServer(feGenerationRequest))
-                .flatMap(this::saveToDB)
-                .map(this::convertToFeResponse)
+                .flatMap(aiResponse -> saveToDB(aiResponse, feGenerationRequest.getQuizCount()))                .map(this::convertToFeResponse)
                 .doOnError(error -> {
                     System.err.println("예외 발생: " + error.getMessage());
                     error.printStackTrace();
@@ -61,9 +56,9 @@ public class GenerationService {
                 .timeout(Duration.ofSeconds(10))
                 .onErrorMap(this::webClientError); // ok
     }
-    private Mono<ProblemSet> saveToDB(AiGenerationResponse aiResponse){
+    private Mono<ProblemSet> saveToDB(AiGenerationResponse aiResponse,int feRequestQuizCount){
         return Mono.fromCallable(() -> {
-            validateAiResponse(aiResponse);
+            validateAiResponse(aiResponse,feRequestQuizCount);
             return saveProblemSet(aiResponse);
         });
     }
@@ -158,12 +153,9 @@ public class GenerationService {
     }
 
     // Invalidate response of AI Server
-    private void validateAiResponse(AiGenerationResponse aiResponse) {
-        if (aiResponse == null) {
+    private void validateAiResponse(AiGenerationResponse aiResponse,int feRequestQuizCount) {
+        if (aiResponse == null || aiResponse.getQuiz() == null || aiResponse.getQuiz().isEmpty() || aiResponse.getQuiz().size()!=feRequestQuizCount) {
             throw new CustomException(ExceptionMessage.NULL_AI_RESPONSE);
-        }
-        if (aiResponse.getQuiz() == null || aiResponse.getQuiz().isEmpty()) {
-            throw new CustomException(ExceptionMessage.EMPTY_QUIZ_LIST);
         }
         for (QuizGeneratedByAI quiz : aiResponse.getQuiz()) {
             validateQuiz(quiz);
@@ -171,19 +163,19 @@ public class GenerationService {
     }
     private void validateQuiz(QuizGeneratedByAI quiz) {
         if (quiz == null) {
-            throw new CustomException(ExceptionMessage.NULL_QUIZ);
+            throw new CustomException(ExceptionMessage.NULL_AI_RESPONSE);
         }
         if (quiz.getTitle() == null || quiz.getTitle().trim().isEmpty()) {
-            throw new CustomException(ExceptionMessage.INVALID_QUIZ_TITLE);
+            throw new CustomException(ExceptionMessage.NULL_AI_RESPONSE);
         }
         if (quiz.getSelections() == null || quiz.getSelections().size() < 2) {
-            throw new CustomException(ExceptionMessage.INVALID_SELECTIONS);
+            throw new CustomException(ExceptionMessage.NULL_AI_RESPONSE);
         }
         if (quiz.getCorrectAnswer() < 0 || quiz.getCorrectAnswer() >= quiz.getSelections().size()) {
-            throw new CustomException(ExceptionMessage.INVALID_CORRECT_ANSWER_INDEX);
+            throw new CustomException(ExceptionMessage.NULL_AI_RESPONSE);
         }
         if (quiz.getExplanation() == null || quiz.getExplanation().trim().isEmpty()) {
-            throw new CustomException(ExceptionMessage.INVALID_EXPLANATION);
+            throw new CustomException(ExceptionMessage.NULL_AI_RESPONSE);
         }
     }
     // Invalidate request of FE Server
