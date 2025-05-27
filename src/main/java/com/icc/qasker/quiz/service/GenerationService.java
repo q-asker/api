@@ -11,6 +11,7 @@ import com.icc.qasker.quiz.entity.*;
 import com.icc.qasker.quiz.repository.ProblemRepository;
 import com.icc.qasker.quiz.repository.SelectionRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -22,23 +23,30 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeoutException;
-
+@Slf4j
 @Service
-@RequiredArgsConstructor
 public class GenerationService {
-    @Qualifier("aiWebClient")
     private final WebClient aiWebClient;
     private final ProblemSetRepository problemSetRepository;
     private final SelectionRepository selectionRepository;
     private final ProblemRepository problemRepository;
 
+    public GenerationService(
+            @Qualifier("aiWebClient") WebClient aiWebClient,
+            ProblemSetRepository problemSetRepository,
+            SelectionRepository selectionRepository,
+            ProblemRepository problemRepository
+    ) {
+        this.aiWebClient = aiWebClient;
+        this.problemSetRepository = problemSetRepository;
+        this.selectionRepository = selectionRepository;
+        this.problemRepository = problemRepository;
+    }
     public Mono<FeGenerationResponse> processGenerationRequest(FeGenerationRequest feGenerationRequest){
-        return Mono.fromRunnable(() -> validateGenerationRequest(feGenerationRequest))
-                .then(callAiServer(feGenerationRequest))
+        return callAiServer(feGenerationRequest)
                 .flatMap(aiResponse -> saveToDB(aiResponse, feGenerationRequest.getQuizCount()))                .map(this::convertToFeResponse)
                 .doOnError(error -> {
-                    System.err.println("예외 발생: " + error.getMessage());
-                    error.printStackTrace();
+                    log.error("예외 발생: {}", error.getMessage(), error);
                 })
                 .onErrorResume(error -> {
                     if (error instanceof CustomException) {
@@ -58,7 +66,12 @@ public class GenerationService {
     }
     private Mono<ProblemSet> saveToDB(AiGenerationResponse aiResponse,int feRequestQuizCount){
         return Mono.fromCallable(() -> {
-            validateAiResponse(aiResponse,feRequestQuizCount);
+            if (aiResponse == null || aiResponse.getQuiz() == null) {
+                throw new CustomException(ExceptionMessage.NULL_AI_RESPONSE);
+            }
+            if (aiResponse.getQuiz().size()!=feRequestQuizCount) {
+                throw new CustomException(ExceptionMessage.INVALID_AI_RESPONSE);
+            }
             return saveProblemSet(aiResponse);
         });
     }
@@ -152,40 +165,5 @@ public class GenerationService {
         return new CustomException(ExceptionMessage.AI_SERVER_RESPONSE_ERROR);
     }
 
-    // Invalidate response of AI Server
-    private void validateAiResponse(AiGenerationResponse aiResponse,int feRequestQuizCount) {
-        if (aiResponse == null || aiResponse.getQuiz() == null || aiResponse.getQuiz().isEmpty() || aiResponse.getQuiz().size()!=feRequestQuizCount) {
-            throw new CustomException(ExceptionMessage.NULL_AI_RESPONSE);
-        }
-        for (QuizGeneratedByAI quiz : aiResponse.getQuiz()) {
-            validateQuiz(quiz);
-        }
-    }
-    private void validateQuiz(QuizGeneratedByAI quiz) {
-        if (quiz == null) {
-            throw new CustomException(ExceptionMessage.NULL_AI_RESPONSE);
-        }
-        if (quiz.getTitle() == null || quiz.getTitle().trim().isEmpty()) {
-            throw new CustomException(ExceptionMessage.NULL_AI_RESPONSE);
-        }
-        if (quiz.getSelections() == null || quiz.getSelections().size() < 2) {
-            throw new CustomException(ExceptionMessage.NULL_AI_RESPONSE);
-        }
-        if (quiz.getCorrectAnswer() < 0 || quiz.getCorrectAnswer() >= quiz.getSelections().size()) {
-            throw new CustomException(ExceptionMessage.NULL_AI_RESPONSE);
-        }
-        if (quiz.getExplanation() == null || quiz.getExplanation().trim().isEmpty()) {
-            throw new CustomException(ExceptionMessage.NULL_AI_RESPONSE);
-        }
-    }
-    // Invalidate request of FE Server
-    private void validateGenerationRequest(FeGenerationRequest request) {
-        if (request.getUploadedUrl() == null && request.getQuizCount() <= 0 && request.getType() ==null) {
-            throw new CustomException(ExceptionMessage.NULL_GENERATION_REQUEST);
-        }
-        if (request.getUploadedUrl() == null || request.getUploadedUrl().trim().isEmpty() || request.getQuizCount() <= 0 || request.getType() == null) {
-            throw new CustomException(ExceptionMessage.INVALID_FE_REQUEST);
-        }
-    }
 
 }
