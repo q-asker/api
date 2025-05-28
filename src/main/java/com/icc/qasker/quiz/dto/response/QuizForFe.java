@@ -11,13 +11,16 @@ import java.util.List;
 public class QuizForFe {
     private int number;
     private String title;
-    private List<SelectionDto> selections;
+    private int userAnswer;
+    private boolean check;
+    private List<SelectionsForFE> selections;
     @Getter
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class SelectionDto{
-        private Long id;
+    public static class SelectionsForFE{
+        private int id;
         private String content;
+        private boolean correct;
     }
 
 }

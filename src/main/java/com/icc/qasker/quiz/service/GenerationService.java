@@ -3,10 +3,7 @@ package com.icc.qasker.quiz.service;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.quiz.dto.request.FeGenerationRequest;
-import com.icc.qasker.quiz.dto.response.AiGenerationResponse;
-import com.icc.qasker.quiz.dto.response.FeGenerationResponse;
-import com.icc.qasker.quiz.dto.response.QuizForFe;
-import com.icc.qasker.quiz.dto.response.QuizGeneratedByAI;
+import com.icc.qasker.quiz.dto.response.*;
 import com.icc.qasker.quiz.entity.*;
 import com.icc.qasker.quiz.repository.ProblemRepository;
 import com.icc.qasker.quiz.repository.SelectionRepository;
@@ -44,7 +41,8 @@ public class GenerationService {
     }
     public Mono<FeGenerationResponse> processGenerationRequest(FeGenerationRequest feGenerationRequest){
         return callAiServer(feGenerationRequest)
-                .flatMap(aiResponse -> saveToDB(aiResponse, feGenerationRequest.getQuizCount()))                .map(this::convertToFeResponse)
+                .flatMap(aiResponse -> saveToDB(aiResponse, feGenerationRequest.getQuizCount()))
+                .map(this::convertToFeResponse)
                 .doOnError(error -> {
                     log.error("예외 발생: {}", error.getMessage(), error);
                 })
@@ -80,7 +78,6 @@ public class GenerationService {
         // - 1. problem set
         ProblemSet problemSet = new ProblemSet();
         problemSet.setTitle(aiResponse.getTitle());
-        problemSet = problemSetRepository.save(problemSet); // generate problem_set_id for a later process
         List<Problem> problems = new ArrayList<>(); // problems of problem_set
         for (QuizGeneratedByAI quiz : aiResponse.getQuiz()) {
             Problem problem = createProblemEntity(problemSet, quiz);
@@ -91,31 +88,31 @@ public class GenerationService {
     }
     private Problem createProblemEntity(ProblemSet problemSet,QuizGeneratedByAI quiz){
         // - 2. problem
-        ProblemId problemId = new ProblemId(problemSet.getId(), quiz.getNumber());
         Problem problem = new Problem();
+        ProblemId problemId = new ProblemId();
+        problemId.setNumber(quiz.getNumber());
         problem.setId(problemId);
         problem.setTitle(quiz.getTitle());
         problem.setProblemSet(problemSet);
 
         // - 3. selection
         List<Selection> selections = new ArrayList<>();
-        for (QuizGeneratedByAI.SelectionWithAnswer sel : quiz.getSelections()) {
+        for (QuizGeneratedByAI.SelectionsOfAi sel : quiz.getSelections()) {
             Selection selection = new Selection();
             selection.setContent(sel.getContent());
             selection.setCorrect(sel.isCorrect());
-            selection.setProblem(problem);
             selections.add(selection);
+            selection.setProblem(problem);
         }
         problem.setSelections(selections);
 
         // - 4. explanation
         Explanation explanation = new Explanation();
-        explanation.setId(problemId);
         explanation.setContent(quiz.getExplanation());
         explanation.setProblem(problem);
         problem.setExplanation(explanation);
 
-        return problemRepository.save(problem);
+        return problem;
     }
     private FeGenerationResponse convertToFeResponse(ProblemSet problemSet){
         // convert
@@ -123,13 +120,14 @@ public class GenerationService {
         List<QuizForFe> quizList = new ArrayList<>();
         for(Problem problem:savedProblems){
             List<Selection> selections = selectionRepository.findByProblem(problem);
-            List<QuizForFe.SelectionDto> selectionDtos = new ArrayList<>();
+            List<QuizForFe.SelectionsForFE> SelectionsForFEs = new ArrayList<>();
 
-            for (Selection s:selections){
-                QuizForFe.SelectionDto selectionDto = new QuizForFe.SelectionDto(s.getId(),s.getContent());
-                selectionDtos.add(selectionDto);
+            for (int i =1; i <= selections.size();i++){
+                Selection s = selections.get(i);
+                QuizForFe.SelectionsForFE SelectionsForFE = new QuizForFe.SelectionsForFE(i,s.getContent(),s.isCorrect());
+                SelectionsForFEs.add(SelectionsForFE);
             }
-            QuizForFe quiz = new QuizForFe(problem.getId().getNumber(),problem.getTitle(),selectionDtos);
+            QuizForFe quiz = new QuizForFe(problem.getId().getNumber(),problem.getTitle(),0,false,SelectionsForFEs);
             quizList.add(quiz);
         }
         return new FeGenerationResponse(problemSet.getId(),problemSet.getTitle(),quizList);

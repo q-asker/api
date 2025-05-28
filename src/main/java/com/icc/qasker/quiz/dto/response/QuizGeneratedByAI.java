@@ -11,12 +11,11 @@ import java.util.List;
 public class QuizGeneratedByAI {
     private int number;
     private String title;
-    private List<SelectionWithAnswer> selections;
+    private List<SelectionsOfAi> selections;
     private String explanation;
     @Getter
-    public static class SelectionWithAnswer {
+    public class SelectionsOfAi {
         private String content;
-        @JsonProperty("isCorrect")
         private boolean correct;
     }
 }

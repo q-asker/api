@@ -7,7 +7,5 @@ import lombok.Getter;
 @AllArgsConstructor
 public class ResultResponse {
     private int number;
-    private Long correctAnswer;
-    private boolean isCorrect;
     private String explanation;
 }
