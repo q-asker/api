@@ -10,6 +10,7 @@ import java.io.Serializable;
 @EqualsAndHashCode
 @NoArgsConstructor
 @AllArgsConstructor
+@Setter
 public class ProblemId implements Serializable {
     private Long problemSetId;
     private  int number;

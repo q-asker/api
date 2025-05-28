@@ -1,8 +1,6 @@
 package com.icc.qasker.service;
 
 import com.icc.qasker.global.error.CustomException;
-import com.icc.qasker.quiz.dto.request.AnswerRequest;
-import com.icc.qasker.quiz.dto.request.ExplanationRequest;
 import com.icc.qasker.quiz.dto.response.ResultResponse;
 import com.icc.qasker.quiz.entity.Explanation;
 import com.icc.qasker.quiz.entity.Problem;
