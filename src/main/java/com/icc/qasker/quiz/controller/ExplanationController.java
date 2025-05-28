@@ -19,7 +19,6 @@ public class ExplanationController implements ExplanationApiDoc {
 
     private final ExplanationService explanationService;
 
-    @Override
     @GetMapping("/{id}")
     public ResponseEntity<ExplanationResponse> getExplanation(
         @PathVariable("id") Long problemSetId) {

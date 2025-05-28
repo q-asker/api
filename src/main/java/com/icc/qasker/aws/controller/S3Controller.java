@@ -1,5 +1,6 @@
 package com.icc.qasker.aws.controller;
 
+import com.icc.qasker.aws.controller.doc.S3ApiDoc;
 import com.icc.qasker.aws.dto.S3UploadRequest;
 import com.icc.qasker.aws.dto.S3UploadResponse;
 import com.icc.qasker.aws.service.S3Service;
@@ -13,7 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/s3")
 @AllArgsConstructor
-public class S3Controller {
+public class S3Controller implements S3ApiDoc {
 
     public final S3Service s3Service;
 
