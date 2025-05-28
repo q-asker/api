@@ -14,7 +14,7 @@ public class QuizGeneratedByAI {
     private List<SelectionsOfAi> selections;
     private String explanation;
     @Getter
-    public class SelectionsOfAi {
+    public static class SelectionsOfAi {
         private String content;
         private boolean correct;
     }

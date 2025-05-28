@@ -122,9 +122,9 @@ public class GenerationService {
             List<Selection> selections = selectionRepository.findByProblem(problem);
             List<QuizForFe.SelectionsForFE> SelectionsForFEs = new ArrayList<>();
 
-            for (int i =1; i <= selections.size();i++){
+            for (int i =0; i < selections.size(); i++){
                 Selection s = selections.get(i);
-                QuizForFe.SelectionsForFE SelectionsForFE = new QuizForFe.SelectionsForFE(i,s.getContent(),s.isCorrect());
+                QuizForFe.SelectionsForFE SelectionsForFE = new QuizForFe.SelectionsForFE(i+1,s.getContent(),s.isCorrect());
                 SelectionsForFEs.add(SelectionsForFE);
             }
             QuizForFe quiz = new QuizForFe(problem.getId().getNumber(),problem.getTitle(),0,false,SelectionsForFEs);
