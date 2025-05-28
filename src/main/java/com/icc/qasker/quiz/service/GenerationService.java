@@ -3,66 +3,76 @@ package com.icc.qasker.quiz.service;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.quiz.dto.request.FeGenerationRequest;
-import com.icc.qasker.quiz.dto.response.*;
-import com.icc.qasker.quiz.entity.*;
+import com.icc.qasker.quiz.dto.response.AiGenerationResponse;
+import com.icc.qasker.quiz.dto.response.ProblemSetResponse;
+import com.icc.qasker.quiz.dto.response.QuizGeneratedByAI;
+import com.icc.qasker.quiz.entity.Explanation;
+import com.icc.qasker.quiz.entity.Problem;
+import com.icc.qasker.quiz.entity.ProblemId;
+import com.icc.qasker.quiz.entity.ProblemSet;
+import com.icc.qasker.quiz.entity.Selection;
 import com.icc.qasker.quiz.repository.ProblemRepository;
+import com.icc.qasker.quiz.repository.ProblemSetRepository;
 import com.icc.qasker.quiz.repository.SelectionRepository;
-import lombok.RequiredArgsConstructor;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.TimeoutException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientRequestException;
 import reactor.core.publisher.Mono;
-import com.icc.qasker.quiz.repository.ProblemSetRepository;
 
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.TimeoutException;
 @Slf4j
 @Service
 public class GenerationService {
+
     private final WebClient aiWebClient;
     private final ProblemSetRepository problemSetRepository;
     private final SelectionRepository selectionRepository;
     private final ProblemRepository problemRepository;
 
     public GenerationService(
-            @Qualifier("aiWebClient") WebClient aiWebClient,
-            ProblemSetRepository problemSetRepository,
-            SelectionRepository selectionRepository,
-            ProblemRepository problemRepository
+        @Qualifier("aiWebClient") WebClient aiWebClient,
+        ProblemSetRepository problemSetRepository,
+        SelectionRepository selectionRepository,
+        ProblemRepository problemRepository
     ) {
         this.aiWebClient = aiWebClient;
         this.problemSetRepository = problemSetRepository;
         this.selectionRepository = selectionRepository;
         this.problemRepository = problemRepository;
     }
-    public Mono<FeGenerationResponse> processGenerationRequest(FeGenerationRequest feGenerationRequest){
+
+    public Mono<ProblemSetResponse> processGenerationRequest(
+        FeGenerationRequest feGenerationRequest) {
         return callAiServer(feGenerationRequest)
-                .flatMap(aiResponse -> saveToDB(aiResponse, feGenerationRequest.getQuizCount()))
-                .map(this::convertToFeResponse)
-                .doOnError(error -> {
-                    log.error("예외 발생: {}", error.getMessage(), error);
-                })
-                .onErrorResume(error -> {
-                    if (error instanceof CustomException) {
-                        return Mono.error(error);
-                    }
-                    return Mono.error(new CustomException(ExceptionMessage.DEFAULT_ERROR));
-                });
+            .flatMap(aiResponse -> saveToDB(aiResponse, feGenerationRequest.getQuizCount()))
+            .map(this::convertToFeResponse)
+            .doOnError(error -> {
+                log.error("예외 발생: {}", error.getMessage(), error);
+            })
+            .onErrorResume(error -> {
+                if (error instanceof CustomException) {
+                    return Mono.error(error);
+                }
+                return Mono.error(new CustomException(ExceptionMessage.DEFAULT_ERROR));
+            });
     }
-    private Mono<AiGenerationResponse> callAiServer(FeGenerationRequest feGenerationRequest){
+
+    private Mono<AiGenerationResponse> callAiServer(FeGenerationRequest feGenerationRequest) {
         return aiWebClient.post()
-                .uri("/generation")
-                .bodyValue(feGenerationRequest)
-                .retrieve()
-                .bodyToMono(AiGenerationResponse.class)
-                .timeout(Duration.ofSeconds(10))
-                .onErrorMap(this::webClientError); // ok
+            .uri("/generation")
+            .bodyValue(feGenerationRequest)
+            .retrieve()
+            .bodyToMono(AiGenerationResponse.class)
+            .timeout(Duration.ofSeconds(10))
+            .onErrorMap(this::webClientError); // ok
     }
-    private Mono<ProblemSet> saveToDB(AiGenerationResponse aiResponse,int feRequestQuizCount){
+
+    private Mono<ProblemSet> saveToDB(AiGenerationResponse aiResponse, int feRequestQuizCount) {
         return Mono.fromCallable(() -> {
             if (aiResponse == null || aiResponse.getQuiz() == null) {
                 throw new CustomException(ExceptionMessage.NULL_AI_RESPONSE);
@@ -73,7 +83,8 @@ public class GenerationService {
             return saveProblemSet(aiResponse);
         });
     }
-    private ProblemSet saveProblemSet(AiGenerationResponse aiResponse){
+
+    private ProblemSet saveProblemSet(AiGenerationResponse aiResponse) {
         // for test, private -> public
         // - 1. problem set
         ProblemSet problemSet = new ProblemSet();
@@ -86,7 +97,8 @@ public class GenerationService {
         problemSet.setProblems(problems);
         return problemSetRepository.save(problemSet); // reflect problems of problem_set to DB
     }
-    private Problem createProblemEntity(ProblemSet problemSet,QuizGeneratedByAI quiz){
+
+    private Problem createProblemEntity(ProblemSet problemSet, QuizGeneratedByAI quiz) {
         // - 2. problem
         Problem problem = new Problem();
         ProblemId problemId = new ProblemId();
@@ -114,29 +126,17 @@ public class GenerationService {
 
         return problem;
     }
-    private FeGenerationResponse convertToFeResponse(ProblemSet problemSet){
-        // convert
-        List<Problem> savedProblems = problemRepository.findByProblemSet(problemSet);
-        List<QuizForFe> quizList = new ArrayList<>();
-        for(Problem problem:savedProblems){
-            List<Selection> selections = selectionRepository.findByProblem(problem);
-            List<QuizForFe.SelectionsForFE> SelectionsForFEs = new ArrayList<>();
 
-            for (int i =0; i < selections.size(); i++){
-                Selection s = selections.get(i);
-                QuizForFe.SelectionsForFE SelectionsForFE = new QuizForFe.SelectionsForFE(i+1,s.getContent(),s.isCorrect());
-                SelectionsForFEs.add(SelectionsForFE);
-            }
-            QuizForFe quiz = new QuizForFe(problem.getId().getNumber(),problem.getTitle(),0,false,SelectionsForFEs);
-            quizList.add(quiz);
-        }
-        return new FeGenerationResponse(problemSet.getId(),problemSet.getTitle(),quizList);
+    private ProblemSetResponse convertToFeResponse(ProblemSet problemSet) {
+        return ProblemSetResponse.of(problemSet);
     }
+
     // for error
     // - AI Server error
-    private Throwable webClientError(Throwable error){
+    private Throwable webClientError(Throwable error) {
         // AI Server time out
-        if (error instanceof java.util.concurrent.TimeoutException || error.getCause() instanceof TimeoutException){
+        if (error instanceof java.util.concurrent.TimeoutException
+            || error.getCause() instanceof TimeoutException) {
             return new CustomException(ExceptionMessage.AI_SERVER_TIMEOUT);
         }
         // AI Server down
