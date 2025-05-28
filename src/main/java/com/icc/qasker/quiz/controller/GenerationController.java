@@ -1,7 +1,7 @@
 package com.icc.qasker.quiz.controller;
 
 import com.icc.qasker.quiz.dto.request.FeGenerationRequest;
-import com.icc.qasker.quiz.dto.response.FeGenerationResponse;
+import com.icc.qasker.quiz.dto.response.ProblemSetResponse;
 import com.icc.qasker.quiz.service.GenerationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -14,9 +14,11 @@ import reactor.core.publisher.Mono;
 @RequiredArgsConstructor
 @RequestMapping("/generation")
 public class GenerationController {
+
     private final GenerationService generationService;
+
     @PostMapping
-    public Mono<FeGenerationResponse> postQuiz(@RequestBody FeGenerationRequest feGenerationRequest){
+    public Mono<ProblemSetResponse> postQuiz(@RequestBody FeGenerationRequest feGenerationRequest) {
         return generationService.processGenerationRequest(feGenerationRequest);
     }
 
