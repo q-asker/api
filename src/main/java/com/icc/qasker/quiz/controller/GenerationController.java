@@ -1,5 +1,6 @@
 package com.icc.qasker.quiz.controller;
 
+import com.icc.qasker.quiz.controller.doc.GenerationApiDoc;
 import com.icc.qasker.quiz.dto.request.FeGenerationRequest;
 import com.icc.qasker.quiz.dto.response.ProblemSetResponse;
 import com.icc.qasker.quiz.service.GenerationService;
@@ -13,7 +14,7 @@ import reactor.core.publisher.Mono;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/generation")
-public class GenerationController {
+public class GenerationController implements GenerationApiDoc {
 
     private final GenerationService generationService;
 

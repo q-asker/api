@@ -1,5 +1,6 @@
 package com.icc.qasker.quiz.controller;
 
+import com.icc.qasker.quiz.controller.doc.ProblemSetApiDoc;
 import com.icc.qasker.quiz.dto.response.ProblemSetResponse;
 import com.icc.qasker.quiz.service.ProblemSetService;
 import lombok.RequiredArgsConstructor;
@@ -12,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/problem-set")
-public class ProblemSetController {
+public class ProblemSetController implements ProblemSetApiDoc {
 
     private final ProblemSetService problemSetService;
 
