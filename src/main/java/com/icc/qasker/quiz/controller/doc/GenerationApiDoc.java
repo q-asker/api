@@ -14,5 +14,5 @@ public interface GenerationApiDoc {
 
     @Operation(summary = "문제를 생성한다")
     @PostMapping
-    Mono<GenerationResponse> postQuiz(@RequestBody FeGenerationRequest feGenerationRequest);
+    Mono<GenerationResponse> postProblemSetId(@RequestBody FeGenerationRequest feGenerationRequest);
 }

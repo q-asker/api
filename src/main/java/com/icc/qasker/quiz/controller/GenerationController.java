@@ -20,7 +20,7 @@ public class GenerationController implements GenerationApiDoc {
     private final GenerationService generationService;
 
     @PostMapping
-    public Mono<GenerationResponse> postQuiz(@RequestBody FeGenerationRequest feGenerationRequest) {
+    public Mono<GenerationResponse> postProblemSetId(@RequestBody FeGenerationRequest feGenerationRequest) {
         return generationService.processGenerationRequest(feGenerationRequest);
     }
 
