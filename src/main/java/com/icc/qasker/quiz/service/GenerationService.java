@@ -14,12 +14,16 @@ import com.icc.qasker.quiz.entity.Selection;
 import com.icc.qasker.quiz.repository.ProblemRepository;
 import com.icc.qasker.quiz.repository.ProblemSetRepository;
 import com.icc.qasker.quiz.repository.SelectionRepository;
+
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeoutException;
+
+import jakarta.validation.constraints.NotNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientRequestException;
@@ -28,44 +32,52 @@ import reactor.core.publisher.Mono;
 @Slf4j
 @Service
 public class GenerationService {
-
+    @NotNull
+    @Value("${aws.cloudfront.base-url}")
+    private String CLOUDFRONT_BASE_URL;
     private final WebClient aiWebClient;
     private final ProblemSetRepository problemSetRepository;
 
     public GenerationService(
-        @Qualifier("aiWebClient") WebClient aiWebClient,
-        ProblemSetRepository problemSetRepository,
-        SelectionRepository selectionRepository,
-        ProblemRepository problemRepository
+            @Qualifier("aiWebClient") WebClient aiWebClient,
+            ProblemSetRepository problemSetRepository,
+            SelectionRepository selectionRepository,
+            ProblemRepository problemRepository
     ) {
         this.aiWebClient = aiWebClient;
         this.problemSetRepository = problemSetRepository;
     }
 
     public Mono<GenerationResponse> processGenerationRequest(
-        FeGenerationRequest feGenerationRequest) {
-        return callAiServer(feGenerationRequest)
-            .flatMap(aiResponse -> saveToDB(aiResponse, feGenerationRequest.getQuizCount()))
-                .map(problemSet -> convertToFeResponse(problemSet.getId()))
-            .doOnError(error -> {
-                log.error("예외 발생: {}", error.getMessage(), error);
-            })
-            .onErrorResume(error -> {
-                if (error instanceof CustomException) {
-                    return Mono.error(error);
-                }
-                return Mono.error(new CustomException(ExceptionMessage.DEFAULT_ERROR));
-            });
+            FeGenerationRequest feGenerationRequest) {
+        return
+                Mono.fromRunnable(() -> {
+                            if (!feGenerationRequest.getUploadedUrl().startsWith(CLOUDFRONT_BASE_URL)) {
+                                throw new CustomException(ExceptionMessage.INVALID_URL_REQUEST);
+                            }
+                        })
+                        .then(callAiServer(feGenerationRequest))
+                        .flatMap(aiResponse -> saveToDB(aiResponse, feGenerationRequest.getQuizCount()))
+                        .map(problemSet -> convertToFeResponse(problemSet.getId()))
+                        .doOnError(error -> {
+                            log.error("예외 발생: {}", error.getMessage(), error);
+                        })
+                        .onErrorResume(error -> {
+                            if (error instanceof CustomException) {
+                                return Mono.error(error);
+                            }
+                            return Mono.error(new CustomException(ExceptionMessage.DEFAULT_ERROR));
+                        });
     }
 
     private Mono<AiGenerationResponse> callAiServer(FeGenerationRequest feGenerationRequest) {
         return aiWebClient.post()
-            .uri("/generation")
-            .bodyValue(feGenerationRequest)
-            .retrieve()
-            .bodyToMono(AiGenerationResponse.class)
-            .timeout(Duration.ofSeconds(10))
-            .onErrorMap(this::webClientError); // ok
+                .uri("/generation")
+                .bodyValue(feGenerationRequest)
+                .retrieve()
+                .bodyToMono(AiGenerationResponse.class)
+                .timeout(Duration.ofSeconds(10))
+                .onErrorMap(this::webClientError); // ok
     }
 
     private Mono<ProblemSet> saveToDB(AiGenerationResponse aiResponse, int feRequestQuizCount) {
@@ -132,7 +144,7 @@ public class GenerationService {
     private Throwable webClientError(Throwable error) {
         // AI Server time out
         if (error instanceof java.util.concurrent.TimeoutException
-            || error.getCause() instanceof TimeoutException) {
+                || error.getCause() instanceof TimeoutException) {
             return new CustomException(ExceptionMessage.AI_SERVER_TIMEOUT);
         }
         // AI Server down
