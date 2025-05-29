@@ -19,7 +19,7 @@ public class ProblemSetController implements ProblemSetApiDoc {
 
     @GetMapping("/{id}")
     public ResponseEntity<ProblemSetResponse> getProblemSet(
-        @PathVariable("id") Long problemSetId) {
+        @PathVariable("id") String problemSetId) {
         return ResponseEntity.ok(problemSetService.getProblemSet(problemSetId));
     }
 }

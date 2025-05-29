@@ -2,7 +2,6 @@ package com.icc.qasker.quiz.controller;
 
 import com.icc.qasker.quiz.controller.doc.ExplanationApiDoc;
 import com.icc.qasker.quiz.dto.response.ExplanationResponse;
-import com.icc.qasker.quiz.dto.response.ResultResponse;
 import com.icc.qasker.quiz.service.ExplanationService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -22,8 +21,6 @@ public class ExplanationController implements ExplanationApiDoc {
     @GetMapping("/{id}")
     public ResponseEntity<ExplanationResponse> getExplanation(
         @PathVariable("id") Long problemSetId) {
-        List<ResultResponse> results = explanationService.getExplanationByProblemSetId(
-            problemSetId);
-        return ResponseEntity.ok(new ExplanationResponse(results));
+        return ResponseEntity.ok(explanationService.getExplanationByProblemSetId(problemSetId));
     }
 }

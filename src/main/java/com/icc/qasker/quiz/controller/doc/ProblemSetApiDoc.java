@@ -12,5 +12,5 @@ public interface ProblemSetApiDoc {
 
     @Operation(summary = "문제세트를 가져온다")
     @GetMapping("/{id}")
-    ResponseEntity<ProblemSetResponse> getProblemSet(@PathVariable("id") Long problemSetId);
+    ResponseEntity<ProblemSetResponse> getProblemSet(@PathVariable("id") String problemSetId);
 }
