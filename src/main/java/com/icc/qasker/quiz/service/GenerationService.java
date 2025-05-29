@@ -2,6 +2,7 @@ package com.icc.qasker.quiz.service;
 
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
+import com.icc.qasker.global.util.HashUtil;
 import com.icc.qasker.quiz.dto.request.FeGenerationRequest;
 import com.icc.qasker.quiz.dto.response.AiGenerationResponse;
 import com.icc.qasker.quiz.dto.response.GenerationResponse;
@@ -37,15 +38,15 @@ public class GenerationService {
     private String CLOUDFRONT_BASE_URL;
     private final WebClient aiWebClient;
     private final ProblemSetRepository problemSetRepository;
-
+    private final HashUtil hashUtil;
     public GenerationService(
             @Qualifier("aiWebClient") WebClient aiWebClient,
             ProblemSetRepository problemSetRepository,
-            SelectionRepository selectionRepository,
-            ProblemRepository problemRepository
+            HashUtil hashUtil
     ) {
         this.aiWebClient = aiWebClient;
         this.problemSetRepository = problemSetRepository;
+        this.hashUtil = hashUtil;
     }
 
     public Mono<GenerationResponse> processGenerationRequest(
@@ -136,7 +137,7 @@ public class GenerationService {
     }
 
     private GenerationResponse convertToFeResponse(Long problemSetId) {
-        return GenerationResponse.of(problemSetId);
+        return GenerationResponse.of(hashUtil.encode(problemSetId));
     }
 
     // for error
