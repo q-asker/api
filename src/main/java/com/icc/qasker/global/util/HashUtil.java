@@ -1,5 +1,7 @@
 package com.icc.qasker.global.util;
 
+import com.icc.qasker.global.error.CustomException;
+import com.icc.qasker.global.error.ExceptionMessage;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -18,7 +20,7 @@ public class HashUtil {
     public long decode(String hashId) {
         long[] decoded = hashids.decode(hashId);
         if (decoded.length == 0) {
-            throw new IllegalArgumentException("Invalid hash ID: " + hashId);
+            throw new CustomException(ExceptionMessage.PROBLEM_SET_NOT_FOUND);
         }
         if (decoded.length > 1) {
             log.error("중복된 ID가 발견되었습니다: {}", hashId);
