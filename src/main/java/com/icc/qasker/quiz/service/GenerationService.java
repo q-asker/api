@@ -31,8 +31,6 @@ public class GenerationService {
 
     private final WebClient aiWebClient;
     private final ProblemSetRepository problemSetRepository;
-    private final SelectionRepository selectionRepository;
-    private final ProblemRepository problemRepository;
 
     public GenerationService(
         @Qualifier("aiWebClient") WebClient aiWebClient,
@@ -42,8 +40,6 @@ public class GenerationService {
     ) {
         this.aiWebClient = aiWebClient;
         this.problemSetRepository = problemSetRepository;
-        this.selectionRepository = selectionRepository;
-        this.problemRepository = problemRepository;
     }
 
     public Mono<ProblemSetResponse> processGenerationRequest(
