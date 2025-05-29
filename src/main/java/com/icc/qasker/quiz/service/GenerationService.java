@@ -4,7 +4,7 @@ import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.quiz.dto.request.FeGenerationRequest;
 import com.icc.qasker.quiz.dto.response.AiGenerationResponse;
-import com.icc.qasker.quiz.dto.response.ProblemSetResponse;
+import com.icc.qasker.quiz.dto.response.GenerationResponse;
 import com.icc.qasker.quiz.dto.response.QuizGeneratedByAI;
 import com.icc.qasker.quiz.entity.Explanation;
 import com.icc.qasker.quiz.entity.Problem;
@@ -42,11 +42,11 @@ public class GenerationService {
         this.problemSetRepository = problemSetRepository;
     }
 
-    public Mono<ProblemSetResponse> processGenerationRequest(
+    public Mono<GenerationResponse> processGenerationRequest(
         FeGenerationRequest feGenerationRequest) {
         return callAiServer(feGenerationRequest)
             .flatMap(aiResponse -> saveToDB(aiResponse, feGenerationRequest.getQuizCount()))
-            .map(this::convertToFeResponse)
+                .map(problemSet -> convertToFeResponse(problemSet.getId()))
             .doOnError(error -> {
                 log.error("예외 발생: {}", error.getMessage(), error);
             })
@@ -123,8 +123,8 @@ public class GenerationService {
         return problem;
     }
 
-    private ProblemSetResponse convertToFeResponse(ProblemSet problemSet) {
-        return ProblemSetResponse.of(problemSet);
+    private GenerationResponse convertToFeResponse(Long problemSetId) {
+        return GenerationResponse.of(problemSetId);
     }
 
     // for error
