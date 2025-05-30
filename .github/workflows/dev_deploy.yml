@@ -65,6 +65,7 @@ jobs:
       MYSQL_URL: ${{ secrets.MYSQL_URL }}
       FRONTEND_URL: https://q-asker.com
       AI_SERVER_URL: ${{ secrets.AI_SERVER_URL }}
+      # DB 관련
       DATASOURCE_USERNAME: ${{ secrets.DATASOURCE_USERNAME }}
       DATASOURCE_PASSWORD: ${{ secrets.DATASOURCE_PASSWORD }}
 
@@ -82,7 +83,6 @@ jobs:
             docker stop ${{ env.CONTAINER_NAME }} || true
             docker rm ${{ env.CONTAINER_NAME }} || true
             docker run -d --name ${{ env.CONTAINER_NAME }} -p 8080:8080 \
-              -e SPRING_PROFILES_ACTIVE=secret,prod \
               -e SPRING_DATASOURCE_URL=${{ env.MYSQL_URL }} \
               -e SPRING_DATASOURCE_USERNAME=${{ env.DATASOURCE_USERNAME }} \
               -e SPRING_DATASOURCE_PASSWORD=${{ env.DATASOURCE_PASSWORD }} \
