@@ -65,6 +65,8 @@ jobs:
       MYSQL_URL: ${{ secrets.MYSQL_URL }}
       FRONTEND_URL: https://q-asker.com
       AI_SERVER_URL: ${{ secrets.AI_SERVER_URL }}
+      DATASOURCE_USERNAME: ${{ secrets.DATASOURCE_USERNAME }}
+      DATASOURCE_PASSWORD: ${{ secrets.DATASOURCE_PASSWORD }}
 
     steps:
       - name: EC2에 배포
@@ -81,6 +83,8 @@ jobs:
             docker rm ${{ env.CONTAINER_NAME }} || true
             docker run -d --name ${{ env.CONTAINER_NAME }} -p 8080:8080 \
               -e SPRING_DATASOURCE_URL=${{ env.MYSQL_URL }} \
+              -e SPRING_DATASOURCE_USERNAME=${{ env.DATASOURCE_USERNAME }} \
+              -e SPRING_DATASOURCE_PASSWORD=${{ env.DATASOURCE_PASSWORD }} \
               -e Q-ASKER_FRONTEND-URL=${{ env.FRONTEND_URL }} \
               -e Q-ASKER_AI-SERVER-URL=${{ env.AI_SERVER_URL }} \
               ${{ env.DOCKER_ID }}/${{ env.DOCKER_IMAGE_NAME }}
