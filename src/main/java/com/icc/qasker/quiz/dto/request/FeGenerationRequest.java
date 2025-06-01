@@ -22,9 +22,13 @@ public class FeGenerationRequest {
         if (uploadedUrl == null && quizCount <= 0 && type == null) {
             throw new CustomException(ExceptionMessage.NULL_GENERATION_REQUEST);
         }
-        if (uploadedUrl == null || uploadedUrl.trim().isEmpty() || quizCount <= 0 || type == null) {
+        if (uploadedUrl == null || uploadedUrl.trim().isEmpty()
+                || quizCount <= 0 || quizCount % 5 != 0
+                || type == null) {
             throw new CustomException(ExceptionMessage.INVALID_FE_REQUEST);
         }
+
+
         this.uploadedUrl = uploadedUrl;
         this.quizCount = quizCount;
         this.type = type;
