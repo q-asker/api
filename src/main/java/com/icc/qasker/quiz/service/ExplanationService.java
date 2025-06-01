@@ -1,5 +1,8 @@
 package com.icc.qasker.quiz.service;
 
+import com.icc.qasker.global.error.CustomException;
+import com.icc.qasker.global.error.ExceptionMessage;
+import com.icc.qasker.global.util.HashUtil;
 import com.icc.qasker.quiz.dto.response.ExplanationResponse;
 import com.icc.qasker.quiz.dto.response.ResultResponse;
 import com.icc.qasker.quiz.entity.Problem;
@@ -13,12 +16,17 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class ExplanationService {
 
+    private final HashUtil hashUtil;
     private final ProblemRepository problemRepository;
 
-    public ExplanationResponse getExplanationByProblemSetId(Long problemSetId) {
-        List<Problem> problems = problemRepository.findByIdProblemSetId(problemSetId);
-        List<ResultResponse> results = new ArrayList<>();
+    public ExplanationResponse getExplanationByProblemSetId(String problemSetId) {
+        long id = hashUtil.decode(problemSetId);
+        List<Problem> problems = problemRepository.findByIdProblemSetId(id);
+        if (problems.isEmpty()) {
+            throw new CustomException(ExceptionMessage.PROBLEM_NOT_FOUND);
+        }
 
+        List<ResultResponse> results = new ArrayList<>();
         for (Problem problem : problems) {
             String explanation = (problem.getExplanation() != null)
                 ? problem.getExplanation().getContent()
