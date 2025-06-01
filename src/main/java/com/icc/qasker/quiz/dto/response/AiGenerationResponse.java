@@ -2,18 +2,17 @@ package com.icc.qasker.quiz.dto.response;
 
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-
 import java.util.List;
+import lombok.Getter;
+
 @Getter
 public class AiGenerationResponse {
+
     private String title;
     private List<QuizGeneratedByAI> quiz;
+
     public AiGenerationResponse(String title, List<QuizGeneratedByAI> quiz) {
-        if (title == null || title.trim().isEmpty() || quiz == null || quiz.isEmpty()) {
+        if (quiz == null || quiz.isEmpty()) {
             throw new CustomException(ExceptionMessage.INVALID_AI_RESPONSE);
         }
         for (QuizGeneratedByAI q : quiz) {
