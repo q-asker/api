@@ -13,5 +13,5 @@ public interface ExplanationApiDoc {
     @Operation(summary = "설명을 가져온다")
     @GetMapping("/{id}")
     ResponseEntity<ExplanationResponse> getExplanation(
-        @PathVariable("id") Long problemSetId);
+        @PathVariable("id") String problemSetId);
 }

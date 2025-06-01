@@ -63,7 +63,7 @@ jobs:
       DOCKER_IMAGE_NAME: ${{ secrets.DOCKER_IMAGE_NAME }}
       # Spring Boot 관련
       MYSQL_URL: ${{ secrets.MYSQL_URL }}
-      FRONTEND_URL: https://q-asker.com
+      FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
       AI_SERVER_URL: ${{ secrets.AI_SERVER_URL }}
       # DB 관련
       DATASOURCE_USERNAME: ${{ secrets.DATASOURCE_USERNAME }}

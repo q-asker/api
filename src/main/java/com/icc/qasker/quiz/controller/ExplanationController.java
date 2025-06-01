@@ -3,7 +3,6 @@ package com.icc.qasker.quiz.controller;
 import com.icc.qasker.quiz.controller.doc.ExplanationApiDoc;
 import com.icc.qasker.quiz.dto.response.ExplanationResponse;
 import com.icc.qasker.quiz.service.ExplanationService;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,7 +19,7 @@ public class ExplanationController implements ExplanationApiDoc {
 
     @GetMapping("/{id}")
     public ResponseEntity<ExplanationResponse> getExplanation(
-        @PathVariable("id") Long problemSetId) {
+        @PathVariable("id") String problemSetId) {
         return ResponseEntity.ok(explanationService.getExplanationByProblemSetId(problemSetId));
     }
 }
