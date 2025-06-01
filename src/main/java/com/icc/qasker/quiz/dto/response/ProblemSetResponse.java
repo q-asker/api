@@ -14,7 +14,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class ProblemSetResponse {
 
-    private Long problemSetId;
     private String title;
     private List<QuizForFe> quiz;
 
@@ -25,7 +24,6 @@ public class ProblemSetResponse {
             .toList();
 
         return new ProblemSetResponse(
-            problemSet.getId(),
             problemSet.getTitle(),
             quizzes
         );
