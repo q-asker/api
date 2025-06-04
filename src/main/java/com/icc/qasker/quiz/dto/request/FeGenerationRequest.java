@@ -15,10 +15,10 @@ import org.springframework.beans.factory.annotation.Value;
 public class FeGenerationRequest {
 
 
-    private String uploadedUrl;
-    private int quizCount;
-    private QuizType quizType;
-    private DifficultyType difficultyType;
+    private final String uploadedUrl;
+    private final int quizCount;
+    private final QuizType quizType;
+    private final DifficultyType difficultyType;
 
     public FeGenerationRequest (String uploadedUrl, int quizCount, QuizType quizType, DifficultyType difficultyType){
         if (uploadedUrl == null && quizCount <= 0 && quizType == null && difficultyType == null) {

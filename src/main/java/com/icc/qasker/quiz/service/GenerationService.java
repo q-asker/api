@@ -127,7 +127,7 @@ public class GenerationService {
 
         // - 5. referencedpages
         List<ReferencedPage> referencedPages = new ArrayList<>();
-        for (Integer page : quiz.getReferencePages()) {
+        for (Integer page : quiz.getReferencedPages()) {
             ReferencedPage rp = new ReferencedPage();
             rp.setPageNumber(page);
             rp.setProblem(problem);
