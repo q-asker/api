@@ -4,6 +4,8 @@ import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.quiz.domain.enums.DifficultyType;
 import com.icc.qasker.quiz.domain.enums.QuizType;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -14,27 +16,17 @@ import org.springframework.beans.factory.annotation.Value;
 @Getter
 public class FeGenerationRequest {
 
-
-    private final String uploadedUrl;
-    private final int quizCount;
-    private final QuizType quizType;
-    private final DifficultyType difficultyType;
-
-    public FeGenerationRequest (String uploadedUrl, int quizCount, QuizType quizType, DifficultyType difficultyType){
-        if (uploadedUrl == null && quizCount <= 0 && quizType == null && difficultyType == null) {
-            throw new CustomException(ExceptionMessage.NULL_GENERATION_REQUEST);
+    @NotBlank(message = "url이 존재하지 않습니다.")
+    private String uploadedUrl;
+    @Min(value = 5, message = "quizCount는 5이상입니다.")
+    private int quizCount;
+    @NotNull(message = "quizType가 null입니다.")
+    private QuizType quizType;
+    @NotNull(message = "difficultyType가 null입니다.")
+    private DifficultyType difficultyType;
+    public void validateQuizCount() {
+        if (quizCount % 5 != 0) {
+            throw new IllegalArgumentException("quizCount는 5배수입니다.");
         }
-        if (uploadedUrl == null || uploadedUrl.trim().isEmpty()
-                || quizCount <= 0 || quizCount % 5 != 0
-                || quizType == null || difficultyType == null) {
-            throw new CustomException(ExceptionMessage.INVALID_FE_REQUEST);
-        }
-
-
-        this.uploadedUrl = uploadedUrl;
-        this.quizCount = quizCount;
-        this.quizType = quizType;
-        this.difficultyType = difficultyType;
-
     }
 }

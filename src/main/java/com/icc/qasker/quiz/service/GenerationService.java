@@ -9,9 +9,12 @@ import com.icc.qasker.quiz.dto.response.GenerationResponse;
 import com.icc.qasker.quiz.dto.response.QuizGeneratedByAI;
 import com.icc.qasker.quiz.entity.*;
 import com.icc.qasker.quiz.repository.ProblemSetRepository;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Validator;
 import jakarta.validation.constraints.NotNull;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeoutException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -31,16 +34,22 @@ public class GenerationService {
     private final WebClient aiWebClient;
     private final ProblemSetRepository problemSetRepository;
     private final HashUtil hashUtil;
+    private final Validator validator;
+
 
     public GenerationService(
         @Qualifier("aiWebClient") WebClient aiWebClient,
         ProblemSetRepository problemSetRepository,
-        HashUtil hashUtil
+        HashUtil hashUtil,
+        Validator validator
     ) {
         this.aiWebClient = aiWebClient;
         this.problemSetRepository = problemSetRepository;
         this.hashUtil = hashUtil;
+        this.validator = validator;
+
     }
+
 
     public Mono<GenerationResponse> processGenerationRequest(
         FeGenerationRequest feGenerationRequest) {
@@ -81,6 +90,11 @@ public class GenerationService {
             if (aiResponse.getQuiz().size() != feRequestQuizCount) {
                 throw new CustomException(ExceptionMessage.INVALID_AI_RESPONSE);
             }
+            Set<ConstraintViolation<AiGenerationResponse>> violations = validator.validate(aiResponse);
+            if (!violations.isEmpty()) {
+                throw new CustomException(ExceptionMessage.INVALID_AI_RESPONSE);
+            }
+
             return saveProblemSet(aiResponse);
         });
     }

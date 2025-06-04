@@ -29,8 +29,8 @@ public enum ExceptionMessage {
     INVALID_AI_RESPONSE(HttpStatus.UNPROCESSABLE_ENTITY, "유효하지 않은 AI의 응답입니다."),
 
     // FE ISSUE
-    NULL_GENERATION_REQUEST(HttpStatus.BAD_REQUEST, "생성 요청이 null입니다."),
-    INVALID_FE_REQUEST(HttpStatus.UNPROCESSABLE_ENTITY, "유효하지 않은 요청입니다."),
+    // NULL_GENERATION_REQUEST(HttpStatus.BAD_REQUEST, "생성 요청이 null입니다."),
+    // INVALID_FE_REQUEST(HttpStatus.UNPROCESSABLE_ENTITY, "유효하지 않은 요청입니다."),
     PROBLEM_SET_NOT_FOUND(HttpStatus.NOT_FOUND, "문제 세트를 찾을 수 없습니다."),
     INVALID_URL_REQUEST(HttpStatus.BAD_REQUEST, "유효하지 않은 url입니다"),
 
