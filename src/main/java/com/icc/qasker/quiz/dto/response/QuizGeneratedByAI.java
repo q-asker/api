@@ -13,6 +13,7 @@ public class QuizGeneratedByAI {
     private String title;
     private List<SelectionsOfAi> selections;
     private String explanation;
+    private List<Integer> referencePages;
     @Getter
     public static class SelectionsOfAi {
         private String content;

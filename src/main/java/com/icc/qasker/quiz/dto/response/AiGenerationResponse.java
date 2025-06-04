@@ -32,6 +32,9 @@ public class AiGenerationResponse {
         if (quiz.getSelections() == null || quiz.getSelections().size() < 2) {
             throw new CustomException(ExceptionMessage.INVALID_AI_RESPONSE);
         }
+        if (quiz.getReferencePages() == null) {
+            throw new CustomException(ExceptionMessage.INVALID_AI_RESPONSE);
+        }
         if (quiz.getExplanation() == null || quiz.getExplanation().trim().isEmpty()) {
             throw new CustomException(ExceptionMessage.INVALID_AI_RESPONSE);
         }
