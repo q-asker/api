@@ -23,4 +23,8 @@ public class Problem {
 
     @OneToOne(mappedBy = "problem", cascade = CascadeType.ALL, orphanRemoval = true)
     private Explanation explanation;
+
+    @OneToMany(mappedBy = "problem", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ReferencedPage> referencedPages = new ArrayList<>();
+
 }

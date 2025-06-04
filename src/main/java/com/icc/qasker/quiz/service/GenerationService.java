@@ -7,11 +7,7 @@ import com.icc.qasker.quiz.dto.request.FeGenerationRequest;
 import com.icc.qasker.quiz.dto.response.AiGenerationResponse;
 import com.icc.qasker.quiz.dto.response.GenerationResponse;
 import com.icc.qasker.quiz.dto.response.QuizGeneratedByAI;
-import com.icc.qasker.quiz.entity.Explanation;
-import com.icc.qasker.quiz.entity.Problem;
-import com.icc.qasker.quiz.entity.ProblemId;
-import com.icc.qasker.quiz.entity.ProblemSet;
-import com.icc.qasker.quiz.entity.Selection;
+import com.icc.qasker.quiz.entity.*;
 import com.icc.qasker.quiz.repository.ProblemSetRepository;
 import jakarta.validation.constraints.NotNull;
 import java.util.ArrayList;
@@ -128,6 +124,16 @@ public class GenerationService {
         explanation.setContent(quiz.getExplanation());
         explanation.setProblem(problem);
         problem.setExplanation(explanation);
+
+        // - 5. referencedpages
+        List<ReferencedPage> referencedPages = new ArrayList<>();
+        for (Integer page : quiz.getReferencePages()) {
+            ReferencedPage rp = new ReferencedPage();
+            rp.setPageNumber(page);
+            rp.setProblem(problem);
+            referencedPages.add(rp);
+        }
+        problem.setReferencedPages(referencedPages);
 
         return problem;
     }
