@@ -10,7 +10,8 @@ import com.icc.qasker.quiz.repository.ProblemRepository;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Service;import com.icc.qasker.quiz.entity.ReferencedPage;
+
 
 @Service
 @RequiredArgsConstructor
@@ -31,7 +32,12 @@ public class ExplanationService {
             String explanation = (problem.getExplanation() != null)
                 ? problem.getExplanation().getContent()
                 : "해설 없음";
-            results.add(new ResultResponse(problem.getId().getNumber(), explanation));
+            List<Integer> pages = problem.getReferencedPages()
+                    .stream()
+                    .map(ReferencedPage::getPageNumber)
+                    .toList();
+
+            results.add(new ResultResponse(problem.getId().getNumber(), explanation,pages));
         }
 
         return new ExplanationResponse(results);
