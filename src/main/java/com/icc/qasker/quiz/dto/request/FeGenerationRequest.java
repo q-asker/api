@@ -20,8 +20,8 @@ public class FeGenerationRequest {
     private String uploadedUrl;
     @Min(value = 5, message = "quizCount는 5이상입니다.")
     private int quizCount;
-    @NotNull(message = "quizType가 null입니다.")
-    private QuizType quizType;
+    @NotNull(message = "type이 null입니다.")
+    private QuizType type;
     @NotNull(message = "difficultyType가 null입니다.")
     private DifficultyType difficultyType;
     public void validateQuizCount() {
