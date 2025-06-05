@@ -14,7 +14,6 @@ import lombok.Getter;
 @Getter
 public class AiGenerationResponse {
 
-    @NotBlank(message = "title이 존재하지 않습니다.")
     private String title;
 
     @NotEmpty(message = "quiz가 null입니다.")
