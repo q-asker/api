@@ -95,8 +95,8 @@ jib {
         def newRelicJar = project.file("newrelic/newrelic.jar")
         if (newRelicConfig.exists() && newRelicJar.exists()) {
             jvmFlags = jvmFlags + [
-                    "-Dnewrelic.config.file=/app/newrelic.yml",
-                    "-javaagent:/app/newrelic/newrelic.jar"
+                    "-Dnewrelic.config.file=/app/newrelic/newrelic.yml",
+                    "-javaagent:/app/newrelic/newrelic/newrelic.jar"
             ]
         }
     }
