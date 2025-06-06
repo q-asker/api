@@ -3,8 +3,8 @@ name: Docker Hub Push & 개발 서버 EC2 배포
 on:
   push:
     branches:
-      - develop
-  workflow_dispatch: # 수동 실행 이벤트 추가
+      - ICC-68-swagger-newerelic
+  workflow_dispatch:
 
 jobs:
   build:
@@ -12,10 +12,11 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      SECRET_YML_CONTENT: ${{ secrets.SECRET_YML_CONTENT }}
+      APPLICATION_PROD_YML: ${{ secrets.APPLICATION_PROD_YML }}
+      NEWRELIC_YML: ${{ secrets.NEWRELIC_YML }}
+      DOCKER_IMAGE_NAME: api
       DOCKER_ID: ${{ secrets.DOCKER_ID }}
       DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-      DOCKER_IMAGE_NAME: ${{ secrets.DOCKER_IMAGE_NAME }}
 
     steps:
       - name: 코드 체크아웃
@@ -30,9 +31,13 @@ jobs:
       - name: Gradle 설정
         uses: gradle/gradle-build-action@v2
 
-      - name: application-secret.yml 등록
+      - name: newrelic.yml 등록
         run: |
-          echo "${{ env.SECRET_YML_CONTENT }}" > src/main/resources/application-secret.yml
+          echo "${{ env.NEWRELIC_YML }}" > newrelic/newrelic.yml
+
+      - name: application-prod.yml 등록
+        run: |
+          echo "${{ APPLICATION_PROD_YML }}" > src/main/resources/application-prod.yml
 
       - name: gradle.properties 등록
         run: |
@@ -44,7 +49,7 @@ jobs:
         run: echo "${{ env.DOCKER_PASSWORD }}" | docker login -u "${{ env.DOCKER_ID }}" --password-stdin
 
       - name: Jib로 Docker 이미지 빌드 및 푸시
-        run: ./gradlew jib
+        run: ./gradlew jib -Pprofile=prod
 
   deploy:
     name: 개발 서버 EC2 배포
@@ -58,16 +63,9 @@ jobs:
 
       # Docker 관련
       CONTAINER_NAME: q-asker-api-server
+      DOCKER_IMAGE_NAME: api
       DOCKER_ID: ${{ secrets.DOCKER_ID }}
       DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-      DOCKER_IMAGE_NAME: ${{ secrets.DOCKER_IMAGE_NAME }}
-      # Spring Boot 관련
-      MYSQL_URL: ${{ secrets.MYSQL_URL }}
-      FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
-      AI_SERVER_URL: ${{ secrets.AI_SERVER_URL }}
-      # DB 관련
-      DATASOURCE_USERNAME: ${{ secrets.DATASOURCE_USERNAME }}
-      DATASOURCE_PASSWORD: ${{ secrets.DATASOURCE_PASSWORD }}
 
     steps:
       - name: EC2에 배포
@@ -82,11 +80,5 @@ jobs:
             docker pull ${{ env.DOCKER_ID }}/${{ env.DOCKER_IMAGE_NAME }}
             docker stop ${{ env.CONTAINER_NAME }} || true
             docker rm ${{ env.CONTAINER_NAME }} || true
-            docker run -d --name ${{ env.CONTAINER_NAME }} -p 8080:8080 \
-              -e SPRING_DATASOURCE_URL=${{ env.MYSQL_URL }} \
-              -e SPRING_DATASOURCE_USERNAME=${{ env.DATASOURCE_USERNAME }} \
-              -e SPRING_DATASOURCE_PASSWORD=${{ env.DATASOURCE_PASSWORD }} \
-              -e Q-ASKER_FRONTEND-URL=${{ env.FRONTEND_URL }} \
-              -e Q-ASKER_AI-SERVER-URL=${{ env.AI_SERVER_URL }} \
-              ${{ env.DOCKER_ID }}/${{ env.DOCKER_IMAGE_NAME }}
+            docker run -d --name ${{ env.CONTAINER_NAME }} -p 8080:8080 ${{ env.DOCKER_ID }}/${{ env.DOCKER_IMAGE_NAME }}
             docker image prune -af

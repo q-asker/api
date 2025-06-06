@@ -3,6 +3,7 @@ plugins {
     id 'org.springframework.boot' version '3.4.5'
     id 'io.spring.dependency-management' version '1.1.7'
     id 'com.google.cloud.tools.jib' version '3.4.0'
+    id "de.undercouch.download" version "5.3.0"
 }
 
 group = 'com.slb'
@@ -48,12 +49,24 @@ tasks.named('test') {
     useJUnitPlatform()
 }
 
+task downloadNewrelic(type: Download) {
+    mkdir 'newrelic'
+    src 'https://download.newrelic.com/newrelic/java-agent/newrelic-agent/current/newrelic-java.zip'
+    dest file('newrelic')
+}
+
+task unzipNewrelic(type: Copy) {
+    from zipTree(file('newrelic/newrelic-java.zip'))
+    into rootDir
+}
+
+
 jib {
     from {
         image = 'openjdk:17-slim'
     }
     to {
-        image = project.findProperty("DOCKER_ID") + "/" + project.findProperty("DOCKER_IMAGE_NAME")
+        image = "${project.findProperty(" DOCKER_ID ")}/${project.findProperty("DOCKER_IMAGE_NAME")}"
         tags = ['latest']
         auth {
             username = project.findProperty("DOCKER_ID")
@@ -61,6 +74,23 @@ jib {
         }
     }
     container {
-        jvmFlags = ['-Xms512m', '-Xmx512m', '-Dspring.profiles.active=prod']
+        def activeProfile = project.hasProperty('profile')
+                ? project.property('profile')
+                : 'local'
+
+        jvmFlags = ['-Xms512m', '-Xmx512m', "-Dspring.profiles.active=${activeProfile}"]
+
+        if (activeProfile == 'local') {
+            return
+        }
+        
+        def newRelicConfig = project.file("newrelic/newrelic.yml")
+        def newRelicJar = project.file("newrelic/newrelic.jar")
+        if (newRelicConfig.exists() && newRelicJar.exists()) {
+            jvmFlags = jvmFlags + [
+                    "-Dnewrelic.config.file=/app/newrelic.yml",
+                    "-javaagent:/app/newrelic/newrelic.jar"
+            ]
+        }
     }
 }

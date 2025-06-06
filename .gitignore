@@ -37,6 +37,7 @@ out/
 .vscode/
 
 ### Custom ###
-**/src/main/resources/**secret**
+**/src/main/resources/application-**
 .env
 gradle.properties
+newrelic/newrelic.yml

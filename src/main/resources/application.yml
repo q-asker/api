@@ -1,14 +1,3 @@
 spring:
   application:
     name: q-asker
-  profiles:
-    include: secret
-
-springdoc:
-  default-produces-media-type: application/json;charset=UTF-8
-
-  swagger-ui:
-    path: /
-    disable-swagger-default-url: true
-    display-request-duration: true
-    tagsSorter: alpha
