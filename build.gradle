@@ -60,13 +60,12 @@ tasks.register('unzipNewrelic', Copy) {
     into rootDir
 }
 
-
 jib {
     from {
         image = 'openjdk:17-slim'
     }
     to {
-        image = "${project.findProperty(" DOCKER_ID ")}/${project.findProperty("DOCKER_IMAGE_NAME")}"
+        image = "${project.findProperty("DOCKER_ID")}/${project.findProperty("DOCKER_IMAGE_NAME")}"
         tags = ['latest']
         auth {
             username = project.findProperty("DOCKER_ID")
