@@ -3,7 +3,7 @@ name: Docker Hub Push & 개발 서버 EC2 배포
 on:
   push:
     branches:
-      - ICC-68-swagger-newrelic
+      - develop
   workflow_dispatch:
 
 jobs:
