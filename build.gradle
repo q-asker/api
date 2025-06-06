@@ -73,8 +73,12 @@ jib {
         }
     }
     extraDirectories {
-        paths = file('newrelic')
-        into = '/app/newrelic'
+        paths {
+            path {
+                setFrom(file("newrelic").toPath())
+                into = "/app/newrelic"
+            }
+        }
     }
     container {
         def activeProfile = project.hasProperty('profile')
