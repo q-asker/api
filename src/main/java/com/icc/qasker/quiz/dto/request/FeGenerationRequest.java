@@ -4,7 +4,9 @@ import com.icc.qasker.quiz.domain.enums.DifficultyType;
 import com.icc.qasker.quiz.domain.enums.QuizType;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import java.util.List;
 import lombok.Getter;
 
 @Getter
@@ -18,6 +20,8 @@ public class FeGenerationRequest {
     private QuizType quizType;
     @NotNull(message = "difficultyType가 null입니다.")
     private DifficultyType difficultyType;
+    @NotEmpty(message = "selectedPages가 비어있습니다.")
+    private List<Integer> selectedPages;
 
     public void validateQuizCount() {
         if (quizCount % 5 != 0) {
