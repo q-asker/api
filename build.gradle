@@ -72,6 +72,10 @@ jib {
             password = project.findProperty("DOCKER_PASSWORD")
         }
     }
+    extraDirectories {
+        paths = file('newrelic')
+        into = '/app/newrelic'
+    }
     container {
         def activeProfile = project.hasProperty('profile')
                 ? project.property('profile')
