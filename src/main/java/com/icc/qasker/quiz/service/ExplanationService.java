@@ -6,11 +6,12 @@ import com.icc.qasker.global.util.HashUtil;
 import com.icc.qasker.quiz.dto.response.ExplanationResponse;
 import com.icc.qasker.quiz.dto.response.ResultResponse;
 import com.icc.qasker.quiz.entity.Problem;
+import com.icc.qasker.quiz.entity.ReferencedPage;
 import com.icc.qasker.quiz.repository.ProblemRepository;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;import com.icc.qasker.quiz.entity.ReferencedPage;
+import org.springframework.stereotype.Service;
 
 
 @Service
@@ -33,11 +34,11 @@ public class ExplanationService {
                 ? problem.getExplanation().getContent()
                 : "해설 없음";
             List<Integer> pages = problem.getReferencedPages()
-                    .stream()
-                    .map(ReferencedPage::getPageNumber)
-                    .toList();
+                .stream()
+                .map(ReferencedPage::getPageNumber)
+                .toList();
 
-            results.add(new ResultResponse(problem.getId().getNumber(), explanation,pages));
+            results.add(new ResultResponse(problem.getId().getNumber(), explanation, pages));
         }
 
         return new ExplanationResponse(results);
