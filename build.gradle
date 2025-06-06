@@ -96,7 +96,7 @@ jib {
         if (newRelicConfig.exists() && newRelicJar.exists()) {
             jvmFlags = jvmFlags + [
                     "-Dnewrelic.config.file=/app/newrelic/newrelic.yml",
-                    "-javaagent:/app/newrelic/newrelic/newrelic.jar"
+                    "-javaagent:/app/newrelic/newrelic.jar"
             ]
         }
     }
