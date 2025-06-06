@@ -37,7 +37,7 @@ jobs:
 
       - name: application-prod.yml 등록
         run: |
-          echo "${{ APPLICATION_PROD_YML }}" > src/main/resources/application-prod.yml
+          echo "${{ env.APPLICATION_PROD_YML }}" > src/main/resources/application-prod.yml
 
       - name: gradle.properties 등록
         run: |
