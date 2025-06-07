@@ -20,6 +20,8 @@ public class FeGenerationRequest {
     private QuizType quizType;
     @NotNull(message = "difficultyType가 null입니다.")
     private DifficultyType difficultyType;
+    @NotNull(message = "pageSelected가 null입니다.")
+    private boolean pageSelected;
     @NotEmpty(message = "selectedPages가 비어있습니다.")
     private List<@Min(1) Integer> selectedPages;
 
