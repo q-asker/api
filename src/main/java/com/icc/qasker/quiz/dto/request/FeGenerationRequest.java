@@ -4,6 +4,7 @@ import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.quiz.domain.enums.DifficultyType;
 import com.icc.qasker.quiz.domain.enums.QuizType;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -15,6 +16,7 @@ public class FeGenerationRequest {
     @NotBlank(message = "url이 존재하지 않습니다.")
     private String uploadedUrl;
     @Min(value = 5, message = "quizCount는 5이상입니다.")
+    @Max(value = 50, message = "quizCount는 50이하입니다.")
     private int quizCount;
     @NotNull(message = "quizType이 null입니다.")
     private QuizType quizType;
