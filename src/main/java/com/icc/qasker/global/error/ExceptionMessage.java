@@ -34,7 +34,7 @@ public enum ExceptionMessage {
     PROBLEM_SET_NOT_FOUND(HttpStatus.NOT_FOUND, "문제 세트를 찾을 수 없습니다."),
     INVALID_URL_REQUEST(HttpStatus.BAD_REQUEST, "유효하지 않은 url입니다"),
     INVALID_QUIZ_COUNT_REQUEST(HttpStatus.BAD_REQUEST, "quizCount는 5배수입니다."),
-    INVALID_QUIZ_NUMBER_REQUEST(HttpStatus.BAD_REQUEST, "지정된 페이지 수가 100 이상입니다."),
+    INVALID_PAGE_REQUEST(HttpStatus.BAD_REQUEST, "페이지 형식이 잘못 되었습니다."),
 
     // Default
     DEFAULT_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "에러가 발생했습니다.");

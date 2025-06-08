@@ -38,8 +38,8 @@ public class FeGenerationRequest {
     }
 
     public void validatePageSize() {
-        if ((endPage - startPage + 1) > 100) {
-            throw new CustomException(ExceptionMessage.INVALID_QUIZ_NUMBER_REQUEST);
+        if ((endPage < startPage) || (endPage - startPage + 1) > 100) {
+            throw new CustomException(ExceptionMessage.INVALID_PAGE_REQUEST);
         }
     }
 }
