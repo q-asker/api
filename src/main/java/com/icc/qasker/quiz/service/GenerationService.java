@@ -40,6 +40,7 @@ public class GenerationService {
     private final ProblemSetRepository problemSetRepository;
     private final HashUtil hashUtil;
     private final Validator validator;
+    private static final int MAX_CONTENT_LENGTH = 20000;
 
 
     public GenerationService(
@@ -142,8 +143,8 @@ public class GenerationService {
         // - 4. explanation
         Explanation explanation = new Explanation();
         String explanationContent = quiz.getExplanation();
-        if (explanationContent != null && explanationContent.length() > 200000) {
-            explanationContent = explanationContent.substring(0, 20000);
+        if (explanationContent != null && explanationContent.length() > MAX_CONTENT_LENGTH) {
+            explanationContent = explanationContent.substring(0, MAX_CONTENT_LENGTH);
         }
         explanation.setContent(explanationContent);
         explanation.setProblem(problem);
