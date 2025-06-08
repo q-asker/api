@@ -25,10 +25,10 @@ public class FeGenerationRequest {
     private boolean pageSelected;
     @NotNull(message = "startPage가 null입니다.")
     @Min(1)
-    private int startPage;
+    private int startPageNumber;
     @NotNull(message = "endPage가 null입니다.")
     @Min(1)
-    private int endPage;
+    private int endPageNumber;
 
 
     public void validateQuizCount() {
@@ -38,7 +38,7 @@ public class FeGenerationRequest {
     }
 
     public void validatePageSize() {
-        if ((endPage < startPage) || (endPage - startPage + 1) > 100) {
+        if ((endPageNumber < startPageNumber) || (endPageNumber - startPageNumber + 1) > 100) {
             throw new CustomException(ExceptionMessage.INVALID_PAGE_REQUEST);
         }
     }
