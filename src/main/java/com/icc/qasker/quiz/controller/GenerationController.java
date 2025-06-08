@@ -3,7 +3,6 @@ package com.icc.qasker.quiz.controller;
 import com.icc.qasker.quiz.controller.doc.GenerationApiDoc;
 import com.icc.qasker.quiz.dto.request.FeGenerationRequest;
 import com.icc.qasker.quiz.dto.response.GenerationResponse;
-import com.icc.qasker.quiz.dto.response.ProblemSetResponse;
 import com.icc.qasker.quiz.service.GenerationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -21,8 +20,10 @@ public class GenerationController implements GenerationApiDoc {
     private final GenerationService generationService;
 
     @PostMapping
-    public Mono<GenerationResponse> postProblemSetId(@Valid @RequestBody FeGenerationRequest feGenerationRequest) {
+    public Mono<GenerationResponse> postProblemSetId(
+        @Valid @RequestBody FeGenerationRequest feGenerationRequest) {
         feGenerationRequest.validateQuizCount();
+        feGenerationRequest.validatePageSize();
         return generationService.processGenerationRequest(feGenerationRequest);
     }
 
