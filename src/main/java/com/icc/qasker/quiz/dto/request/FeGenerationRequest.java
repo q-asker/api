@@ -20,7 +20,6 @@ public class FeGenerationRequest {
     private QuizType quizType;
     @NotNull(message = "difficultyType가 null입니다.")
     private DifficultyType difficultyType;
-    @NotNull(message = "pageSelected가 null입니다.")
     private boolean pageSelected;
     @NotNull(message = "startPage가 null입니다.")
     @Min(1)
