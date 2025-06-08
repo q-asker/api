@@ -7,7 +7,12 @@ import com.icc.qasker.quiz.dto.request.FeGenerationRequest;
 import com.icc.qasker.quiz.dto.response.AiGenerationResponse;
 import com.icc.qasker.quiz.dto.response.GenerationResponse;
 import com.icc.qasker.quiz.dto.response.QuizGeneratedByAI;
-import com.icc.qasker.quiz.entity.*;
+import com.icc.qasker.quiz.entity.Explanation;
+import com.icc.qasker.quiz.entity.Problem;
+import com.icc.qasker.quiz.entity.ProblemId;
+import com.icc.qasker.quiz.entity.ProblemSet;
+import com.icc.qasker.quiz.entity.ReferencedPage;
+import com.icc.qasker.quiz.entity.Selection;
 import com.icc.qasker.quiz.repository.ProblemSetRepository;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
@@ -90,7 +95,8 @@ public class GenerationService {
             if (aiResponse.getQuiz().size() != feRequestQuizCount) {
                 throw new CustomException(ExceptionMessage.INVALID_AI_RESPONSE);
             }
-            Set<ConstraintViolation<AiGenerationResponse>> violations = validator.validate(aiResponse);
+            Set<ConstraintViolation<AiGenerationResponse>> violations = validator.validate(
+                aiResponse);
             if (!violations.isEmpty()) {
                 throw new CustomException(ExceptionMessage.INVALID_AI_RESPONSE);
             }
@@ -135,7 +141,11 @@ public class GenerationService {
 
         // - 4. explanation
         Explanation explanation = new Explanation();
-        explanation.setContent(quiz.getExplanation());
+        String explanationContent = quiz.getExplanation();
+        if (explanationContent != null && explanationContent.length() > 200000) {
+            explanationContent = explanationContent.substring(0, 20000);
+        }
+        explanation.setContent(explanationContent);
         explanation.setProblem(problem);
         problem.setExplanation(explanation);
 
