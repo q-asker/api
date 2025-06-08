@@ -21,12 +21,8 @@ public class FeGenerationRequest {
     @NotNull(message = "difficultyType가 null입니다.")
     private DifficultyType difficultyType;
     private boolean pageSelected;
-    @NotNull(message = "startPage가 null입니다.")
-    @Min(1)
-    private int startPageNumber;
-    @NotNull(message = "endPage가 null입니다.")
-    @Min(1)
-    private int endPageNumber;
+    private Integer startPageNumber;
+    private Integer endPageNumber;
 
 
     public void validateQuizCount() {
@@ -36,8 +32,13 @@ public class FeGenerationRequest {
     }
 
     public void validatePageSize() {
-        if ((endPageNumber < startPageNumber) || endPageNumber > 100) {
-            throw new CustomException(ExceptionMessage.INVALID_PAGE_REQUEST);
+        if (pageSelected) {
+            if (startPageNumber == null || endPageNumber == null) {
+                throw new CustomException(ExceptionMessage.INVALID_PAGE_REQUEST);
+            }
+            if ((endPageNumber < startPageNumber) || endPageNumber > 100) {
+                throw new CustomException(ExceptionMessage.INVALID_PAGE_REQUEST);
+            }
         }
     }
 }
