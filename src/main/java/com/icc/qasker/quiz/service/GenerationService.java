@@ -18,6 +18,7 @@ import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import jakarta.validation.constraints.NotNull;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
@@ -100,6 +101,22 @@ public class GenerationService {
                 aiResponse);
             if (!violations.isEmpty()) {
                 throw new CustomException(ExceptionMessage.INVALID_AI_RESPONSE);
+            }
+            for (QuizGeneratedByAI quiz : aiResponse.getQuiz()) {
+                System.out.println("Before");
+                for (int i = 0; i < 4; i++) {
+                    QuizGeneratedByAI.SelectionsOfAi s = quiz.getSelections().get(i);
+                    System.out.println(
+                        "content: " + s.getContent() + ", correct: " + s.isCorrect());
+                }
+
+                Collections.shuffle(quiz.getSelections());
+
+                System.out.println("After shuffle:");
+                for (QuizGeneratedByAI.SelectionsOfAi s : quiz.getSelections()) {
+                    System.out.println(
+                        "content: " + s.getContent() + ", correct: " + s.isCorrect());
+                }
             }
 
             return saveProblemSet(aiResponse);
