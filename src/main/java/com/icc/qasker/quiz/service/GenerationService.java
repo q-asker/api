@@ -12,6 +12,7 @@ import com.icc.qasker.quiz.repository.ProblemSetRepository;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import jakarta.validation.constraints.NotNull;
+import java.util.Collections;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -97,6 +98,9 @@ public class GenerationService {
                     aiResponse);
             if (!violations.isEmpty()) {
                 throw new CustomException(ExceptionMessage.INVALID_AI_RESPONSE);
+            }
+            for (QuizGeneratedByAI quiz : aiResponse.getQuiz()) {
+                Collections.shuffle(quiz.getSelections());
             }
 
             return saveProblemSet(aiResponse);
