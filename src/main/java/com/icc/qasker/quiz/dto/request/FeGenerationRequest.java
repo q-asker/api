@@ -38,7 +38,7 @@ public class FeGenerationRequest {
             if (startPageNumber == null || endPageNumber == null) {
                 throw new CustomException(ExceptionMessage.INVALID_PAGE_REQUEST);
             }
-            if ((endPageNumber < startPageNumber) || endPageNumber > 100) {
+            if ((endPageNumber < startPageNumber) || endPageNumber - startPageNumber > 100) {
                 throw new CustomException(ExceptionMessage.INVALID_PAGE_REQUEST);
             }
         }
