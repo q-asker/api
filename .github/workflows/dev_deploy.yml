@@ -3,7 +3,7 @@ name: Docker Hub Push & 개발 서버 EC2 배포
 on:
   push:
     branches:
-      - ICC-85-FE-url-changes
+      - develop
   workflow_dispatch:
 
 jobs:
