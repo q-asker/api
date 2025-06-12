@@ -133,14 +133,14 @@ public class GenerationService {
         ProblemId problemId = new ProblemId();
         problemId.setNumber(quiz.getNumber());
         problem.setId(problemId);
-        problem.setTitle(quiz.getTitle());
+        problem.setTitle(forReadability(quiz.getTitle()));
         problem.setProblemSet(problemSet);
 
         // - 3. selection
         List<Selection> selections = new ArrayList<>();
         for (QuizGeneratedByAI.SelectionsOfAi sel : quiz.getSelections()) {
             Selection selection = new Selection();
-            selection.setContent(sel.getContent());
+            selection.setContent(forReadability(sel.getContent()));
             selection.setCorrect(sel.isCorrect());
             selections.add(selection);
             selection.setProblem(problem);
@@ -149,12 +149,10 @@ public class GenerationService {
 
         // - 4. explanation
         Explanation explanation = new Explanation();
-        System.out.println("Before: " + quiz.getExplanation());
         String explanationContent = forReadability(quiz.getExplanation());
         if (explanationContent.length() > MAX_CONTENT_LENGTH) {
             explanationContent = explanationContent.substring(0, MAX_CONTENT_LENGTH);
         }
-        System.out.println("After: " + explanationContent);
         explanation.setContent(explanationContent);
         explanation.setProblem(problem);
         problem.setExplanation(explanation);
