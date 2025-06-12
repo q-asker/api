@@ -9,7 +9,6 @@ jobs:
   build:
     name: 빌드 작업
     runs-on: ubuntu-latest
-
     env:
       APPLICATION_PROD_YML: ${{ secrets.APPLICATION_PROD_YML }}
       NEWRELIC_YML: ${{ secrets.NEWRELIC_YML }}
