@@ -13,6 +13,7 @@ public enum ExceptionMessage {
     FILE_NAME_TOO_LONG(HttpStatus.BAD_REQUEST, "파일 이름이 깁니다"),
     EXTENSION_NOT_EXIST(HttpStatus.BAD_REQUEST, "확장자가 존재하지 않습니다"),
     EXTENSION_INVALID(HttpStatus.BAD_REQUEST, "허용하지 않는 확장자입니다."),
+    FILE_NOT_FOUND_ON_S3(HttpStatus.BAD_REQUEST, "24시간이 지나 파일이 삭제되었습니다."),
 
     // ExplanationService.java
     PROBLEM_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 문제를 찾을 수 없습니다."),

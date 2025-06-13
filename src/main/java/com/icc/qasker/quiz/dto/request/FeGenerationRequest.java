@@ -8,6 +8,8 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import lombok.Getter;
 
 @Getter
@@ -41,6 +43,20 @@ public class FeGenerationRequest {
             if ((endPageNumber < startPageNumber) || endPageNumber - startPageNumber > 100) {
                 throw new CustomException(ExceptionMessage.INVALID_PAGE_REQUEST);
             }
+        }
+    }
+
+    public void vaidateUploadedUrl() {
+        try {
+            HttpURLConnection connection = (HttpURLConnection) new URL(
+                uploadedUrl).openConnection();
+
+            int responseCode = connection.getResponseCode();
+            if (responseCode != HttpURLConnection.HTTP_OK) {
+                throw new CustomException(ExceptionMessage.FILE_NOT_FOUND_ON_S3);
+            }
+        } catch (Exception e) {
+            throw new CustomException(ExceptionMessage.FILE_NOT_FOUND_ON_S3);
         }
     }
 }
