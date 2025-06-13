@@ -22,9 +22,6 @@ public class GenerationController implements GenerationApiDoc {
     @PostMapping
     public Mono<GenerationResponse> postProblemSetId(
         @Valid @RequestBody FeGenerationRequest feGenerationRequest) {
-        feGenerationRequest.validateQuizCount();
-        feGenerationRequest.validatePageSize();
-        feGenerationRequest.vaidateUploadedUrl();
         return generationService.processGenerationRequest(feGenerationRequest);
     }
 
