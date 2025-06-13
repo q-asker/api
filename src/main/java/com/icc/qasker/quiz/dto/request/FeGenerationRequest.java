@@ -28,6 +28,27 @@ public class FeGenerationRequest {
     private Integer startPageNumber;
     private Integer endPageNumber;
 
+    public FeGenerationRequest(
+        String uploadedUrl,
+        int quizCount,
+        QuizType quizType,
+        DifficultyType difficultyType,
+        boolean pageSelected,
+        Integer startPageNumber,
+        Integer endPageNumber
+    ) {
+        this.uploadedUrl = uploadedUrl;
+        this.quizCount = quizCount;
+        this.quizType = quizType;
+        this.difficultyType = difficultyType;
+        this.pageSelected = pageSelected;
+        this.startPageNumber = startPageNumber;
+        this.endPageNumber = endPageNumber;
+
+        validateUploadedUrl();
+        validateQuizCount();
+        validatePageSize();
+    }
 
     public void validateQuizCount() {
         if (quizCount % 5 != 0) {
@@ -46,7 +67,7 @@ public class FeGenerationRequest {
         }
     }
 
-    public void vaidateUploadedUrl() {
+    public void validateUploadedUrl() {
         try {
             HttpURLConnection connection = (HttpURLConnection) new URL(
                 uploadedUrl).openConnection();
