@@ -24,6 +24,7 @@ public class GenerationController implements GenerationApiDoc {
         @Valid @RequestBody FeGenerationRequest feGenerationRequest) {
         feGenerationRequest.validateQuizCount();
         feGenerationRequest.validatePageSize();
+        feGenerationRequest.vaidateUploadedUrl();
         return generationService.processGenerationRequest(feGenerationRequest);
     }
 
