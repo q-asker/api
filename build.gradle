@@ -30,6 +30,9 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
+    // to pdf
+    implementation 'org.jodconverter:jodconverter-local-lo:4.4.9'
+
     // db
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     runtimeOnly 'com.mysql:mysql-connector-j'
@@ -62,7 +65,7 @@ tasks.register('unzipNewrelic', Copy) {
 
 jib {
     from {
-        image = 'openjdk:17-slim'
+        image = 'qasker/eclipse-temurin-17-libreoffice'
     }
     to {
         image = "${project.findProperty("DOCKER_ID")}/${project.findProperty("DOCKER_IMAGE_NAME")}"
