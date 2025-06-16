@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.util.List;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Getter
@@ -28,6 +29,7 @@ public class QuizGeneratedByAI {
 
     @Getter
     @Setter
+    @NoArgsConstructor
     public static class SelectionsOfAi {
 
         @NotBlank(message = "selection의 content가 존재하지 않습니다.")
