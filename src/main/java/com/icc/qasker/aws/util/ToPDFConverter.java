@@ -41,7 +41,7 @@ public class ToPDFConverter {
             target.transferTo(inputFile);
             File outputFile = Files.createTempFile("converted-", ".pdf").toFile();
             officeManager = LocalOfficeManager.builder()
-                    .officeHome(officeHome + "123123")
+                    .officeHome(officeHome)
                     .portNumbers(port)
                     .install()
                     .build();
