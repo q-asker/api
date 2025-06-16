@@ -12,3 +12,4 @@ public interface ProblemRepository extends JpaRepository<Problem, ProblemId> {
 
     Optional<Problem> findByIdProblemSetIdAndIdNumber(Long problemSetId, int number);
 }
+
