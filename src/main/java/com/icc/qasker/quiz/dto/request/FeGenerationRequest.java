@@ -8,6 +8,7 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.List;
@@ -25,7 +26,8 @@ public class FeGenerationRequest {
     private QuizType quizType;
     @NotNull(message = "difficultyType가 null입니다.")
     private DifficultyType difficultyType;
-    @NotBlank(message = "pageNumbers가 존재하지 않습니다.")
+    @NotNull(message = "pageNumbers가 null입니다.")
+    @Size(min = 1, message = "pageNumbers는 최소 1개 이상이어야 합니다.")
     private List<Integer> pageNumbers;
 
     public FeGenerationRequest(
