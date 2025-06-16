@@ -1,5 +1,7 @@
 package com.icc.qasker.aws.util;
 
+import com.icc.qasker.global.error.CustomException;
+import com.icc.qasker.global.error.ExceptionMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.jodconverter.core.office.OfficeException;
 import org.jodconverter.core.office.OfficeManager;
@@ -39,7 +41,7 @@ public class ToPDFConverter {
             target.transferTo(inputFile);
             File outputFile = Files.createTempFile("converted-", ".pdf").toFile();
             officeManager = LocalOfficeManager.builder()
-                    .officeHome(officeHome)
+                    .officeHome(officeHome + "123123")
                     .portNumbers(port)
                     .install()
                     .build();
@@ -51,9 +53,11 @@ public class ToPDFConverter {
 
             return outputFile;
         } catch (OfficeException e) {
-            throw new RuntimeException("PPT → PDF 변환 실패", e);
+            log.error("Error during office conversion: {}", e.getMessage());
+            throw new CustomException(ExceptionMessage.NO_FILE_UPLOADED);
         } catch (IOException e) {
-            throw new RuntimeException("파일 처리 중 오류 발생", e);
+            log.error("Error during file handling: {}", e.getMessage());
+            throw new CustomException(ExceptionMessage.NO_FILE_UPLOADED);
         } finally {
             OfficeUtils.stopQuietly(officeManager);
             if (inputFile != null && !inputFile.delete()) {
