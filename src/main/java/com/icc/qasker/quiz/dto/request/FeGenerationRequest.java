@@ -10,6 +10,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.List;
 import lombok.Getter;
 
 @Getter
@@ -24,26 +25,22 @@ public class FeGenerationRequest {
     private QuizType quizType;
     @NotNull(message = "difficultyType가 null입니다.")
     private DifficultyType difficultyType;
-    private boolean pageSelected;
-    private Integer startPageNumber;
-    private Integer endPageNumber;
+    @NotBlank(message = "pageNumbers가 존재하지 않습니다.")
+    private List<Integer> pageNumbers;
 
     public FeGenerationRequest(
         String uploadedUrl,
         int quizCount,
         QuizType quizType,
         DifficultyType difficultyType,
-        boolean pageSelected,
-        Integer startPageNumber,
-        Integer endPageNumber
+        List<Integer> pageNumbers
+
     ) {
         this.uploadedUrl = uploadedUrl;
         this.quizCount = quizCount;
         this.quizType = quizType;
         this.difficultyType = difficultyType;
-        this.pageSelected = pageSelected;
-        this.startPageNumber = startPageNumber;
-        this.endPageNumber = endPageNumber;
+        this.pageNumbers = pageNumbers;
 
         validateUploadedUrl();
         validateQuizCount();
@@ -57,13 +54,8 @@ public class FeGenerationRequest {
     }
 
     public void validatePageSize() {
-        if (pageSelected) {
-            if (startPageNumber == null || endPageNumber == null) {
-                throw new CustomException(ExceptionMessage.INVALID_PAGE_REQUEST);
-            }
-            if ((endPageNumber < startPageNumber) || endPageNumber - startPageNumber > 100) {
-                throw new CustomException(ExceptionMessage.INVALID_PAGE_REQUEST);
-            }
+        if (pageNumbers.size() > 100) {
+            throw new CustomException(ExceptionMessage.INVALID_PAGE_REQUEST);
         }
     }
 

@@ -25,7 +25,8 @@ public enum ExceptionMessage {
     AI_SERVER_TIMEOUT(HttpStatus.GATEWAY_TIMEOUT, "AI서버 응답 시간이 초과되었습니다."),
     AI_SERVER_CONNECTION_FAILED(HttpStatus.BAD_GATEWAY, "AI서버에 연결할 수 없습니다."),
     AI_SERVER_RESPONSE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "AI서버에서 오류가 발생했습니다."),
-    AI_SERVER_TO_MANY_REQUEST(HttpStatus.TOO_MANY_REQUESTS, "서버가 생성요청 한도에 도달했습니다. 문제 개수를 줄이거나 1분 뒤 다시 시도해주세요."),
+    AI_SERVER_TO_MANY_REQUEST(HttpStatus.TOO_MANY_REQUESTS,
+        "서버가 생성요청 한도에 도달했습니다. 문제 개수를 줄이거나 1분 뒤 다시 시도해주세요."),
 
     NULL_AI_RESPONSE(HttpStatus.INTERNAL_SERVER_ERROR, "AI 응답이 null입니다."),
     INVALID_AI_RESPONSE(HttpStatus.UNPROCESSABLE_ENTITY, "유효하지 않은 AI의 응답입니다."),
@@ -37,7 +38,7 @@ public enum ExceptionMessage {
     PROBLEM_SET_NOT_FOUND(HttpStatus.NOT_FOUND, "문제 세트를 찾을 수 없습니다."),
     INVALID_URL_REQUEST(HttpStatus.BAD_REQUEST, "유효하지 않은 url입니다"),
     INVALID_QUIZ_COUNT_REQUEST(HttpStatus.BAD_REQUEST, "quizCount는 5배수입니다."),
-    INVALID_PAGE_REQUEST(HttpStatus.BAD_REQUEST, "페이지 형식이 잘못 되었습니다."),
+    INVALID_PAGE_REQUEST(HttpStatus.BAD_REQUEST, "페이지 수가 100 이상입니다."),
 
     // Default
     DEFAULT_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "에러가 발생했습니다.");
