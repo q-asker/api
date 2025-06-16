@@ -1,5 +1,8 @@
 package com.icc.qasker.quiz.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.global.util.HashUtil;
@@ -49,8 +52,8 @@ public class SpecificExplanationService {
             }).toList()
         );
         System.out.printf("problem.getTitle() = %s\n", problem.getTitle());
-        
-        String aiExplanation = Objects.requireNonNull(
+
+        String aiExplanationRaw = Objects.requireNonNull(
             aiWebClient.post()
                 .uri("/specific-explanation")
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
@@ -59,9 +62,17 @@ public class SpecificExplanationService {
                 .bodyToMono(String.class)
                 .block()
         );
-        return new SpecificExplanationResponse(
-            aiExplanation
-        );
+        String explanationText;
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            JsonNode node = objectMapper.readTree(aiExplanationRaw);
+            explanationText = node.get("specific_explanation").asText();
+        } catch (JsonProcessingException e) {
+            log.warn("AI 응답 파싱 실패: 원문 그대로 반환", e);
+            explanationText = aiExplanationRaw;
+        }
+
+        return new SpecificExplanationResponse(explanationText);
 
     }
 
