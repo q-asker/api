@@ -11,6 +11,8 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import lombok.Getter;
 
@@ -63,15 +65,28 @@ public class FeGenerationRequest {
 
     public void validateUploadedUrl() {
         try {
-            HttpURLConnection connection = (HttpURLConnection) new URL(
-                uploadedUrl).openConnection();
-
+            URL url = new URL(uploadedUrl);
+            String encodedPath = encodePath(url.getPath());
+            URL encodedUrl = new URL(url.getProtocol(), url.getHost(), url.getPort(), encodedPath);
+            HttpURLConnection connection = (HttpURLConnection) encodedUrl.openConnection();
             int responseCode = connection.getResponseCode();
             if (responseCode != HttpURLConnection.HTTP_OK) {
                 throw new CustomException(ExceptionMessage.FILE_NOT_FOUND_ON_S3);
             }
+
         } catch (Exception e) {
             throw new CustomException(ExceptionMessage.FILE_NOT_FOUND_ON_S3);
         }
+    }
+
+    private String encodePath(String path) {
+        String[] segments = path.split("/");
+        StringBuilder encoded = new StringBuilder();
+        for (String segment : segments) {
+            if (!segment.isEmpty()) {
+                encoded.append("/").append(URLEncoder.encode(segment, StandardCharsets.UTF_8));
+            }
+        }
+        return encoded.toString();
     }
 }
