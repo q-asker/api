@@ -68,7 +68,6 @@ public class FeGenerationRequest {
             URL url = new URL(uploadedUrl);
             String encodedPath = encodePath(url.getPath());
             URL encodedUrl = new URL(url.getProtocol(), url.getHost(), url.getPort(), encodedPath);
-
             HttpURLConnection connection = (HttpURLConnection) encodedUrl.openConnection();
             int responseCode = connection.getResponseCode();
             if (responseCode != HttpURLConnection.HTTP_OK) {
