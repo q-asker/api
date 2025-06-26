@@ -11,10 +11,10 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import lombok.Getter;
-import org.springframework.web.util.UriUtils;
 
 @Getter
 public class FeGenerationRequest {
@@ -85,8 +85,7 @@ public class FeGenerationRequest {
         StringBuilder encoded = new StringBuilder();
         for (String segment : segments) {
             if (!segment.isEmpty()) {
-                encoded.append("/")
-                    .append(UriUtils.encodePathSegment(segment, StandardCharsets.UTF_8));
+                encoded.append("/").append(URLEncoder.encode(segment, StandardCharsets.UTF_8));
             }
         }
         return encoded.toString();
