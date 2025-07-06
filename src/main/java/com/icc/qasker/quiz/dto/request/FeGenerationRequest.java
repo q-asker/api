@@ -46,6 +46,9 @@ public class FeGenerationRequest {
         this.difficultyType = difficultyType;
         this.pageNumbers = pageNumbers;
 
+        if (this.quizType == QuizType.MULTIPLE && this.difficultyType == DifficultyType.RECALL) {
+            this.quizType = QuizType.BLANK;
+        }
         validateUploadedUrl();
         validateQuizCount();
         validatePageSize();
