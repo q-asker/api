@@ -3,6 +3,7 @@ package com.icc.qasker.quiz.service;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.global.util.HashUtil;
+import com.icc.qasker.quiz.domain.enums.DifficultyType;
 import com.icc.qasker.quiz.domain.enums.QuizType;
 import com.icc.qasker.quiz.dto.request.FeGenerationRequest;
 import com.icc.qasker.quiz.dto.response.AiGenerationResponse;
@@ -66,6 +67,10 @@ public class GenerationService {
                     if (!feGenerationRequest.getUploadedUrl().startsWith(CLOUDFRONT_BASE_URL)) {
                         throw new CustomException(ExceptionMessage.INVALID_URL_REQUEST);
                     }
+                    if (feGenerationRequest.getQuizType() == QuizType.MULTIPLE
+                        && feGenerationRequest.getDifficultyType() == DifficultyType.RECALL) {
+                        feGenerationRequest.setQuizType(QuizType.BLANK);
+                    }
                 })
                 .then(callAiServer(feGenerationRequest))
                 .flatMap(aiResponse -> saveToDB(aiResponse, feGenerationRequest.getQuizCount(),
@@ -105,15 +110,16 @@ public class GenerationService {
             if (!violations.isEmpty()) {
                 throw new CustomException(ExceptionMessage.INVALID_AI_RESPONSE);
             }
-            if (feQuizType == QuizType.MULTIPLE) {
-                for (QuizGeneratedByAI quiz : aiResponse.getQuiz()) {
-                    Collections.shuffle(quiz.getSelections());
-                }
-            } else if (feQuizType == QuizType.OX) {
+            if (feQuizType == QuizType.OX) {
                 for (QuizGeneratedByAI quiz : aiResponse.getQuiz()) {
                     List<QuizGeneratedByAI.SelectionsOfAi> selections = quiz.getSelections();
                     selections.get(0).setContent("O");
                     selections.get(1).setContent("X");
+                }
+
+            } else {
+                for (QuizGeneratedByAI quiz : aiResponse.getQuiz()) {
+                    Collections.shuffle(quiz.getSelections());
                 }
             }
 
