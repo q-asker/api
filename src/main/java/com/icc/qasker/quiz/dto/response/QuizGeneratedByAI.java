@@ -18,7 +18,7 @@ public class QuizGeneratedByAI {
     private String title;
 
     @NotNull(message = "selections가 null입니다.")
-    @Size(min = 4, max = 4, message = "selections가 4개가 아닙니다.")
+    @Size(min = 2, max = 4, message = "selections의 범위가 2와 4를 벗어납니다.")
     private List<SelectionsOfAi> selections;
 
     @NotBlank(message = "explanation이 null입니다.")
