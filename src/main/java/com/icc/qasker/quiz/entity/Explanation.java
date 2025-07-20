@@ -1,12 +1,7 @@
 package com.icc.qasker.quiz.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.EmbeddedId;
-import jakarta.persistence.Entity;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.JoinColumns;
-import jakarta.persistence.MapsId;
-import jakarta.persistence.OneToOne;
+import com.icc.qasker.global.entity.CreatedAt;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -15,7 +10,7 @@ import lombok.Setter;
 @Getter
 @NoArgsConstructor
 @Setter
-public class Explanation {
+public class Explanation extends CreatedAt {
 
     @EmbeddedId
     private ProblemId id;
@@ -25,8 +20,8 @@ public class Explanation {
     @OneToOne
     @MapsId
     @JoinColumns({
-        @JoinColumn(name = "problem_set_id", referencedColumnName = "problem_set_id"),
-        @JoinColumn(name = "number", referencedColumnName = "number")
+            @JoinColumn(name = "problem_set_id", referencedColumnName = "problem_set_id"),
+            @JoinColumn(name = "number", referencedColumnName = "number")
     })
     private Problem problem;
 }
