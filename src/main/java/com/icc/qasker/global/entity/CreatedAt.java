@@ -6,7 +6,7 @@ import lombok.Getter;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Getter
 @MappedSuperclass
@@ -14,4 +14,5 @@ import java.time.LocalDateTime;
 public abstract class CreatedAt {
 
     @CreatedDate
-    private LocalDateTime createdAt;
+    private Instant createdAt;
+}
