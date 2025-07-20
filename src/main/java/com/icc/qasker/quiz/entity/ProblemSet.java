@@ -1,7 +1,11 @@
 package com.icc.qasker.quiz.entity;
 
+import com.icc.qasker.global.entity.CreatedAt;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.util.List;
 
@@ -10,8 +14,9 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Setter
-public class ProblemSet {
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+public class ProblemSet extends CreatedAt {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String title;
 

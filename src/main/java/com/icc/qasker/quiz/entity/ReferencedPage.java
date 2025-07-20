@@ -1,5 +1,6 @@
 package com.icc.qasker.quiz.entity;
 
+import com.icc.qasker.global.entity.CreatedAt;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -7,7 +8,7 @@ import lombok.Setter;
 @Setter
 @Getter
 @Entity
-public class ReferencedPage {
+public class ReferencedPage extends CreatedAt {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
