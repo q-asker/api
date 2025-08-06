@@ -20,23 +20,19 @@ public class User {
     private int id;
     private String username;
     private String password;
-    private String email;
     private String role; //ROLE_USER, ROLE_ADMIN
-    private String provider; // 예) google
-    private String providerId; // google에서 사용되는 id -> sub에 해당함
+    private String provider;
     @CreationTimestamp
     private Timestamp createDate;
 
     @Builder
-    private User(String username, String password, String email, String role, String provider,
-        String providerId, Timestamp createDate) {
+    private User(String username, String password, String role, String provider,
+        Timestamp createDate) {
         super();
         this.username = username;
         this.password = password;
-        this.email = email;
         this.role = role;
         this.provider = provider;
-        this.providerId = providerId;
         this.createDate = createDate;
     }
 }

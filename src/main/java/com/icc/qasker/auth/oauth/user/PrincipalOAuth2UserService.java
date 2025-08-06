@@ -2,6 +2,7 @@ package com.icc.qasker.auth.oauth.user;
 
 import com.icc.qasker.auth.oauth.principal.PrincipalDetails;
 import com.icc.qasker.auth.oauth.provider.GoogleUserInfo;
+import com.icc.qasker.auth.oauth.provider.KakaoUserInfo;
 import com.icc.qasker.auth.oauth.provider.OAuth2UserInfo;
 import com.icc.qasker.quiz.entity.User;
 import com.icc.qasker.quiz.repository.UserRepository;
@@ -24,19 +25,21 @@ public class PrincipalOAuth2UserService extends DefaultOAuth2UserService {
     public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
         // try sign in
         OAuth2User oAuth2User = super.loadUser(userRequest);
-        System.out.println("principal: " + oAuth2User);
+        System.out.println("PrincipalOAuth2UserService's loadUser: " + oAuth2User);
         OAuth2UserInfo oAuth2UserInfo = null;
         // OAuth login
         if (userRequest.getClientRegistration().getRegistrationId().equals("google")) { // google
             System.out.println("try google login");
             oAuth2UserInfo = new GoogleUserInfo(oAuth2User.getAttributes());
+        } else if (userRequest.getClientRegistration().getRegistrationId()
+            .equals("kakao")) { // kakao
+            System.out.println("try kakao login");
+            oAuth2UserInfo = new KakaoUserInfo(oAuth2User.getAttributes());
         } else {
             System.out.println("we don't support that site");
         }
         String provider = oAuth2UserInfo.getProvider();
-        String providerId = oAuth2UserInfo.getProviderId();
         String username = oAuth2UserInfo.getName();
-        String email = oAuth2UserInfo.getEmail();
         String password = bCryptPasswordEncoder.encode("temporaryPassword");
         String role = "ROLE_USER";
         User user = userRepository.findByUsername(username);
@@ -44,10 +47,8 @@ public class PrincipalOAuth2UserService extends DefaultOAuth2UserService {
             user = User.builder()
                 .username(username)
                 .password(password)
-                .email(email)
                 .role(role)
                 .provider(provider)
-                .providerId(providerId)
                 .build();
             userRepository.save(user);
         }
