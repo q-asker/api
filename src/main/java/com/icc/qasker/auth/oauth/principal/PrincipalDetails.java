@@ -1,4 +1,4 @@
-package com.icc.qasker.auth.principal;
+package com.icc.qasker.auth.oauth.principal;
 
 import com.icc.qasker.quiz.entity.User;
 import java.util.ArrayList;
