@@ -1,4 +1,4 @@
-package com.icc.qasker.quiz.jwt;
+package com.icc.qasker.auth.jwt;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
