@@ -30,7 +30,7 @@ public class JwtAuthorizationFilter extends BasicAuthenticationFilter {
         FilterChain chain) throws IOException, ServletException {
 
         String jwtHeader = request.getHeader("Authorization");
-        if (jwtHeader == null && !jwtHeader.startsWith("Bearer ")) {
+        if (jwtHeader == null || !jwtHeader.startsWith("Bearer ")) {
             chain.doFilter(request, response);
             return;
         }

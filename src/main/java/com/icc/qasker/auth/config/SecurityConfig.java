@@ -3,7 +3,7 @@ package com.icc.qasker.auth.config;
 import com.icc.qasker.auth.filter.JwtAuthenticationFilter;
 import com.icc.qasker.auth.filter.JwtAuthorizationFilter;
 import com.icc.qasker.auth.filter.JwtProperties;
-import com.icc.qasker.auth.oauth.Service.PrincipalOAuth2UserService;
+import com.icc.qasker.auth.oauth.service.PrincipalOAuth2UserService;
 import com.icc.qasker.quiz.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;

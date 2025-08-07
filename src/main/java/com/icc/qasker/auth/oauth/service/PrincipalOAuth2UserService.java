@@ -1,4 +1,4 @@
-package com.icc.qasker.auth.oauth.Service;
+package com.icc.qasker.auth.oauth.service;
 
 import com.icc.qasker.auth.oauth.principal.PrincipalDetails;
 import com.icc.qasker.auth.oauth.provider.GoogleUserInfo;
@@ -54,7 +54,9 @@ public class PrincipalOAuth2UserService extends DefaultOAuth2UserService {
                 .provider(provider)
                 .build();
             userRepository.save(user);
+            System.out.println("oauth 회원가입 완료, " + provider + ", " + nickname);
         }
+        System.out.println("이미 존재하는 회원");
         return new PrincipalDetails(user, oAuth2User.getAttributes());
     }
 }

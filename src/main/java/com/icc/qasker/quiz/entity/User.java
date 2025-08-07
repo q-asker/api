@@ -16,7 +16,7 @@ public class User extends CreatedAt {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private String id;
+    private Long id;
     private String username;
     private String password;
     private String role; //ROLE_USER, ROLE_ADMIN
@@ -24,10 +24,9 @@ public class User extends CreatedAt {
     private String nickname;
 
     @Builder
-    private User(String id, String username, String password, String role, String provider,
+    private User(String username, String password, String role, String provider,
         String nickname) {
         super();
-        this.id = id;
         this.username = username;
         this.password = password;
         this.role = role;

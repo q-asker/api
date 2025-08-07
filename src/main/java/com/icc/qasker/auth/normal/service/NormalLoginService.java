@@ -1,4 +1,4 @@
-package com.icc.qasker.auth.normal.Service;
+package com.icc.qasker.auth.normal.service;
 
 import com.icc.qasker.auth.normal.dto.request.NormalLoginRequest;
 import com.icc.qasker.global.error.CustomException;
@@ -17,13 +17,13 @@ public class NormalLoginService {
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
 
     public void check(NormalLoginRequest normalLoginRequest) {
-        String username = "normal_" + normalLoginRequest.getId();
+        String username = normalLoginRequest.getUsername();
         User user = userRepository.findByUsername(username)
             .orElseThrow(() -> new CustomException(ExceptionMessage.USER_NOT_FOUND));
 
         if (!bCryptPasswordEncoder.matches(normalLoginRequest.getPassword(), user.getPassword())) {
             throw new CustomException(ExceptionMessage.INVALID_PASSWORD);
         }
-        System.out.println(user.getUsername());
+        System.out.println("로그인 완료: " + user.getUsername());
     }
 }

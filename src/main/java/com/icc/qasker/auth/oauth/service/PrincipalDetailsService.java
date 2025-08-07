@@ -1,9 +1,7 @@
-package com.icc.qasker.auth.oauth.Service;
+package com.icc.qasker.auth.oauth.service;
 
 
 import com.icc.qasker.auth.oauth.principal.PrincipalDetails;
-import com.icc.qasker.global.error.CustomException;
-import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.quiz.entity.User;
 import com.icc.qasker.quiz.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -20,9 +18,8 @@ public class PrincipalDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-
-        User user = userRepository.findById(username)
-            .orElseThrow(() -> new CustomException(ExceptionMessage.USER_NOT_FOUND));
+        User user = userRepository.findByUsername(username)
+            .orElse(null);
         return new PrincipalDetails(user);
     }
 }

@@ -1,4 +1,4 @@
-package com.icc.qasker.auth.normal.Service;
+package com.icc.qasker.auth.normal.service;
 
 import com.icc.qasker.auth.normal.dto.request.NormalJoinRequest;
 import com.icc.qasker.auth.utils.NicknameGenerator;
@@ -18,7 +18,7 @@ public class NormalJoinService {
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
 
     public void register(NormalJoinRequest normalJoinRequest) {
-        String username = "normal_" + normalJoinRequest.getId();
+        String username = normalJoinRequest.getUsername();
 
         if (userRepository.existsByUsername(username)) {
             throw new CustomException(ExceptionMessage.DUPLICATE_USERNAME);
@@ -34,5 +34,6 @@ public class NormalJoinService {
             .nickname(nickname)
             .build();
         userRepository.save(user);
+        System.out.println("기본 회원가입 완료, " + nickname);
     }
 }

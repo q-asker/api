@@ -1,9 +1,9 @@
 package com.icc.qasker.auth.normal.controller;
 
-import com.icc.qasker.auth.normal.Service.NormalJoinService;
-import com.icc.qasker.auth.normal.Service.NormalLoginService;
 import com.icc.qasker.auth.normal.dto.request.NormalJoinRequest;
 import com.icc.qasker.auth.normal.dto.request.NormalLoginRequest;
+import com.icc.qasker.auth.normal.service.NormalJoinService;
+import com.icc.qasker.auth.normal.service.NormalLoginService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
