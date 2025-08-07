@@ -1,8 +1,6 @@
 package com.icc.qasker.quiz.entity;
 
 import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import java.sql.Timestamp;
 import lombok.Builder;
@@ -16,8 +14,7 @@ import org.hibernate.annotations.CreationTimestamp;
 public class User {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int id;
+    private String id;
     private String username;
     private String password;
     private String role; //ROLE_USER, ROLE_ADMIN
@@ -26,9 +23,10 @@ public class User {
     private Timestamp createDate;
 
     @Builder
-    private User(String username, String password, String role, String provider,
+    private User(String id, String username, String password, String role, String provider,
         Timestamp createDate) {
         super();
+        this.id = id;
         this.username = username;
         this.password = password;
         this.role = role;

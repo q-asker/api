@@ -1,48 +1,32 @@
-package com.icc.qasker.auth.controller;
+package com.icc.qasker.auth.normal.controller;
 
-import com.icc.qasker.auth.dto.request.NormalJoinRequest;
-import com.icc.qasker.auth.utils.UsernameGenerator;
-import com.icc.qasker.global.error.CustomException;
-import com.icc.qasker.global.error.ExceptionMessage;
-import com.icc.qasker.quiz.entity.User;
-import com.icc.qasker.quiz.repository.UserRepository;
+import com.icc.qasker.auth.normal.Service.NormalJoinService;
+import com.icc.qasker.auth.normal.Service.NormalLoginService;
+import com.icc.qasker.auth.normal.dto.request.NormalJoinRequest;
+import com.icc.qasker.auth.normal.dto.request.NormalLoginRequest;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@RequiredArgsConstructor
 public class AuthController {
 
-    private final BCryptPasswordEncoder bCryptPasswordEncoder;
-    private final UserRepository userRepository;
-
-    public AuthController(BCryptPasswordEncoder bCryptPasswordEncoder,
-        UserRepository userRepository) {
-        this.bCryptPasswordEncoder = bCryptPasswordEncoder;
-        this.userRepository = userRepository;
-    }
+    private final NormalJoinService normalJoinService;
+    private final NormalLoginService normalLoginService;
 
     @PostMapping("/join")
-    public ResponseEntity<?> normalJoin(@ResponseBody NormalJoinRequest normalJoinRequest) {
-        String id = "normal_" + normalJoinRequest.getId();
+    public ResponseEntity<?> normalJoin(@RequestBody NormalJoinRequest normalJoinRequest) {
+        normalJoinService.register(normalJoinRequest);
+        return ResponseEntity.ok().build();
+    }
 
-        if (userRepository.existsById(id)) {
-            throw new CustomException(ExceptionMessage.DUPLICATE_ID);
-        }
-        String username = UsernameGenerator.generate();
-        String password = bCryptPasswordEncoder.encode(normalJoinRequest.getPassword());
-
-        User user = User.builder()
-            .id(id)
-            .username(username)
-            .password(password)
-            .role("ROLE_USER")
-            .provider(null)
-            .build();
-        userRepository.save(user);
-        return ResponseEntity.ok();
+    @PostMapping("/login")
+    public ResponseEntity<?> normalLogin(@RequestBody NormalLoginRequest normalLoginRequest) {
+        normalLoginService.check(normalLoginRequest);
+        return ResponseEntity.ok().build();
     }
 
 }

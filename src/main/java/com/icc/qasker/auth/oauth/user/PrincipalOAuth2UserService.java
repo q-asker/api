@@ -4,6 +4,7 @@ import com.icc.qasker.auth.oauth.principal.PrincipalDetails;
 import com.icc.qasker.auth.oauth.provider.GoogleUserInfo;
 import com.icc.qasker.auth.oauth.provider.KakaoUserInfo;
 import com.icc.qasker.auth.oauth.provider.OAuth2UserInfo;
+import com.icc.qasker.auth.utils.UsernameGenerator;
 import com.icc.qasker.quiz.entity.User;
 import com.icc.qasker.quiz.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -38,13 +39,15 @@ public class PrincipalOAuth2UserService extends DefaultOAuth2UserService {
         } else {
             System.out.println("we don't support that site");
         }
+        String id = oAuth2UserInfo.getProvider() + "_" + oAuth2UserInfo.getProviderId();
         String provider = oAuth2UserInfo.getProvider();
-        String username = oAuth2UserInfo.getName();
+        String username = UsernameGenerator.generate();
         String password = bCryptPasswordEncoder.encode("temporaryPassword");
         String role = "ROLE_USER";
         User user = userRepository.findByUsername(username);
         if (user == null) { // need to sign up
             user = User.builder()
+                .id(id)
                 .username(username)
                 .password(password)
                 .role(role)
@@ -53,6 +56,5 @@ public class PrincipalOAuth2UserService extends DefaultOAuth2UserService {
             userRepository.save(user);
         }
         return new PrincipalDetails(user, oAuth2User.getAttributes());
-
     }
 }

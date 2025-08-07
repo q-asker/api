@@ -1,4 +1,4 @@
-package com.icc.qasker.auth.dto.request;
+package com.icc.qasker.auth.normal.dto.request;
 
 import lombok.Getter;
 
