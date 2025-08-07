@@ -1,24 +1,43 @@
 package com.icc.qasker.auth.config;
 
-import com.icc.qasker.auth.oauth.user.PrincipalOAuth2UserService;
+import com.icc.qasker.auth.filter.JwtAuthenticationFilter;
+import com.icc.qasker.auth.filter.JwtAuthorizationFilter;
+import com.icc.qasker.auth.filter.JwtProperties;
+import com.icc.qasker.auth.oauth.Service.PrincipalOAuth2UserService;
+import com.icc.qasker.quiz.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 
 @RequiredArgsConstructor
 @Configuration
-@EnableWebSecurity // Spring Security 필터 체인 커스텀 후 등록
+@EnableWebSecurity
 public class SecurityConfig {
 
+    private final AuthenticationConfiguration authenticationConfiguration;
     private final PrincipalOAuth2UserService principalOauth2UserService;
+    private final UserRepository userRepository;
+    private final JwtProperties jwtProperties;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        AuthenticationManager authenticationManager = authenticationConfiguration.getAuthenticationManager();
+
         http
-            .csrf(csrf -> csrf.disable()) // csrf 비활성화
+            .csrf(AbstractHttpConfigurer::disable)
+            .sessionManagement(session -> session.sessionCreationPolicy(
+                SessionCreationPolicy.STATELESS))
+            .formLogin(AbstractHttpConfigurer::disable)
+            .httpBasic(AbstractHttpConfigurer::disable)
+            .addFilter(new JwtAuthenticationFilter(authenticationManager, jwtProperties))
+            .addFilter(new JwtAuthorizationFilter(authenticationManager, userRepository))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/statistics/**").authenticated() // 추후 통계 기능 인증 필요
                 .requestMatchers("/admin/**").hasRole("ADMIN") // 관리자 페이지

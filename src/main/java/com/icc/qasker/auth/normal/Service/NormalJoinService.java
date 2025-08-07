@@ -1,7 +1,7 @@
 package com.icc.qasker.auth.normal.Service;
 
 import com.icc.qasker.auth.normal.dto.request.NormalJoinRequest;
-import com.icc.qasker.auth.utils.UsernameGenerator;
+import com.icc.qasker.auth.utils.NicknameGenerator;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.quiz.entity.User;
@@ -18,23 +18,21 @@ public class NormalJoinService {
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
 
     public void register(NormalJoinRequest normalJoinRequest) {
-        String id = "normal_" + normalJoinRequest.getId();
+        String username = "normal_" + normalJoinRequest.getId();
 
-        if (userRepository.existsById(id)) {
-            throw new CustomException(ExceptionMessage.DUPLICATE_ID);
+        if (userRepository.existsByUsername(username)) {
+            throw new CustomException(ExceptionMessage.DUPLICATE_USERNAME);
         }
 
-        String username = UsernameGenerator.generate();
+        String nickname = NicknameGenerator.generate();
         String password = bCryptPasswordEncoder.encode(normalJoinRequest.getPassword());
-
         User user = User.builder()
-            .id(id)
             .username(username)
             .password(password)
             .role("ROLE_USER")
             .provider(null)
+            .nickname(nickname)
             .build();
-
         userRepository.save(user);
     }
 }

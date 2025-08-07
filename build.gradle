@@ -47,8 +47,9 @@ dependencies {
     // hash
     implementation 'org.hashids:hashids:1.0.3'
 
-    // security
+    // auth (security + jwt)
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
+    implementation 'com.auth0:java-jwt:4.5.0'
 }
 
 tasks.named('test') {

@@ -1,10 +1,10 @@
-package com.icc.qasker.auth.oauth.user;
+package com.icc.qasker.auth.oauth.Service;
 
 import com.icc.qasker.auth.oauth.principal.PrincipalDetails;
 import com.icc.qasker.auth.oauth.provider.GoogleUserInfo;
 import com.icc.qasker.auth.oauth.provider.KakaoUserInfo;
 import com.icc.qasker.auth.oauth.provider.OAuth2UserInfo;
-import com.icc.qasker.auth.utils.UsernameGenerator;
+import com.icc.qasker.auth.utils.NicknameGenerator;
 import com.icc.qasker.quiz.entity.User;
 import com.icc.qasker.quiz.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -39,18 +39,18 @@ public class PrincipalOAuth2UserService extends DefaultOAuth2UserService {
         } else {
             System.out.println("we don't support that site");
         }
-        String id = oAuth2UserInfo.getProvider() + "_" + oAuth2UserInfo.getProviderId();
+        String username = oAuth2UserInfo.getProvider() + "_" + oAuth2UserInfo.getProviderId();
         String provider = oAuth2UserInfo.getProvider();
-        String username = UsernameGenerator.generate();
+        String nickname = NicknameGenerator.generate();
         String password = bCryptPasswordEncoder.encode("temporaryPassword");
         String role = "ROLE_USER";
-        User user = userRepository.findByUsername(username);
-        if (user == null) { // need to sign up
+        User user = userRepository.findByUsername(username).orElse(null);
+        if (user == null) {
             user = User.builder()
-                .id(id)
                 .username(username)
                 .password(password)
                 .role(role)
+                .nickname(nickname)
                 .provider(provider)
                 .build();
             userRepository.save(user);

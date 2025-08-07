@@ -17,12 +17,13 @@ public class NormalLoginService {
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
 
     public void check(NormalLoginRequest normalLoginRequest) {
-        String id = "normal_" + normalLoginRequest.getId();
-        User user = userRepository.findById(id)
+        String username = "normal_" + normalLoginRequest.getId();
+        User user = userRepository.findByUsername(username)
             .orElseThrow(() -> new CustomException(ExceptionMessage.USER_NOT_FOUND));
 
         if (!bCryptPasswordEncoder.matches(normalLoginRequest.getPassword(), user.getPassword())) {
             throw new CustomException(ExceptionMessage.INVALID_PASSWORD);
         }
+        System.out.println(user.getUsername());
     }
 }
