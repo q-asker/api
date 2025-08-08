@@ -55,8 +55,9 @@ public class PrincipalOAuth2UserService extends DefaultOAuth2UserService {
                 .build();
             userRepository.save(user);
             System.out.println("oauth 회원가입 완료, " + provider + ", " + nickname);
+        } else {
+            System.out.println("이미 존재하는 회원");
         }
-        System.out.println("이미 존재하는 회원");
         return new PrincipalDetails(user, oAuth2User.getAttributes());
     }
 }
