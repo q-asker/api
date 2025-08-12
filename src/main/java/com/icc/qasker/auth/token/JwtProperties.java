@@ -1,4 +1,4 @@
-package com.icc.qasker.auth.filter;
+package com.icc.qasker.auth.token;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -12,6 +12,6 @@ import org.springframework.stereotype.Component;
 public class JwtProperties {
 
     private String secret;
-    private long expirationTime;
-
+    private long accessExpirationTime;
+    private long refreshExpirationTime;
 }

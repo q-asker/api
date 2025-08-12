@@ -1,6 +1,6 @@
 package com.icc.qasker.auth.normal.service;
 
-import com.icc.qasker.auth.normal.dto.request.NormalJoinRequest;
+import com.icc.qasker.auth.normal.dto.request.JoinRequest;
 import com.icc.qasker.auth.utils.NicknameGenerator;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
@@ -17,7 +17,7 @@ public class NormalJoinService {
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
 
-    public void register(NormalJoinRequest normalJoinRequest) {
+    public void register(JoinRequest normalJoinRequest) {
         String username = normalJoinRequest.getUsername();
 
         if (userRepository.existsByUsername(username)) {

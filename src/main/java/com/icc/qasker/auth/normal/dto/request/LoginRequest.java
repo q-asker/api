@@ -4,7 +4,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 
 @Getter
-public class NormalLoginRequest {
+public class LoginRequest {
 
     @NotNull(message = "username가 null입니다.")
     private String username;

@@ -1,6 +1,6 @@
 package com.icc.qasker.auth.normal.service;
 
-import com.icc.qasker.auth.normal.dto.request.NormalLoginRequest;
+import com.icc.qasker.auth.normal.dto.request.LoginRequest;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.quiz.entity.User;
@@ -16,7 +16,7 @@ public class NormalLoginService {
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
 
-    public void check(NormalLoginRequest normalLoginRequest) {
+    public void check(LoginRequest normalLoginRequest) {
         String username = normalLoginRequest.getUsername();
         User user = userRepository.findByUsername(username)
             .orElseThrow(() -> new CustomException(ExceptionMessage.USER_NOT_FOUND));

@@ -1,4 +1,4 @@
-package com.icc.qasker.auth.filter;
+package com.icc.qasker.auth.token;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
@@ -60,7 +60,7 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
             .withSubject(principalDetails.getUser().getUsername())
             .withExpiresAt(
                 new Date(
-                    System.currentTimeMillis() + jwtProperties.getExpirationTime()))
+                    System.currentTimeMillis() + jwtProperties.getAccessExpirationTime()))
             .withClaim("id", principalDetails.getUser().getId())
             .withClaim("username", principalDetails.getUser().getUsername())
             .sign(Algorithm.HMAC512(jwtProperties.getSecret()));
