@@ -1,9 +1,8 @@
 package com.icc.qasker.auth.config;
 
+import com.icc.qasker.auth.oauth.handler.OAuth2LoginSuccessHandler;
 import com.icc.qasker.auth.oauth.service.PrincipalOAuth2UserService;
-import com.icc.qasker.auth.token.JwtAuthenticationFilter;
 import com.icc.qasker.auth.token.JwtAuthorizationFilter;
-import com.icc.qasker.auth.token.JwtProperties;
 import com.icc.qasker.quiz.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -24,7 +23,8 @@ public class SecurityConfig {
     private final AuthenticationConfiguration authenticationConfiguration;
     private final PrincipalOAuth2UserService principalOauth2UserService;
     private final UserRepository userRepository;
-    private final JwtProperties jwtProperties;
+    // private final JwtProperties jwtProperties;
+    private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -36,7 +36,7 @@ public class SecurityConfig {
                 SessionCreationPolicy.STATELESS))
             .formLogin(AbstractHttpConfigurer::disable)
             .httpBasic(AbstractHttpConfigurer::disable)
-            .addFilter(new JwtAuthenticationFilter(authenticationManager, jwtProperties))
+            // .addFilter(new JwtAuthenticationFilter(authenticationManager, jwtProperties)) // handler로 변경 예정
             .addFilter(new JwtAuthorizationFilter(authenticationManager, userRepository))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/statistics/**").authenticated() // 추후 통계 기능 인증 필요
@@ -47,6 +47,7 @@ public class SecurityConfig {
                 .userInfoEndpoint(user -> user
                     .userService(principalOauth2UserService)
                 )
+                .successHandler(oAuth2LoginSuccessHandler)
             );
         return http.build();
     }
