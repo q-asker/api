@@ -2,8 +2,8 @@ package com.icc.qasker.auth.service;
 
 import com.icc.qasker.auth.entity.RefreshToken;
 import com.icc.qasker.auth.repository.RefreshTokenRepository;
-import com.icc.qasker.auth.token.RtKeys;
-import com.icc.qasker.auth.token.TokenUtils;
+import com.icc.qasker.auth.utils.RtKeys;
+import com.icc.qasker.auth.utils.TokenUtils;
 import java.security.SecureRandom;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;

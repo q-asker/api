@@ -10,11 +10,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class MutableHttpServletRequest extends HttpServletRequestWrapper {
+public class CustomHttpServletRequest extends HttpServletRequestWrapper {
 
     private final Map<String, String> customHeaders = new HashMap<>();
 
-    public MutableHttpServletRequest(HttpServletRequest request) {
+    public CustomHttpServletRequest(HttpServletRequest request) {
         super(request);
     }
 
@@ -25,7 +25,10 @@ public class MutableHttpServletRequest extends HttpServletRequestWrapper {
     @Override
     public String getHeader(String name) {
         String v = customHeaders.get(name);
-        return (v != null) ? v : super.getHeader(name);
+        if (v != null) {
+            return v;
+        }
+        return super.getHeader(name);
     }
 
     @Override

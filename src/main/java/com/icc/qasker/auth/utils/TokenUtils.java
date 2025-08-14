@@ -5,17 +5,17 @@ import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.Base64;
 
-final class TokenUtils {
+public final class TokenUtils {
 
     private static final SecureRandom RAND = new SecureRandom();
 
-    static String randomUrlSafe(int bytes) {
+    public static String randomUrlSafe(int bytes) {
         byte[] buf = new byte[bytes];
         RAND.nextBytes(buf);
         return Base64.getUrlEncoder().withoutPadding().encodeToString(buf);
     }
 
-    static String sha256Hex(String v) {
+    public static String sha256Hex(String v) {
         try {
             MessageDigest md = MessageDigest.getInstance("SHA-256");
             byte[] d = md.digest(v.getBytes(StandardCharsets.UTF_8));
