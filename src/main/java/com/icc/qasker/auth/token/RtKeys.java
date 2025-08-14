@@ -1,4 +1,4 @@
 package com.icc.qasker.auth.token;
 
-public class TokenUtils {
+public class RtKeys {
 }
