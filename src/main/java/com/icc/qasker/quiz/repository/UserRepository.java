@@ -1,6 +1,6 @@
 package com.icc.qasker.quiz.repository;
 
-import com.icc.qasker.quiz.entity.User;
+import com.icc.qasker.auth.entity.User;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 

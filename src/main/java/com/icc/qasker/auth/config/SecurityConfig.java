@@ -1,8 +1,8 @@
 package com.icc.qasker.auth.config;
 
+import com.icc.qasker.auth.filter.JwtAuthorizationFilter;
 import com.icc.qasker.auth.oauth.handler.OAuth2LoginSuccessHandler;
-import com.icc.qasker.auth.oauth.service.PrincipalOAuth2UserService;
-import com.icc.qasker.auth.token.JwtAuthorizationFilter;
+import com.icc.qasker.auth.service.PrincipalOAuth2UserService;
 import com.icc.qasker.quiz.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
