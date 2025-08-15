@@ -3,7 +3,7 @@ package com.icc.qasker.auth.service;
 
 import com.icc.qasker.auth.dto.principal.PrincipalDetails;
 import com.icc.qasker.auth.entity.User;
-import com.icc.qasker.quiz.repository.UserRepository;
+import com.icc.qasker.auth.repository.RefreshTokenRepository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;

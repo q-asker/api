@@ -5,7 +5,7 @@ import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.Base64;
 
-public final class TokenUtils {
+public class TokenUtils {
 
     private static final SecureRandom RAND = new SecureRandom();
 

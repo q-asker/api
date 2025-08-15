@@ -2,11 +2,11 @@ package com.icc.qasker.auth.service;
 
 import com.icc.qasker.auth.dto.principal.PrincipalDetails;
 import com.icc.qasker.auth.entity.User;
+import com.icc.qasker.auth.repository.RefreshTokenRepository.UserRepository;
 import com.icc.qasker.auth.utils.NicknameGenerator;
 import com.icc.qasker.auth.utils.provider.GoogleUserInfo;
 import com.icc.qasker.auth.utils.provider.KakaoUserInfo;
 import com.icc.qasker.auth.utils.provider.OAuth2UserInfo;
-import com.icc.qasker.quiz.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;

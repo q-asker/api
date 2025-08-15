@@ -25,7 +25,6 @@ public class AuthController {
     private final RefreshTokenService refreshService;
     private final NormalJoinService normalJoinService;
     private final NormalLoginService normalLoginService;
-    private final
 
     @PostMapping("/join")
     public ResponseEntity<?> normalJoin(@RequestBody JoinRequest normalJoinRequest) {

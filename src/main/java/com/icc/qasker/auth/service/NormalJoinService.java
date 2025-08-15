@@ -2,10 +2,10 @@ package com.icc.qasker.auth.service;
 
 import com.icc.qasker.auth.dto.request.JoinRequest;
 import com.icc.qasker.auth.entity.User;
+import com.icc.qasker.auth.repository.RefreshTokenRepository.UserRepository;
 import com.icc.qasker.auth.utils.NicknameGenerator;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
-import com.icc.qasker.quiz.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -18,16 +18,16 @@ public class NormalJoinService {
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
 
     public void register(JoinRequest normalJoinRequest) {
-        String username = normalJoinRequest.getUsername();
+        String userId = normalJoinRequest.getUsername();
 
-        if (userRepository.existsByUsername(username)) {
+        if (userRepository.existsUserId(userId)) {
             throw new CustomException(ExceptionMessage.DUPLICATE_USERNAME);
         }
 
         String nickname = NicknameGenerator.generate();
         String password = bCryptPasswordEncoder.encode(normalJoinRequest.getPassword());
         User user = User.builder()
-            .username(username)
+            .userId(userId)
             .password(password)
             .role("ROLE_USER")
             .provider(null)

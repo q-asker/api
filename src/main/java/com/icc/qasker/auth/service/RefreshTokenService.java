@@ -4,7 +4,6 @@ import com.icc.qasker.auth.entity.RefreshToken;
 import com.icc.qasker.auth.repository.RefreshTokenRepository;
 import com.icc.qasker.auth.utils.RtKeys;
 import com.icc.qasker.auth.utils.TokenUtils;
-import java.security.SecureRandom;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -17,7 +16,6 @@ public class RefreshTokenService {
 
     private final RefreshTokenRepository repo;
     private final StringRedisTemplate redis;
-    private static final SecureRandom RAND = new SecureRandom();
 
 
     // 발급

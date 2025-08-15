@@ -2,9 +2,9 @@ package com.icc.qasker.auth.service;
 
 import com.icc.qasker.auth.dto.request.LoginRequest;
 import com.icc.qasker.auth.entity.User;
+import com.icc.qasker.auth.repository.RefreshTokenRepository.UserRepository;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
-import com.icc.qasker.quiz.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;

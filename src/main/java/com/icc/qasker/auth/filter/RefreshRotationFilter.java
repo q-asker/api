@@ -3,18 +3,16 @@ package com.icc.qasker.auth.filter;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.TokenExpiredException;
-import com.icc.qasker.auth.entity.User;
+import com.icc.qasker.auth.service.AccessTokenService;
 import com.icc.qasker.auth.service.RefreshTokenService;
 import com.icc.qasker.auth.token.CustomHttpServletRequest;
 import com.icc.qasker.auth.utils.CookieUtils;
 import com.icc.qasker.auth.utils.JwtProperties;
-import com.icc.qasker.quiz.repository.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.Date;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -22,11 +20,11 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @RequiredArgsConstructor
 public class RefreshRotationFilter extends OncePerRequestFilter {
 
-    private final JwtProperties jwtProperties;
     private final RefreshTokenService refreshTokenService;
-    private final UserRepository userRepository;
+    private final AccessTokenService accessTokenService;
 
-    private boolean skip(String path) {
+    private boolean notSkip(String path) {
+        // 추후 인증이 필요한 url 넣기
         return path.startsWith("/auth/login")
             || path.startsWith("/auth/join")
             || path.startsWith("/oauth2")
@@ -36,7 +34,7 @@ public class RefreshRotationFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
         FilterChain filterChain) throws ServletException, IOException {
-        if (skip(request.getRequestURI())) {
+        if (notSkip(request.getRequestURI())) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -45,15 +43,14 @@ public class RefreshRotationFilter extends OncePerRequestFilter {
         if (auth == null || !auth.startsWith("Bearer ")) {
             needRefresh = true;
         } else {
-            String at = auth.substring("Bearer ".length());
+            String AT = auth.substring("Bearer ".length());
             try {
-                JWT.require(Algorithm.HMAC512(jwtProperties.getSecret())).build().verify(at);
+                JWT.require(Algorithm.HMAC512(JwtProperties.secret)).build().verify(AT);
                 filterChain.doFilter(request, response);
                 return;
             } catch (TokenExpiredException e) {
                 needRefresh = true;
             } catch (Exception e) {
-                // 형식/서명 오류 → 회전 시도(정책에 따라 바로 401로 끊어도 됨)
                 needRefresh = true;
             }
         }
@@ -69,15 +66,8 @@ public class RefreshRotationFilter extends OncePerRequestFilter {
         }
         try {
             var newRtCookie = refreshTokenService.validateAndRotate(rtCookie.getValue());
-            User user = userRepository.findById(newRtCookie.userId()).orElse(null);
-            String newAt = JWT.create()
-                .withSubject(user.getUserId())
-                .withClaim("id", user.getUserId())
-                .withClaim("role", user.getRole())
-                .withExpiresAt(
-                    new Date(System.currentTimeMillis() + jwtProperties.getAccessExpirationTime()))
-                .sign(Algorithm.HMAC512(jwtProperties.getSecret()));
-
+            String newAt = accessTokenService.validateAndGenerate(newRtCookie.userId(),
+                newRtCookie.newRtPlain());
             response.setHeader(HttpHeaders.AUTHORIZATION, "Bear " + newAt);
             response.addHeader(HttpHeaders.SET_COOKIE,
                 CookieUtils.buildCookies(newRtCookie.newRtPlain()).toString());
