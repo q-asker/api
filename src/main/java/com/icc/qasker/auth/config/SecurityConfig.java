@@ -1,6 +1,6 @@
 package com.icc.qasker.auth.config;
 
-import com.icc.qasker.auth.filter.JwtAuthorizationFilter;
+import com.icc.qasker.auth.filter.JwtTokenAuthenticationFilter;
 import com.icc.qasker.auth.filter.RefreshRotationFilter;
 import com.icc.qasker.auth.repository.RefreshTokenRepository.UserRepository;
 import com.icc.qasker.auth.service.AccessTokenService;
@@ -39,8 +39,8 @@ public class SecurityConfig {
             .formLogin(AbstractHttpConfigurer::disable)
             .httpBasic(AbstractHttpConfigurer::disable)
             .addFilterBefore(new RefreshRotationFilter(refreshTokenService, accessTokenService),
-                JwtAuthorizationFilter.class)
-            .addFilter(new JwtAuthorizationFilter(authenticationManager, userRepository))
+                JwtTokenAuthenticationFilter.class)
+            .addFilter(new JwtTokenAuthenticationFilter(authenticationManager, userRepository))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/statistics/**").authenticated() // 추후 통계 기능 인증 필요
                 .requestMatchers("/admin/**").hasRole("ADMIN") // 관리자 페이지

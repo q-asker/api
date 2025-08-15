@@ -15,9 +15,12 @@ public class AccessTokenService {
 
     private final UserRepository userRepository;
 
-    public String validateAndGenerate(String userId, String newRtPlain) {
+    public String validateAndGenerate(String userId) {
         // 에러 처리 나중에 추가
         User user = userRepository.findById(userId).orElse(null);
+        if (user == null) {
+            return null;
+        }
         String newAt = JWT.create()
             .withSubject(user.getUserId())
             .withClaim("userId", user.getUserId())

@@ -24,4 +24,13 @@ public class CookieUtils {
         return Arrays.stream(request.getCookies()).filter(c -> name.equals(c.getName()))
             .findFirst();
     }
+
+    public static ResponseCookie deleteRefreshCookie() {
+        return ResponseCookie.from("refresh_token", "")
+            .httpOnly(true)
+            .secure(true)
+            .path("/")
+            .maxAge(0) // 삭제
+            .build();
+    }
 }

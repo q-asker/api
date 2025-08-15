@@ -49,8 +49,8 @@ public enum ExceptionMessage {
     INVALID_PASSWORD(HttpStatus.UNAUTHORIZED, "비밀번호가 일치하지 않습니다."),
 
     // JWT
-    INVALID_JWT(HttpStatus.UNAUTHORIZED, "JWT 토큰이 유효하지 않거나 만료되었습니다.");
-
+    INVALID_JWT(HttpStatus.UNAUTHORIZED, "JWT 토큰이 유효하지 않거나 만료되었습니다."),
+    REFRESH_TOKEN_NOT_FOUND(HttpStatus.UNAUTHORIZED, "JWT 토큰이 유효하지 않거나 만료되었습니다.");
     private final HttpStatus httpStatus;
     private final String message;
 

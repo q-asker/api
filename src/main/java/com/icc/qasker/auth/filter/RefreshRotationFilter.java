@@ -66,8 +66,7 @@ public class RefreshRotationFilter extends OncePerRequestFilter {
         }
         try {
             var newRtCookie = refreshTokenService.validateAndRotate(rtCookie.getValue());
-            String newAt = accessTokenService.validateAndGenerate(newRtCookie.userId(),
-                newRtCookie.newRtPlain());
+            String newAt = accessTokenService.validateAndGenerate(newRtCookie.userId());
             response.setHeader(HttpHeaders.AUTHORIZATION, "Bear " + newAt);
             response.addHeader(HttpHeaders.SET_COOKIE,
                 CookieUtils.buildCookies(newRtCookie.newRtPlain()).toString());
