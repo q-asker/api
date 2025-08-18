@@ -3,7 +3,7 @@ package com.icc.qasker.auth.service;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.icc.qasker.auth.entity.User;
-import com.icc.qasker.auth.repository.RefreshTokenRepository.UserRepository;
+import com.icc.qasker.auth.repository.UserRepository;
 import com.icc.qasker.auth.utils.JwtProperties;
 import java.util.Date;
 import lombok.RequiredArgsConstructor;

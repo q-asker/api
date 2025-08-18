@@ -2,7 +2,7 @@ package com.icc.qasker.auth.config;
 
 import com.icc.qasker.auth.filter.JwtTokenAuthenticationFilter;
 import com.icc.qasker.auth.filter.RefreshRotationFilter;
-import com.icc.qasker.auth.repository.RefreshTokenRepository.UserRepository;
+import com.icc.qasker.auth.repository.UserRepository;
 import com.icc.qasker.auth.service.AccessTokenService;
 import com.icc.qasker.auth.service.PrincipalOAuth2UserService;
 import com.icc.qasker.auth.service.RefreshTokenService;

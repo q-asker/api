@@ -7,7 +7,7 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.exceptions.TokenExpiredException;
 import com.icc.qasker.auth.entity.User;
-import com.icc.qasker.auth.repository.RefreshTokenRepository.UserRepository;
+import com.icc.qasker.auth.repository.UserRepository;
 import com.icc.qasker.auth.utils.JwtProperties;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;

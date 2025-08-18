@@ -2,7 +2,7 @@ package com.icc.qasker.auth.service;
 
 import com.icc.qasker.auth.dto.principal.PrincipalDetails;
 import com.icc.qasker.auth.entity.User;
-import com.icc.qasker.auth.repository.RefreshTokenRepository.UserRepository;
+import com.icc.qasker.auth.repository.UserRepository;
 import com.icc.qasker.auth.utils.NicknameGenerator;
 import com.icc.qasker.auth.utils.provider.GoogleUserInfo;
 import com.icc.qasker.auth.utils.provider.KakaoUserInfo;
@@ -39,15 +39,15 @@ public class PrincipalOAuth2UserService extends DefaultOAuth2UserService {
         } else {
             System.out.println("we don't support that site");
         }
-        String username = oAuth2UserInfo.getProvider() + "_" + oAuth2UserInfo.getProviderId();
+        String userId = oAuth2UserInfo.getProvider() + "_" + oAuth2UserInfo.getProviderId();
         String provider = oAuth2UserInfo.getProvider();
         String nickname = NicknameGenerator.generate();
         String password = bCryptPasswordEncoder.encode("temporaryPassword");
         String role = "ROLE_USER";
-        User user = userRepository.findByUsername(username).orElse(null);
+        User user = userRepository.findById(userId).orElse(null);
         if (user == null) {
             user = User.builder()
-                .username(username)
+                .userId(userId)
                 .password(password)
                 .role(role)
                 .nickname(nickname)

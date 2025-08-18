@@ -3,7 +3,7 @@ package com.icc.qasker.auth.controller;
 import com.icc.qasker.auth.dto.request.JoinRequest;
 import com.icc.qasker.auth.dto.request.LoginRequest;
 import com.icc.qasker.auth.dto.response.LoginResponse;
-import com.icc.qasker.auth.repository.RefreshTokenRepository.UserRepository;
+import com.icc.qasker.auth.repository.UserRepository;
 import com.icc.qasker.auth.service.AccessTokenService;
 import com.icc.qasker.auth.service.NormalJoinService;
 import com.icc.qasker.auth.service.NormalLoginService;
@@ -50,9 +50,6 @@ public class AuthController {
         // 1. 쿠키에서 RT 추출
         var rtCookie = CookieUtils.getCookie(request, "refresh_token")
             .orElseThrow(() -> new CustomException(ExceptionMessage.REFRESH_TOKEN_NOT_FOUND));
-        String oldRt = CookieUtils.getCookie(request, "refresh_token")
-            .orElseThrow(() -> new CustomException(ExceptionMessage.REFRESH_TOKEN_NOT_FOUND))
-            .getValue();
 
         try {
             // 2. RT 회전(검증+폐기+신규 발급) + AT 생성

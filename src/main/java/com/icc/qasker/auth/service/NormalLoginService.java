@@ -2,7 +2,7 @@ package com.icc.qasker.auth.service;
 
 import com.icc.qasker.auth.dto.request.LoginRequest;
 import com.icc.qasker.auth.entity.User;
-import com.icc.qasker.auth.repository.RefreshTokenRepository.UserRepository;
+import com.icc.qasker.auth.repository.UserRepository;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import lombok.RequiredArgsConstructor;
@@ -17,13 +17,13 @@ public class NormalLoginService {
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
 
     public void check(LoginRequest normalLoginRequest) {
-        String username = normalLoginRequest.getUsername();
-        User user = userRepository.findByUsername(username)
+        String userId = normalLoginRequest.getUsername();
+        User user = userRepository.findById(userId)
             .orElseThrow(() -> new CustomException(ExceptionMessage.USER_NOT_FOUND));
 
         if (!bCryptPasswordEncoder.matches(normalLoginRequest.getPassword(), user.getPassword())) {
             throw new CustomException(ExceptionMessage.INVALID_PASSWORD);
         }
-        System.out.println("로그인 완료: " + user.getUsername());
+        System.out.println("로그인 완료: " + user.getUserId());
     }
 }

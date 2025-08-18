@@ -3,7 +3,7 @@ package com.icc.qasker.auth.service;
 
 import com.icc.qasker.auth.dto.principal.PrincipalDetails;
 import com.icc.qasker.auth.entity.User;
-import com.icc.qasker.auth.repository.RefreshTokenRepository.UserRepository;
+import com.icc.qasker.auth.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -18,7 +18,7 @@ public class PrincipalDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        User user = userRepository.findByUsername(username)
+        User user = userRepository.findById(username)
             .orElse(null);
         return new PrincipalDetails(user);
     }

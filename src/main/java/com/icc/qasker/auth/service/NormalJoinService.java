@@ -2,7 +2,7 @@ package com.icc.qasker.auth.service;
 
 import com.icc.qasker.auth.dto.request.JoinRequest;
 import com.icc.qasker.auth.entity.User;
-import com.icc.qasker.auth.repository.RefreshTokenRepository.UserRepository;
+import com.icc.qasker.auth.repository.UserRepository;
 import com.icc.qasker.auth.utils.NicknameGenerator;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
@@ -20,7 +20,7 @@ public class NormalJoinService {
     public void register(JoinRequest normalJoinRequest) {
         String userId = normalJoinRequest.getUsername();
 
-        if (userRepository.existsUserId(userId)) {
+        if (userRepository.existsByUserId(userId)) {
             throw new CustomException(ExceptionMessage.DUPLICATE_USERNAME);
         }
 

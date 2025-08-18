@@ -1,4 +1,4 @@
-package com.icc.qasker.auth.token;
+package com.icc.qasker.auth.utils;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletRequestWrapper;
