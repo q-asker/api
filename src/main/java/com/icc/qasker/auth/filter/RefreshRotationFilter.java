@@ -3,8 +3,7 @@ package com.icc.qasker.auth.filter;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.TokenExpiredException;
-import com.icc.qasker.auth.service.AccessTokenService;
-import com.icc.qasker.auth.service.RefreshTokenService;
+import com.icc.qasker.auth.service.TokenRotationService;
 import com.icc.qasker.auth.utils.CookieUtils;
 import com.icc.qasker.auth.utils.CustomHttpServletRequest;
 import com.icc.qasker.auth.utils.JwtProperties;
@@ -20,11 +19,10 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @RequiredArgsConstructor
 public class RefreshRotationFilter extends OncePerRequestFilter {
 
-    private final RefreshTokenService refreshTokenService;
-    private final AccessTokenService accessTokenService;
+    private final TokenRotationService tokenRotationService;
 
-    private boolean notSkip(String path) {
-        // 추후 인증이 필요한 url 넣기
+    private boolean skip(String path) {
+        // 인증이 필요하지 않은 url 적기
         return path.startsWith("/auth/login")
             || path.startsWith("/auth/join")
             || path.startsWith("/oauth2")
@@ -34,7 +32,7 @@ public class RefreshRotationFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
         FilterChain filterChain) throws ServletException, IOException {
-        if (notSkip(request.getRequestURI())) {
+        if (skip(request.getRequestURI())) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -45,7 +43,7 @@ public class RefreshRotationFilter extends OncePerRequestFilter {
         } else {
             String AT = auth.substring("Bearer ".length());
             try {
-                JWT.require(Algorithm.HMAC512(JwtProperties.secret)).build().verify(AT);
+                JWT.require(Algorithm.HMAC512(JwtProperties.SECRET)).build().verify(AT);
                 filterChain.doFilter(request, response);
                 return;
             } catch (TokenExpiredException e) {
@@ -65,13 +63,9 @@ public class RefreshRotationFilter extends OncePerRequestFilter {
             return;
         }
         try {
-            var newRtCookie = refreshTokenService.validateAndRotate(rtCookie.getValue());
-            String newAt = accessTokenService.validateAndGenerate(newRtCookie.userId());
-            response.setHeader(HttpHeaders.AUTHORIZATION, "Bear " + newAt);
-            response.addHeader(HttpHeaders.SET_COOKIE,
-                CookieUtils.buildCookies(newRtCookie.newRtPlain()).toString());
+            String newAt = tokenRotationService.rotateTokens(rtCookie.getValue(), response);
             CustomHttpServletRequest customRequest = new CustomHttpServletRequest(request);
-            customRequest.putHeader(HttpHeaders.AUTHORIZATION, "Bear " + newAt);
+            customRequest.putHeader(HttpHeaders.AUTHORIZATION, "Bearer " + newAt);
             filterChain.doFilter(customRequest, response);
         } catch (Exception e) {
             filterChain.doFilter(request, response);

@@ -4,7 +4,6 @@ package com.icc.qasker.auth.filter;
 import static com.auth0.jwt.JWT.require;
 
 import com.auth0.jwt.algorithms.Algorithm;
-import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.exceptions.TokenExpiredException;
 import com.icc.qasker.auth.entity.User;
 import com.icc.qasker.auth.repository.UserRepository;
@@ -53,10 +52,10 @@ public class JwtTokenAuthenticationFilter extends BasicAuthenticationFilter {
         String accessToken = authorizationHeader.substring("Bearer ".length());
         try {
             // 1. 서명/만료 검증
-            var decoded = require(Algorithm.HMAC512(JwtProperties.secret)).build()
+            var decoded = require(Algorithm.HMAC512(JwtProperties.SECRET)).build()
                 .verify(accessToken);
 
-            // 2. 사용자 식별자 추출 (숫자/문자 모두 대응)
+            // 2. 사용자 식별자 추출
             String userId = decoded.getClaim("userId").asString();
             if (userId == null || userId.isBlank()) {
                 chain.doFilter(request, response);
@@ -79,16 +78,13 @@ public class JwtTokenAuthenticationFilter extends BasicAuthenticationFilter {
 
             // 5. Authentication 생성
             UsernamePasswordAuthenticationToken authentication =
-                new UsernamePasswordAuthenticationToken(user, null, authorities);
+                new UsernamePasswordAuthenticationToken(user, null,
+                    authorities); // principal, credentials, authorities
             authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
             SecurityContextHolder.getContext().setAuthentication(authentication);
             chain.doFilter(request, response);
         } catch (TokenExpiredException ex) {
             chain.doFilter(request, response);
-        } catch (JWTVerificationException ex) {
-            chain.doFilter(request, response);
         }
     }
-
-
 }

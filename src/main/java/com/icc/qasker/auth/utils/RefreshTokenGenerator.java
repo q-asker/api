@@ -1,9 +1,7 @@
-package com.icc.qasker.auth.service;
+package com.icc.qasker.auth.utils;
 
 import com.icc.qasker.auth.entity.RefreshToken;
 import com.icc.qasker.auth.repository.RefreshTokenRepository;
-import com.icc.qasker.auth.utils.RtKeys;
-import com.icc.qasker.auth.utils.TokenUtils;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -12,7 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-public class RefreshTokenService {
+public class RefreshTokenGenerator {
 
     private final RefreshTokenRepository repo;
     private final StringRedisTemplate redis;

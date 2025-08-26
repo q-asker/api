@@ -18,7 +18,7 @@ public class NormalJoinService {
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
 
     public void register(JoinRequest normalJoinRequest) {
-        String userId = normalJoinRequest.getUsername();
+        String userId = normalJoinRequest.getUserId();
 
         if (userRepository.existsByUserId(userId)) {
             throw new CustomException(ExceptionMessage.DUPLICATE_USERNAME);

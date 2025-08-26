@@ -3,9 +3,8 @@ package com.icc.qasker.auth.config;
 import com.icc.qasker.auth.filter.JwtTokenAuthenticationFilter;
 import com.icc.qasker.auth.filter.RefreshRotationFilter;
 import com.icc.qasker.auth.repository.UserRepository;
-import com.icc.qasker.auth.service.AccessTokenService;
 import com.icc.qasker.auth.service.PrincipalOAuth2UserService;
-import com.icc.qasker.auth.service.RefreshTokenService;
+import com.icc.qasker.auth.service.TokenRotationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -25,8 +24,7 @@ public class SecurityConfig {
     private final AuthenticationConfiguration authenticationConfiguration;
     private final PrincipalOAuth2UserService principalOauth2UserService;
     private final UserRepository userRepository;
-    private final RefreshTokenService refreshTokenService;
-    private final AccessTokenService accessTokenService;
+    private final TokenRotationService tokenRotationService;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -38,7 +36,7 @@ public class SecurityConfig {
                 SessionCreationPolicy.STATELESS))
             .formLogin(AbstractHttpConfigurer::disable)
             .httpBasic(AbstractHttpConfigurer::disable)
-            .addFilterBefore(new RefreshRotationFilter(refreshTokenService, accessTokenService),
+            .addFilterBefore(new RefreshRotationFilter(tokenRotationService),
                 JwtTokenAuthenticationFilter.class)
             .addFilter(new JwtTokenAuthenticationFilter(authenticationManager, userRepository))
             .authorizeHttpRequests(auth -> auth

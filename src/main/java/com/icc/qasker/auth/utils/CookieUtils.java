@@ -13,7 +13,7 @@ public class CookieUtils {
             .httpOnly(true)
             .secure(true)
             .path("/")
-            .maxAge(JwtProperties.refreshExpirationTime)
+            .maxAge(JwtProperties.REFRESH_EXPIRATION_TIME)
             .build();
     }
 
