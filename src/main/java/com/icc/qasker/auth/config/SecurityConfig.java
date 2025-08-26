@@ -42,6 +42,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/statistics/**").authenticated() // 추후 통계 기능 인증 필요
                 .requestMatchers("/admin/**").hasRole("ADMIN") // 관리자 페이지
+                .requestMatchers("/test").authenticated()
                 .anyRequest().permitAll() // 나머지 모두 허용
             )
             .oauth2Login(oauth -> oauth

@@ -2,7 +2,8 @@ package com.icc.qasker.auth.utils;
 
 import com.icc.qasker.auth.entity.RefreshToken;
 import com.icc.qasker.auth.repository.RefreshTokenRepository;
-import java.util.Set;
+import com.icc.qasker.global.error.CustomException;
+import com.icc.qasker.global.error.ExceptionMessage;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -55,27 +56,17 @@ public class RefreshTokenGenerator {
         return new RotateResult(userId, newRtPlain);
     }
 
-    // 로그아웃 (해당 Rt 폐기)
+    // 로그아웃
     @Transactional
-    public void revokeOne(String presentedRtPlain) {
+    public void revoke(String presentedRtPlain) {
         String rtHash = TokenUtils.sha256Hex(presentedRtPlain);
         RefreshToken cur = repo.findById(rtHash).orElse(null);
         if (cur == null) {
-            return; // 이미 폐기됨
+            throw new CustomException(ExceptionMessage.INVALID_JWT);
         }
         String userId = cur.getUserId();
         repo.deleteById(rtHash);
         redis.opsForSet().remove(RtKeys.userSet(userId), rtHash);
     }
 
-    // 로그아웃 (전체 Rt 폐기)
-    @Transactional
-    public void revokeAll(String userId) {
-        String setKey = RtKeys.userSet(userId);
-        Set<String> hashes = redis.opsForSet().members(setKey);
-        if (hashes != null && !hashes.isEmpty()) {
-            repo.deleteAllById(hashes); // hash 삭제
-        }
-        redis.delete(setKey);
-    }
 }

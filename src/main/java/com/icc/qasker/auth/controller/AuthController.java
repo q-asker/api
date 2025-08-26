@@ -3,12 +3,11 @@ package com.icc.qasker.auth.controller;
 import com.icc.qasker.auth.dto.request.JoinRequest;
 import com.icc.qasker.auth.dto.request.LoginRequest;
 import com.icc.qasker.auth.dto.response.LoginResponse;
+import com.icc.qasker.auth.service.LogoutService;
 import com.icc.qasker.auth.service.NormalJoinService;
 import com.icc.qasker.auth.service.NormalLoginService;
 import com.icc.qasker.auth.service.TokenRotationService;
-import com.icc.qasker.auth.utils.AccessTokenGenerator;
 import com.icc.qasker.auth.utils.CookieUtils;
-import com.icc.qasker.auth.utils.RefreshTokenGenerator;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import jakarta.servlet.http.HttpServletRequest;
@@ -26,11 +25,10 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/auth")
 public class AuthController {
 
-    private final RefreshTokenGenerator refreshService;
     private final NormalJoinService normalJoinService;
-    private final AccessTokenGenerator accessTokenGenerator;
     private final NormalLoginService normalLoginService;
     private final TokenRotationService tokenRotationService;
+    private final LogoutService logoutService;
 
     @PostMapping("/join")
     public ResponseEntity<?> normalJoin(@RequestBody JoinRequest normalJoinRequest) {
@@ -59,6 +57,12 @@ public class AuthController {
                 CookieUtils.deleteRefreshCookie().toString());
             throw new CustomException(ExceptionMessage.REFRESH_TOKEN_NOT_FOUND);
         }
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(HttpServletRequest request, HttpServletResponse response) {
+        logoutService.logout(request, response);
+        return ResponseEntity.ok().build();
     }
 
 }
