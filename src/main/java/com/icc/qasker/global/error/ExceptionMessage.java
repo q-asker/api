@@ -50,8 +50,11 @@ public enum ExceptionMessage {
 
     // JWT
     INVALID_JWT(HttpStatus.UNAUTHORIZED, "JWT 토큰이 유효하지 않거나 만료되었습니다."),
-    REFRESH_TOKEN_NOT_FOUND(HttpStatus.UNAUTHORIZED, "JWT 토큰이 유효하지 않거나 만료되었습니다.");
+    REFRESH_TOKEN_NOT_FOUND(HttpStatus.UNAUTHORIZED, "JWT 토큰이 유효하지 않거나 만료되었습니다."),
 
+    // Auth
+    UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "로그인을 먼저 하세요."),
+    NOT_ENOUGH_ACCESS(HttpStatus.FORBIDDEN, "접근 권한이 부족합니다");
 
     private final HttpStatus httpStatus;
     private final String message;

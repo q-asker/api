@@ -26,7 +26,8 @@ public class RefreshRotationFilter extends OncePerRequestFilter {
         return path.startsWith("/auth/login")
             || path.startsWith("/auth/join")
             || path.startsWith("/oauth2")
-            || path.startsWith("/login/oauth2");
+            || path.startsWith("/login/oauth2")
+            || path.startsWith("/auth/logout");
     }
 
     @Override

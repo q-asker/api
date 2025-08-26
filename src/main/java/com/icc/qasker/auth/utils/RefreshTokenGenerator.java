@@ -25,6 +25,8 @@ public class RefreshTokenGenerator {
 
         // 1. Hash 저장
         repo.save(new RefreshToken(rtHash, userId));
+        System.out.println("rtHash " + rtHash);
+        System.out.println("userId " + userId);
         // 2. Set 저장
         String setKey = RtKeys.userSet(userId);
         redis.opsForSet().add(setKey, rtHash);
