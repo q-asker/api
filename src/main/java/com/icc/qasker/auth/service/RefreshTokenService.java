@@ -44,7 +44,7 @@ public class RefreshTokenService {
         String oldRtHash = TokenUtils.sha256Hex(oldRtPlain);
 
         RefreshToken current = repo.findById(oldRtHash)
-            .orElseThrow(() -> new CustomException(ExceptionMessage.REFRESH_TOKEN_EXPIRED));
+            .orElseThrow(() -> new CustomException(ExceptionMessage.UNAUTHORIZED));
 
         String userId = current.getUserId();
         repo.deleteById(oldRtHash);
