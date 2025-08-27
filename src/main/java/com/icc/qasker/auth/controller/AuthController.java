@@ -36,8 +36,9 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> normalLogin(@RequestBody LoginRequest loginRequest,
         HttpServletResponse response) {
+        LoginResponse loginResponse = normalLoginService.getNickname(loginRequest);
         tokenRotationService.issueTokens(loginRequest.getUserId(), response);
-        return ResponseEntity.ok(normalLoginService.getNickname(loginRequest));
+        return ResponseEntity.ok(loginResponse);
     }
 
     @PostMapping("/refresh")

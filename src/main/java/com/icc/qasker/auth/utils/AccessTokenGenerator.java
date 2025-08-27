@@ -27,4 +27,5 @@ public class AccessTokenGenerator {
             .sign(Algorithm.HMAC512(JwtProperties.SECRET));
     }
 
+
 }
