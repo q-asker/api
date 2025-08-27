@@ -12,26 +12,26 @@ import org.springframework.stereotype.Component;
 public class JwtProperties {
 
     private String secret;
-    private long accessExpirationTime;
-    private long refreshExpirationTime;
+    private long accessExpirationTime; // s
+    private long refreshExpirationTime; // s
 
     public static String SECRET;
-    public static long ACCESS_EXPIRATION_TIME;
-    public static long REFRESH_EXPIRATION_TIME;
+    public static long ACCESS_EXPIRATION_TIME; // ms
+    public static long REFRESH_EXPIRATION_TIME; // s
 
     public void setSecret(String secret) {
         this.secret = secret;
         SECRET = secret;
     }
 
-    public void setAccessExpirationTime(long accessExpirationTime) {
-        this.accessExpirationTime = accessExpirationTime;
-        ACCESS_EXPIRATION_TIME = accessExpirationTime;
+    public void setAccessExpirationTime(long seconds) {
+        this.accessExpirationTime = seconds;
+        ACCESS_EXPIRATION_TIME = seconds * 1000; // ms 변경
     }
 
-    public void setRefreshExpirationTime(long refreshExpirationTime) {
-        this.refreshExpirationTime = refreshExpirationTime;
-        REFRESH_EXPIRATION_TIME = refreshExpirationTime;
+    public void setRefreshExpirationTime(long seconds) {
+        this.refreshExpirationTime = seconds;
+        REFRESH_EXPIRATION_TIME = seconds;
     }
 }
 

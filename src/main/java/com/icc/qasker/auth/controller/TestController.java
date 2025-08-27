@@ -11,7 +11,7 @@ public class TestController {
 
     @GetMapping("/test")
     public ResponseEntity<?> test() {
-        System.out.println("test");
+        System.out.println("test 성공");
         return ResponseEntity.ok().build();
     }
 }

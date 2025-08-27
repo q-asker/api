@@ -6,7 +6,7 @@ import lombok.Getter;
 @Getter
 public class JoinRequest {
 
-    @NotNull(message = "userId가 ull입니다.")
+    @NotNull(message = "userId가 null입니다.")
     private String userId;
     @NotNull(message = "password가 null입니다.")
     private String password;

@@ -30,7 +30,7 @@ public class CookieUtils {
             .httpOnly(true)
             .secure(true)
             .path("/")
-            .maxAge(0) // 삭제
+            .maxAge(0)
             .build();
     }
 }

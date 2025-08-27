@@ -8,8 +8,6 @@ import com.auth0.jwt.exceptions.TokenExpiredException;
 import com.icc.qasker.auth.entity.User;
 import com.icc.qasker.auth.repository.UserRepository;
 import com.icc.qasker.auth.utils.JwtProperties;
-import com.icc.qasker.global.error.CustomException;
-import com.icc.qasker.global.error.ExceptionMessage;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -26,10 +24,6 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 
 
-// 1. at 파싱
-// 2. 토큰으로 사용자 조회
-// 3. 권한 구성
-// 4. SecurityContextHolder에 Authentication 세팅
 public class JwtTokenAuthenticationFilter extends BasicAuthenticationFilter {
 
     private final UserRepository userRepository;
@@ -51,11 +45,9 @@ public class JwtTokenAuthenticationFilter extends BasicAuthenticationFilter {
         }
         String accessToken = authorizationHeader.substring("Bearer ".length());
         try {
-            // 1. 서명/만료 검증
             var decoded = require(Algorithm.HMAC512(JwtProperties.SECRET)).build()
                 .verify(accessToken);
 
-            // 2. 사용자 식별자 추출
             String userId = decoded.getClaim("userId").asString();
             if (userId == null || userId.isBlank()) {
                 chain.doFilter(request, response);
@@ -68,18 +60,17 @@ public class JwtTokenAuthenticationFilter extends BasicAuthenticationFilter {
                 return;
             }
 
-            // 3. 사용자 조회
-            User user = userRepository.findById(userId)
-                .orElseThrow(() -> new CustomException(ExceptionMessage.INVALID_JWT));
-
-            // 4. 권한 구성
+            User user = userRepository.findById(userId).orElse(null);
+            if (user == null) {
+                chain.doFilter(request, response);
+                return;
+            }
             String role = Objects.toString(user.getRole(), "ROLE_USER");
             var authorities = List.of(new SimpleGrantedAuthority(role));
 
-            // 5. Authentication 생성
             UsernamePasswordAuthenticationToken authentication =
                 new UsernamePasswordAuthenticationToken(user, null,
-                    authorities); // principal, credentials, authorities
+                    authorities);
             authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
             SecurityContextHolder.getContext().setAuthentication(authentication);
             chain.doFilter(request, response);

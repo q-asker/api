@@ -6,7 +6,7 @@ import lombok.ToString;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.redis.core.RedisHash;
 
-@RedisHash(value = "refreshToken", timeToLive = 604800)
+@RedisHash(value = "refreshToken", timeToLive = 0)
 @Getter
 @ToString
 @RequiredArgsConstructor
@@ -14,7 +14,7 @@ import org.springframework.data.redis.core.RedisHash;
 public class RefreshToken {
 
     @Id
-    private final String rtHash; // hash로 저장
+    private final String rtHash;
     private final String userId;
 
 }

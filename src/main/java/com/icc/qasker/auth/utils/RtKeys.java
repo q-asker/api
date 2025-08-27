@@ -8,5 +8,5 @@ public class RtKeys {
         return "rt:u:" + userId;
     }
 
-    public static final Duration TTL = Duration.ofSeconds(172800); // 2일
+    public static final Duration TTL = Duration.ofSeconds(JwtProperties.REFRESH_EXPIRATION_TIME);
 }

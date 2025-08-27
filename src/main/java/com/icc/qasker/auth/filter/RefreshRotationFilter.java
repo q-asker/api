@@ -23,11 +23,13 @@ public class RefreshRotationFilter extends OncePerRequestFilter {
 
     private boolean skip(String path) {
         // 인증이 필요하지 않은 url 적기
-        return path.startsWith("/auth/login")
-            || path.startsWith("/auth/join")
+        return path.startsWith("/auth/*")
             || path.startsWith("/oauth2")
             || path.startsWith("/login/oauth2")
-            || path.startsWith("/auth/logout");
+            || path.startsWith("/explanation/*")
+            || path.startsWith("/problem-set/*")
+            || path.startsWith("/specific-explanation/**")
+            || path.startsWith("/generation");
     }
 
     @Override

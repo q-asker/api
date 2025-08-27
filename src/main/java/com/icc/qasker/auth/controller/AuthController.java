@@ -8,12 +8,9 @@ import com.icc.qasker.auth.service.NormalJoinService;
 import com.icc.qasker.auth.service.NormalLoginService;
 import com.icc.qasker.auth.service.TokenRotationService;
 import com.icc.qasker.auth.utils.CookieUtils;
-import com.icc.qasker.global.error.CustomException;
-import com.icc.qasker.global.error.ExceptionMessage;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -43,20 +40,11 @@ public class AuthController {
         return ResponseEntity.ok(normalLoginService.getNickname(loginRequest));
     }
 
-    // 필터 내 자동회전 실패를 염두한 client용 수동 회전 엔드포인트
     @PostMapping("/refresh")
     public ResponseEntity<?> refresh(HttpServletRequest request, HttpServletResponse response) {
-        var rtCookie = CookieUtils.getCookie(request, "refresh_token")
-            .orElseThrow(() -> new CustomException(ExceptionMessage.REFRESH_TOKEN_NOT_FOUND));
-
-        try {
-            tokenRotationService.rotateTokens(rtCookie.getValue(), response);
-            return ResponseEntity.ok().build();
-        } catch (Exception ex) {
-            response.addHeader(HttpHeaders.SET_COOKIE,
-                CookieUtils.deleteRefreshCookie().toString());
-            throw new CustomException(ExceptionMessage.REFRESH_TOKEN_NOT_FOUND);
-        }
+        var rtCookie = CookieUtils.getCookie(request, "refresh_token").orElse(null);
+        tokenRotationService.rotateTokens(rtCookie.getValue(), response);
+        return ResponseEntity.ok().build();
     }
 
     @PostMapping("/logout")

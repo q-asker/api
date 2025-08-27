@@ -15,7 +15,7 @@ public class User extends CreatedAt {
     @Id
     private String userId;
     private String password;
-    private String role; //ROLE_USER, ROLE_ADMIN
+    private String role;
     private String provider;
     private String nickname;
 

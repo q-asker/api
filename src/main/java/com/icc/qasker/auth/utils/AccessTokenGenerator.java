@@ -15,19 +15,16 @@ public class AccessTokenGenerator {
     private final UserRepository userRepository;
 
     public String validateAndGenerate(String userId) {
-        // 에러 처리 나중에 추가
-        User user = userRepository.findById(userId).orElse(null);
-        if (user == null) {
-            return null;
-        }
-        String newAt = JWT.create()
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new IllegalStateException("invalid/expired access token"));
+
+        return JWT.create()
             .withSubject(user.getUserId())
             .withClaim("userId", user.getUserId())
             .withClaim("role", user.getRole())
             .withExpiresAt(
                 new Date(System.currentTimeMillis() + JwtProperties.ACCESS_EXPIRATION_TIME))
             .sign(Algorithm.HMAC512(JwtProperties.SECRET));
-        return newAt;
     }
 
 }

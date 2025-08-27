@@ -24,20 +24,13 @@ public class PrincipalOAuth2UserService extends DefaultOAuth2UserService {
 
     @Override
     public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
-        // try sign in
         OAuth2User oAuth2User = super.loadUser(userRequest);
-        System.out.println("PrincipalOAuth2UserService's loadUser: " + oAuth2User);
         OAuth2UserInfo oAuth2UserInfo = null;
-        // OAuth login
-        if (userRequest.getClientRegistration().getRegistrationId().equals("google")) { // google
-            System.out.println("try google login");
+        if (userRequest.getClientRegistration().getRegistrationId().equals("google")) {
             oAuth2UserInfo = new GoogleUserInfo(oAuth2User.getAttributes());
         } else if (userRequest.getClientRegistration().getRegistrationId()
-            .equals("kakao")) { // kakao
-            System.out.println("try kakao login");
+            .equals("kakao")) {
             oAuth2UserInfo = new KakaoUserInfo(oAuth2User.getAttributes());
-        } else {
-            System.out.println("we don't support that site");
         }
         String userId = oAuth2UserInfo.getProvider() + "_" + oAuth2UserInfo.getProviderId();
         String provider = oAuth2UserInfo.getProvider();
@@ -54,9 +47,6 @@ public class PrincipalOAuth2UserService extends DefaultOAuth2UserService {
                 .provider(provider)
                 .build();
             userRepository.save(user);
-            System.out.println("oauth 회원가입 완료, " + provider + ", " + nickname);
-        } else {
-            System.out.println("이미 존재하는 회원");
         }
         return new PrincipalDetails(user, oAuth2User.getAttributes());
     }
