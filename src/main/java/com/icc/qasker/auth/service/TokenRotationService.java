@@ -18,7 +18,7 @@ public class TokenRotationService {
         String newAt = accessTokenService.validateAndGenerate(userId);
 
         response.setHeader(HttpHeaders.AUTHORIZATION, "Bearer " + newAt);
-        response.addHeader(HttpHeaders.SET_COOKIE,
+        response.setHeader(HttpHeaders.SET_COOKIE,
             CookieUtils.buildCookies(newRtPlain).toString());
     }
 
@@ -27,7 +27,7 @@ public class TokenRotationService {
         String newAt = accessTokenService.validateAndGenerate(newRtCookie.userId());
 
         response.setHeader(HttpHeaders.AUTHORIZATION, "Bearer " + newAt);
-        response.addHeader(HttpHeaders.SET_COOKIE,
+        response.setHeader(HttpHeaders.SET_COOKIE,
             CookieUtils.buildCookies(newRtCookie.newRtPlain()).toString());
         return newAt;
     }

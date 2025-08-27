@@ -51,10 +51,10 @@ public enum ExceptionMessage {
     // JWT
     INVALID_JWT(HttpStatus.UNAUTHORIZED, "JWT 토큰이 유효하지 않거나 만료되었습니다."),
     TOKEN_GENERATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "토큰 생성 중 서버 오류가 발생했습니다."),
-    REFRESH_TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "리프레시 토큰이 만료되었습니다. 다시 로그인 해주세요."),
+    REFRESH_TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "다시 로그인 해주세요."),
 
     // Auth
-    UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "로그인을 먼저 하세요."),
+    UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다."),
     NOT_ENOUGH_ACCESS(HttpStatus.FORBIDDEN, "접근 권한이 부족합니다"),
     NOT_SUPPORTED_SITE(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "지원하지 않는 사이트입니다."),
     ;
