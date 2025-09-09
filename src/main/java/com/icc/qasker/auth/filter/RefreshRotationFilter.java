@@ -2,7 +2,6 @@ package com.icc.qasker.auth.filter;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
-import com.auth0.jwt.exceptions.TokenExpiredException;
 import com.icc.qasker.auth.service.TokenRotationService;
 import com.icc.qasker.auth.utils.CookieUtils;
 import com.icc.qasker.auth.utils.CustomHttpServletRequest;
@@ -20,16 +19,17 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class RefreshRotationFilter extends OncePerRequestFilter {
 
     private final TokenRotationService tokenRotationService;
+    private static final String BEARER_PREFIX = "Bearer ";
 
     private boolean skip(String path) {
         // 인증이 필요하지 않은 url 적기
-        return path.startsWith("/auth/*")
+        return path.startsWith("/auth/")
             || path.startsWith("/oauth2")
             || path.startsWith("/login/oauth2")
             || path.startsWith("/s3/upload")
-            || path.startsWith("/explanation/*")
-            || path.startsWith("/problem-set/*")
-            || path.startsWith("/specific-explanation/**")
+            || path.startsWith("/explanation/")
+            || path.startsWith("/problem-set/")
+            || path.startsWith("/specific-explanation/")
             || path.startsWith("/generation");
     }
 
@@ -40,25 +40,15 @@ public class RefreshRotationFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
             return;
         }
-        String auth = request.getHeader("Authorization");
-        boolean needRefresh = false;
-        if (auth == null || !auth.startsWith("Bearer ")) {
-            needRefresh = true;
-        } else {
-            String AT = auth.substring("Bearer ".length());
+        String auth = request.getHeader(HttpHeaders.AUTHORIZATION);
+        if (auth != null && auth.startsWith(BEARER_PREFIX)) {
+            String at = auth.substring(BEARER_PREFIX.length());
             try {
-                JWT.require(Algorithm.HMAC512(JwtProperties.SECRET)).build().verify(AT);
+                JWT.require(Algorithm.HMAC512(JwtProperties.SECRET)).build().verify(at);
                 filterChain.doFilter(request, response);
                 return;
-            } catch (TokenExpiredException e) {
-                needRefresh = true;
-            } catch (Exception e) {
-                needRefresh = true;
+            } catch (Exception e) { // refresh 진행
             }
-        }
-        if (!needRefresh) {
-            filterChain.doFilter(request, response);
-            return;
         }
 
         var rtCookie = CookieUtils.getCookie(request, "refresh_token").orElse(null);
@@ -69,7 +59,7 @@ public class RefreshRotationFilter extends OncePerRequestFilter {
         try {
             String newAt = tokenRotationService.rotateTokens(rtCookie.getValue(), response);
             CustomHttpServletRequest customRequest = new CustomHttpServletRequest(request);
-            customRequest.putHeader(HttpHeaders.AUTHORIZATION, "Bearer " + newAt);
+            customRequest.putHeader(HttpHeaders.AUTHORIZATION, BEARER_PREFIX + newAt);
             filterChain.doFilter(customRequest, response);
         } catch (Exception e) {
             filterChain.doFilter(request, response);
