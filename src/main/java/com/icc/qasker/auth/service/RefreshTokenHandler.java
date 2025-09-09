@@ -13,7 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-public class RefreshTokenService {
+public class RefreshTokenHandler {
 
     private final RefreshTokenRepository repo;
     private final StringRedisTemplate redis;

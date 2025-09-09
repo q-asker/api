@@ -11,12 +11,12 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class LogoutService {
 
-    private final RefreshTokenService refreshTokenService;
+    private final RefreshTokenHandler refreshTokenHandler;
 
     public void logout(HttpServletRequest request, HttpServletResponse response) {
         var rtCookie = CookieUtils.getCookie(request, "refresh_token").orElse(null);
         if (rtCookie != null) {
-            refreshTokenService.revoke(rtCookie.getValue());
+            refreshTokenHandler.revoke(rtCookie.getValue());
         }
         response.addHeader(HttpHeaders.SET_COOKIE, CookieUtils.deleteRefreshCookie().toString());
     }
