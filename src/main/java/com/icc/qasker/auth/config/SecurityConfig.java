@@ -8,6 +8,7 @@ import com.icc.qasker.auth.service.TokenRotationService;
 import com.icc.qasker.auth.utils.OAuth2LoginSuccessHandler;
 import com.icc.qasker.global.error.ExceptionMessage;
 import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -42,17 +43,10 @@ public class SecurityConfig {
             .httpBasic(AbstractHttpConfigurer::disable)
             .exceptionHandling(ex -> ex
                 .authenticationEntryPoint((request, response, authException) -> {
-                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                    response.setContentType("application/json;charset=UTF-8");
-                    response.getWriter().write(
-                        "{\"message\": \"" + ExceptionMessage.UNAUTHORIZED.getMessage() + "\"}");
+                    createUnauthorizedResponse(response);
                 })
                 .accessDeniedHandler((request, response, accessDeniedException) -> {
-                    response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                    response.setContentType("application/json;charset=UTF-8");
-                    response.getWriter().write(
-                        "{\"message\": \"" + ExceptionMessage.NOT_ENOUGH_ACCESS.getMessage()
-                            + "\"}");
+                    createForbiddenResponse(response);
                 })
             )
             .addFilterBefore(new RefreshRotationFilter(tokenRotationService),
@@ -71,5 +65,27 @@ public class SecurityConfig {
                 .successHandler(oAuth2LoginSuccessHandler)
             );
         return http.build();
+    }
+
+    public void createUnauthorizedResponse(HttpServletResponse response) {
+        try {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json;charset=UTF-8");
+            response.getWriter().write(
+                "{\"message\": \"" + ExceptionMessage.UNAUTHORIZED.getMessage() + "\"}"
+            );
+        } catch (IOException e) {
+        }
+    }
+
+    public void createForbiddenResponse(HttpServletResponse response) {
+        try {
+            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            response.setContentType("application/json;charset=UTF-8");
+            response.getWriter().write(
+                "{\"message\": \"" + ExceptionMessage.NOT_ENOUGH_ACCESS.getMessage() + "\"}"
+            );
+        } catch (IOException e) {
+        }
     }
 }
