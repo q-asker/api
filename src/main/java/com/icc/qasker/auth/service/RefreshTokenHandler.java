@@ -8,10 +8,10 @@ import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-@Service
+@Component
 @RequiredArgsConstructor
 public class RefreshTokenHandler {
 

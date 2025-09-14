@@ -28,6 +28,4 @@ public class AccessTokenHandler {
             .orElseThrow(() -> new CustomException(ExceptionMessage.USER_NOT_FOUND));
 
     }
-
-
 }
