@@ -27,6 +27,7 @@ import org.springframework.security.web.authentication.www.BasicAuthenticationFi
 public class JwtTokenAuthenticationFilter extends BasicAuthenticationFilter {
 
     private final UserRepository userRepository;
+    private static final String BEARER_PREFIX = "Bearer ";
 
     public JwtTokenAuthenticationFilter(AuthenticationManager authManager,
         UserRepository userRepository) {
@@ -39,11 +40,11 @@ public class JwtTokenAuthenticationFilter extends BasicAuthenticationFilter {
         FilterChain chain) throws IOException, ServletException {
 
         String authorizationHeader = request.getHeader("Authorization");
-        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+        if (authorizationHeader == null || !authorizationHeader.startsWith(BEARER_PREFIX)) {
             chain.doFilter(request, response);
             return;
         }
-        String accessToken = authorizationHeader.substring("Bearer ".length());
+        String accessToken = authorizationHeader.substring(BEARER_PREFIX.length());
         try {
             var decoded = require(Algorithm.HMAC512(JwtProperties.SECRET)).build()
                 .verify(accessToken);
