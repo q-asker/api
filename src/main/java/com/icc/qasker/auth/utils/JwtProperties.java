@@ -34,5 +34,3 @@ public class JwtProperties {
         REFRESH_EXPIRATION_TIME = seconds;
     }
 }
-
-

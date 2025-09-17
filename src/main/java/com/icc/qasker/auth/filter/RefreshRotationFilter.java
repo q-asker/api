@@ -48,6 +48,7 @@ public class RefreshRotationFilter extends OncePerRequestFilter {
                 filterChain.doFilter(request, response);
                 return;
             } catch (Exception e) { // refresh 진행
+                System.out.println("AT 교체 사유: " + e.getMessage());
             }
         }
 

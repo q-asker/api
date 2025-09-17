@@ -1,12 +1,22 @@
 package com.icc.qasker.auth.utils;
 
 import java.time.Duration;
+import org.springframework.stereotype.Component;
 
+@Component
 public class RtKeys {
 
-    public static String userSet(String userId) {
+    private final JwtProperties jwtProperties;
+
+    public RtKeys(JwtProperties jwtProperties) {
+        this.jwtProperties = jwtProperties;
+    }
+
+    public String userSet(String userId) {
         return "rt:u:" + userId;
     }
 
-    public static final Duration TTL = Duration.ofSeconds(JwtProperties.REFRESH_EXPIRATION_TIME);
+    public Duration ttl() {
+        return Duration.ofSeconds(jwtProperties.getRefreshExpirationTime());
+    }
 }
