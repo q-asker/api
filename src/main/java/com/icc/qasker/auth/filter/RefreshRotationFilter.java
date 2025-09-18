@@ -47,8 +47,8 @@ public class RefreshRotationFilter extends OncePerRequestFilter {
                 JWT.require(Algorithm.HMAC512(JwtProperties.SECRET)).build().verify(at);
                 filterChain.doFilter(request, response);
                 return;
-            } catch (Exception e) { // refresh 진행
-                System.out.println("AT 교체 사유: " + e.getMessage());
+            } catch (Exception e) {
+                System.out.println(e.getMessage());
             }
         }
 

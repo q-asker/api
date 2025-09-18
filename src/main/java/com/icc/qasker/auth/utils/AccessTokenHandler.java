@@ -16,14 +16,11 @@ public class AccessTokenHandler {
     private final UserRepository userRepository;
 
     public String validateAndGenerate(String userId) {
-        System.out.println(
-            "validateAndGenerate: " + new Date(
-                System.currentTimeMillis() + JwtProperties.ACCESS_EXPIRATION_TIME));
         return userRepository.findById(userId)
             .map(user -> JWT.create()
                 .withSubject(user.getUserId())
                 .withClaim("userId", user.getUserId())
-                .withClaim("role", user.getRole())
+                .withClaim("nickname", user.getNickname())
                 .withExpiresAt(
                     new Date(System.currentTimeMillis() + JwtProperties.ACCESS_EXPIRATION_TIME))
                 .sign(Algorithm.HMAC512(JwtProperties.SECRET)))
