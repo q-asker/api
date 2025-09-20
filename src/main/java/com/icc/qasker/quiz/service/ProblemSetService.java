@@ -6,6 +6,7 @@ import com.icc.qasker.global.util.HashUtil;
 import com.icc.qasker.quiz.dto.response.ProblemSetResponse;
 import com.icc.qasker.quiz.entity.ProblemSet;
 import com.icc.qasker.quiz.repository.ProblemSetRepository;
+import com.newrelic.api.agent.Trace;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -16,6 +17,7 @@ public class ProblemSetService {
     private final ProblemSetRepository problemSetRepository;
     private final HashUtil hashUtil;
 
+    @Trace(dispatcher = true)
     public ProblemSetResponse getProblemSet(String problemSetId) {
 
         long id = hashUtil.decode(problemSetId);

@@ -54,6 +54,8 @@ dependencies {
     // redis
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 
+    // newrelic
+    implementation 'com.newrelic.agent.java:newrelic-api:8.11.0'
 }
 
 tasks.named('test') {

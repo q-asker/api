@@ -16,6 +16,7 @@ import com.icc.qasker.quiz.entity.ProblemSet;
 import com.icc.qasker.quiz.entity.ReferencedPage;
 import com.icc.qasker.quiz.entity.Selection;
 import com.icc.qasker.quiz.repository.ProblemSetRepository;
+import com.newrelic.api.agent.Trace;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import jakarta.validation.constraints.NotNull;
@@ -60,6 +61,7 @@ public class GenerationService {
     }
 
 
+    @Trace(dispatcher = true)
     public Mono<GenerationResponse> processGenerationRequest(
         FeGenerationRequest feGenerationRequest) {
         return
@@ -87,6 +89,7 @@ public class GenerationService {
                 });
     }
 
+    @Trace
     private Mono<AiGenerationResponse> callAiServer(FeGenerationRequest feGenerationRequest) {
         return aiWebClient.post()
             .uri("/generation")
@@ -96,6 +99,7 @@ public class GenerationService {
             .onErrorMap(this::webClientError); // ok
     }
 
+    @Trace
     private Mono<ProblemSet> saveToDB(AiGenerationResponse aiResponse, int feRequestQuizCount,
         QuizType feQuizType) {
         return Mono.fromCallable(() -> {
@@ -127,6 +131,7 @@ public class GenerationService {
         });
     }
 
+    @Trace
     private ProblemSet saveProblemSet(AiGenerationResponse aiResponse) {
         // for test, private -> public
         // - 1. problem set
@@ -141,6 +146,7 @@ public class GenerationService {
         return problemSetRepository.save(problemSet); // reflect problems of problem_set to DB
     }
 
+    @Trace
     private Problem createProblemEntity(ProblemSet problemSet, QuizGeneratedByAI quiz) {
         // - 2. problem
         Problem problem = new Problem();
@@ -184,12 +190,15 @@ public class GenerationService {
         return problem;
     }
 
+    @Trace
     private GenerationResponse convertToFeResponse(Long problemSetId) {
         return GenerationResponse.of(hashUtil.encode(problemSetId));
     }
 
     // for error
     // - AI Server error
+
+    @Trace
     private Throwable webClientError(Throwable error) {
 
         if (error instanceof WebClientResponseException we) {
