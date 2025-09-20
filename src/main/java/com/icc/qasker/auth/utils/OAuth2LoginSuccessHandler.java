@@ -1,10 +1,8 @@
 package com.icc.qasker.auth.utils;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.icc.qasker.auth.dto.principal.PrincipalDetails;
 import com.icc.qasker.auth.entity.User;
 import com.icc.qasker.auth.service.TokenRotationService;
-import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -19,17 +17,16 @@ import org.springframework.stereotype.Component;
 public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 
     private final TokenRotationService tokenRotationService;
-    private final ObjectMapper objectMapper = new ObjectMapper();
     @Value("${q-asker.frontend-deploy-url}")
     private String frontendDeployUrl;
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
-        Authentication authentication) throws IOException, ServletException {
+        Authentication authentication) throws IOException {
 
         PrincipalDetails principal = (PrincipalDetails) authentication.getPrincipal();
         User user = principal.getUser();
-        tokenRotationService.issueTokens(user.getUserId(), response);
+        tokenRotationService.issueRefreshToken(user.getUserId(), response);
         response.sendRedirect(frontendDeployUrl);
     }
 }
