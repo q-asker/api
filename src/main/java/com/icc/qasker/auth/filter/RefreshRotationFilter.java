@@ -18,8 +18,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @RequiredArgsConstructor
 public class RefreshRotationFilter extends OncePerRequestFilter {
 
-    private final TokenRotationService tokenRotationService;
     private static final String BEARER_PREFIX = "Bearer ";
+    private final TokenRotationService tokenRotationService;
 
     private boolean skip(String path) {
         // 인증이 필요하지 않은 url 적기

@@ -41,16 +41,6 @@ public class ProblemSetResponse {
         private boolean check;
         private List<SelectionsForFE> selections;
 
-        @Getter
-        @NoArgsConstructor
-        @AllArgsConstructor
-        public static class SelectionsForFE {
-
-            private int id;
-            private String content;
-            private boolean correct;
-        }
-
         public static QuizForFe of(Problem problem) {
             return new QuizForFe(
                 problem.getId().getNumber(),
@@ -68,6 +58,16 @@ public class ProblemSetResponse {
                     })
                     .toList()
             );
+        }
+
+        @Getter
+        @NoArgsConstructor
+        @AllArgsConstructor
+        public static class SelectionsForFE {
+
+            private int id;
+            private String content;
+            private boolean correct;
         }
 
     }

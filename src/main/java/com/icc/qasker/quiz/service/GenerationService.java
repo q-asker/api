@@ -37,14 +37,14 @@ import reactor.core.publisher.Mono;
 @Service
 public class GenerationService {
 
-    @NotNull
-    @Value("${aws.cloudfront.base-url}")
-    private String CLOUDFRONT_BASE_URL;
+    private static final int MAX_CONTENT_LENGTH = 20000;
     private final WebClient aiWebClient;
     private final ProblemSetRepository problemSetRepository;
     private final HashUtil hashUtil;
     private final Validator validator;
-    private static final int MAX_CONTENT_LENGTH = 20000;
+    @NotNull
+    @Value("${aws.cloudfront.base-url}")
+    private String CLOUDFRONT_BASE_URL;
 
 
     public GenerationService(
