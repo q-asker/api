@@ -98,7 +98,11 @@ jib {
                 ? project.property('profile')
                 : 'local'
 
-        jvmFlags = ['-Xms512m', '-Xmx512m', "-Dspring.profiles.active=${activeProfile}"]
+        def jvmHeapMemory = project.hasProperty('jvmHeapMemory')
+                ? project.property('jvmHeapMemory')
+                : '512m'
+
+        jvmFlags = ["-Xms${jvmHeapMemory}", "-Xmx${jvmHeapMemory}", "-Dspring.profiles.active=${activeProfile}"]
 
         if (activeProfile == 'local') {
             return

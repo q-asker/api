@@ -16,6 +16,7 @@ jobs:
       DOCKER_IMAGE_NAME: api
       DOCKER_ID: ${{ secrets.DOCKER_ID }}
       DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+      JVM_HEAP_MEMORY: ${{ secrets.JVM_HEAP_MEMORY }}
 
     steps:
       - name: 코드 체크아웃
@@ -48,7 +49,7 @@ jobs:
         run: echo "${{ env.DOCKER_PASSWORD }}" | docker login -u "${{ env.DOCKER_ID }}" --password-stdin
 
       - name: Jib로 Docker 이미지 빌드 및 푸시
-        run: ./gradlew jib -Pprofile=prod
+        run: ./gradlew jib -Pprofile=prod -PjvmHeapMemory=${{ env.JVM_HEAP_MEMORY }}
 
   deploy:
     name: 개발 서버 EC2 배포
