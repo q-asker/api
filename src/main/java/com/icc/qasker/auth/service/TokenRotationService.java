@@ -15,22 +15,34 @@ public class TokenRotationService {
     private final RefreshTokenHandler refreshTokenHandler;
     private final AccessTokenHandler accessTokenHandler;
 
+    public void issueRefreshToken(String userId, HttpServletResponse response) {
+        String newRtPlain = refreshTokenHandler.issue(userId);
+        setRefreshToken(response, newRtPlain);
+    }
+
     public void issueTokens(String userId, HttpServletResponse response) {
         String newRtPlain = refreshTokenHandler.issue(userId);
         String newAt = accessTokenHandler.validateAndGenerate(userId);
 
-        response.setHeader(HttpHeaders.AUTHORIZATION, "Bearer " + newAt);
-        response.setHeader(HttpHeaders.SET_COOKIE,
-            CookieUtils.buildCookies(newRtPlain).toString());
+        setAccessToken(response, newAt);
+        setRefreshToken(response, newRtPlain);
     }
 
     public String rotateTokens(String refreshToken, HttpServletResponse response) {
         var newRtCookie = refreshTokenHandler.validateAndRotate(refreshToken);
         String newAt = accessTokenHandler.validateAndGenerate(newRtCookie.userId());
 
-        response.setHeader(HttpHeaders.AUTHORIZATION, "Bearer " + newAt);
-        response.setHeader(HttpHeaders.SET_COOKIE,
-            CookieUtils.buildCookies(newRtCookie.newRtPlain()).toString());
+        setAccessToken(response, newAt);
+        setRefreshToken(response, newRtCookie.newRtPlain());
         return newAt;
+    }
+
+    private void setAccessToken(HttpServletResponse response, String newAt) {
+        response.setHeader(HttpHeaders.AUTHORIZATION, "Bearer " + newAt);
+    }
+
+    private void setRefreshToken(HttpServletResponse response, String newRtPlain) {
+        response.setHeader(HttpHeaders.SET_COOKIE,
+            CookieUtils.buildCookies(newRtPlain).toString());
     }
 }
