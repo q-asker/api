@@ -26,8 +26,8 @@ import org.springframework.security.web.authentication.www.BasicAuthenticationFi
 
 public class JwtTokenAuthenticationFilter extends BasicAuthenticationFilter {
 
-    private final UserRepository userRepository;
     private static final String BEARER_PREFIX = "Bearer ";
+    private final UserRepository userRepository;
 
     public JwtTokenAuthenticationFilter(AuthenticationManager authManager,
         UserRepository userRepository) {

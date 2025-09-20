@@ -2,7 +2,6 @@ package com.icc.qasker.quiz.controller.doc;
 
 import com.icc.qasker.quiz.dto.request.FeGenerationRequest;
 import com.icc.qasker.quiz.dto.response.GenerationResponse;
-import com.icc.qasker.quiz.dto.response.ProblemSetResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.PostMapping;

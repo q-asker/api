@@ -18,10 +18,10 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 
-    @Value("${q-asker.frontend-deploy-url}")
-    private String frontendDeployUrl;
     private final TokenRotationService tokenRotationService;
     private final ObjectMapper objectMapper = new ObjectMapper();
+    @Value("${q-asker.frontend-deploy-url}")
+    private String frontendDeployUrl;
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,

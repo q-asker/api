@@ -33,10 +33,6 @@ public class RefreshTokenHandler {
         }
     }
 
-    public record RotateResult(String userId, String newRtPlain) {
-
-    }
-
     @Transactional
     public RotateResult validateAndRotate(String oldRtPlain) {
         String oldRtHash = TokenUtils.sha256Hex(oldRtPlain);
@@ -62,6 +58,10 @@ public class RefreshTokenHandler {
         }
         redis.delete(rtHash);
         redis.opsForSet().remove(rtKeys.userSet(userId), rtHash);
+    }
+
+    public record RotateResult(String userId, String newRtPlain) {
+
     }
 
 }

@@ -2,6 +2,9 @@ package com.icc.qasker.aws.util;
 
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import lombok.extern.slf4j.Slf4j;
 import org.jodconverter.core.office.OfficeException;
 import org.jodconverter.core.office.OfficeManager;
@@ -13,10 +16,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-
 @Slf4j
 @Component
 public class ToPDFConverter {
@@ -25,8 +24,8 @@ public class ToPDFConverter {
     private final int port;
 
     public ToPDFConverter(
-            @Value("${app.office.home}") String officeHome,
-            @Value("${app.office.port}") int port
+        @Value("${app.office.home}") String officeHome,
+        @Value("${app.office.port}") int port
     ) {
         this.officeHome = officeHome;
         this.port = port;
@@ -41,15 +40,15 @@ public class ToPDFConverter {
             target.transferTo(inputFile);
             File outputFile = Files.createTempFile("converted-", ".pdf").toFile();
             officeManager = LocalOfficeManager.builder()
-                    .officeHome(officeHome)
-                    .portNumbers(port)
-                    .install()
-                    .build();
+                .officeHome(officeHome)
+                .portNumbers(port)
+                .install()
+                .build();
             officeManager.start();
             JodConverter
-                    .convert(inputFile)
-                    .to(outputFile)
-                    .execute();
+                .convert(inputFile)
+                .to(outputFile)
+                .execute();
 
             return outputFile;
         } catch (OfficeException e) {

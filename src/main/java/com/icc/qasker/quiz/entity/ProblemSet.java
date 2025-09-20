@@ -1,13 +1,17 @@
 package com.icc.qasker.quiz.entity;
 
 import com.icc.qasker.global.entity.CreatedAt;
-import jakarta.persistence.*;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import java.util.List;
 
 @Entity
 @Getter
@@ -15,6 +19,7 @@ import java.util.List;
 @AllArgsConstructor
 @Setter
 public class ProblemSet extends CreatedAt {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
