@@ -20,19 +20,22 @@ public class ProblemSetService {
     @Trace(dispatcher = true)
     public ProblemSetResponse getProblemSet(String problemSetId) {
 
-        ProblemSet problemSet = getProblemSetEntity(problemSetId);
+        long id = decode(problemSetId);
+        ProblemSet problemSet = getProblemSetEntity(id);
         return toResponse(problemSet);
     }
 
     @Trace
-    private ProblemSet getProblemSetEntity(String problemSetId) {
-
-        long id = hashUtil.decode(problemSetId);
-
+    private ProblemSet getProblemSetEntity(long id) {
         return problemSetRepository.getProblemSetById(id)
             .orElseThrow(
                 () -> new CustomException(ExceptionMessage.PROBLEM_SET_NOT_FOUND)
             );
+    }
+
+    @Trace
+    public long decode(String hashId) {
+        return hashUtil.decode(hashId);
     }
 
     @Trace
