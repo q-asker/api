@@ -2,7 +2,7 @@ name: Docker Hub Push & 개발 서버 EC2 배포
 on:
   push:
     branches:
-      - ICC-147-trace
+      - develop
   workflow_dispatch:
 
 
