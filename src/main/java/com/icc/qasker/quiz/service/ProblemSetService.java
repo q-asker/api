@@ -27,7 +27,7 @@ public class ProblemSetService {
 
     @Trace
     private ProblemSet getProblemSetEntity(long id) {
-        return problemSetRepository.getProblemSetById(id)
+        return problemSetRepository.findById(id)
             .orElseThrow(
                 () -> new CustomException(ExceptionMessage.PROBLEM_SET_NOT_FOUND)
             );
