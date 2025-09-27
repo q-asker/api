@@ -2,7 +2,7 @@ name: Docker Hub Push & 개발 서버 EC2 배포
 on:
   push:
     branches:
-      - jpa-improve
+      - spring-security-improve
   workflow_dispatch:
 
 jobs:
