@@ -1,9 +1,10 @@
 package com.icc.qasker.quiz.entity;
 
+import static jakarta.persistence.FetchType.LAZY;
+
 import com.icc.qasker.global.entity.CreatedAt;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -30,7 +31,7 @@ public class Selection extends CreatedAt {
     @Column(nullable = false)
     private boolean correct;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = LAZY)
     @JoinColumns({
         @JoinColumn(name = "problem_set_id", referencedColumnName = "problem_set_id"),
         @JoinColumn(name = "number", referencedColumnName = "number")

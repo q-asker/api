@@ -1,5 +1,7 @@
 package com.icc.qasker.quiz.entity;
 
+import static jakarta.persistence.FetchType.LAZY;
+
 import com.icc.qasker.global.entity.CreatedAt;
 import jakarta.persistence.Column;
 import jakarta.persistence.EmbeddedId;
@@ -23,7 +25,7 @@ public class Explanation extends CreatedAt {
     @Column(columnDefinition = "TEXT")
     private String content;
 
-    @OneToOne
+    @OneToOne(fetch = LAZY)
     @MapsId
     @JoinColumns({
         @JoinColumn(name = "problem_set_id", referencedColumnName = "problem_set_id"),

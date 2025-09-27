@@ -1,11 +1,12 @@
 package com.icc.qasker.quiz.entity;
 
+import static jakarta.persistence.FetchType.LAZY;
+
 import com.icc.qasker.global.entity.CreatedAt;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.MapsId;
@@ -30,7 +31,7 @@ public class Problem extends CreatedAt {
     @Column(columnDefinition = "TEXT")
     private String title;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = LAZY)
     @MapsId("problemSetId")
     @JoinColumn(name = "problem_set_id")
     private ProblemSet problemSet;
