@@ -12,6 +12,7 @@ import java.io.IOException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -19,26 +20,34 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @RequiredArgsConstructor
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
-    private final AuthenticationConfiguration authenticationConfiguration;
     private final PrincipalOAuth2UserService principalOauth2UserService;
     private final UserRepository userRepository;
     private final TokenRotationService tokenRotationService;
     private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        AuthenticationManager authenticationManager = authenticationConfiguration.getAuthenticationManager();
+    public AuthenticationManager authenticationManager(
+        AuthenticationConfiguration authenticationConfiguration) throws Exception {
+        return authenticationConfiguration.getAuthenticationManager();
+    }
 
+    // JWT 필터 통하는 것
+    @Bean
+    @Order(1)
+    public SecurityFilterChain apiFilterChain(HttpSecurity http,
+        AuthenticationManager authenticationManager) throws Exception {
         http
+            .securityMatcher("/statistics/**", "/admin/**", "/test")
             .csrf(AbstractHttpConfigurer::disable)
-            .sessionManagement(session -> session.sessionCreationPolicy(
-                SessionCreationPolicy.STATELESS))
+            .sessionManagement(
+                session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .formLogin(AbstractHttpConfigurer::disable)
             .httpBasic(AbstractHttpConfigurer::disable)
             .exceptionHandling(ex -> ex
@@ -49,23 +58,48 @@ public class SecurityConfig {
                     createForbiddenResponse(response);
                 })
             )
+            .addFilterBefore(
+                new JwtTokenAuthenticationFilter(authenticationManager, userRepository),
+                UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(new RefreshRotationFilter(tokenRotationService),
                 JwtTokenAuthenticationFilter.class)
-            .addFilter(new JwtTokenAuthenticationFilter(authenticationManager, userRepository))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/statistics/**").authenticated() // 추후 통계 기능 인증 필요
-                .requestMatchers("/admin/**").hasRole("ADMIN") // 관리자 페이지
-                .requestMatchers("/test").authenticated() // test 용
-                .anyRequest().permitAll() // 나머지 모두 허용
+                .requestMatchers("/statistics/**").authenticated()
+                .requestMatchers("/admin/**").hasRole("ADMIN")
+                .requestMatchers("/test").authenticated()
+                .anyRequest().denyAll() // 이 필터 체인에 해당하지만 위에서 명시되지 않은 다른 모든 요청은 거부
+            );
+        return http.build();
+    }
+
+    // JWT 필터 통하지 않는 것
+    @Bean
+    @Order(2)
+    public SecurityFilterChain webFilterChain(HttpSecurity http) throws Exception {
+        http
+            .csrf(AbstractHttpConfigurer::disable)
+            .sessionManagement(
+                session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .formLogin(AbstractHttpConfigurer::disable)
+            .httpBasic(AbstractHttpConfigurer::disable)
+            .exceptionHandling(ex -> ex
+                .authenticationEntryPoint((request, response, authException) -> {
+                    createUnauthorizedResponse(response);
+                })
+                .accessDeniedHandler((request, response, accessDeniedException) -> {
+                    createForbiddenResponse(response);
+                })
+            )
+            .authorizeHttpRequests(auth -> auth
+                .anyRequest().permitAll() // 나머지 모든 요청 허용
             )
             .oauth2Login(oauth -> oauth
-                .userInfoEndpoint(user -> user
-                    .userService(principalOauth2UserService)
-                )
+                .userInfoEndpoint(user -> user.userService(principalOauth2UserService))
                 .successHandler(oAuth2LoginSuccessHandler)
             );
         return http.build();
     }
+
 
     public void createUnauthorizedResponse(HttpServletResponse response) {
         try {
