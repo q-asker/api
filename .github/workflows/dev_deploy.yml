@@ -36,40 +36,22 @@ jobs:
       - name: Jib로 Docker 이미지 빌드 및 푸시
         run: ./gradlew jib -Pprofile=prod
 
-      - name: deploy 작업에 변수 넘기기
-        id: set_outputs
-        run: |
-          DOCKER_ID_VALUE=$(grep '^DOCKER_ID=' gradle.properties | cut -d'=' -f2-)
-          echo "::add-mask::$DOCKER_ID_VALUE" 
-          echo "docker_id=$DOCKER_ID_VALUE" >> $GITHUB_OUTPUT
-          
-          DOCKER_IMAGE_NAME_VALUE=$(grep '^DOCKER_IMAGE_NAME=' gradle.properties | cut -d'=' -f2-)
-          echo "::add-mask::$DOCKER_IMAGE_NAME_VALUE" 
-          echo "docker_image_name=$DOCKER_IMAGE_NAME_VALUE" >> $GITHUB_OUTPUT
-          
-          DOCKER_PASSWORD_VALUE=$(grep '^DOCKER_PASSWORD=' gradle.properties | cut -d'=' -f2-)
-          echo "::add-mask::$DOCKER_PASSWORD_VALUE" 
-          echo "docker_password=$DOCKER_PASSWORD_VALUE" >> $GITHUB_OUTPUT
-
-    outputs:
-      docker_id: ${{ steps.set_outputs.outputs.docker_id }}
-      docker_image_name: ${{ steps.set_outputs.outputs.docker_image_name }}
-      docker_password: ${{ steps.set_outputs.outputs.docker_password }}
-
   deploy:
     name: 개발 서버 EC2 배포
     needs: build
     runs-on: ubuntu-latest
-
     env:
       EC2_HOST: ${{ secrets.EC2_HOST }}
       EC2_USER: ${{ secrets.EC2_USER }}
       EC2_KEY: ${{ secrets.EC2_KEY }}
-      DOCKER_ID: ${{ needs.build.outputs.docker_id }}
-      DOCKER_IMAGE_NAME: ${{ needs.build.outputs.docker_image_name }}
-      DOCKER_PASSWORD: ${{ needs.build.outputs.docker_password }}
 
     steps:
+      - name: gradle.properties 값 환경 변수로 등록
+        run: |
+          echo "DOCKER_ID=$(echo "${{ secrets.GRADLE_PROPERTIES }}" | grep '^DOCKER_ID=' | cut -d'=' -f2-)" >> $GITHUB_ENV
+          echo "DOCKER_IMAGE_NAME=$(echo "${{ secrets.GRADLE_PROPERTIES }}" | grep '^DOCKER_IMAGE_NAME=' | cut -d'=' -f2-)" >> $GITHUB_ENV
+          echo "DOCKER_PASSWORD=$(echo "${{ secrets.GRADLE_PROPERTIES }}" | grep '^DOCKER_PASSWORD=' | cut -d'=' -f2-)" >> $GITHUB_ENV
+
       - name: EC2에 배포
         uses: appleboy/ssh-action@v0.1.7
         with:
