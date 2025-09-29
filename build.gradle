@@ -93,7 +93,7 @@ jib {
     }
     container {
         def activeProfile = project.findProperty("PROFILE") ?: 'local'
-        def jvmHeapSize = project.property("JVM_HEAP_SIZE") ?: '512m'
+        def jvmHeapSize = project.property("JVM_HEAP_SIZE")
 
         jvmFlags = ["-Xms${jvmHeapSize}", "-Xmx${jvmHeapSize}", "-Dspring.profiles.active=${activeProfile}"]
 

@@ -34,7 +34,7 @@ jobs:
         uses: gradle/gradle-build-action@v2
 
       - name: Jib로 Docker 이미지 빌드 및 푸시
-        run: ./gradlew jib -Pprofile=prod
+        run: ./gradlew jib -PPROFILE=prod
 
   deploy:
     name: 개발 서버 EC2 배포
