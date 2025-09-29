@@ -2,9 +2,8 @@ name: Docker Hub Push & 개발 서버 EC2 배포
 on:
   push:
     branches:
-      - develop
+      - ICC-150-cd
   workflow_dispatch:
-
 
 jobs:
   build:
@@ -13,14 +12,17 @@ jobs:
     env:
       APPLICATION_PROD_YML: ${{ secrets.APPLICATION_PROD_YML }}
       NEWRELIC_YML: ${{ secrets.NEWRELIC_YML }}
-      DOCKER_IMAGE_NAME: api
-      DOCKER_ID: ${{ secrets.DOCKER_ID }}
-      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-      JVM_HEAP_MEMORY: ${{ secrets.JVM_HEAP_MEMORY }}
+      GRADLE_PROPERTIES: ${{ secrets.GRADLE_PROPERTIES }}
 
     steps:
       - name: 코드 체크아웃
         uses: actions/checkout@v4
+
+      - name: 환경변수들 등록
+        run: |
+          echo "${{ env.NEWRELIC_YML }}" > newrelic/newrelic.yml
+          echo "${{ env.APPLICATION_PROD_YML }}" > src/main/resources/application-prod.yml
+          echo "${{ env.GRADLE_PROPERTIES }}" > gradle.properties
 
       - name: JDK 17 설정
         uses: actions/setup-java@v4
@@ -31,25 +33,23 @@ jobs:
       - name: Gradle 설정
         uses: gradle/gradle-build-action@v2
 
-      - name: newrelic.yml 등록
-        run: |
-          echo "${{ env.NEWRELIC_YML }}" > newrelic/newrelic.yml
-
-      - name: application-prod.yml 등록
-        run: |
-          echo "${{ env.APPLICATION_PROD_YML }}" > src/main/resources/application-prod.yml
-
-      - name: gradle.properties 등록
-        run: |
-          echo DOCKER_ID="${{ env.DOCKER_ID }}" >> gradle.properties
-          echo DOCKER_PASSWORD="${{ env.DOCKER_PASSWORD }}" >> gradle.properties
-          echo DOCKER_IMAGE_NAME="${{ env.DOCKER_IMAGE_NAME }}" >> gradle.properties
-
-      - name: Docker Hub에 로그인
-        run: echo "${{ env.DOCKER_PASSWORD }}" | docker login -u "${{ env.DOCKER_ID }}" --password-stdin
-
       - name: Jib로 Docker 이미지 빌드 및 푸시
-        run: ./gradlew jib -Pprofile=prod -PjvmHeapMemory=${{ env.JVM_HEAP_MEMORY }}
+        run: ./gradlew jib
+
+      - name: deploy 작업에 변수 넘기기
+        id: set_outputs
+        run: |
+          DOCKER_ID_VALUE=$(grep '^DOCKER_ID=' gradle.properties | cut -d'=' -f2-)
+          echo "::add-mask::$DOCKER_ID_VALUE" 
+          echo "docker_id=$DOCKER_ID_VALUE" >> $GITHUB_OUTPUT
+          
+          DOCKER_IMAGE_NAME_VALUE=$(grep '^DOCKER_IMAGE_NAME=' gradle.properties | cut -d'=' -f2-)
+          echo "::add-mask::$DOCKER_IMAGE_NAME_VALUE" 
+          echo "docker_image_name=$DOCKER_IMAGE_NAME_VALUE" >> $GITHUB_OUTPUT
+          
+          DOCKER_PASSWORD_VALUE=$(grep '^DOCKER_PASSWORD=' gradle.properties | cut -d'=' -f2-)
+          echo "::add-mask::$DOCKER_PASSWORD_VALUE" 
+          echo "docker_password=$DOCKER_PASSWORD_VALUE" >> $GITHUB_OUTPUT
 
   deploy:
     name: 개발 서버 EC2 배포
@@ -60,12 +60,9 @@ jobs:
       EC2_HOST: ${{ secrets.EC2_HOST }}
       EC2_USER: ${{ secrets.EC2_USER }}
       EC2_KEY: ${{ secrets.EC2_KEY }}
-
-      # Docker 관련
-      CONTAINER_NAME: q-asker-api-server
-      DOCKER_IMAGE_NAME: api
-      DOCKER_ID: ${{ secrets.DOCKER_ID }}
-      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+      DOCKER_ID: ${{ needs.build.outputs.docker_id }}
+      DOCKER_IMAGE_NAME: ${{ needs.build.outputs.docker_image_name }}
+      DOCKER_PASSWORD: ${{ needs.build.outputs.docker_password }}
 
     steps:
       - name: EC2에 배포
@@ -80,5 +77,5 @@ jobs:
             docker pull ${{ env.DOCKER_ID }}/${{ env.DOCKER_IMAGE_NAME }}
             docker stop ${{ env.CONTAINER_NAME }} || true
             docker rm ${{ env.CONTAINER_NAME }} || true
-            docker run -d --name ${{ env.CONTAINER_NAME }} -p 8080:8080 ${{ env.DOCKER_ID }}/${{ env.DOCKER_IMAGE_NAME }}
+            docker run -d --name ${{ env.CONTAINER_ID }}-${{ env.DOCKER_IMAGE_NAME }} -p 8080:8080 -p 9999:9999 ${{ env.DOCKER_ID }}/${{ env.DOCKER_IMAGE_NAME }}
             docker image prune -af

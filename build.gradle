@@ -1,13 +1,13 @@
 plugins {
-    id 'java'
-    id 'org.springframework.boot' version '3.4.5'
-    id 'io.spring.dependency-management' version '1.1.7'
-    id 'com.google.cloud.tools.jib' version '3.4.0'
+    id "java"
+    id "org.springframework.boot" version "3.4.5"
+    id "io.spring.dependency-management" version "1.1.7"
+    id "com.google.cloud.tools.jib" version "3.4.0"
     id "de.undercouch.download" version "5.3.0"
 }
 
-group = 'com.slb'
-version = '0.0.1-SNAPSHOT'
+group = "com.slb"
+version = "0.0.1-SNAPSHOT"
 
 java {
     toolchain {
@@ -20,69 +20,63 @@ repositories {
 }
 
 dependencies {
-    implementation 'org.springframework.boot:spring-boot-starter'
-    implementation 'org.springframework.boot:spring-boot-starter-web'
-    implementation 'software.amazon.awssdk:bom:2.27.24'
-    implementation 'software.amazon.awssdk:s3:2.27.24'
+    implementation "org.springframework.boot:spring-boot-starter-actuator"
+    implementation "org.springframework.boot:spring-boot-starter"
+    implementation "org.springframework.boot:spring-boot-starter-web"
+    implementation "software.amazon.awssdk:bom:2.27.24"
+    implementation "software.amazon.awssdk:s3:2.27.24"
 
-    compileOnly 'org.projectlombok:lombok'
-    annotationProcessor 'org.projectlombok:lombok'
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    compileOnly "org.projectlombok:lombok"
+    annotationProcessor "org.projectlombok:lombok"
+    testImplementation "org.springframework.boot:spring-boot-starter-test"
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher"
 
     // to pdf
-    implementation 'org.jodconverter:jodconverter-local-lo:4.4.9'
+    implementation "org.jodconverter:jodconverter-local-lo:4.4.9"
 
     // db
-    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-    runtimeOnly 'com.mysql:mysql-connector-j'
+    implementation "org.springframework.boot:spring-boot-starter-data-jpa"
+    runtimeOnly "com.mysql:mysql-connector-j"
 
     // swagger
-    implementation 'org.springdoc:springdoc-openapi:2.3.0'
-    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.8'
+    implementation "org.springdoc:springdoc-openapi:2.3.0"
+    implementation "org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.8"
 
     // webflux
-    implementation 'org.springframework.boot:spring-boot-starter-webflux'
+    implementation "org.springframework.boot:spring-boot-starter-webflux"
 
     // hash
-    implementation 'org.hashids:hashids:1.0.3'
+    implementation "org.hashids:hashids:1.0.3"
 
     // auth (security + jwt)
-    implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
-    implementation 'com.auth0:java-jwt:4.5.0'
+    implementation "org.springframework.boot:spring-boot-starter-oauth2-client"
+    implementation "com.auth0:java-jwt:4.5.0"
 
     // redis
-    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+    implementation "org.springframework.boot:spring-boot-starter-data-redis"
 
     // newrelic
-    implementation 'com.newrelic.agent.java:newrelic-api:8.11.0'
+    implementation "com.newrelic.agent.java:newrelic-api:8.11.0"
 }
 
-tasks.named('test') {
+tasks.named("test") {
     useJUnitPlatform()
 }
 
-tasks.register('downloadNewrelic', Download) {
-    mkdir 'newrelic'
-    src 'https://download.newrelic.com/newrelic/java-agent/newrelic-agent/current/newrelic-java.zip'
-    dest file('newrelic')
-}
-
-tasks.register('unzipNewrelic', Copy) {
-    from zipTree(file('newrelic/newrelic-java.zip'))
-    into rootDir
+tasks.named("build") {
+    dependsOn "generateJmxConfigFiles"
 }
 
 jib {
     from {
-        image = 'qasker/eclipse-temurin-17-libreoffice'
+        image = "qasker/eclipse-temurin-17-libreoffice"
     }
     to {
-        image = "${project.findProperty("DOCKER_ID")}/${project.findProperty("DOCKER_IMAGE_NAME")}"
-        tags = ['latest']
+        image = "${project.property("DOCKER_ID")}/${project.property("DOCKER_IMAGE_NAME")}"
+        tags = ["latest"]
         auth {
-            username = project.findProperty("DOCKER_ID")
-            password = project.findProperty("DOCKER_PASSWORD")
+            username = project.property("DOCKER_ID")
+            password = project.property("DOCKER_PASSWORD")
         }
     }
     extraDirectories {
@@ -91,30 +85,55 @@ jib {
                 setFrom(file("newrelic").toPath())
                 into = "/app/newrelic"
             }
+            path {
+                setFrom(layout.buildDirectory.dir("jmx"))
+                into = "app/jmx"
+            }
         }
     }
     container {
-        def activeProfile = project.hasProperty('profile')
-                ? project.property('profile')
-                : 'local'
-
-        def jvmHeapMemory = project.hasProperty('jvmHeapMemory')
-                ? project.property('jvmHeapMemory')
-                : '512m'
+        def activeProfile = project.property("PROFILE")
+        def jvmHeapMemory = project.property("JVM_HEAP_MEMORY")
 
         jvmFlags = ["-Xms${jvmHeapMemory}", "-Xmx${jvmHeapMemory}", "-Dspring.profiles.active=${activeProfile}"]
-
-        if (activeProfile == 'local') {
-            return
-        }
 
         def newRelicConfig = project.file("newrelic/newrelic.yml")
         def newRelicJar = project.file("newrelic/newrelic.jar")
         if (newRelicConfig.exists() && newRelicJar.exists()) {
             jvmFlags = jvmFlags + [
                     "-Dnewrelic.config.file=/app/newrelic/newrelic.yml",
-                    "-javaagent:/app/newrelic/newrelic.jar"
+                    "-javaagent:/app/newrelic/newrelic.jar",
+                    "-Dcom.sun.management.jmxremote",
+                    "-Dcom.sun.management.jmxremote.port=9999",
+                    "-Dcom.sun.management.jmxremote.rmi.port=9999",
+                    "-Dcom.sun.management.jmxremote.authenticate=true",
+                    "-Dcom.sun.management.jmxremote.ssl=false",
+                    "-Djava.rmi.server.hostname=dev-api.q-asker.com",
+                    "-Dcom.sun.management.jmxremote.access.file=/app/jmx/jmxremote.access",
+                    "-Dcom.sun.management.jmxremote.password.file=/app/jmx/jmxremote.password"
             ]
         }
+    }
+}
+
+tasks.register("generateJmxConfigFiles") {
+    group = "build"
+
+    def outputDirProvider = layout.buildDirectory.dir("jmx")
+    outputs.dir(outputDirProvider)
+
+    def id = project.property("JMX_ID")
+    def password = project.property("JMX_PASSWORD")
+
+    doLast {
+        def actualOutputDir = outputDirProvider.get().asFile
+        actualOutputDir.mkdirs()
+
+        new File(actualOutputDir, "jmxremote.access").text =
+                "$id  readwrite"
+
+        new File(actualOutputDir, "jmxremote.password").text =
+                "$id  $password"
+
     }
 }
