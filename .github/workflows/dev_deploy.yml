@@ -32,7 +32,7 @@ jobs:
 
       - name: Gradle 설정
         uses: gradle/gradle-build-action@v2
-  
+
       - name: Jib로 Docker 이미지 빌드 및 푸시
         run: ./gradlew jib -Pprofile=prod
 
@@ -50,6 +50,11 @@ jobs:
           DOCKER_PASSWORD_VALUE=$(grep '^DOCKER_PASSWORD=' gradle.properties | cut -d'=' -f2-)
           echo "::add-mask::$DOCKER_PASSWORD_VALUE" 
           echo "docker_password=$DOCKER_PASSWORD_VALUE" >> $GITHUB_OUTPUT
+
+    outputs:
+      docker_id: ${{ steps.set_outputs.outputs.docker_id }}
+      docker_image_name: ${{ steps.set_outputs.outputs.docker_image_name }}
+      docker_password: ${{ steps.set_outputs.outputs.docker_password }}
 
   deploy:
     name: 개발 서버 EC2 배포
