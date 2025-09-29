@@ -2,7 +2,7 @@ name: Docker Hub Push & 개발 서버 EC2 배포
 on:
   push:
     branches:
-      - develop
+      - ICC-150-cd
   workflow_dispatch:
 
 jobs:
@@ -50,18 +50,20 @@ jobs:
         run: |
           # DOCKER_ID 추출, 마스킹, 환경 변수 등록
           DOCKER_ID_VALUE=$(echo "${{ secrets.GRADLE_PROPERTIES }}" | grep '^DOCKER_ID=' | cut -d'=' -f2-)
-          echo "::add-mask::$DOCKER_ID_VALUE"
           echo "DOCKER_ID=$DOCKER_ID_VALUE" >> $GITHUB_ENV
           
           # DOCKER_IMAGE_NAME 추출, 마스킹, 환경 변수 등록
           DOCKER_IMAGE_NAME_VALUE=$(echo "${{ secrets.GRADLE_PROPERTIES }}" | grep '^DOCKER_IMAGE_NAME=' | cut -d'=' -f2-)
-          echo "::add-mask::$DOCKER_IMAGE_NAME_VALUE"
           echo "DOCKER_IMAGE_NAME=$DOCKER_IMAGE_NAME_VALUE" >> $GITHUB_ENV
           
           # DOCKER_PASSWORD 추출, 마스킹, 환경 변수 등록
           DOCKER_PASSWORD_VALUE=$(echo "${{ secrets.GRADLE_PROPERTIES }}" | grep '^DOCKER_PASSWORD=' | cut -d'=' -f2-)
           echo "::add-mask::$DOCKER_PASSWORD_VALUE"
           echo "DOCKER_PASSWORD=$DOCKER_PASSWORD_VALUE" >> $GITHUB_ENV
+          
+          # DOCKER_CONTAINER_NAME 생성, 등록
+          DOCKER_CONTAINER_NAME_VALUE="${DOCKER_ID_VALUE}-${DOCKER_IMAGE_NAME_VALUE}"
+          echo "DOCKER_CONTAINER_NAME=$DOCKER_CONTAINER_NAME_VALUE" >> $GITHUB_ENV
 
       - name: EC2에 배포
         uses: appleboy/ssh-action@v0.1.7
@@ -73,7 +75,7 @@ jobs:
           script: |
             echo "${{ env.DOCKER_PASSWORD }}" | docker login -u "${{ env.DOCKER_ID }}" --password-stdin
             docker pull ${{ env.DOCKER_ID }}/${{ env.DOCKER_IMAGE_NAME }}
-            docker stop ${{ env.CONTAINER_NAME }} || true
-            docker rm ${{ env.CONTAINER_NAME }} || true
-            docker run -d --name ${{ env.CONTAINER_ID }}-${{ env.DOCKER_IMAGE_NAME }} -p 8080:8080 -p 9999:9999 ${{ env.DOCKER_ID }}/${{ env.DOCKER_IMAGE_NAME }}
+            docker stop ${{ env.DOCKER_CONTAINER_NAME }} || true
+            docker rm ${{ env.DOCKER_CONTAINER_NAME }} || true
+            docker run -d --name ${{ env.DOCKER_CONTAINER_NAME }} -p 8080:8080 -p 9999:9999 ${{ env.DOCKER_ID }}/${{ env.DOCKER_IMAGE_NAME }}
             docker image prune -af
