@@ -63,7 +63,7 @@ tasks.named("test") {
     useJUnitPlatform()
 }
 
-tasks.named("build") {
+tasks.named("jib") {
     dependsOn "generateJmxConfigFiles"
 }
 
