@@ -32,9 +32,9 @@ jobs:
 
       - name: Gradle 설정
         uses: gradle/gradle-build-action@v2
-
+  
       - name: Jib로 Docker 이미지 빌드 및 푸시
-        run: ./gradlew jib
+        run: ./gradlew jib -Pprofile=prod
 
       - name: deploy 작업에 변수 넘기기
         id: set_outputs

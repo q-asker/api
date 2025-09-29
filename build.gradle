@@ -87,15 +87,15 @@ jib {
             }
             path {
                 setFrom(layout.buildDirectory.dir("jmx"))
-                into = "app/jmx"
+                into = "/app/jmx"
             }
         }
     }
     container {
-        def activeProfile = project.property("PROFILE")
-        def jvmHeapMemory = project.property("JVM_HEAP_MEMORY")
+        def activeProfile = project.findProperty("PROFILE") ?: 'local'
+        def jvmHeapSize = project.property("JVM_HEAP_SIZE") ?: '512m'
 
-        jvmFlags = ["-Xms${jvmHeapMemory}", "-Xmx${jvmHeapMemory}", "-Dspring.profiles.active=${activeProfile}"]
+        jvmFlags = ["-Xms${jvmHeapSize}", "-Xmx${jvmHeapSize}", "-Dspring.profiles.active=${activeProfile}"]
 
         def newRelicConfig = project.file("newrelic/newrelic.yml")
         def newRelicJar = project.file("newrelic/newrelic.jar")
