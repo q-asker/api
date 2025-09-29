@@ -88,6 +88,10 @@ jib {
             path {
                 setFrom(layout.buildDirectory.dir("jmx"))
                 into = "/app/jmx"
+                permissions = [
+                        '/app/jmx/jmxremote.password': '600',
+                        '/app/jmx/jmxremote.access'  : '600'
+                ]
             }
         }
     }
