@@ -8,6 +8,8 @@ import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import java.io.File;
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import lombok.extern.slf4j.Slf4j;
@@ -42,7 +44,7 @@ public class S3Service {
         MultipartFile multipartFile = s3UploadRequest.getFile();
         fileUploadValidator.checkOf(multipartFile);
 
-        String fileName = multipartFile.getOriginalFilename();
+        String fileName = encodePath(multipartFile.getOriginalFilename());
         String timestamp = LocalDateTime.now()
             .format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmssSSS"));
 
@@ -50,7 +52,8 @@ public class S3Service {
             String keyName = timestamp + "_" + fileName;
             RequestBody requestBody = getRequestBody(multipartFile);
             handleUpload(keyName, requestBody);
-            return S3UploadResponse.builder().uploadedUrl(cloudFrontBaseUrl + "/" + keyName)
+            return S3UploadResponse.builder()
+                .uploadedUrl(cloudFrontBaseUrl + "/" + encodePath(keyName))
                 .build();
         }
 
@@ -61,8 +64,10 @@ public class S3Service {
                 timestamp + "_" + StringUtils.stripFilenameExtension(fileName) + ".pdf";
             RequestBody requestBody = getRequestBody(convertedFile);
             handleUpload(keyName, requestBody);
-            return S3UploadResponse.builder().uploadedUrl(cloudFrontBaseUrl + "/" + keyName)
-                .build();
+            return
+                S3UploadResponse.builder()
+                    .uploadedUrl(cloudFrontBaseUrl + "/" + encodePath(keyName))
+                    .build();
         } catch (Exception e) {
             throw new CustomException(ExceptionMessage.NO_FILE_UPLOADED);
         } finally {
@@ -72,6 +77,7 @@ public class S3Service {
             }
         }
     }
+
 
     private void handleUpload(String keyName, RequestBody requestBody) {
         PutObjectRequest putObjectRequest =
@@ -91,6 +97,10 @@ public class S3Service {
         } catch (IOException e) {
             throw new CustomException(ExceptionMessage.NO_FILE_UPLOADED);
         }
+    }
+
+    private String encodePath(String path) {
+        return URLEncoder.encode(path, StandardCharsets.UTF_8);
     }
 
     private RequestBody getRequestBody(File file) {
