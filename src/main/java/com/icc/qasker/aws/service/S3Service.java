@@ -8,6 +8,7 @@ import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
@@ -91,9 +92,9 @@ public class S3Service {
     }
 
     private RequestBody getRequestBody(MultipartFile multipartFile) {
-        try {
-            return RequestBody.fromInputStream(multipartFile.getInputStream(),
-                multipartFile.getSize());
+        try (InputStream inputStream = multipartFile.getInputStream()) {
+            byte[] fileBytes = inputStream.readAllBytes();
+            return RequestBody.fromBytes(fileBytes);
         } catch (IOException e) {
             throw new CustomException(ExceptionMessage.NO_FILE_UPLOADED);
         }
