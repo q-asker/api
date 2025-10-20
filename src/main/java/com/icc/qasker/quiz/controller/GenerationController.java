@@ -1,5 +1,7 @@
 package com.icc.qasker.quiz.controller;
 
+import com.icc.qasker.global.error.CustomException;
+import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.quiz.controller.doc.GenerationApiDoc;
 import com.icc.qasker.quiz.dto.request.FeGenerationRequest;
 import com.icc.qasker.quiz.dto.response.GenerationResponse;
@@ -18,11 +20,19 @@ import reactor.core.publisher.Mono;
 public class GenerationController implements GenerationApiDoc {
 
     private final GenerationService generationService;
+    private boolean awsError = false;
+
+    @PostMapping("/toggle-aws-error")
+    public void setAwsError() {
+        awsError = !awsError;
+    }
 
     @PostMapping
     public Mono<GenerationResponse> postProblemSetId(
         @Valid @RequestBody FeGenerationRequest feGenerationRequest) {
+        if (awsError) {
+            throw new CustomException(ExceptionMessage.AWS_SERVICE_ERROR);
+        }
         return generationService.processGenerationRequest(feGenerationRequest);
     }
-
 }
