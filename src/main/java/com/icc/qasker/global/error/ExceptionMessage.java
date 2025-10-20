@@ -8,6 +8,8 @@ import org.springframework.http.HttpStatus;
 @AllArgsConstructor
 public enum ExceptionMessage {
 
+    AWS_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "AWS 에러로 이용이 불가능합니다 ㅠㅠ"),
+
     NO_FILE_UPLOADED(HttpStatus.BAD_REQUEST, "파일이 업로드되지 않았습니다."),
     FILE_NAME_NOT_EXIST(HttpStatus.BAD_REQUEST, "파일 이름이 존재하지 않습니다"),
     FILE_NAME_TOO_LONG(HttpStatus.BAD_REQUEST, "파일 이름이 깁니다"),

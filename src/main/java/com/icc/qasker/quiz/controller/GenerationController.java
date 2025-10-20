@@ -1,5 +1,7 @@
 package com.icc.qasker.quiz.controller;
 
+import com.icc.qasker.global.error.CustomException;
+import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.quiz.controller.doc.GenerationApiDoc;
 import com.icc.qasker.quiz.dto.request.FeGenerationRequest;
 import com.icc.qasker.quiz.dto.response.GenerationResponse;
@@ -22,7 +24,8 @@ public class GenerationController implements GenerationApiDoc {
     @PostMapping
     public Mono<GenerationResponse> postProblemSetId(
         @Valid @RequestBody FeGenerationRequest feGenerationRequest) {
-        return generationService.processGenerationRequest(feGenerationRequest);
+        throw new CustomException(ExceptionMessage.AWS_ERROR);
+//        return generationService.processGenerationRequest(feGenerationRequest);
     }
 
 }
