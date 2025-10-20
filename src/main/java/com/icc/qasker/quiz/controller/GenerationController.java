@@ -22,7 +22,7 @@ public class GenerationController implements GenerationApiDoc {
 
     private final GenerationService generationService;
 
-    @Value("spring.datasource.password")
+    @Value("${spring.datasource.password}")
     private String errorMessagePassword;
 
     private CustomException customException;
@@ -37,7 +37,7 @@ public class GenerationController implements GenerationApiDoc {
             customException = null;
             return;
         }
-        
+
         customException = new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, message);
     }
 
