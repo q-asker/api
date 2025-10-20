@@ -2,7 +2,6 @@ package com.icc.qasker.quiz.dto.response;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import java.util.List;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -18,7 +17,6 @@ public class QuizGeneratedByAI {
     private String title;
 
     @NotNull(message = "selections가 null입니다.")
-    @Size(min = 2, max = 4, message = "selections의 범위가 2와 4를 벗어납니다.")
     private List<SelectionsOfAi> selections;
 
     @NotBlank(message = "explanation이 null입니다.")
