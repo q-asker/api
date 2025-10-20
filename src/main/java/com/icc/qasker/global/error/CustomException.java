@@ -16,4 +16,13 @@ public class CustomException extends RuntimeException {
         this.httpStatus = exceptionMessage.getHttpStatus();
         this.message = exceptionMessage.getMessage();
     }
+
+    public CustomException(
+        HttpStatus httpStatus,
+        String message
+    ) {
+        super(message);
+        this.httpStatus = httpStatus;
+        this.message = message;
+    }
 }
