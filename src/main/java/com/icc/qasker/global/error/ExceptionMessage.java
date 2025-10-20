@@ -8,7 +8,7 @@ import org.springframework.http.HttpStatus;
 @AllArgsConstructor
 public enum ExceptionMessage {
 
-    AWS_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "AWS 에러로 이용이 불가능합니다 ㅠㅠ"),
+    AWS_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "AWS 장애로 이용이 불가능합니다 ㅠㅠ, 정상화되면 바로 복구하겠습니다"),
 
     NO_FILE_UPLOADED(HttpStatus.BAD_REQUEST, "파일이 업로드되지 않았습니다."),
     FILE_NAME_NOT_EXIST(HttpStatus.BAD_REQUEST, "파일 이름이 존재하지 않습니다"),
