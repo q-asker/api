@@ -8,7 +8,6 @@ import com.icc.qasker.quiz.dto.response.GenerationResponse;
 import com.icc.qasker.quiz.service.GenerationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -23,7 +22,7 @@ public class GenerationController implements GenerationApiDoc {
     private final GenerationService generationService;
     private boolean awsError = false;
 
-    @GetMapping("/toggle-aws-error")
+    @PostMapping("/toggle-aws-error")
     public void setAwsError() {
         awsError = !awsError;
     }
