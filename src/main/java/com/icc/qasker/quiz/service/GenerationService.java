@@ -106,9 +106,6 @@ public class GenerationService {
             if (aiResponse == null || aiResponse.getQuiz() == null) {
                 throw new CustomException(ExceptionMessage.NULL_AI_RESPONSE);
             }
-            if (aiResponse.getQuiz().size() != feRequestQuizCount) {
-                throw new CustomException(ExceptionMessage.INVALID_AI_RESPONSE);
-            }
             Set<ConstraintViolation<AiGenerationResponse>> violations = validator.validate(
                 aiResponse);
             if (!violations.isEmpty()) {
@@ -120,7 +117,6 @@ public class GenerationService {
                     selections.get(0).setContent("O");
                     selections.get(1).setContent("X");
                 }
-
             } else {
                 for (QuizGeneratedByAI quiz : aiResponse.getQuiz()) {
                     Collections.shuffle(quiz.getSelections());
