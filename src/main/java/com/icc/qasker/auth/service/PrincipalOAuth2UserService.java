@@ -3,10 +3,10 @@ package com.icc.qasker.auth.service;
 import com.icc.qasker.auth.dto.principal.PrincipalDetails;
 import com.icc.qasker.auth.entity.User;
 import com.icc.qasker.auth.repository.UserRepository;
-import com.icc.qasker.auth.utils.NicknameGenerator;
-import com.icc.qasker.auth.utils.provider.GoogleUserInfo;
-import com.icc.qasker.auth.utils.provider.KakaoUserInfo;
-import com.icc.qasker.auth.utils.provider.OAuth2UserInfo;
+import com.icc.qasker.auth.security.provider.GoogleUserInfo;
+import com.icc.qasker.auth.security.provider.KakaoUserInfo;
+import com.icc.qasker.auth.security.provider.OAuth2UserInfo;
+import com.icc.qasker.auth.utils.NicknameGenerateUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
@@ -34,7 +34,7 @@ public class PrincipalOAuth2UserService extends DefaultOAuth2UserService {
         }
         String userId = oAuth2UserInfo.getProvider() + "_" + oAuth2UserInfo.getProviderId();
         String provider = oAuth2UserInfo.getProvider();
-        String nickname = NicknameGenerator.generate();
+        String nickname = NicknameGenerateUtils.generate();
         String password = bCryptPasswordEncoder.encode("temporaryPassword");
         String role = "ROLE_USER";
         User user = userRepository.findById(userId).orElse(null);

@@ -1,8 +1,8 @@
 package com.icc.qasker.auth.service;
 
-import com.icc.qasker.auth.utils.AccessTokenHandler;
+import com.icc.qasker.auth.component.AccessTokenHandler;
 import com.icc.qasker.auth.utils.CookieUtils;
-import com.icc.qasker.auth.utils.RefreshTokenHandler;
+import com.icc.qasker.auth.utils.RefreshTokenUtils;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
@@ -12,16 +12,16 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class TokenRotationService {
 
-    private final RefreshTokenHandler refreshTokenHandler;
+    private final RefreshTokenUtils refreshTokenUtils;
     private final AccessTokenHandler accessTokenHandler;
 
     public void issueRefreshToken(String userId, HttpServletResponse response) {
-        String newRtPlain = refreshTokenHandler.issue(userId);
+        String newRtPlain = refreshTokenUtils.issue(userId);
         setRefreshToken(response, newRtPlain);
     }
 
     public void issueTokens(String userId, HttpServletResponse response) {
-        String newRtPlain = refreshTokenHandler.issue(userId);
+        String newRtPlain = refreshTokenUtils.issue(userId);
         String newAt = accessTokenHandler.validateAndGenerate(userId);
 
         setAccessToken(response, newAt);
@@ -29,7 +29,7 @@ public class TokenRotationService {
     }
 
     public String rotateTokens(String refreshToken, HttpServletResponse response) {
-        var newRtCookie = refreshTokenHandler.validateAndRotate(refreshToken);
+        var newRtCookie = refreshTokenUtils.validateAndRotate(refreshToken);
         String newAt = accessTokenHandler.validateAndGenerate(newRtCookie.userId());
 
         setAccessToken(response, newAt);

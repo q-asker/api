@@ -3,7 +3,7 @@ package com.icc.qasker.auth.utils;
 import java.util.List;
 import java.util.Random;
 
-public class NicknameGenerator {
+public class NicknameGenerateUtils {
 
     private static final List<String> positiveAdjectives = List.of(
         "멋진", "아름다운", "사랑스러운", "기분 좋은", "활기찬", "행복한", "용감한", "현명한",

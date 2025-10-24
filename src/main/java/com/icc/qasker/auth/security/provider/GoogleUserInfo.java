@@ -1,4 +1,4 @@
-package com.icc.qasker.auth.utils.provider;
+package com.icc.qasker.auth.security.provider;
 
 import java.util.Map;
 

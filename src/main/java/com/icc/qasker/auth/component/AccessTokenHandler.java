@@ -1,7 +1,8 @@
-package com.icc.qasker.auth.utils;
+package com.icc.qasker.auth.component;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
+import com.icc.qasker.auth.properties.JwtProperties;
 import com.icc.qasker.auth.repository.UserRepository;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;

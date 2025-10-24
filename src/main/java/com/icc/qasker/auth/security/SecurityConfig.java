@@ -1,15 +1,19 @@
-package com.icc.qasker.auth.component.security;
+package com.icc.qasker.auth.security;
 
-import com.icc.qasker.auth.component.security.filter.JwtTokenAuthenticationFilter;
-import com.icc.qasker.auth.component.security.filter.RefreshRotationFilter;
+import com.icc.qasker.auth.dto.principal.PrincipalDetails;
+import com.icc.qasker.auth.entity.User;
 import com.icc.qasker.auth.repository.UserRepository;
+import com.icc.qasker.auth.security.filter.JwtTokenAuthenticationFilter;
+import com.icc.qasker.auth.security.filter.RefreshRotationFilter;
 import com.icc.qasker.auth.service.PrincipalOAuth2UserService;
 import com.icc.qasker.auth.service.TokenRotationService;
-import com.icc.qasker.auth.utils.OAuth2LoginSuccessHandler;
 import com.icc.qasker.global.error.ExceptionMessage;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -19,8 +23,11 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.stereotype.Component;
 
 @Configuration
 @EnableWebSecurity
@@ -122,4 +129,25 @@ public class SecurityConfig {
         } catch (IOException e) {
         }
     }
+
+    @Component
+    @RequiredArgsConstructor
+    public static class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
+
+        private final TokenRotationService tokenRotationService;
+        @Value("${q-asker.frontend-deploy-url}")
+        private String frontendDeployUrl;
+
+        @Override
+        public void onAuthenticationSuccess(HttpServletRequest request,
+            HttpServletResponse response,
+            Authentication authentication) throws IOException {
+
+            PrincipalDetails principal = (PrincipalDetails) authentication.getPrincipal();
+            User user = principal.getUser();
+            tokenRotationService.issueRefreshToken(user.getUserId(), response);
+            response.sendRedirect(frontendDeployUrl);
+        }
+    }
+
 }
