@@ -51,11 +51,11 @@ public class GenerationService {
                     unifyQuizType(feGenerationRequest);
                 })
                 .then(callAiServer(feGenerationRequest))
-                .flatMap(aiResponse -> saveToDB(aiResponse)
-                .map(problemSet -> hashUtil.encode(problemSet.getId()))
-                .doOnError(error -> {
-                    log.error("예외 발생: {}", error.getMessage(), error);
-                })
+                .flatMap(this::saveToDB)
+                .map(ps -> new GenerationResponse(
+                    hashUtil.encode(ps.getId())
+                ))
+                .doOnError(error -> log.error("예외 발생: {}", error.getMessage(), error))
                 .onErrorResume(this::unifyError);
     }
 
