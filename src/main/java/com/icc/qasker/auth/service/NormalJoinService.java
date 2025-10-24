@@ -3,7 +3,7 @@ package com.icc.qasker.auth.service;
 import com.icc.qasker.auth.dto.request.JoinRequest;
 import com.icc.qasker.auth.entity.User;
 import com.icc.qasker.auth.repository.UserRepository;
-import com.icc.qasker.auth.utils.NicknameGenerateUtils;
+import com.icc.qasker.auth.util.NicknameGenerateUtil;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +24,7 @@ public class NormalJoinService {
             throw new CustomException(ExceptionMessage.DUPLICATE_USERNAME);
         }
 
-        String nickname = NicknameGenerateUtils.generate();
+        String nickname = NicknameGenerateUtil.generate();
         String password = bCryptPasswordEncoder.encode(normalJoinRequest.getPassword());
         User user = User.builder()
             .userId(userId)

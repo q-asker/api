@@ -1,14 +1,14 @@
 package com.icc.qasker.auth.properties;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.data.redis.connection.RedisConfiguration;
 import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
 
 @ConfigurationProperties(prefix = "spring.data.redis")
 @Getter
-@Setter
+@AllArgsConstructor
 public class RedisProperties {
 
     private String host;

@@ -7,7 +7,7 @@ import com.icc.qasker.auth.service.LogoutService;
 import com.icc.qasker.auth.service.NormalJoinService;
 import com.icc.qasker.auth.service.NormalLoginService;
 import com.icc.qasker.auth.service.TokenRotationService;
-import com.icc.qasker.auth.utils.CookieUtils;
+import com.icc.qasker.auth.util.CookieUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -44,7 +44,7 @@ public class AuthController {
 
     @PostMapping("/refresh")
     public ResponseEntity<?> refresh(HttpServletRequest request, HttpServletResponse response) {
-        var rtCookie = CookieUtils.getCookie(request, "refresh_token").orElse(null);
+        var rtCookie = CookieUtil.getCookie(request, "refresh_token").orElse(null);
         tokenRotationService.rotateTokens(rtCookie.getValue(), response);
         return ResponseEntity.ok().build();
     }

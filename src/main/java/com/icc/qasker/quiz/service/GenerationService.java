@@ -18,7 +18,6 @@ import com.icc.qasker.quiz.entity.ProblemSet;
 import com.icc.qasker.quiz.entity.ReferencedPage;
 import com.icc.qasker.quiz.entity.Selection;
 import com.icc.qasker.quiz.repository.ProblemSetRepository;
-import jakarta.validation.Validator;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeoutException;
@@ -40,7 +39,6 @@ public class GenerationService {
     private final WebClient aiWebClient;
     private final ProblemSetRepository problemSetRepository;
     private final HashUtil hashUtil;
-    private final Validator validator;
     private final FileUrlValidator fileUrlValidator;
 
     public Mono<GenerationResponse> processGenerationRequest(

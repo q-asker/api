@@ -4,7 +4,7 @@ import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.icc.qasker.auth.properties.JwtProperties;
 import com.icc.qasker.auth.service.TokenRotationService;
-import com.icc.qasker.auth.utils.CookieUtils;
+import com.icc.qasker.auth.util.CookieUtil;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -59,7 +59,7 @@ public class RefreshRotationFilter extends OncePerRequestFilter {
             }
         }
 
-        var rtCookie = CookieUtils.getCookie(request, "refresh_token").orElse(null);
+        var rtCookie = CookieUtil.getCookie(request, "refresh_token").orElse(null);
         if (rtCookie == null) {
             filterChain.doFilter(request, response);
             return;

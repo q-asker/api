@@ -13,7 +13,6 @@ import com.icc.qasker.quiz.entity.Problem;
 import com.icc.qasker.quiz.repository.ProblemRepository;
 import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -28,7 +27,7 @@ public class SpecificExplanationService {
     private final ProblemRepository problemRepository;
 
     public SpecificExplanationService(
-        @Qualifier("aiWebClient") WebClient aiWebClient,
+        WebClient aiWebClient,
         ProblemRepository problemRepository,
         HashUtil hashUtil
     ) {

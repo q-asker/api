@@ -1,4 +1,4 @@
-package com.icc.qasker.auth.utils;
+package com.icc.qasker.auth.util;
 
 import com.icc.qasker.auth.properties.JwtProperties;
 import com.icc.qasker.global.error.CustomException;
@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-public class RefreshTokenUtils {
+public class RefreshTokenUtil {
 
     private final StringRedisTemplate redis;
     private final RtKeys rtKeys;

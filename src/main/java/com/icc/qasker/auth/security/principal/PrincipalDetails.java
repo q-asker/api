@@ -1,4 +1,4 @@
-package com.icc.qasker.auth.dto.principal;
+package com.icc.qasker.auth.security.principal;
 
 import com.icc.qasker.auth.entity.User;
 import java.util.ArrayList;

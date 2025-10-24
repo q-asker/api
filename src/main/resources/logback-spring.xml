@@ -1,51 +1,49 @@
-<!-- src/main/resources/logback-spring.xml -->
 <configuration scan="true">
 
-  <!-- Slack Appender -->
-  <appender class="ch.qos.logback.core.ConsoleAppender" name="STDOUT">
+  <springProperty name="SLACK_ENABLED"     source="slack.enabled"     defaultValue="false"/>
+  <springProperty name="SLACK_WEBHOOK_URL" source="slack.webhook-url" defaultValue=""/>
+  <springProperty name="SLACK_USERNAME"    source="slack.username"    defaultValue="Bot"/>
+  <springProperty name="SLACK_ICON"        source="slack.icon"        defaultValue=":ghost:"/>
+
+  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
     <encoder>
-      <pattern>
-        %d{yyyy-MM-dd HH:mm:ss.SSS} %highlight(%-5level) [%thread] %cyan(%logger{36}) - %msg%n%ex
-      </pattern>
+      <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %highlight(%-5level) [%thread] %cyan(%logger{36}) - %msg%n%ex</pattern>
     </encoder>
   </appender>
 
-  <!-- Slack 비동기 전송 -->
-  <appender class="com.github.maricn.logback.SlackAppender" name="SLACK">
-    <enabled>${SLACK_ENABLED}</enabled>
-    <filter class="ch.qos.logback.classic.filter.LevelFilter">
-      <level>ERROR</level>
-      <onMatch>ACCEPT</onMatch>
-      <onMismatch>DENY</onMismatch>
-    </filter>
-    <iconEmoji>${SLACK_ICON}</iconEmoji>
-    <layout class="ch.qos.logback.classic.PatternLayout">
-      <pattern>[%d{yyyy-MM-dd HH:mm:ss.SSS}] %-5level %logger{36} - %msg</pattern>
-    </layout>
+  <if condition='property("SLACK_ENABLED").equals("true") &amp;&amp; !property("SLACK_WEBHOOK_URL").isEmpty()'>
+    <then>
+      <appender name="SLACK" class="com.github.maricn.logback.SlackAppender">
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+          <level>ERROR</level>
+          <onMatch>ACCEPT</onMatch>
+          <onMismatch>DENY</onMismatch>
+        </filter>
 
-    <!-- ERROR만 Slack으로 -->
-    <username>${SLACK_USERNAME}</username>
+        <iconEmoji>${SLACK_ICON}</iconEmoji>
+        <layout class="ch.qos.logback.classic.PatternLayout">
+          <pattern>[%d{yyyy-MM-dd HH:mm:ss.SSS}] %-5level %logger{36} - %msg%n%ex</pattern>
+        </layout>
+        <username>${SLACK_USERNAME}</username>
+        <webhookUri>${SLACK_WEBHOOK_URL}</webhookUri>
+      </appender>
 
-    <!-- 메시지 형식 -->
-    <webhookUri>${SLACK_WEBHOOK}</webhookUri>
-  </appender>
+      <appender name="ASYNC_SLACK" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="SLACK"/>
+        <discardingThreshold>0</discardingThreshold>
+        <includeCallerData>true</includeCallerData>
+        <queueSize>1024</queueSize>
+      </appender>
+    </then>
+  </if>
 
-  <!-- 기본 로그 레벨과 Appender 연결 -->
-  <appender class="ch.qos.logback.classic.AsyncAppender" name="ASYNC_SLACK">
-    <appender-ref ref="SLACK"/>
-    <discardingThreshold>0</discardingThreshold>
-    <queueSize>1024</queueSize>
-  </appender>
-
-  <!-- 과도한 로그 억제 -->
   <root level="INFO">
     <appender-ref ref="STDOUT"/>
-    <appender-ref ref="ASYNC_SLACK"/>
+    <if condition='property("SLACK_ENABLED").equals("true") &amp;&amp; !property("SLACK_WEBHOOK_URL").isEmpty()'>
+      <then>
+        <appender-ref ref="ASYNC_SLACK"/>
+      </then>
+    </if>
   </root>
-
-  <springProperty name="SLACK_ICON" source="slack.icon"/>
-  <springProperty name="SLACK_ENABLED" source="slack.enabled"/>
-  <springProperty name="SLACK_WEBHOOK" source="slack.webhook-url"/>
-  <springProperty name="SLACK_USERNAME" source="slack.username"/>
 
 </configuration>

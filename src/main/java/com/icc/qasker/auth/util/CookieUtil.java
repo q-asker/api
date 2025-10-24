@@ -1,4 +1,4 @@
-package com.icc.qasker.auth.utils;
+package com.icc.qasker.auth.util;
 
 import com.icc.qasker.auth.properties.JwtProperties;
 import jakarta.servlet.http.Cookie;
@@ -9,7 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseCookie;
 
 @RequiredArgsConstructor
-public class CookieUtils {
+public class CookieUtil {
 
     public static ResponseCookie buildCookies(String value) {
         return ResponseCookie.from("refresh_token", value)

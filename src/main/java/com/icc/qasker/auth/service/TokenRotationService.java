@@ -1,8 +1,8 @@
 package com.icc.qasker.auth.service;
 
 import com.icc.qasker.auth.component.AccessTokenHandler;
-import com.icc.qasker.auth.utils.CookieUtils;
-import com.icc.qasker.auth.utils.RefreshTokenUtils;
+import com.icc.qasker.auth.util.CookieUtil;
+import com.icc.qasker.auth.util.RefreshTokenUtil;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
@@ -12,16 +12,16 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class TokenRotationService {
 
-    private final RefreshTokenUtils refreshTokenUtils;
+    private final RefreshTokenUtil refreshTokenUtil;
     private final AccessTokenHandler accessTokenHandler;
 
     public void issueRefreshToken(String userId, HttpServletResponse response) {
-        String newRtPlain = refreshTokenUtils.issue(userId);
+        String newRtPlain = refreshTokenUtil.issue(userId);
         setRefreshToken(response, newRtPlain);
     }
 
     public void issueTokens(String userId, HttpServletResponse response) {
-        String newRtPlain = refreshTokenUtils.issue(userId);
+        String newRtPlain = refreshTokenUtil.issue(userId);
         String newAt = accessTokenHandler.validateAndGenerate(userId);
 
         setAccessToken(response, newAt);
@@ -29,7 +29,7 @@ public class TokenRotationService {
     }
 
     public String rotateTokens(String refreshToken, HttpServletResponse response) {
-        var newRtCookie = refreshTokenUtils.validateAndRotate(refreshToken);
+        var newRtCookie = refreshTokenUtil.validateAndRotate(refreshToken);
         String newAt = accessTokenHandler.validateAndGenerate(newRtCookie.userId());
 
         setAccessToken(response, newAt);
@@ -43,6 +43,6 @@ public class TokenRotationService {
 
     private void setRefreshToken(HttpServletResponse response, String newRtPlain) {
         response.setHeader(HttpHeaders.SET_COOKIE,
-            CookieUtils.buildCookies(newRtPlain).toString());
+            CookieUtil.buildCookies(newRtPlain).toString());
     }
 }
