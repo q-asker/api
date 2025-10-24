@@ -1,7 +1,7 @@
-package com.icc.qasker.auth.config;
+package com.icc.qasker.auth.component.security;
 
-import com.icc.qasker.auth.filter.JwtTokenAuthenticationFilter;
-import com.icc.qasker.auth.filter.RefreshRotationFilter;
+import com.icc.qasker.auth.component.security.filter.JwtTokenAuthenticationFilter;
+import com.icc.qasker.auth.component.security.filter.RefreshRotationFilter;
 import com.icc.qasker.auth.repository.UserRepository;
 import com.icc.qasker.auth.service.PrincipalOAuth2UserService;
 import com.icc.qasker.auth.service.TokenRotationService;
@@ -9,7 +9,7 @@ import com.icc.qasker.auth.utils.OAuth2LoginSuccessHandler;
 import com.icc.qasker.global.error.ExceptionMessage;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import lombok.RequiredArgsConstructor;
+import lombok.AllArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -22,9 +22,9 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-@RequiredArgsConstructor
 @Configuration
 @EnableWebSecurity
+@AllArgsConstructor
 public class SecurityConfig {
 
     private final PrincipalOAuth2UserService principalOauth2UserService;

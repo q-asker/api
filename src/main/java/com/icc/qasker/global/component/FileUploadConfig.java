@@ -1,4 +1,4 @@
-package com.icc.qasker.global.config;
+package com.icc.qasker.global.component;
 
 import com.icc.qasker.aws.util.FileUploadValidator;
 import com.icc.qasker.aws.util.FileUrlValidator;

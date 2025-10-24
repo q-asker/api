@@ -20,23 +20,29 @@ repositories {
 }
 
 dependencies {
+
     implementation "org.springframework.boot:spring-boot-starter-actuator"
     implementation "org.springframework.boot:spring-boot-starter"
     implementation "org.springframework.boot:spring-boot-starter-web"
+    implementation "org.springframework.boot:spring-boot-starter-data-jpa"
+    testImplementation "org.springframework.boot:spring-boot-starter-test"
+
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+
     implementation "software.amazon.awssdk:bom:2.27.24"
     implementation "software.amazon.awssdk:s3:2.27.24"
 
+    implementation 'com.github.maricn:logback-slack-appender:1.6.1'
+
     compileOnly "org.projectlombok:lombok"
     annotationProcessor "org.projectlombok:lombok"
-    testImplementation "org.springframework.boot:spring-boot-starter-test"
-    testRuntimeOnly "org.junit.platform:junit-platform-launcher"
 
     // to pdf
     implementation "org.jodconverter:jodconverter-local-lo:4.4.9"
 
     // db
-    implementation "org.springframework.boot:spring-boot-starter-data-jpa"
     runtimeOnly "com.mysql:mysql-connector-j"
+    implementation "org.springframework.boot:spring-boot-starter-data-redis"
 
     // swagger
     implementation "org.springdoc:springdoc-openapi:2.3.0"
@@ -51,9 +57,6 @@ dependencies {
     // auth (security + jwt)
     implementation "org.springframework.boot:spring-boot-starter-oauth2-client"
     implementation "com.auth0:java-jwt:4.5.0"
-
-    // redis
-    implementation "org.springframework.boot:spring-boot-starter-data-redis"
 
     // newrelic
     implementation "com.newrelic.agent.java:newrelic-api:8.11.0"

@@ -1,8 +1,9 @@
-package com.icc.qasker.global.config;
+package com.icc.qasker.global.component;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -16,6 +17,7 @@ public class WebClientConfig {
     private String aiMockingServerUrl;
 
     @Bean("aiWebClient")
+    @Primary
     public WebClient aiWebClient(WebClient.Builder builder) {
         return builder
             .baseUrl(aiServerUrl)

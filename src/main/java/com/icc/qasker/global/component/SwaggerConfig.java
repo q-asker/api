@@ -1,4 +1,4 @@
-package com.icc.qasker.global.config;
+package com.icc.qasker.global.component;
 
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;

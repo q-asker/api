@@ -1,4 +1,4 @@
-package com.icc.qasker.auth.filter;
+package com.icc.qasker.auth.component.security.filter;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;

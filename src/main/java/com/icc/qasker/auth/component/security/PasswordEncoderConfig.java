@@ -1,4 +1,4 @@
-package com.icc.qasker.auth.config;
+package com.icc.qasker.auth.component.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

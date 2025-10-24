@@ -1,5 +1,7 @@
 package com.icc.qasker.quiz.service;
 
+import com.icc.qasker.aws.util.FileUrlValidator;
+import com.icc.qasker.global.component.SlackNotifier;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.global.util.HashUtil;
@@ -16,18 +18,12 @@ import com.icc.qasker.quiz.entity.ProblemSet;
 import com.icc.qasker.quiz.entity.ReferencedPage;
 import com.icc.qasker.quiz.entity.Selection;
 import com.icc.qasker.quiz.repository.ProblemSetRepository;
-import com.newrelic.api.agent.Trace;
-import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
-import jakarta.validation.constraints.NotNull;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.TimeoutException;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientRequestException;
@@ -36,60 +32,48 @@ import reactor.core.publisher.Mono;
 
 @Slf4j
 @Service
+@AllArgsConstructor
 public class GenerationService {
 
     private static final int MAX_CONTENT_LENGTH = 20000;
+    private final SlackNotifier slackNotifier;
     private final WebClient aiWebClient;
     private final ProblemSetRepository problemSetRepository;
     private final HashUtil hashUtil;
     private final Validator validator;
-    @NotNull
-    @Value("${aws.cloudfront.base-url}")
-    private String CLOUDFRONT_BASE_URL;
+    private final FileUrlValidator fileUrlValidator;
 
-
-    public GenerationService(
-        @Qualifier("aiWebClient") WebClient aiWebClient,
-        ProblemSetRepository problemSetRepository,
-        HashUtil hashUtil,
-        Validator validator
-    ) {
-        this.aiWebClient = aiWebClient;
-        this.problemSetRepository = problemSetRepository;
-        this.hashUtil = hashUtil;
-        this.validator = validator;
-    }
-
-
-    @Trace(dispatcher = true)
     public Mono<GenerationResponse> processGenerationRequest(
         FeGenerationRequest feGenerationRequest) {
         return
             Mono.fromRunnable(() -> {
-                    if (!feGenerationRequest.getUploadedUrl().startsWith(CLOUDFRONT_BASE_URL)) {
-                        throw new CustomException(ExceptionMessage.INVALID_URL_REQUEST);
-                    }
-                    if (feGenerationRequest.getQuizType() == QuizType.MULTIPLE
-                        && feGenerationRequest.getDifficultyType() == DifficultyType.RECALL) {
-                        feGenerationRequest.setQuizType(QuizType.BLANK);
-                    }
+                    fileUrlValidator.isCloudFrontUrl(feGenerationRequest.getUploadedUrl());
+                    unifyQuizType(feGenerationRequest);
                 })
                 .then(callAiServer(feGenerationRequest))
-                .flatMap(aiResponse -> saveToDB(aiResponse, feGenerationRequest.getQuizCount(),
-                    feGenerationRequest.getQuizType()))
-                .map(problemSet -> convertToFeResponse(problemSet.getId()))
+                .flatMap(aiResponse -> saveToDB(aiResponse)
+                .map(problemSet -> hashUtil.encode(problemSet.getId()))
                 .doOnError(error -> {
                     log.error("예외 발생: {}", error.getMessage(), error);
                 })
-                .onErrorResume(error -> {
-                    if (error instanceof CustomException) {
-                        return Mono.error(error);
-                    }
-                    return Mono.error(new CustomException(ExceptionMessage.DEFAULT_ERROR));
-                });
+                .onErrorResume(this::unifyError);
     }
 
-    @Trace
+    private Mono<GenerationResponse> unifyError(Throwable error) {
+        if (error instanceof CustomException) {
+            return Mono.error(error);
+        }
+        return Mono.error(new CustomException(ExceptionMessage.DEFAULT_ERROR));
+    }
+
+
+    private void unifyQuizType(FeGenerationRequest feGenerationRequest) {
+        if (feGenerationRequest.getQuizType() == QuizType.MULTIPLE
+            && feGenerationRequest.getDifficultyType() == DifficultyType.RECALL) {
+            feGenerationRequest.setQuizType(QuizType.BLANK);
+        }
+    }
+
     private Mono<AiGenerationResponse> callAiServer(FeGenerationRequest feGenerationRequest) {
         return aiWebClient.post()
             .uri("/generation")
@@ -99,50 +83,24 @@ public class GenerationService {
             .onErrorMap(this::webClientError); // ok
     }
 
-    @Trace
-    private Mono<ProblemSet> saveToDB(AiGenerationResponse aiResponse, int feRequestQuizCount,
-        QuizType feQuizType) {
+    private Mono<ProblemSet> saveToDB(AiGenerationResponse aiResponse) {
         return Mono.fromCallable(() -> {
             if (aiResponse == null || aiResponse.getQuiz() == null) {
                 throw new CustomException(ExceptionMessage.NULL_AI_RESPONSE);
             }
-            Set<ConstraintViolation<AiGenerationResponse>> violations = validator.validate(
-                aiResponse);
-            if (!violations.isEmpty()) {
-                throw new CustomException(ExceptionMessage.INVALID_AI_RESPONSE);
+            ProblemSet problemSet = new ProblemSet();
+            problemSet.setTitle(aiResponse.getTitle());
+            List<Problem> problems = new ArrayList<>(); // problems of problem_set
+            for (QuizGeneratedByAI quiz : aiResponse.getQuiz()) {
+                Problem problem = createProblemEntity(problemSet, quiz);
+                problems.add(problem);
             }
-            if (feQuizType == QuizType.OX) {
-                for (QuizGeneratedByAI quiz : aiResponse.getQuiz()) {
-                    List<QuizGeneratedByAI.SelectionsOfAi> selections = quiz.getSelections();
-                    selections.get(0).setContent("O");
-                    selections.get(1).setContent("X");
-                }
-            } else {
-                for (QuizGeneratedByAI quiz : aiResponse.getQuiz()) {
-                    Collections.shuffle(quiz.getSelections());
-                }
-            }
-
-            return saveProblemSet(aiResponse);
+            problemSet.setProblems(problems);
+            return problemSetRepository.save(problemSet); // reflect problems of problem_set to DB
         });
     }
 
-    @Trace
-    private ProblemSet saveProblemSet(AiGenerationResponse aiResponse) {
-        // for test, private -> public
-        // - 1. problem set
-        ProblemSet problemSet = new ProblemSet();
-        problemSet.setTitle(aiResponse.getTitle());
-        List<Problem> problems = new ArrayList<>(); // problems of problem_set
-        for (QuizGeneratedByAI quiz : aiResponse.getQuiz()) {
-            Problem problem = createProblemEntity(problemSet, quiz);
-            problems.add(problem);
-        }
-        problemSet.setProblems(problems);
-        return problemSetRepository.save(problemSet); // reflect problems of problem_set to DB
-    }
 
-    @Trace
     private Problem createProblemEntity(ProblemSet problemSet, QuizGeneratedByAI quiz) {
         // - 2. problem
         Problem problem = new Problem();
@@ -186,17 +144,7 @@ public class GenerationService {
         return problem;
     }
 
-    @Trace
-    private GenerationResponse convertToFeResponse(Long problemSetId) {
-        return GenerationResponse.of(hashUtil.encode(problemSetId));
-    }
-
-    // for error
-    // - AI Server error
-
-    @Trace
     private Throwable webClientError(Throwable error) {
-
         if (error instanceof WebClientResponseException we) {
             String errorJson = we.getResponseBodyAsString();
             log.error(errorJson);

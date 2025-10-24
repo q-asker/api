@@ -1,20 +1,17 @@
-package com.icc.qasker.auth.config;
+package com.icc.qasker.auth.component;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import com.icc.qasker.auth.component.properties.RedisProperties;
+import lombok.AllArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 
 @Configuration
+@AllArgsConstructor
 public class RedisConfig {
 
     private final RedisProperties redisProperties;
-
-    @Autowired
-    public RedisConfig(RedisProperties redisProperties) {
-        this.redisProperties = redisProperties;
-    }
 
     @Bean
     public RedisConnectionFactory redisConnectionFactory() {

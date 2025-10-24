@@ -13,8 +13,8 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
@@ -24,22 +24,12 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 @Slf4j
 @Service
+@AllArgsConstructor
 public class S3Service {
 
     private final ToPDFConverter toPDFConverter;
     private final FileUploadValidator fileUploadValidator;
     private final S3Client s3Client;
-    @Value("${aws.s3.bucket-name}")
-    private String bucketName;
-    @Value("${aws.cloudfront.base-url}")
-    private String cloudFrontBaseUrl;
-
-    public S3Service(FileUploadValidator fileUploadValidator, S3Client s3Client,
-        ToPDFConverter toPDFConverter) {
-        this.fileUploadValidator = fileUploadValidator;
-        this.s3Client = s3Client;
-        this.toPDFConverter = toPDFConverter;
-    }
 
     public S3UploadResponse uploadFile(S3UploadRequest s3UploadRequest) {
         MultipartFile multipartFile = s3UploadRequest.getFile();

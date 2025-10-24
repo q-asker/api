@@ -1,4 +1,4 @@
-package com.icc.qasker.auth.config;
+package com.icc.qasker.auth.component.properties;
 
 import lombok.Getter;
 import lombok.Setter;
