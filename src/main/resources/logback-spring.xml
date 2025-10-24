@@ -1,10 +1,10 @@
 <configuration scan="true">
   <debug>true</debug>
 
-  <springProperty name="SLACK_ENABLED"     source="slack.enabled"     defaultValue="false"/>
-  <springProperty name="SLACK_WEBHOOK_URL" source="slack.webhook-url" defaultValue=""/>
-  <springProperty name="SLACK_USERNAME"    source="slack.username"    defaultValue="Bot"/>
-  <springProperty name="SLACK_ICON"        source="slack.icon"        defaultValue=":ghost:"/>
+  <springProperty name="SLACK_ENABLED"     source="slack.enabled" />
+  <springProperty name="SLACK_WEBHOOK_URL" source="slack.webhook-url-error" />
+  <springProperty name="SLACK_USERNAME"    source="slack.username-error" />
+  <springProperty name="SLACK_ICON"        source="slack.icon-error" />
 
   <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
     <encoder>

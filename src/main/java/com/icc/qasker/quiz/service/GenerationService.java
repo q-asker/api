@@ -53,6 +53,15 @@ public class GenerationService {
                 .map(ps -> new GenerationResponse(
                     hashUtil.encode(ps.getId())
                 ))
+                .flatMap(ps ->
+                    slackNotifier.notifyText("""
+                            ✅ [퀴즈 생성 완료 알림]
+                            ProblemSet ID: %s
+                            """.formatted(
+                            ps.getProblemSetId()
+                        ))
+                        .thenReturn(ps)
+                )
                 .doOnError(error -> log.error("예외 발생: {}", error.getMessage(), error))
                 .onErrorResume(this::unifyError);
     }
@@ -63,7 +72,6 @@ public class GenerationService {
         }
         return Mono.error(new CustomException(ExceptionMessage.DEFAULT_ERROR));
     }
-
 
     private void unifyQuizType(FeGenerationRequest feGenerationRequest) {
         if (feGenerationRequest.getQuizType() == QuizType.MULTIPLE

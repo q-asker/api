@@ -1,9 +1,9 @@
 package com.icc.qasker.global.component;
 
+import com.icc.qasker.global.properties.SlackProperties;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -15,28 +15,34 @@ import reactor.core.publisher.Mono;
 public class SlackNotifier {
 
     private final WebClient.Builder webClientBuilder;
-
-    @Value("${slack.enabled:}")
-    private boolean enabled;
-
-    @Value("${slack.webhook-url:}")
-    private String webhookUrl;
+    private final SlackProperties slackProperties;
 
     public Mono<Void> notifyText(String text) {
+        boolean enabled = slackProperties.isEnabled();
+        String webhookUrl = slackProperties.getWebhookUrlNotify().toString();
         if (!enabled || webhookUrl == null || webhookUrl.isBlank()) {
             return Mono.empty();
         }
+
+        Map<String, Object> payload = Map.of(
+            "text", text,
+            "username", slackProperties.getUsernameNotify(),
+            slackProperties.getIconNotify().startsWith("http")
+                ? "icon_url" : "icon_emoji",
+            slackProperties.getIconNotify()
+        );
+
         return webClientBuilder.build()
             .post()
-            .uri(webhookUrl) // Webhook은 절대경로로 호출
+            .uri(webhookUrl)
             .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(Map.of("text", text))
+            .bodyValue(payload)
             .retrieve()
             .toBodilessEntity()
             .then()
             .onErrorResume(e -> {
                 log.warn("Slack 알림 실패: {}", e.toString());
-                return Mono.empty(); // 알림 실패해도 본 플로우는 계속
+                return Mono.empty();
             });
     }
 }
