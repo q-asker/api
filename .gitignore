@@ -35,3 +35,10 @@ out/
 
 ### VS Code ###
 .vscode/
+.DS_Store
+
+### Custom ###
+**/src/main/resources/application-**
+.env
+gradle.properties
+newrelic/newrelic.yml

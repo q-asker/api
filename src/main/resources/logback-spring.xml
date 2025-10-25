@@ -1,0 +1,54 @@
+<configuration scan="true">
+  <debug>true</debug>
+
+  <springProperty name="SLACK_ENABLED"     source="slack.enabled" />
+  <springProperty name="SLACK_WEBHOOK_URL" source="slack.webhook-url-error" />
+  <springProperty name="SLACK_USERNAME"    source="slack.username-error" />
+  <springProperty name="SLACK_ICON"        source="slack.icon-error" />
+
+  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %highlight(%-5level) [%thread] %cyan(%logger{36}) - %msg%n%ex</pattern>
+    </encoder>
+  </appender>
+
+  <if condition='
+    property("SLACK_ENABLED") != null &amp;&amp;
+    property("SLACK_ENABLED").equalsIgnoreCase("true") &amp;&amp;
+    property("SLACK_WEBHOOK_URL") != null &amp;&amp;
+    !property("SLACK_WEBHOOK_URL").isEmpty()'>
+    <then>
+      <appender name="SLACK" class="com.github.maricn.logback.SlackAppender">
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+          <level>ERROR</level>
+          <onMatch>ACCEPT</onMatch>
+          <onMismatch>DENY</onMismatch>
+        </filter>
+        <iconEmoji>${SLACK_ICON}</iconEmoji>
+        <layout class="ch.qos.logback.classic.PatternLayout">
+          <pattern>[ %d{yyyy-MM-dd HH:mm:ss.SSS} ] %-5level %logger{36} - %msg%n%ex</pattern>
+        </layout>
+        <username>${SLACK_USERNAME}</username>
+        <webhookUri>${SLACK_WEBHOOK_URL}</webhookUri>
+      </appender>
+
+      <appender name="ASYNC_SLACK" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="SLACK"/>
+        <discardingThreshold>0</discardingThreshold>
+        <includeCallerData>true</includeCallerData>
+        <queueSize>1024</queueSize>
+      </appender>
+
+      <root level="INFO">
+        <appender-ref ref="STDOUT"/>
+        <appender-ref ref="ASYNC_SLACK"/>
+      </root>
+    </then>
+    <else>
+      <root level="INFO">
+        <appender-ref ref="STDOUT"/>
+      </root>
+    </else>
+  </if>
+
+</configuration>

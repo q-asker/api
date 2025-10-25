@@ -1,11 +1,13 @@
 plugins {
-    id 'java'
-    id 'org.springframework.boot' version '3.4.5'
-    id 'io.spring.dependency-management' version '1.1.7'
+    id "java"
+    id "org.springframework.boot" version "3.4.5"
+    id "io.spring.dependency-management" version "1.1.7"
+    id "com.google.cloud.tools.jib" version "3.4.0"
+    id "de.undercouch.download" version "5.3.0"
 }
 
-group = 'com.slb'
-version = '0.0.1-SNAPSHOT'
+group = "com.slb"
+version = "0.0.1-SNAPSHOT"
 
 java {
     toolchain {
@@ -18,11 +20,144 @@ repositories {
 }
 
 dependencies {
-    implementation 'org.springframework.boot:spring-boot-starter'
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    // ────────────────────────────────
+    // Spring Boot 기본 구성
+    // ────────────────────────────────
+    implementation "org.springframework.boot:spring-boot-starter"
+    implementation "org.springframework.boot:spring-boot-starter-web"
+    implementation "org.springframework.boot:spring-boot-starter-actuator"
+    implementation "org.springframework.boot:spring-boot-starter-data-jpa"
+    implementation "org.springframework.boot:spring-boot-starter-data-redis"
+    implementation "org.springframework.boot:spring-boot-starter-webflux"
+    testImplementation "org.springframework.boot:spring-boot-starter-test"
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+
+    // ────────────────────────────────
+    // AWS SDK
+    // ────────────────────────────────
+    implementation platform("software.amazon.awssdk:bom:2.27.24")
+    implementation "software.amazon.awssdk:s3"
+
+    // ────────────────────────────────
+    // 로깅 및 모니터링
+    // ────────────────────────────────
+    implementation "com.github.maricn:logback-slack-appender:1.6.1"
+    implementation "com.newrelic.agent.java:newrelic-api:8.11.0"
+    implementation 'org.codehaus.janino:janino:3.1.12'
+
+    // ────────────────────────────────
+    // 데이터베이스 및 JDBC
+    // ────────────────────────────────
+    runtimeOnly "com.mysql:mysql-connector-j"
+
+    // ────────────────────────────────
+    // 문서 변환 (PDF 등)
+    // ────────────────────────────────
+    implementation "org.jodconverter:jodconverter-local-lo:4.4.9"
+
+    // ────────────────────────────────
+    // API 문서 (Swagger / OpenAPI)
+    // ────────────────────────────────
+    implementation "org.springdoc:springdoc-openapi:2.3.0"
+    implementation "org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.8"
+
+    // ────────────────────────────────
+    // 인증 및 JWT
+    // ────────────────────────────────
+    implementation "org.springframework.boot:spring-boot-starter-oauth2-client"
+    implementation "com.auth0:java-jwt:4.5.0"
+
+    // ────────────────────────────────
+    // 기타 유틸리티
+    // ────────────────────────────────
+    implementation "org.hashids:hashids:1.0.3"
+
+    // ────────────────────────────────
+    // Lombok
+    // ────────────────────────────────
+    compileOnly "org.projectlombok:lombok"
+    annotationProcessor "org.projectlombok:lombok"
 }
 
-tasks.named('test') {
+tasks.named("test") {
     useJUnitPlatform()
+}
+
+tasks.named("jib") {
+    dependsOn "generateJmxConfigFiles"
+}
+
+jib {
+    from {
+        image = "qasker/eclipse-temurin-17-libreoffice"
+    }
+    to {
+        image = "${project.property("DOCKER_ID")}/${project.property("DOCKER_IMAGE_NAME")}"
+        tags = ["latest"]
+        auth {
+            username = project.property("DOCKER_ID")
+            password = project.property("DOCKER_PASSWORD")
+        }
+    }
+    extraDirectories {
+        paths {
+            path {
+                setFrom(file("newrelic").toPath())
+                into = "/app/newrelic"
+            }
+            path {
+                setFrom(layout.buildDirectory.dir("jmx"))
+                into = "/app/jmx"
+                permissions = [
+                        '/app/jmx/jmxremote.password': '600',
+                        '/app/jmx/jmxremote.access'  : '600'
+                ]
+            }
+        }
+    }
+    container {
+        def activeProfile = project.findProperty("PROFILE") ?: 'local'
+        def jvmHeapSize = project.property("JVM_HEAP_SIZE")
+
+        jvmFlags = ["-Xms${jvmHeapSize}", "-Xmx${jvmHeapSize}", "-Dspring.profiles.active=${activeProfile}"]
+
+        def newRelicConfig = project.file("newrelic/newrelic.yml")
+        def newRelicJar = project.file("newrelic/newrelic.jar")
+        if (newRelicConfig.exists() && newRelicJar.exists()) {
+            jvmFlags = jvmFlags + [
+                    "-Dnewrelic.config.file=/app/newrelic/newrelic.yml",
+                    "-javaagent:/app/newrelic/newrelic.jar",
+                    "-Dcom.sun.management.jmxremote",
+                    "-Dcom.sun.management.jmxremote.port=9999",
+                    "-Dcom.sun.management.jmxremote.rmi.port=9999",
+                    "-Dcom.sun.management.jmxremote.authenticate=true",
+                    "-Dcom.sun.management.jmxremote.ssl=false",
+                    "-Djava.rmi.server.hostname=dev-api.q-asker.com",
+                    "-Dcom.sun.management.jmxremote.access.file=/app/jmx/jmxremote.access",
+                    "-Dcom.sun.management.jmxremote.password.file=/app/jmx/jmxremote.password"
+            ]
+        }
+    }
+}
+
+tasks.register("generateJmxConfigFiles") {
+    group = "build"
+
+    def outputDirProvider = layout.buildDirectory.dir("jmx")
+    outputs.dir(outputDirProvider)
+
+    def id = project.property("JMX_ID")
+    def password = project.property("JMX_PASSWORD")
+
+    doLast {
+        def actualOutputDir = outputDirProvider.get().asFile
+        actualOutputDir.mkdirs()
+
+        new File(actualOutputDir, "jmxremote.access").text =
+                "$id  readwrite"
+
+        new File(actualOutputDir, "jmxremote.password").text =
+                "$id  $password"
+
+    }
 }
