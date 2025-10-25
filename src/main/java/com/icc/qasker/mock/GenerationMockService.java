@@ -184,9 +184,6 @@ public class GenerationMockService {
         return GenerationResponse.of(hashUtil.encode(problemSetId));
     }
 
-    // for error
-    // - AI Server error
-
     private Throwable webClientError(Throwable error) {
 
         if (error instanceof WebClientResponseException we) {

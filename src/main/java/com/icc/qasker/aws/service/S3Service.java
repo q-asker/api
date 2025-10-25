@@ -6,6 +6,8 @@ import com.icc.qasker.aws.util.FileUploadValidator;
 import com.icc.qasker.aws.util.ToPDFConverter;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
+import com.icc.qasker.global.properties.AwsCloudFrontProperties;
+import com.icc.qasker.global.properties.AwsS3Properties;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -13,8 +15,8 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
@@ -24,26 +26,19 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 @Slf4j
 @Service
+@AllArgsConstructor
 public class S3Service {
 
     private final ToPDFConverter toPDFConverter;
     private final FileUploadValidator fileUploadValidator;
+    private final AwsCloudFrontProperties cloudFrontProperties;
+    private final AwsS3Properties awsS3Properties;
     private final S3Client s3Client;
-    @Value("${aws.s3.bucket-name}")
-    private String bucketName;
-    @Value("${aws.cloudfront.base-url}")
-    private String cloudFrontBaseUrl;
-
-    public S3Service(FileUploadValidator fileUploadValidator, S3Client s3Client,
-        ToPDFConverter toPDFConverter) {
-        this.fileUploadValidator = fileUploadValidator;
-        this.s3Client = s3Client;
-        this.toPDFConverter = toPDFConverter;
-    }
 
     public S3UploadResponse uploadFile(S3UploadRequest s3UploadRequest) {
         MultipartFile multipartFile = s3UploadRequest.getFile();
         fileUploadValidator.checkOf(multipartFile);
+        String cloudfrontBaseUrl = cloudFrontProperties.getBaseUrl();
 
         String fileName = encodePath(multipartFile.getOriginalFilename());
         String timestamp = LocalDateTime.now()
@@ -54,7 +49,7 @@ public class S3Service {
             RequestBody requestBody = getRequestBody(multipartFile);
             handleUpload(keyName, requestBody);
             return S3UploadResponse.builder()
-                .uploadedUrl(cloudFrontBaseUrl + "/" + encodePath(keyName))
+                .uploadedUrl(cloudFrontProperties.getBaseUrl() + "/" + encodePath(keyName))
                 .build();
         }
 
@@ -63,11 +58,11 @@ public class S3Service {
             convertedFile = toPDFConverter.convert(multipartFile);
             String keyName =
                 timestamp + "_" + StringUtils.stripFilenameExtension(fileName) + ".pdf";
-            RequestBody requestBody = getRequestBody(convertedFile);
+            RequestBody requestBody = RequestBody.fromFile(convertedFile);
             handleUpload(keyName, requestBody);
             return
                 S3UploadResponse.builder()
-                    .uploadedUrl(cloudFrontBaseUrl + "/" + encodePath(keyName))
+                    .uploadedUrl(cloudfrontBaseUrl + "/" + encodePath(keyName))
                     .build();
         } catch (Exception e) {
             throw new CustomException(ExceptionMessage.NO_FILE_UPLOADED);
@@ -79,12 +74,11 @@ public class S3Service {
         }
     }
 
-
     private void handleUpload(String keyName, RequestBody requestBody) {
         PutObjectRequest putObjectRequest =
             PutObjectRequest
                 .builder()
-                .bucket(bucketName)
+                .bucket(awsS3Properties.getBucketName())
                 .key(keyName)
                 .build();
 
@@ -102,9 +96,5 @@ public class S3Service {
 
     private String encodePath(String path) {
         return URLEncoder.encode(path, StandardCharsets.UTF_8);
-    }
-
-    private RequestBody getRequestBody(File file) {
-        return RequestBody.fromFile(file);
     }
 }
