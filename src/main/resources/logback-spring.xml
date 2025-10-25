@@ -3,8 +3,8 @@
 
   <springProperty name="SLACK_ENABLED"     source="slack.enabled" />
   <springProperty name="SLACK_WEBHOOK_URL" source="slack.webhook-url-error" />
-  <springProperty name="SLACK_USERNAME"    source="slack.username-error" />
-  <springProperty name="SLACK_ICON"        source="slack.icon-error" />
+  <springProperty name="SLACK_USERNAME"    source="slack.username-error" defaultValue="에러 알림이"/>
+  <springProperty name="SLACK_ICON" source="slack.icon-error" defaultValue=":rotating_light:" />
 
   <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
     <encoder>

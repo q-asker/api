@@ -11,10 +11,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class SlackProperties {
 
     private final boolean enabled;
-    private final URI webhookUrlError;
     private final URI webhookUrlNotify;
-    private final String usernameError;
-    private final String iconError;
     private final String usernameNotify;
-    private final String iconNotify;
+    private final String iconNotify = ":white_check_mark:";
 }
