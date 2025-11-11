@@ -1,1 +1,18 @@
 rootProject.name = 'q-asker'
+
+include ':app', ':global',
+        ':auth:api', ':auth:impl',
+        ':aws:api', ':aws:impl',
+        ':mock:api', ':mock:impl',
+        ':quiz:api', ':quiz:impl'
+
+project(':app').projectDir = file('app')
+project(':global').projectDir = file('modules/global')
+project(':auth:api').projectDir = file('modules/auth/api')
+project(':auth:impl').projectDir = file('modules/auth/impl')
+project(':aws:api').projectDir = file('modules/aws/api')
+project(':aws:impl').projectDir = file('modules/aws/impl')
+project(':mock:api').projectDir = file('modules/mock/api')
+project(':mock:impl').projectDir = file('modules/mock/impl')
+project(':quiz:api').projectDir = file('modules/quiz/api')
+project(':quiz:impl').projectDir = file('modules/quiz/impl')
