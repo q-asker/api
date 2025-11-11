@@ -1,4 +1,4 @@
- rootProject.name = 'q-asker'
+rootProject.name = 'q-asker'
 
 include ':app', ':global',
         ':auth:api', ':auth:impl',
