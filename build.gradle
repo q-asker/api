@@ -1,3 +1,5 @@
+import org.springframework.boot.gradle.tasks.bundling.BootJar
+
 plugins {
     id "org.springframework.boot" version "3.4.5" apply false
     id "io.spring.dependency-management" version "1.1.4" apply false
@@ -71,8 +73,11 @@ subprojects {
         options.compilerArgs += '-parameters'
     }
 
-
     tasks.withType(Jar).configureEach {
+        duplicatesStrategy = DuplicatesStrategy.FAIL
+    }
+
+    tasks.withType(BootJar).configureEach {
         duplicatesStrategy = DuplicatesStrategy.FAIL
     }
 
