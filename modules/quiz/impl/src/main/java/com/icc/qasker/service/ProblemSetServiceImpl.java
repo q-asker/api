@@ -2,10 +2,12 @@ package com.icc.qasker.service;
 
 import com.icc.qasker.ProblemSetService;
 import com.icc.qasker.dto.response.ProblemSetResponse;
-import com.icc.qasker.global.error.CustomException;
-import com.icc.qasker.global.util.HashUtil;
-import com.icc.qasker.quiz.entity.ProblemSet;
-import com.icc.qasker.quiz.repository.ProblemSetRepository;
+import com.icc.qasker.entity.ProblemSet;
+import com.icc.qasker.error.CustomException;
+import com.icc.qasker.error.ExceptionMessage;
+import com.icc.qasker.mapper.ProblemSetResponseMapper;
+import com.icc.qasker.repository.ProblemSetRepository;
+import com.icc.qasker.util.HashUtil;
 import com.newrelic.api.agent.Trace;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -41,7 +43,7 @@ public class ProblemSetServiceImpl implements ProblemSetService {
 
     @Trace
     private ProblemSetResponse toResponse(ProblemSet problemSet) {
-        return ProblemSetResponse.of(problemSet);
+        return ProblemSetResponseMapper.fromEntity(problemSet);
     }
 }
 

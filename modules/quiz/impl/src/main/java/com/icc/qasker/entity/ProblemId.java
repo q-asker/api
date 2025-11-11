@@ -1,4 +1,4 @@
-package com.icc.qasker.quiz.entity;
+package com.icc.qasker.entity;
 
 import jakarta.persistence.Embeddable;
 import java.io.Serializable;

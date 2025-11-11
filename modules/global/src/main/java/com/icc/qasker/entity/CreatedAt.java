@@ -1,4 +1,4 @@
-package com.icc.qasker.global.entity;
+package com.icc.qasker.entity;
 
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.MappedSuperclass;

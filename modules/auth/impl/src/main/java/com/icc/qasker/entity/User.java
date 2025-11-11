@@ -1,6 +1,5 @@
 package com.icc.qasker.entity;
 
-import com.icc.qasker.global.entity.CreatedAt;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import lombok.Builder;

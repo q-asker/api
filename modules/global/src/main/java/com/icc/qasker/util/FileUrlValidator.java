@@ -1,4 +1,4 @@
-package com.icc.qasker.aws.util;
+package com.icc.qasker.util;
 
 import com.icc.qasker.error.CustomException;
 import com.icc.qasker.error.ExceptionMessage;

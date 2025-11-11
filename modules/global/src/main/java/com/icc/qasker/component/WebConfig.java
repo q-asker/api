@@ -1,4 +1,4 @@
-package com.icc.qasker.global.component;
+package com.icc.qasker.component;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;

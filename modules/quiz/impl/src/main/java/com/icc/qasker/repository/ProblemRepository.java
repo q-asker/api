@@ -1,7 +1,7 @@
-package com.icc.qasker.quiz.repository;
+package com.icc.qasker.repository;
 
-import com.icc.qasker.quiz.entity.Problem;
-import com.icc.qasker.quiz.entity.ProblemId;
+import com.icc.qasker.entity.Problem;
+import com.icc.qasker.entity.ProblemId;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;

@@ -1,4 +1,4 @@
-package com.icc.qasker.global.properties;
+package com.icc.qasker.properties;
 
 import java.net.URI;
 import lombok.Getter;

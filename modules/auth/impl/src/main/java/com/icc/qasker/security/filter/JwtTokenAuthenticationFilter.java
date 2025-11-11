@@ -5,8 +5,9 @@ import static com.auth0.jwt.JWT.require;
 
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.TokenExpiredException;
-import com.icc.qasker.auth.repository.UserRepository;
+import com.icc.qasker.entity.User;
 import com.icc.qasker.properties.JwtProperties;
+import com.icc.qasker.repository.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

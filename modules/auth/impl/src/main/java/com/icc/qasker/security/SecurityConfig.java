@@ -1,16 +1,16 @@
-package com.icc.qasker.auth.security;
+package com.icc.qasker.security;
 
 import com.icc.qasker.TokenRotationService;
-import com.icc.qasker.auth.entity.User;
-import com.icc.qasker.auth.repository.UserRepository;
-import com.icc.qasker.auth.security.filter.JwtTokenAuthenticationFilter;
-import com.icc.qasker.auth.security.filter.RefreshRotationFilter;
-import com.icc.qasker.auth.security.principal.PrincipalDetails;
-import com.icc.qasker.auth.security.provider.GoogleUserInfo;
-import com.icc.qasker.auth.security.provider.KakaoUserInfo;
-import com.icc.qasker.auth.security.provider.OAuth2UserInfo;
-import com.icc.qasker.auth.util.NicknameGenerateUtil;
+import com.icc.qasker.entity.User;
 import com.icc.qasker.error.ExceptionMessage;
+import com.icc.qasker.repository.UserRepository;
+import com.icc.qasker.security.filter.JwtTokenAuthenticationFilter;
+import com.icc.qasker.security.filter.RefreshRotationFilter;
+import com.icc.qasker.security.principal.PrincipalDetails;
+import com.icc.qasker.security.provider.GoogleUserInfo;
+import com.icc.qasker.security.provider.KakaoUserInfo;
+import com.icc.qasker.security.provider.OAuth2UserInfo;
+import com.icc.qasker.util.NicknameGenerateUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;

@@ -4,7 +4,7 @@ import com.icc.qasker.GenerationService;
 import com.icc.qasker.controller.doc.GenerationApiDoc;
 import com.icc.qasker.dto.request.FeGenerationRequest;
 import com.icc.qasker.dto.response.GenerationResponse;
-import com.icc.qasker.global.error.CustomException;
+import com.icc.qasker.error.CustomException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;

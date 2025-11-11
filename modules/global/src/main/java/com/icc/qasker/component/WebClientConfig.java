@@ -1,4 +1,4 @@
-package com.icc.qasker.global.component;
+package com.icc.qasker.component;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -7,6 +7,7 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClient.Builder;
 
 @Configuration
 public class WebClientConfig {
@@ -18,7 +19,7 @@ public class WebClientConfig {
 
     @Bean("aiWebClient")
     @Primary
-    public WebClient aiWebClient(WebClient.Builder builder) {
+    public WebClient aiWebClient(Builder builder) {
         return builder
             .baseUrl(aiServerUrl)
             .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)

@@ -1,6 +1,6 @@
-package com.icc.qasker.global.component;
+package com.icc.qasker.component;
 
-import com.icc.qasker.global.properties.SlackProperties;
+import com.icc.qasker.properties.SlackProperties;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

@@ -1,23 +1,26 @@
 package com.icc.qasker.service;
 
 import com.icc.qasker.GenerationService;
-import com.icc.qasker.aws.util.FileUrlValidator;
+import com.icc.qasker.component.SlackNotifier;
 import com.icc.qasker.dto.request.FeGenerationRequest;
+import com.icc.qasker.dto.request.enums.DifficultyType;
+import com.icc.qasker.dto.request.enums.QuizType;
 import com.icc.qasker.dto.response.AiGenerationResponse;
 import com.icc.qasker.dto.response.GenerationResponse;
 import com.icc.qasker.dto.response.QuizGeneratedByAI;
-import com.icc.qasker.global.component.SlackNotifier;
-import com.icc.qasker.global.error.CustomException;
-import com.icc.qasker.global.util.HashUtil;
-import com.icc.qasker.quiz.domain.enums.DifficultyType;
-import com.icc.qasker.quiz.domain.enums.QuizType;
-import com.icc.qasker.quiz.entity.Explanation;
-import com.icc.qasker.quiz.entity.Problem;
-import com.icc.qasker.quiz.entity.ProblemId;
-import com.icc.qasker.quiz.entity.ProblemSet;
-import com.icc.qasker.quiz.entity.ReferencedPage;
-import com.icc.qasker.quiz.entity.Selection;
-import com.icc.qasker.quiz.repository.ProblemSetRepository;
+import com.icc.qasker.entity.Explanation;
+import com.icc.qasker.entity.Problem;
+import com.icc.qasker.entity.ProblemId;
+import com.icc.qasker.entity.ProblemSet;
+import com.icc.qasker.entity.ReferencedPage;
+import com.icc.qasker.entity.Selection;
+import com.icc.qasker.error.CustomException;
+import com.icc.qasker.error.ExceptionMessage;
+import com.icc.qasker.repository.ProblemSetRepository;
+import com.icc.qasker.util.FileUrlValidator;
+import com.icc.qasker.util.HashUtil;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeoutException;
@@ -41,13 +44,29 @@ public class GenerationServiceImpl implements GenerationService {
     private final HashUtil hashUtil;
     private final FileUrlValidator fileUrlValidator;
 
+    private FeGenerationRequest unifyQuizType(FeGenerationRequest feGenerationRequest) {
+        if (feGenerationRequest.quizType() == QuizType.MULTIPLE
+            && feGenerationRequest.difficultyType() == DifficultyType.RECALL) {
+            return new FeGenerationRequest(
+                feGenerationRequest.uploadedUrl(),
+                feGenerationRequest.quizCount(),
+                QuizType.BLANK,
+                feGenerationRequest.difficultyType(),
+                feGenerationRequest.pageNumbers()
+            );
+        }
+        return feGenerationRequest;
+    }
+
     @Override
     public Mono<GenerationResponse> processGenerationRequest(
         FeGenerationRequest feGenerationRequest) {
+        FeGenerationRequest unifiedRequest = unifyQuizType(feGenerationRequest);
+        validate(feGenerationRequest);
         return
             Mono.fromRunnable(() -> {
-                    fileUrlValidator.isCloudFrontUrl(feGenerationRequest.getUploadedUrl());
-                    unifyQuizType(feGenerationRequest);
+                    fileUrlValidator.isCloudFrontUrl(unifiedRequest.uploadedUrl());
+                    unifyQuizType(unifiedRequest);
                 })
                 .then(callAiServer(feGenerationRequest))
                 .flatMap(this::saveToDB)
@@ -67,18 +86,36 @@ public class GenerationServiceImpl implements GenerationService {
                 .onErrorResume(this::unifyError);
     }
 
+    private void validate(FeGenerationRequest feGenerationRequest) {
+        String uploadedUrl = feGenerationRequest.uploadedUrl();
+        int quizCount = feGenerationRequest.quizCount();
+        List<Integer> pageNumbers = feGenerationRequest.pageNumbers();
+        if (quizCount % 5 != 0) {
+            throw new CustomException(ExceptionMessage.INVALID_QUIZ_COUNT_REQUEST);
+        }
+        if (pageNumbers.size() > 100) {
+            throw new CustomException(ExceptionMessage.INVALID_PAGE_REQUEST);
+        }
+
+        try {
+            URL url = new URL(uploadedUrl);
+            URL encodedUrl = new URL(url.getProtocol(), url.getHost(), url.getPort(),
+                url.getPath());
+            HttpURLConnection connection = (HttpURLConnection) encodedUrl.openConnection();
+            int responseCode = connection.getResponseCode();
+            if (responseCode != HttpURLConnection.HTTP_OK) {
+                throw new CustomException(ExceptionMessage.FILE_NOT_FOUND_ON_S3);
+            }
+        } catch (Exception e) {
+            throw new CustomException(ExceptionMessage.FILE_NOT_FOUND_ON_S3);
+        }
+    }
+
     private Mono<GenerationResponse> unifyError(Throwable error) {
         if (error instanceof CustomException) {
             return Mono.error(error);
         }
         return Mono.error(new CustomException(ExceptionMessage.DEFAULT_ERROR));
-    }
-
-    private void unifyQuizType(FeGenerationRequest feGenerationRequest) {
-        if (feGenerationRequest.getQuizType() == QuizType.MULTIPLE
-            && feGenerationRequest.getDifficultyType() == DifficultyType.RECALL) {
-            feGenerationRequest.setQuizType(QuizType.BLANK);
-        }
     }
 
     private Mono<AiGenerationResponse> callAiServer(FeGenerationRequest feGenerationRequest) {

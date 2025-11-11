@@ -1,10 +1,12 @@
 package com.icc.qasker.service;
 
-import com.icc.qasker.auth.entity.User;
-import com.icc.qasker.auth.repository.UserRepository;
-import com.icc.qasker.auth.util.NicknameGenerateUtil;
+import com.icc.qasker.NormalJoinService;
+import com.icc.qasker.dto.request.JoinRequest;
+import com.icc.qasker.entity.User;
+import com.icc.qasker.error.CustomException;
 import com.icc.qasker.error.ExceptionMessage;
-import com.icc.qasker.global.error.CustomException;
+import com.icc.qasker.repository.UserRepository;
+import com.icc.qasker.util.NicknameGenerateUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;

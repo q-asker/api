@@ -1,8 +1,7 @@
-package com.icc.qasker.quiz.entity;
+package com.icc.qasker.entity;
 
 import static jakarta.persistence.FetchType.LAZY;
 
-import com.icc.qasker.global.entity.CreatedAt;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.EmbeddedId;

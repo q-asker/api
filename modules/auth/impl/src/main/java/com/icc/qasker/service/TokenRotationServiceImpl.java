@@ -1,9 +1,9 @@
 package com.icc.qasker.service;
 
 import com.icc.qasker.TokenRotationService;
-import com.icc.qasker.auth.util.CookieUtil;
-import com.icc.qasker.auth.util.RefreshTokenUtil;
 import com.icc.qasker.component.AccessTokenHandler;
+import com.icc.qasker.util.CookieUtil;
+import com.icc.qasker.util.RefreshTokenUtil;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;

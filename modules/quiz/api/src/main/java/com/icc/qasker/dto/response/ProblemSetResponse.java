@@ -1,10 +1,6 @@
 package com.icc.qasker.dto.response;
 
-import com.icc.qasker.quiz.entity.Problem;
-import com.icc.qasker.quiz.entity.ProblemSet;
-import com.icc.qasker.quiz.entity.Selection;
 import java.util.List;
-import java.util.stream.IntStream;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -18,18 +14,6 @@ public class ProblemSetResponse {
     private List<QuizForFe> quiz;
 
 
-    public static ProblemSetResponse of(ProblemSet problemSet) {
-        List<QuizForFe> quizzes = problemSet.getProblems().stream()
-            .map(QuizForFe::of)
-            .toList();
-
-        return new ProblemSetResponse(
-            problemSet.getTitle(),
-            quizzes
-        );
-    }
-
-
     @Getter
     @NoArgsConstructor
     @AllArgsConstructor
@@ -40,25 +24,6 @@ public class ProblemSetResponse {
         private int userAnswer;
         private boolean check;
         private List<SelectionsForFE> selections;
-
-        public static QuizForFe of(Problem problem) {
-            return new QuizForFe(
-                problem.getId().getNumber(),
-                problem.getTitle(),
-                0,
-                false,
-                IntStream.range(0, problem.getSelections().size())
-                    .mapToObj(i -> {
-                        Selection selection = problem.getSelections().get(i);
-                        return new SelectionsForFE(
-                            i + 1,
-                            selection.getContent(),
-                            selection.isCorrect()
-                        );
-                    })
-                    .toList()
-            );
-        }
 
         @Getter
         @NoArgsConstructor
