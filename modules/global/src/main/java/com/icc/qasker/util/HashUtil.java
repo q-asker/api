@@ -4,6 +4,7 @@ import com.icc.qasker.error.CustomException;
 import com.icc.qasker.error.ExceptionMessage;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.hashids.Hashids;
 import org.springframework.stereotype.Component;
 
 @Slf4j
@@ -11,7 +12,7 @@ import org.springframework.stereotype.Component;
 @AllArgsConstructor
 public class HashUtil {
 
-    private final org.hashids.Hashids hashids;
+    private final Hashids hashids;
 
     public String encode(long id) {
         return hashids.encode(id);

@@ -1,3 +1,9 @@
 plugins {
     id 'java-library'
 }
+dependencies {
+    implementation "org.hashids:hashids:1.0.3"
+    implementation "org.springframework.boot:spring-boot-starter-webflux"
+    implementation "com.github.maricn:logback-slack-appender:1.6.1"
+    implementation 'org.codehaus.janino:janino:3.1.12'
+}

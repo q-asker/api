@@ -5,13 +5,14 @@ plugins {
 }
 
 dependencies {
+
     implementation project(':global')
     implementation project(':auth:impl')
     implementation project(':aws:impl')
     implementation project(':quiz:impl')
 
-    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation "org.springframework.boot:spring-boot-starter-actuator"
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
 }
 
@@ -21,7 +22,7 @@ tasks.named("jib") {
 
 jib {
     from {
-        image = "qasker/eclipse-temurin-17-libreoffice"
+        image = "qasker/eclipse-temurin-21-libreoffice"
     }
     to {
         image = "${project.property("DOCKER_ID")}/${project.property("DOCKER_IMAGE_NAME")}"

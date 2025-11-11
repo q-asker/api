@@ -4,9 +4,9 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-@ConfigurationProperties(prefix = "aws.cloudfront")
 @Getter
 @AllArgsConstructor
+@ConfigurationProperties(prefix = "aws.cloudfront")
 public class AwsCloudFrontProperties {
 
     private String baseUrl;

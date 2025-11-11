@@ -8,11 +8,11 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(CustomException.class)
-    public ResponseEntity<com.icc.qasker.global.error.CustomErrorResponse> handleCustomException(
+    public ResponseEntity<CustomErrorResponse> handleCustomException(
         CustomException customException) {
 
         return ResponseEntity.status(customException.getHttpStatus())
             .body(
-                new com.icc.qasker.global.error.CustomErrorResponse(customException.getMessage()));
+                new CustomErrorResponse(customException.getMessage()));
     }
 }

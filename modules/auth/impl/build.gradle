@@ -6,6 +6,11 @@ dependencies {
     implementation project(":global")
     implementation project(":auth:api")
 
-    implementation 'org.springframework.boot:spring-boot-starter'
+    // ────────────────────────────────
+    // 인증 및 JWT
+    // ────────────────────────────────
+    implementation "org.hashids:hashids:1.0.3"
+    implementation "com.auth0:java-jwt:4.5.0"
+    implementation "org.springframework.boot:spring-boot-starter-oauth2-client"
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
 }

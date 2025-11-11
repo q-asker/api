@@ -41,4 +41,4 @@ out/
 **/src/main/resources/application-**
 .env
 gradle.properties
-newrelic/newrelic.yml
+app/newrelic/newrelic.yml

@@ -5,4 +5,15 @@ plugins {
 dependencies {
     implementation project(":global")
     implementation project(":aws:api")
+    // ────────────────────────────────
+    // 문서 변환 (PDF 등)
+    // ────────────────────────────────
+    implementation "org.jodconverter:jodconverter-local-lo:4.4.9"
+    // ────────────────────────────────
+    // AWS SDK
+    // ────────────────────────────────
+    implementation platform("software.amazon.awssdk:bom:2.27.24")
+    implementation "software.amazon.awssdk:s3"
+
+
 }
