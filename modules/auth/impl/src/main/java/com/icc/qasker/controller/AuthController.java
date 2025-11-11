@@ -1,13 +1,13 @@
-package com.icc.qasker.auth.controller;
+package com.icc.qasker.controller;
 
 import com.icc.qasker.LogoutService;
 import com.icc.qasker.NormalJoinService;
 import com.icc.qasker.NormalLoginService;
 import com.icc.qasker.TokenRotationService;
-import com.icc.qasker.auth.dto.request.JoinRequest;
-import com.icc.qasker.auth.dto.request.LoginRequest;
-import com.icc.qasker.auth.dto.response.LoginResponse;
-import com.icc.qasker.auth.util.CookieUtil;
+import com.icc.qasker.dto.request.JoinRequest;
+import com.icc.qasker.dto.request.LoginRequest;
+import com.icc.qasker.dto.response.LoginResponse;
+import com.icc.qasker.util.CookieUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -54,5 +54,4 @@ public class AuthController {
         logoutService.logout(request, response);
         return ResponseEntity.ok().build();
     }
-
 }

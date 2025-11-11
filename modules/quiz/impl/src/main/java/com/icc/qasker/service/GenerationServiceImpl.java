@@ -8,7 +8,6 @@ import com.icc.qasker.dto.response.GenerationResponse;
 import com.icc.qasker.dto.response.QuizGeneratedByAI;
 import com.icc.qasker.global.component.SlackNotifier;
 import com.icc.qasker.global.error.CustomException;
-import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.global.util.HashUtil;
 import com.icc.qasker.quiz.domain.enums.DifficultyType;
 import com.icc.qasker.quiz.domain.enums.QuizType;

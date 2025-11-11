@@ -1,14 +1,14 @@
 package com.icc.qasker.service;
 
 import com.icc.qasker.S3Service;
-import com.icc.qasker.aws.dto.S3UploadRequest;
-import com.icc.qasker.aws.dto.S3UploadResponse;
-import com.icc.qasker.aws.util.FileUploadValidator;
-import com.icc.qasker.aws.util.ToPDFConverter;
-import com.icc.qasker.global.error.CustomException;
-import com.icc.qasker.global.error.ExceptionMessage;
-import com.icc.qasker.global.properties.AwsCloudFrontProperties;
-import com.icc.qasker.global.properties.AwsS3Properties;
+import com.icc.qasker.dto.S3UploadRequest;
+import com.icc.qasker.dto.S3UploadResponse;
+import com.icc.qasker.error.CustomException;
+import com.icc.qasker.error.ExceptionMessage;
+import com.icc.qasker.properties.AwsCloudFrontProperties;
+import com.icc.qasker.properties.AwsS3Properties;
+import com.icc.qasker.util.FileUploadValidator;
+import com.icc.qasker.util.ToPDFConverter;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -67,7 +67,8 @@ public class S3ServiceImpl implements S3Service {
                     .uploadedUrl(cloudfrontBaseUrl + "/" + encodePath(keyName))
                     .build();
         } catch (Exception e) {
-            throw new CustomException(ExceptionMessage.NO_FILE_UPLOADED);
+            throw new CustomException(
+                ExceptionMessage.NO_FILE_UPLOADED);
         } finally {
             if (convertedFile != null && !convertedFile.delete()) {
                 log.warn("Failed to delete temporary input file: {}",
@@ -92,7 +93,8 @@ public class S3ServiceImpl implements S3Service {
             byte[] fileBytes = inputStream.readAllBytes();
             return RequestBody.fromBytes(fileBytes);
         } catch (IOException e) {
-            throw new CustomException(ExceptionMessage.NO_FILE_UPLOADED);
+            throw new CustomException(
+                ExceptionMessage.NO_FILE_UPLOADED);
         }
     }
 

@@ -1,10 +1,9 @@
-package com.icc.qasker.auth.security.filter;
+package com.icc.qasker.security.filter;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
-import com.icc.qasker.TokenRotationService;
-import com.icc.qasker.auth.properties.JwtProperties;
 import com.icc.qasker.auth.util.CookieUtil;
+import com.icc.qasker.properties.JwtProperties;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -114,5 +113,4 @@ public class RefreshRotationFilter extends OncePerRequestFilter {
             return Collections.enumeration(names);
         }
     }
-
 }

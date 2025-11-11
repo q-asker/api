@@ -1,4 +1,4 @@
-package com.icc.qasker.auth.security.provider;
+package com.icc.qasker.security.provider;
 
 import java.util.Map;
 
@@ -19,5 +19,4 @@ public class KakaoUserInfo implements OAuth2UserInfo {
     public String getProviderId() {
         return attributes.get("id").toString();
     }
-
 }

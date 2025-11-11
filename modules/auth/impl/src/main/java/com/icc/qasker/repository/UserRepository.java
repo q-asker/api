@@ -1,6 +1,6 @@
-package com.icc.qasker.auth.repository;
+package com.icc.qasker.repository;
 
-import com.icc.qasker.auth.entity.User;
+import com.icc.qasker.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

@@ -1,6 +1,6 @@
-package com.icc.qasker.auth.component;
+package com.icc.qasker.component;
 
-import com.icc.qasker.auth.properties.RedisProperties;
+import com.icc.qasker.properties.RedisProperties;
 import lombok.AllArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

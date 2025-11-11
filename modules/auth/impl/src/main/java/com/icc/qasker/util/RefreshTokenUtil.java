@@ -1,8 +1,8 @@
-package com.icc.qasker.auth.util;
+package com.icc.qasker.util;
 
-import com.icc.qasker.auth.properties.JwtProperties;
-import com.icc.qasker.global.error.CustomException;
-import com.icc.qasker.global.error.ExceptionMessage;
+import com.icc.qasker.error.CustomException;
+import com.icc.qasker.error.ExceptionMessage;
+import com.icc.qasker.properties.JwtProperties;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.SecureRandom;

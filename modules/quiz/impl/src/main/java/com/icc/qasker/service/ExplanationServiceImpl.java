@@ -4,7 +4,6 @@ import com.icc.qasker.ExplanationService;
 import com.icc.qasker.dto.response.ExplanationResponse;
 import com.icc.qasker.dto.response.ResultResponse;
 import com.icc.qasker.global.error.CustomException;
-import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.global.util.HashUtil;
 import com.icc.qasker.quiz.entity.Problem;
 import com.icc.qasker.quiz.entity.ReferencedPage;

@@ -1,4 +1,4 @@
-package com.icc.qasker.auth.security.provider;
+package com.icc.qasker.security.provider;
 
 public interface OAuth2UserInfo {
 

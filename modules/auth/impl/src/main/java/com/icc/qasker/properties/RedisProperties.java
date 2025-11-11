@@ -1,4 +1,4 @@
-package com.icc.qasker.auth.properties;
+package com.icc.qasker.properties;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -26,6 +26,4 @@ public class RedisProperties {
 
         return config;
     }
-
-
 }

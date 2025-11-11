@@ -1,4 +1,4 @@
-package com.icc.qasker.global.error;
+package com.icc.qasker.error;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -8,10 +8,11 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(CustomException.class)
-    public ResponseEntity<CustomErrorResponse> handleCustomException(
+    public ResponseEntity<com.icc.qasker.global.error.CustomErrorResponse> handleCustomException(
         CustomException customException) {
 
         return ResponseEntity.status(customException.getHttpStatus())
-            .body(new CustomErrorResponse(customException.getMessage()));
+            .body(
+                new com.icc.qasker.global.error.CustomErrorResponse(customException.getMessage()));
     }
 }

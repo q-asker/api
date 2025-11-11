@@ -1,7 +1,7 @@
 package com.icc.qasker.aws.util;
 
-import com.icc.qasker.global.error.CustomException;
-import com.icc.qasker.global.error.ExceptionMessage;
+import com.icc.qasker.error.CustomException;
+import com.icc.qasker.error.ExceptionMessage;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 

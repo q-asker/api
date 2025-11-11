@@ -1,12 +1,12 @@
-package com.icc.qasker.global.properties;
+package com.icc.qasker.properties;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-@ConfigurationProperties(prefix = "aws.s3")
 @Getter
 @AllArgsConstructor
+@ConfigurationProperties(prefix = "aws.s3")
 public class AwsS3Properties {
 
     private String region;
@@ -15,5 +15,4 @@ public class AwsS3Properties {
     private String secretKey;
     private int maxFileNameLength;
     private String allowedExtensions;
-
 }

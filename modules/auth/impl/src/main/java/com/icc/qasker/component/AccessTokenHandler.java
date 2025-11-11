@@ -1,11 +1,10 @@
-package com.icc.qasker.auth.component;
+package com.icc.qasker.component;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
-import com.icc.qasker.auth.properties.JwtProperties;
-import com.icc.qasker.auth.repository.UserRepository;
-import com.icc.qasker.global.error.CustomException;
-import com.icc.qasker.global.error.ExceptionMessage;
+import com.icc.qasker.error.CustomException;
+import com.icc.qasker.error.ExceptionMessage;
+import com.icc.qasker.properties.JwtProperties;
 import java.util.Date;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -14,8 +13,8 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class AccessTokenHandler {
 
-    private final UserRepository userRepository;
-    
+    private final com.icc.qasker.auth.repository.UserRepository userRepository;
+
     public String validateAndGenerate(String userId) {
         return userRepository.findById(userId)
             .map(user -> JWT.create()

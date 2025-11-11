@@ -1,7 +1,7 @@
-package com.icc.qasker.aws.util;
+package com.icc.qasker.util;
 
+import com.icc.qasker.error.ExceptionMessage;
 import com.icc.qasker.global.error.CustomException;
-import com.icc.qasker.global.error.ExceptionMessage;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;

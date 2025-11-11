@@ -8,7 +8,6 @@ import com.icc.qasker.dto.request.SpecificExplanationRequest;
 import com.icc.qasker.dto.response.QuizGeneratedByAI;
 import com.icc.qasker.dto.response.SpecificExplanationResponse;
 import com.icc.qasker.global.error.CustomException;
-import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.global.util.HashUtil;
 import com.icc.qasker.quiz.entity.Problem;
 import com.icc.qasker.quiz.repository.ProblemRepository;
@@ -74,8 +73,6 @@ public class SpecificExplanationServiceImpl implements SpecificExplanationServic
         }
 
         return new SpecificExplanationResponse(explanationText);
-
     }
-
 }
 

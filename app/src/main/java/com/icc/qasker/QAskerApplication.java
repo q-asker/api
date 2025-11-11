@@ -13,5 +13,4 @@ public class QAskerApplication {
     public static void main(String[] args) {
         SpringApplication.run(QAskerApplication.class, args);
     }
-
 }

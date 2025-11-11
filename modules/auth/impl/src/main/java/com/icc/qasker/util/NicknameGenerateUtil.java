@@ -1,4 +1,4 @@
-package com.icc.qasker.auth.util;
+package com.icc.qasker.util;
 
 import java.util.List;
 import java.util.Random;

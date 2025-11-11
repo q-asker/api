@@ -1,6 +1,6 @@
-package com.icc.qasker.auth.security.principal;
+package com.icc.qasker.security.principal;
 
-import com.icc.qasker.auth.entity.User;
+import com.icc.qasker.entity.User;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;

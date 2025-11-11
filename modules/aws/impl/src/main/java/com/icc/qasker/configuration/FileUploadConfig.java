@@ -1,9 +1,8 @@
-package com.icc.qasker.global.component;
+package com.icc.qasker.configuration;
 
-import com.icc.qasker.aws.util.FileUploadValidator;
-import com.icc.qasker.aws.util.FileUrlValidator;
-import com.icc.qasker.global.properties.AwsCloudFrontProperties;
-import com.icc.qasker.global.properties.AwsS3Properties;
+import com.icc.qasker.properties.AwsCloudFrontProperties;
+import com.icc.qasker.properties.AwsS3Properties;
+import com.icc.qasker.util.FileUploadValidator;
 import lombok.AllArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -43,10 +42,10 @@ public class FileUploadConfig {
     }
 
     @Bean
-    public FileUrlValidator createFileUrlValidator() {
+    public com.icc.qasker.aws.util.FileUrlValidator createFileUrlValidator() {
         String cloudFrontBaseUrl = cloudFrontProperties.getBaseUrl();
         String allowedExtensions = awsS3Properties.getAllowedExtensions();
-        return FileUrlValidator.builder()
+        return com.icc.qasker.aws.util.FileUrlValidator.builder()
             .cloudFrontBaseUrl(cloudFrontBaseUrl)
             .allowedExtensions(allowedExtensions)
             .build();

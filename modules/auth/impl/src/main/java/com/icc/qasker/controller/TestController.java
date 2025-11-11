@@ -1,4 +1,4 @@
-package com.icc.qasker.auth.controller;
+package com.icc.qasker.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

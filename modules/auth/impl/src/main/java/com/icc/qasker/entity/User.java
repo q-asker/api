@@ -1,4 +1,4 @@
-package com.icc.qasker.auth.entity;
+package com.icc.qasker.entity;
 
 import com.icc.qasker.global.entity.CreatedAt;
 import jakarta.persistence.Entity;

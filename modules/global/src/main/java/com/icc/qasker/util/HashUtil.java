@@ -1,7 +1,7 @@
-package com.icc.qasker.global.util;
+package com.icc.qasker.util;
 
-import com.icc.qasker.global.error.CustomException;
-import com.icc.qasker.global.error.ExceptionMessage;
+import com.icc.qasker.error.CustomException;
+import com.icc.qasker.error.ExceptionMessage;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

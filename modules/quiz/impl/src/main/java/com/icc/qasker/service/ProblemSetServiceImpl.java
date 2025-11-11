@@ -3,7 +3,6 @@ package com.icc.qasker.service;
 import com.icc.qasker.ProblemSetService;
 import com.icc.qasker.dto.response.ProblemSetResponse;
 import com.icc.qasker.global.error.CustomException;
-import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.global.util.HashUtil;
 import com.icc.qasker.quiz.entity.ProblemSet;
 import com.icc.qasker.quiz.repository.ProblemSetRepository;
@@ -44,6 +43,5 @@ public class ProblemSetServiceImpl implements ProblemSetService {
     private ProblemSetResponse toResponse(ProblemSet problemSet) {
         return ProblemSetResponse.of(problemSet);
     }
-
 }
 

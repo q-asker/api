@@ -1,7 +1,7 @@
-package com.icc.qasker.aws.controller.doc;
+package com.icc.qasker.controller.doc;
 
-import com.icc.qasker.aws.dto.S3UploadRequest;
-import com.icc.qasker.aws.dto.S3UploadResponse;
+import com.icc.qasker.dto.S3UploadRequest;
+import com.icc.qasker.dto.S3UploadResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;

@@ -1,8 +1,8 @@
 package com.icc.qasker.service;
 
 import com.icc.qasker.LogoutService;
-import com.icc.qasker.auth.util.CookieUtil;
-import com.icc.qasker.auth.util.RefreshTokenUtil;
+import com.icc.qasker.util.CookieUtil;
+import com.icc.qasker.util.RefreshTokenUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;

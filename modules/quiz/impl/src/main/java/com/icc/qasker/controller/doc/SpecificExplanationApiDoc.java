@@ -1,4 +1,4 @@
-package com.icc.qasker.quiz.controller.doc;
+package com.icc.qasker.controller.doc;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
 

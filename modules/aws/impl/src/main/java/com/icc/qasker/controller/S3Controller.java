@@ -1,9 +1,9 @@
-package com.icc.qasker.aws.controller;
+package com.icc.qasker.controller;
 
 import com.icc.qasker.S3Service;
-import com.icc.qasker.aws.controller.doc.S3ApiDoc;
-import com.icc.qasker.aws.dto.S3UploadRequest;
-import com.icc.qasker.aws.dto.S3UploadResponse;
+import com.icc.qasker.controller.doc.S3ApiDoc;
+import com.icc.qasker.dto.S3UploadRequest;
+import com.icc.qasker.dto.S3UploadResponse;
 import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ModelAttribute;

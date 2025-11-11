@@ -10,7 +10,7 @@ import com.icc.qasker.auth.security.provider.GoogleUserInfo;
 import com.icc.qasker.auth.security.provider.KakaoUserInfo;
 import com.icc.qasker.auth.security.provider.OAuth2UserInfo;
 import com.icc.qasker.auth.util.NicknameGenerateUtil;
-import com.icc.qasker.global.error.ExceptionMessage;
+import com.icc.qasker.error.ExceptionMessage;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -195,5 +195,4 @@ public class SecurityConfig {
             return new PrincipalDetails(user, oAuth2User.getAttributes());
         }
     }
-
 }

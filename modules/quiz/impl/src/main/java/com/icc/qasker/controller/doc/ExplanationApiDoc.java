@@ -1,6 +1,6 @@
-package com.icc.qasker.quiz.controller.doc;
+package com.icc.qasker.controller.doc;
 
-import com.icc.qasker.quiz.dto.response.ExplanationResponse;
+import com.icc.qasker.dto.response.ExplanationResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;

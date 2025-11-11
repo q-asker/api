@@ -1,4 +1,4 @@
-package com.icc.qasker.auth.entity;
+package com.icc.qasker.entity;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -16,5 +16,4 @@ public class RefreshToken {
     @Id
     private final String rtHash;
     private final String userId;
-
 }
