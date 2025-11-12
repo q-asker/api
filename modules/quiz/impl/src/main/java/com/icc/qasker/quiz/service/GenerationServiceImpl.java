@@ -11,8 +11,6 @@ import com.icc.qasker.quiz.dto.response.AiGenerationResponse;
 import com.icc.qasker.quiz.dto.response.GenerationResponse;
 import com.icc.qasker.quiz.entity.ProblemSet;
 import com.icc.qasker.quiz.repository.ProblemSetRepository;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -37,6 +35,7 @@ public class GenerationServiceImpl implements GenerationService {
         FeGenerationRequest feGenerationRequest) {
         try {
             validateQuizCount(feGenerationRequest);
+            s3ValidateService.validateS3Bucket(feGenerationRequest.uploadedUrl());
             s3ValidateService.isCloudFrontUrl(feGenerationRequest.uploadedUrl());
 
             AiGenerationResponse aiResponse = callAiServer(feGenerationRequest);
@@ -54,7 +53,7 @@ public class GenerationServiceImpl implements GenerationService {
                 """.formatted(
                 response.getProblemSetId()
             ));
-            
+
             return response;
         } catch (Throwable error) {
             throw unifyError(error);
@@ -64,23 +63,6 @@ public class GenerationServiceImpl implements GenerationService {
     private void validateQuizCount(FeGenerationRequest feGenerationRequest) {
         if (feGenerationRequest.quizCount() % 5 != 0) {
             throw new CustomException(ExceptionMessage.INVALID_QUIZ_COUNT_REQUEST);
-        }
-    }
-
-    private void validate(FeGenerationRequest feGenerationRequest) {
-        String uploadedUrl = feGenerationRequest.uploadedUrl();
-
-        try {
-            URL url = new URL(uploadedUrl);
-            URL encodedUrl = new URL(url.getProtocol(), url.getHost(), url.getPort(),
-                url.getPath());
-            HttpURLConnection connection = (HttpURLConnection) encodedUrl.openConnection();
-            int responseCode = connection.getResponseCode();
-            if (responseCode != HttpURLConnection.HTTP_OK) {
-                throw new CustomException(ExceptionMessage.FILE_NOT_FOUND_ON_S3);
-            }
-        } catch (Exception e) {
-            throw new CustomException(ExceptionMessage.FILE_NOT_FOUND_ON_S3);
         }
     }
 
