@@ -17,22 +17,22 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.client.RestClient;
 
 @Service
 @Slf4j
 public class SpecificExplanationServiceImpl implements SpecificExplanationService {
 
     private final HashUtil hashUtil;
-    private final WebClient aiWebClient;
+    private final RestClient aiRestClient;
     private final ProblemRepository problemRepository;
 
     public SpecificExplanationServiceImpl(
-        WebClient aiWebClient,
+        RestClient aiRestClient,
         ProblemRepository problemRepository,
         HashUtil hashUtil
     ) {
-        this.aiWebClient = aiWebClient;
+        this.aiRestClient = aiRestClient;
         this.problemRepository = problemRepository;
         this.hashUtil = hashUtil;
     }
@@ -55,13 +55,12 @@ public class SpecificExplanationServiceImpl implements SpecificExplanationServic
         System.out.printf("problem.getTitle() = %s\n", problem.getTitle());
 
         String aiExplanationRaw = Objects.requireNonNull(
-            aiWebClient.post()
+            aiRestClient.post()
                 .uri("/specific-explanation")
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                .bodyValue(aiRequest)
+                .body(aiRequest)
                 .retrieve()
-                .bodyToMono(String.class)
-                .block()
+                .body(String.class)
         );
         String explanationText;
         try {
