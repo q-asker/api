@@ -1,5 +1,5 @@
 ARG TARGET_BASE_IMAGE=debian:bookworm
-ARG JAVA_VERSION=17
+ARG JAVA_VERSION=21
 
 ############ JRESOURCE ############
 FROM eclipse-temurin:${JAVA_VERSION}-jdk-noble as jresource
