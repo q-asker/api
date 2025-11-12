@@ -13,14 +13,12 @@ import com.icc.qasker.quiz.entity.ProblemSet;
 import com.icc.qasker.quiz.repository.ProblemSetRepository;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.concurrent.TimeoutException;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.reactive.function.client.WebClientRequestException;
-import org.springframework.web.reactive.function.client.WebClientResponseException;
-import reactor.core.publisher.Mono;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.client.RestClient;
 
 @Slf4j
 @Service
@@ -28,36 +26,40 @@ import reactor.core.publisher.Mono;
 public class GenerationServiceImpl implements GenerationService {
 
     private final SlackNotifier slackNotifier;
-    private final WebClient aiWebClient;
+    private final RestClient aiRestClient;
     private final ProblemSetRepository problemSetRepository;
     private final HashUtil hashUtil;
     private final S3ValidateService s3ValidateService;
 
 
     @Override
-    public Mono<GenerationResponse> processGenerationRequest(
+    public GenerationResponse processGenerationRequest(
         FeGenerationRequest feGenerationRequest) {
-        validateQuizCount(feGenerationRequest);
-        return
-            Mono.fromRunnable(() -> {
-                    s3ValidateService.isCloudFrontUrl(feGenerationRequest.uploadedUrl());
-                })
-                .then(callAiServer(feGenerationRequest))
-                .flatMap(this::saveToDB)
-                .map(ps -> new GenerationResponse(
-                    hashUtil.encode(ps.getId())
-                ))
-                .flatMap(ps ->
-                    slackNotifier.notifyText("""
-                            ✅ [퀴즈 생성 완료 알림]
-                            ProblemSet ID: %s
-                            """.formatted(
-                            ps.getProblemSetId()
-                        ))
-                        .thenReturn(ps)
-                )
-                .doOnError(error -> log.error("예외 발생: {}", error.getMessage(), error))
-                .onErrorResume(this::unifyError);
+        try {
+            validateQuizCount(feGenerationRequest);
+            s3ValidateService.isCloudFrontUrl(feGenerationRequest.uploadedUrl());
+
+            AiGenerationResponse aiResponse = callAiServer(feGenerationRequest);
+
+            ProblemSet problemSet = ProblemSet.of(aiResponse);
+            ProblemSet savedPs = problemSetRepository.save(problemSet);
+
+            GenerationResponse response = new GenerationResponse(
+                hashUtil.encode(savedPs.getId())
+            );
+
+            slackNotifier.notifyText("""
+                ✅ [퀴즈 생성 완료 알림]
+                ProblemSet ID: %s
+                """.formatted(
+                response.getProblemSetId()
+            ));
+
+            return response;
+        } catch (Throwable error) {
+            log.error("예외 발생: {}", error.getMessage(), error);
+            throw unifyError(error);
+        }
     }
 
     private void validateQuizCount(FeGenerationRequest feGenerationRequest) {
@@ -83,49 +85,31 @@ public class GenerationServiceImpl implements GenerationService {
         }
     }
 
-    private Mono<GenerationResponse> unifyError(Throwable error) {
+    private RuntimeException unifyError(Throwable error) {
         if (error instanceof CustomException) {
-            return Mono.error(error);
+            return (CustomException) error;
         }
-        return Mono.error(new CustomException(ExceptionMessage.DEFAULT_ERROR));
+        return new CustomException(ExceptionMessage.DEFAULT_ERROR);
     }
 
-    private Mono<AiGenerationResponse> callAiServer(FeGenerationRequest feGenerationRequest) {
-        return aiWebClient.post()
-            .uri("/generation")
-            .bodyValue(feGenerationRequest)
-            .retrieve()
-            .bodyToMono(AiGenerationResponse.class)
-            .onErrorMap(this::webClientError); // ok
-    }
+    private AiGenerationResponse callAiServer(FeGenerationRequest feGenerationRequest) {
+        try {
+            return aiRestClient.post()
+                .uri("/generation")
+                .body(feGenerationRequest)
+                .retrieve()
+                .body(AiGenerationResponse.class);
 
-    private Mono<ProblemSet> saveToDB(AiGenerationResponse aiResponse) {
-        return Mono.fromCallable(() -> {
-            ProblemSet problemSet = ProblemSet.of(aiResponse);
-            return problemSetRepository.save(problemSet);
-        });
-    }
-
-    private Throwable webClientError(Throwable error) {
-        if (error instanceof WebClientResponseException we) {
-            String errorJson = we.getResponseBodyAsString();
-            log.error(errorJson);
+        } catch (HttpClientErrorException.TooManyRequests e) {
+            throw new CustomException(ExceptionMessage.AI_SERVER_TO_MANY_REQUEST);
+        } catch (ResourceAccessException e) {
+            if (e.getCause() instanceof java.net.SocketTimeoutException) {
+                throw new CustomException(ExceptionMessage.AI_SERVER_TIMEOUT);
+            }
+            throw new CustomException(ExceptionMessage.AI_SERVER_CONNECTION_FAILED);
+        } catch (Exception e) {
+            throw new CustomException(ExceptionMessage.AI_SERVER_RESPONSE_ERROR);
         }
-        // AI Server time out
-        if (error instanceof java.util.concurrent.TimeoutException
-            || error.getCause() instanceof TimeoutException) {
-            return new CustomException(ExceptionMessage.AI_SERVER_TIMEOUT);
-        }
-        // AI Server down
-        if (error instanceof WebClientRequestException) {
-            return new CustomException(ExceptionMessage.AI_SERVER_CONNECTION_FAILED);
-        }
-        // AI Server too many requests
-        if (error instanceof WebClientResponseException.TooManyRequests) {
-            return new CustomException(ExceptionMessage.AI_SERVER_TO_MANY_REQUEST);
-        }
-        // rest
-        return new CustomException(ExceptionMessage.AI_SERVER_RESPONSE_ERROR);
     }
 }
 
