@@ -39,7 +39,7 @@ public class WebConfig implements WebMvcConfigurer {
     public RestClient aiRestClient() {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(Duration.ofSeconds(10));
-        factory.setReadTimeout(Duration.ofMinutes(2));
+        factory.setReadTimeout(Duration.ofSeconds(80));
 
         return RestClient.builder()
             .baseUrl(aiServerUrl)
@@ -52,8 +52,8 @@ public class WebConfig implements WebMvcConfigurer {
     public RestClient aiMockingRestClient() {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(Duration.ofSeconds(10));
-        factory.setReadTimeout(Duration.ofMinutes(2));
-        
+        factory.setReadTimeout(Duration.ofSeconds(80));
+
         return RestClient.builder()
             .baseUrl(aiMockingServerUrl)
             .requestFactory(factory)
