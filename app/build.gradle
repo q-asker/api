@@ -7,9 +7,9 @@ plugins {
 dependencies {
 
     implementation project(':global')
-    implementation project(':auth:impl')
-    implementation project(':aws:impl')
-    implementation project(':quiz:impl')
+    implementation project(':auth:auth-impl')
+    implementation project(':aws:aws-impl')
+    implementation project(':quiz:quiz-impl')
 
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation "org.springframework.boot:spring-boot-starter-actuator"

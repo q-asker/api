@@ -4,7 +4,7 @@ plugins {
 
 dependencies {
     implementation project(":global")
-    implementation project(":quiz:api")
-    implementation project(":aws:api")
+    implementation project(":aws:aws-api")
+    implementation project(":quiz:quiz-api")
     implementation "org.springframework.boot:spring-boot-starter-webflux"
 }

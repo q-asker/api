@@ -4,7 +4,7 @@ plugins {
 
 dependencies {
     implementation project(":global")
-    implementation project(":aws:api")
+    implementation project(":aws:aws-api")
     // ────────────────────────────────
     // 문서 변환 (PDF 등)
     // ────────────────────────────────
