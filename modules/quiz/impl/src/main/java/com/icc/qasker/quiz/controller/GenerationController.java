@@ -9,11 +9,11 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import reactor.core.publisher.Mono;
 
 @RestController
 @RequiredArgsConstructor
@@ -42,11 +42,11 @@ public class GenerationController implements GenerationApiDoc {
     }
 
     @PostMapping
-    public Mono<GenerationResponse> postProblemSetId(
+    public ResponseEntity<GenerationResponse> postProblemSetId(
         @Valid @RequestBody FeGenerationRequest feGenerationRequest) {
         if (customException != null) {
             throw customException;
         }
-        return generationService.processGenerationRequest(feGenerationRequest);
+        return ResponseEntity.ok(generationService.processGenerationRequest(feGenerationRequest));
     }
 }

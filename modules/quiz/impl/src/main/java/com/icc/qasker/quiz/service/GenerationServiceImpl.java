@@ -54,10 +54,9 @@ public class GenerationServiceImpl implements GenerationService {
                 """.formatted(
                 response.getProblemSetId()
             ));
-
+            
             return response;
         } catch (Throwable error) {
-            log.error("예외 발생: {}", error.getMessage(), error);
             throw unifyError(error);
         }
     }
