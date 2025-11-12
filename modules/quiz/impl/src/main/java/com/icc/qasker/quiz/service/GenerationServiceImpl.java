@@ -7,8 +7,6 @@ import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.global.util.HashUtil;
 import com.icc.qasker.quiz.GenerationService;
 import com.icc.qasker.quiz.dto.request.FeGenerationRequest;
-import com.icc.qasker.quiz.dto.request.enums.DifficultyType;
-import com.icc.qasker.quiz.dto.request.enums.QuizType;
 import com.icc.qasker.quiz.dto.response.AiGenerationResponse;
 import com.icc.qasker.quiz.dto.response.GenerationResponse;
 import com.icc.qasker.quiz.dto.response.QuizGeneratedByAI;
@@ -44,29 +42,14 @@ public class GenerationServiceImpl implements GenerationService {
     private final HashUtil hashUtil;
     private final S3ValidateService s3ValidateService;
 
-    private FeGenerationRequest unifyQuizType(FeGenerationRequest feGenerationRequest) {
-        if (feGenerationRequest.quizType() == QuizType.MULTIPLE
-            && feGenerationRequest.difficultyType() == DifficultyType.RECALL) {
-            return new FeGenerationRequest(
-                feGenerationRequest.uploadedUrl(),
-                feGenerationRequest.quizCount(),
-                QuizType.BLANK,
-                feGenerationRequest.difficultyType(),
-                feGenerationRequest.pageNumbers()
-            );
-        }
-        return feGenerationRequest;
-    }
 
     @Override
     public Mono<GenerationResponse> processGenerationRequest(
         FeGenerationRequest feGenerationRequest) {
-        FeGenerationRequest unifiedRequest = unifyQuizType(feGenerationRequest);
         validate(feGenerationRequest);
         return
             Mono.fromRunnable(() -> {
-                    s3ValidateService.isCloudFrontUrl(unifiedRequest.uploadedUrl());
-                    unifyQuizType(unifiedRequest);
+                    s3ValidateService.isCloudFrontUrl(feGenerationRequest.uploadedUrl());
                 })
                 .then(callAiServer(feGenerationRequest))
                 .flatMap(this::saveToDB)
@@ -89,12 +72,8 @@ public class GenerationServiceImpl implements GenerationService {
     private void validate(FeGenerationRequest feGenerationRequest) {
         String uploadedUrl = feGenerationRequest.uploadedUrl();
         int quizCount = feGenerationRequest.quizCount();
-        List<Integer> pageNumbers = feGenerationRequest.pageNumbers();
         if (quizCount % 5 != 0) {
             throw new CustomException(ExceptionMessage.INVALID_QUIZ_COUNT_REQUEST);
-        }
-        if (pageNumbers.size() > 100) {
-            throw new CustomException(ExceptionMessage.INVALID_PAGE_REQUEST);
         }
 
         try {
