@@ -20,6 +20,8 @@ import lombok.Setter;
 @Setter
 public class Explanation extends CreatedAt {
 
+    private static final int MAX_CONTENT_LENGTH = 20000;
+
     @EmbeddedId
     private ProblemId id;
     @Column(columnDefinition = "TEXT")
@@ -32,4 +34,14 @@ public class Explanation extends CreatedAt {
         @JoinColumn(name = "number", referencedColumnName = "number")
     })
     private Problem problem;
+
+    public static Explanation of(String content, Problem problem) {
+        Explanation explanation = new Explanation();
+        if (content.length() > MAX_CONTENT_LENGTH) {
+            content = content.substring(0, MAX_CONTENT_LENGTH);
+        }
+        explanation.setContent(content);
+        explanation.setProblem(problem);
+        return explanation;
+    }
 }

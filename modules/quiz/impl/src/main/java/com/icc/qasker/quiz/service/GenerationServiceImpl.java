@@ -9,18 +9,10 @@ import com.icc.qasker.quiz.GenerationService;
 import com.icc.qasker.quiz.dto.request.FeGenerationRequest;
 import com.icc.qasker.quiz.dto.response.AiGenerationResponse;
 import com.icc.qasker.quiz.dto.response.GenerationResponse;
-import com.icc.qasker.quiz.dto.response.QuizGeneratedByAI;
-import com.icc.qasker.quiz.entity.Explanation;
-import com.icc.qasker.quiz.entity.Problem;
-import com.icc.qasker.quiz.entity.ProblemId;
 import com.icc.qasker.quiz.entity.ProblemSet;
-import com.icc.qasker.quiz.entity.ReferencedPage;
-import com.icc.qasker.quiz.entity.Selection;
 import com.icc.qasker.quiz.repository.ProblemSetRepository;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.TimeoutException;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,7 +27,6 @@ import reactor.core.publisher.Mono;
 @AllArgsConstructor
 public class GenerationServiceImpl implements GenerationService {
 
-    private static final int MAX_CONTENT_LENGTH = 20000;
     private final SlackNotifier slackNotifier;
     private final WebClient aiWebClient;
     private final ProblemSetRepository problemSetRepository;
@@ -108,65 +99,11 @@ public class GenerationServiceImpl implements GenerationService {
 
     private Mono<ProblemSet> saveToDB(AiGenerationResponse aiResponse) {
         return Mono.fromCallable(() -> {
-            if (aiResponse == null || aiResponse.getQuiz() == null) {
-                throw new CustomException(ExceptionMessage.NULL_AI_RESPONSE);
-            }
-            ProblemSet problemSet = new ProblemSet();
-            problemSet.setTitle(aiResponse.getTitle());
-            List<Problem> problems = new ArrayList<>(); // problems of problem_set
-            for (QuizGeneratedByAI quiz : aiResponse.getQuiz()) {
-                Problem problem = createProblemEntity(problemSet, quiz);
-                problems.add(problem);
-            }
-            problemSet.setProblems(problems);
-            return problemSetRepository.save(problemSet); // reflect problems of problem_set to DB
+            ProblemSet problemSet = ProblemSet.of(aiResponse);
+            return problemSetRepository.save(problemSet);
         });
     }
-
-
-    private Problem createProblemEntity(ProblemSet problemSet, QuizGeneratedByAI quiz) {
-        // - 2. problem
-        Problem problem = new Problem();
-        ProblemId problemId = new ProblemId();
-        problemId.setNumber(quiz.getNumber());
-        problem.setId(problemId);
-        problem.setTitle(quiz.getTitle());
-        problem.setProblemSet(problemSet);
-
-        // - 3. selection
-        List<Selection> selections = new ArrayList<>();
-        for (QuizGeneratedByAI.SelectionsOfAi sel : quiz.getSelections()) {
-            Selection selection = new Selection();
-            selection.setContent(sel.getContent());
-            selection.setCorrect(sel.isCorrect());
-            selections.add(selection);
-            selection.setProblem(problem);
-        }
-        problem.setSelections(selections);
-
-        // - 4. explanation
-        Explanation explanation = new Explanation();
-        String explanationContent = quiz.getExplanation();
-        if (explanationContent.length() > MAX_CONTENT_LENGTH) {
-            explanationContent = explanationContent.substring(0, MAX_CONTENT_LENGTH);
-        }
-        explanation.setContent(explanationContent);
-        explanation.setProblem(problem);
-        problem.setExplanation(explanation);
-
-        // - 5. referencedpages
-        List<ReferencedPage> referencedPages = new ArrayList<>();
-        for (Integer page : quiz.getReferencedPages()) {
-            ReferencedPage rp = new ReferencedPage();
-            rp.setPageNumber(page);
-            rp.setProblem(problem);
-            referencedPages.add(rp);
-        }
-        problem.setReferencedPages(referencedPages);
-
-        return problem;
-    }
-
+    
     private Throwable webClientError(Throwable error) {
         if (error instanceof WebClientResponseException we) {
             String errorJson = we.getResponseBodyAsString();

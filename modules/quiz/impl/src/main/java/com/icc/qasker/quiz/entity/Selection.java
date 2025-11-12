@@ -3,6 +3,7 @@ package com.icc.qasker.quiz.entity;
 import static jakarta.persistence.FetchType.LAZY;
 
 import com.icc.qasker.global.entity.CreatedAt;
+import com.icc.qasker.quiz.dto.response.QuizGeneratedByAI;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -37,4 +38,12 @@ public class Selection extends CreatedAt {
         @JoinColumn(name = "number", referencedColumnName = "number")
     })
     private Problem problem;
+
+    public static Selection of(QuizGeneratedByAI.SelectionsOfAi selDto, Problem problem) {
+        Selection selection = new Selection();
+        selection.content = selDto.getContent();
+        selection.correct = selDto.isCorrect();
+        selection.problem = problem;
+        return selection;
+    }
 }
