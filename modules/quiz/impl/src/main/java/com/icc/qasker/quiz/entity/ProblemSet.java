@@ -39,7 +39,7 @@ public class ProblemSet extends CreatedAt {
         ProblemSet problemSet = new ProblemSet();
         problemSet.setTitle(aiResponse.getTitle());
         List<Problem> problems = aiResponse.getQuiz().stream()
-            .map(quizDto -> Problem.of(quizDto, problemSet)) // Problem에 생성 위임
+            .map(quizDto -> Problem.of(quizDto, problemSet))
             .toList();
         problemSet.problems = problems;
         return problemSet;
