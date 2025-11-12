@@ -37,7 +37,7 @@ public class GenerationServiceImpl implements GenerationService {
     @Override
     public Mono<GenerationResponse> processGenerationRequest(
         FeGenerationRequest feGenerationRequest) {
-        validate(feGenerationRequest);
+        validateQuizCount(feGenerationRequest);
         return
             Mono.fromRunnable(() -> {
                     s3ValidateService.isCloudFrontUrl(feGenerationRequest.uploadedUrl());
@@ -60,12 +60,14 @@ public class GenerationServiceImpl implements GenerationService {
                 .onErrorResume(this::unifyError);
     }
 
-    private void validate(FeGenerationRequest feGenerationRequest) {
-        String uploadedUrl = feGenerationRequest.uploadedUrl();
-        int quizCount = feGenerationRequest.quizCount();
-        if (quizCount % 5 != 0) {
+    private void validateQuizCount(FeGenerationRequest feGenerationRequest) {
+        if (feGenerationRequest.quizCount() % 5 != 0) {
             throw new CustomException(ExceptionMessage.INVALID_QUIZ_COUNT_REQUEST);
         }
+    }
+
+    private void validate(FeGenerationRequest feGenerationRequest) {
+        String uploadedUrl = feGenerationRequest.uploadedUrl();
 
         try {
             URL url = new URL(uploadedUrl);
@@ -103,7 +105,7 @@ public class GenerationServiceImpl implements GenerationService {
             return problemSetRepository.save(problemSet);
         });
     }
-    
+
     private Throwable webClientError(Throwable error) {
         if (error instanceof WebClientResponseException we) {
             String errorJson = we.getResponseBodyAsString();
