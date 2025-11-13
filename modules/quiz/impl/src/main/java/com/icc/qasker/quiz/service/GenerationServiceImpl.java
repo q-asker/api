@@ -65,7 +65,7 @@ public class GenerationServiceImpl implements GenerationService {
         validate(feGenerationRequest);
         return
             Mono.fromRunnable(() -> {
-                    s3ValidateService.isCloudFrontUrl(unifiedRequest.uploadedUrl());
+                    s3ValidateService.checkCloudFrontUrlWithThrowing(unifiedRequest.uploadedUrl());
                     unifyQuizType(unifiedRequest);
                 })
                 .then(callAiServer(feGenerationRequest))

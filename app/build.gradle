@@ -6,10 +6,10 @@ plugins {
 
 dependencies {
 
-    implementation project(':global')
-    implementation project(':auth:auth-impl')
-    implementation project(':aws:aws-impl')
-    implementation project(':quiz:quiz-impl')
+    runtimeOnly project(':global')
+    runtimeOnly project(':auth:auth-impl')
+    runtimeOnly project(':aws:aws-impl')
+    runtimeOnly project(':quiz:quiz-impl')
 
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation "org.springframework.boot:spring-boot-starter-actuator"
