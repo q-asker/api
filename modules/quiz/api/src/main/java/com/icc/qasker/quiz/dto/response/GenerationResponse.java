@@ -8,8 +8,4 @@ import lombok.Getter;
 public class GenerationResponse {
 
     private String problemSetId;
-
-    public static GenerationResponse of(String problemSetId) {
-        return new GenerationResponse(problemSetId);
-    }
 }

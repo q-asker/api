@@ -7,4 +7,6 @@ public interface S3ValidateService {
     void checkCloudFrontUrlWithThrowing(String url);
 
     void validateFileWithThrowing(MultipartFile multipartFile);
+
+    void validateS3Bucket(String url);
 }

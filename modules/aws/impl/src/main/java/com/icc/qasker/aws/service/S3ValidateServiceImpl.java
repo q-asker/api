@@ -5,6 +5,8 @@ import com.icc.qasker.aws.properties.AwsCloudFrontProperties;
 import com.icc.qasker.aws.properties.AwsS3Properties;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -44,6 +46,21 @@ public class S3ValidateServiceImpl implements S3ValidateService {
         }
         if (!allowedExtensions.contains(contentType)) {
             throw new CustomException(ExceptionMessage.EXTENSION_INVALID);
+        }
+    }
+
+    @Override
+    public void validateS3Bucket(String uploadedUrl) {
+        try {
+            URL url = new URL(uploadedUrl);
+            URL encodedUrl = new URL(url.getProtocol(), url.getHost(), url.getPort(),
+                url.getPath());
+            HttpURLConnection connection = (HttpURLConnection) encodedUrl.openConnection();
+            if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
+                throw new CustomException(ExceptionMessage.FILE_NOT_FOUND_ON_S3);
+            }
+        } catch (Exception e) {
+            throw new CustomException(ExceptionMessage.FILE_NOT_FOUND_ON_S3);
         }
     }
 }

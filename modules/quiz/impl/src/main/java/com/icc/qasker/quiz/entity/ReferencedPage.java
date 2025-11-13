@@ -29,4 +29,11 @@ public class ReferencedPage extends CreatedAt {
         @JoinColumn(name = "number", referencedColumnName = "number")
     })
     private Problem problem;
+
+    public static ReferencedPage of(int pageNumber, Problem problem) {
+        ReferencedPage page = new ReferencedPage();
+        page.setPageNumber(pageNumber);
+        page.setProblem(problem);
+        return page;
+    }
 }
