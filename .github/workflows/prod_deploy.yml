@@ -20,15 +20,15 @@ jobs:
 
       - name: 환경변수들 등록
         run: |
-          echo "${{ env.NEWRELIC_YML }}" > newrelic/newrelic.yml
-          echo "${{ env.APPLICATION_PROD_YML }}" > src/main/resources/application-prod.yml
-          echo "${{ env.GRADLE_PROPERTIES }}" > gradle.properties
+          echo "${{ env.NEWRELIC_YML }}" > app/newrelic/newrelic.yml
+          echo "${{ env.APPLICATION_PROD_YML }}" > app/src/main/resources/application-prod.yml
+          echo "${{ env.GRADLE_PROPERTIES }}" > app/gradle.properties
 
-      - name: JDK 17 설정
+      - name: JDK 21 설정
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '21'
 
       - name: Gradle 설정
         uses: gradle/gradle-build-action@v2
