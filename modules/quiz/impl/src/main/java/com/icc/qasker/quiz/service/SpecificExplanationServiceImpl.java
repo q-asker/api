@@ -52,8 +52,7 @@ public class SpecificExplanationServiceImpl implements SpecificExplanationServic
                 return s;
             }).toList()
         );
-        System.out.printf("problem.getTitle() = %s\n", problem.getTitle());
-
+        log.debug("problem.getTitle() = {}", problem.getTitle());
         String aiExplanationRaw = Objects.requireNonNull(
             aiRestClient.post()
                 .uri("/specific-explanation")
