@@ -1,18 +1,14 @@
 package com.icc.qasker.quiz.service;
 
-import com.icc.qasker.aws.S3ValidateService;
-import com.icc.qasker.global.component.SlackNotifier;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.global.util.HashUtil;
-import com.icc.qasker.quiz.GenerationService;
 import com.icc.qasker.quiz.dto.request.FeGenerationRequest;
 import com.icc.qasker.quiz.dto.response.AiGenerationResponse;
 import com.icc.qasker.quiz.dto.response.GenerationResponse;
 import com.icc.qasker.quiz.entity.ProblemSet;
-import com.icc.qasker.quiz.repository.ProblemSetRepository;
-import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.ResourceAccessException;
@@ -20,58 +16,38 @@ import org.springframework.web.client.RestClient;
 
 @Slf4j
 @Service
-@AllArgsConstructor
-public class GenerationServiceImpl implements GenerationService {
+public class MockGenerationService {
 
-    private final SlackNotifier slackNotifier;
+    private final GenerationServiceImpl generationServiceImpl;
     private final RestClient aiRestClient;
-    private final ProblemSetRepository problemSetRepository;
     private final HashUtil hashUtil;
-    private final S3ValidateService s3ValidateService;
+    private static final int DUMMY_PROBLEM_SET_ID = 1;
 
+    public MockGenerationService(GenerationServiceImpl generationServiceImpl,
+        HashUtil hashUtil,
+        @Qualifier("aiMockingRestClient") RestClient aiRestClient1) {
+        this.generationServiceImpl = generationServiceImpl;
+        this.hashUtil = hashUtil;
+        this.aiRestClient = aiRestClient1;
+    }
 
-    @Override
     public GenerationResponse processGenerationRequest(
         FeGenerationRequest feGenerationRequest) {
         try {
-            validateQuizCount(feGenerationRequest);
-            s3ValidateService.validateS3Bucket(feGenerationRequest.uploadedUrl());
-            s3ValidateService.isCloudFrontUrl(feGenerationRequest.uploadedUrl());
-
             AiGenerationResponse aiResponse = callAiServer(feGenerationRequest);
 
-            ProblemSet problemSet = ProblemSet.of(aiResponse);
-            ProblemSet savedPs = problemSetRepository.save(problemSet);
+            ProblemSet.of(aiResponse);
 
             GenerationResponse response = new GenerationResponse(
-                hashUtil.encode(savedPs.getId())
+                hashUtil.encode(DUMMY_PROBLEM_SET_ID)
             );
-
-            slackNotifier.notifyText("""
-                ✅ [퀴즈 생성 완료 알림]
-                ProblemSet ID: %s
-                """.formatted(
-                response.getProblemSetId()
-            ));
 
             return response;
         } catch (Throwable error) {
-            throw unifyError(error);
+            throw generationServiceImpl.unifyError(error);
         }
     }
 
-    private void validateQuizCount(FeGenerationRequest feGenerationRequest) {
-        if (feGenerationRequest.quizCount() % 5 != 0) {
-            throw new CustomException(ExceptionMessage.INVALID_QUIZ_COUNT_REQUEST);
-        }
-    }
-
-    RuntimeException unifyError(Throwable error) {
-        if (error instanceof CustomException) {
-            return (CustomException) error;
-        }
-        return new CustomException(ExceptionMessage.DEFAULT_ERROR);
-    }
 
     private AiGenerationResponse callAiServer(FeGenerationRequest feGenerationRequest) {
         try {
@@ -93,4 +69,3 @@ public class GenerationServiceImpl implements GenerationService {
         }
     }
 }
-

@@ -15,4 +15,10 @@ public interface GenerationApiDoc {
     @PostMapping
     ResponseEntity<GenerationResponse> postProblemSetId(
         @RequestBody FeGenerationRequest feGenerationRequest);
+
+
+    @Operation(summary = "모의 퀴즈 생성을 요청한다")
+    @PostMapping("/mock")
+    ResponseEntity<GenerationResponse> generateMockQuiz(
+        @RequestBody FeGenerationRequest feGenerationRequest);
 }
