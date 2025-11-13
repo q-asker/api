@@ -60,4 +60,10 @@ public class GenerationController implements GenerationApiDoc {
         return ResponseEntity.ok(
             mockGenerationService.processGenerationRequest(feGenerationRequest));
     }
+
+    @PostMapping("/mock")
+    public Mono<GenerationResponse> generateMockQuiz(
+        @Valid @RequestBody FeGenerationRequest feGenerationRequest) {
+        return mockGenerationService.processGenerationRequest(feGenerationRequest);
+    }
 }
