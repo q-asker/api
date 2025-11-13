@@ -36,7 +36,7 @@ public class GenerationServiceImpl implements GenerationService {
         try {
             validateQuizCount(feGenerationRequest);
             s3ValidateService.validateS3Bucket(feGenerationRequest.uploadedUrl());
-            s3ValidateService.isCloudFrontUrl(feGenerationRequest.uploadedUrl());
+            s3ValidateService.checkCloudFrontUrlWithThrowing(feGenerationRequest.uploadedUrl());
 
             AiGenerationResponse aiResponse = callAiServer(feGenerationRequest);
 
