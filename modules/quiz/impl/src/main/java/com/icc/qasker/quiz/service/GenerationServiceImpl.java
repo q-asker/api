@@ -44,31 +44,16 @@ public class GenerationServiceImpl implements GenerationService {
     private final HashUtil hashUtil;
     private final S3ValidateService s3ValidateService;
 
-    private FeGenerationRequest unifyQuizType(FeGenerationRequest feGenerationRequest) {
-        if (feGenerationRequest.quizType() == QuizType.MULTIPLE
-            && feGenerationRequest.difficultyType() == DifficultyType.RECALL) {
-            return new FeGenerationRequest(
-                feGenerationRequest.uploadedUrl(),
-                feGenerationRequest.quizCount(),
-                QuizType.BLANK,
-                feGenerationRequest.difficultyType(),
-                feGenerationRequest.pageNumbers()
-            );
-        }
-        return feGenerationRequest;
-    }
-
     @Override
     public Mono<GenerationResponse> processGenerationRequest(
         FeGenerationRequest feGenerationRequest) {
         FeGenerationRequest unifiedRequest = unifyQuizType(feGenerationRequest);
-        validate(feGenerationRequest);
+        validate(unifiedRequest);
         return
             Mono.fromRunnable(() -> {
                     s3ValidateService.isCloudFrontUrl(unifiedRequest.uploadedUrl());
-                    unifyQuizType(unifiedRequest);
                 })
-                .then(callAiServer(feGenerationRequest))
+                .then(callAiServer(unifiedRequest))
                 .flatMap(this::saveToDB)
                 .map(ps -> new GenerationResponse(
                     hashUtil.encode(ps.getId())
@@ -86,7 +71,21 @@ public class GenerationServiceImpl implements GenerationService {
                 .onErrorResume(this::unifyError);
     }
 
-    private void validate(FeGenerationRequest feGenerationRequest) {
+    FeGenerationRequest unifyQuizType(FeGenerationRequest feGenerationRequest) {
+        if (feGenerationRequest.quizType() == QuizType.MULTIPLE
+            && feGenerationRequest.difficultyType() == DifficultyType.RECALL) {
+            return new FeGenerationRequest(
+                feGenerationRequest.uploadedUrl(),
+                feGenerationRequest.quizCount(),
+                QuizType.BLANK,
+                feGenerationRequest.difficultyType(),
+                feGenerationRequest.pageNumbers()
+            );
+        }
+        return feGenerationRequest;
+    }
+
+    void validate(FeGenerationRequest feGenerationRequest) {
         String uploadedUrl = feGenerationRequest.uploadedUrl();
         int quizCount = feGenerationRequest.quizCount();
         List<Integer> pageNumbers = feGenerationRequest.pageNumbers();
@@ -111,7 +110,7 @@ public class GenerationServiceImpl implements GenerationService {
         }
     }
 
-    private Mono<GenerationResponse> unifyError(Throwable error) {
+    Mono<GenerationResponse> unifyError(Throwable error) {
         if (error instanceof CustomException) {
             return Mono.error(error);
         }
@@ -188,7 +187,7 @@ public class GenerationServiceImpl implements GenerationService {
         return problem;
     }
 
-    private Throwable webClientError(Throwable error) {
+    Throwable webClientError(Throwable error) {
         if (error instanceof WebClientResponseException we) {
             String errorJson = we.getResponseBodyAsString();
             log.error(errorJson);

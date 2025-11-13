@@ -5,6 +5,7 @@ import com.icc.qasker.quiz.GenerationService;
 import com.icc.qasker.quiz.controller.doc.GenerationApiDoc;
 import com.icc.qasker.quiz.dto.request.FeGenerationRequest;
 import com.icc.qasker.quiz.dto.response.GenerationResponse;
+import com.icc.qasker.quiz.service.MockGenerationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -21,6 +22,8 @@ import reactor.core.publisher.Mono;
 public class GenerationController implements GenerationApiDoc {
 
     private final GenerationService generationService;
+    private final MockGenerationService mockGenerationService;
+
 
     @Value("${spring.datasource.password}")
     private String errorMessagePassword;
@@ -48,5 +51,11 @@ public class GenerationController implements GenerationApiDoc {
             throw customException;
         }
         return generationService.processGenerationRequest(feGenerationRequest);
+    }
+
+    @PostMapping("/mock")
+    public Mono<GenerationResponse> generateMockQuiz(
+        @Valid @RequestBody FeGenerationRequest feGenerationRequest) {
+        return mockGenerationService.processGenerationRequest(feGenerationRequest);
     }
 }
