@@ -40,5 +40,5 @@ out/
 ### Custom ###
 **/src/main/resources/application-**
 .env
-gradle.properties
+app/gradle.properties
 app/newrelic/newrelic.yml
