@@ -2,7 +2,7 @@ name: Docker Hub Push & 배포 서버 EC2 배포
 on:
   push:
     branches:
-      - ICC-186-change-deploy
+      - main
   workflow_dispatch:
 
 jobs:
@@ -24,7 +24,7 @@ jobs:
           echo "${{ env.APPLICATION_PROD_YML }}" > app/src/main/resources/application-prod.yml
           echo "${{ env.GRADLE_PROPERTIES }}" > app/gradle.properties
 
-      - name: JDK 17 설정
+      - name: JDK 21 설정
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
