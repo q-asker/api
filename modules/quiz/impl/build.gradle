@@ -6,4 +6,5 @@ dependencies {
     implementation project(":global")
     implementation project(":aws:aws-api")
     implementation project(":quiz:quiz-api")
+    implementation "io.github.resilience4j:resilience4j-spring-boot3:2.3.0"
 }

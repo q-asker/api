@@ -1,24 +1,17 @@
-package com.icc.qasker.global.component;
+package com.icc.qasker.quiz.adapter;
 
 import java.time.Duration;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
-import org.springframework.web.servlet.config.annotation.CorsRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
-public class WebConfig implements WebMvcConfigurer {
-
-    @Value("${q-asker.frontend-deploy-url}")
-    private String frontEndDeployUrl;
-
-    @Value("${q-asker.frontend-dev-url}")
-    private String frontEndDevUrl;
+public class AiWebClientConfig {
 
     @Value("${q-asker.ai-server-url}")
     private String aiServerUrl;
@@ -26,16 +19,8 @@ public class WebConfig implements WebMvcConfigurer {
     @Value("${q-asker.ai-mocking-server-url}")
     private String aiMockingServerUrl;
 
-
-    @Override
-    public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/**")
-            .allowedOrigins(frontEndDeployUrl, frontEndDevUrl)
-            .allowedMethods("GET", "POST", "PUT", "DELETE")
-            .maxAge(3600);
-    }
-
     @Bean("aiRestClient")
+    @Primary
     public RestClient aiRestClient() {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(Duration.ofSeconds(10));
