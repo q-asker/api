@@ -1,10 +1,12 @@
 package com.icc.qasker.quiz.adapter;
 
+import com.icc.qasker.global.error.ClientSideException;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.quiz.dto.request.FeGenerationRequest;
 import com.icc.qasker.quiz.dto.response.AiGenerationResponse;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import java.net.SocketTimeoutException;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
@@ -26,14 +28,12 @@ public class AiServerAdapter {
                 .retrieve()
                 .body(AiGenerationResponse.class);
         } catch (HttpClientErrorException.TooManyRequests e) {
-            throw new CustomException(ExceptionMessage.AI_SERVER_TO_MANY_REQUEST);
+            throw new ClientSideException(ExceptionMessage.AI_SERVER_TO_MANY_REQUEST);
         } catch (ResourceAccessException e) {
-            if (e.getCause() instanceof java.net.SocketTimeoutException) {
+            if (e.getCause() instanceof SocketTimeoutException) {
                 throw new CustomException(ExceptionMessage.AI_SERVER_TIMEOUT);
             }
             throw new CustomException(ExceptionMessage.AI_SERVER_CONNECTION_FAILED);
-        } catch (Exception e) {
-            throw new CustomException(ExceptionMessage.AI_SERVER_RESPONSE_ERROR);
         }
     }
 }

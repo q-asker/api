@@ -28,31 +28,27 @@ public class GenerationServiceImpl implements GenerationService {
     @Override
     public GenerationResponse processGenerationRequest(
         FeGenerationRequest feGenerationRequest) {
-        try {
-            validateQuizCount(feGenerationRequest);
-            s3ValidateService.validateS3Bucket(feGenerationRequest.uploadedUrl());
-            s3ValidateService.checkCloudFrontUrlWithThrowing(feGenerationRequest.uploadedUrl());
+        validateQuizCount(feGenerationRequest);
+        s3ValidateService.validateS3Bucket(feGenerationRequest.uploadedUrl());
+        s3ValidateService.checkCloudFrontUrlWithThrowing(feGenerationRequest.uploadedUrl());
 
-            AiGenerationResponse aiResponse = aiServerAdapter.requestGenerate(feGenerationRequest);
+        AiGenerationResponse aiResponse = aiServerAdapter.requestGenerate(feGenerationRequest);
 
-            ProblemSet problemSet = ProblemSet.of(aiResponse);
-            ProblemSet savedPs = problemSetRepository.save(problemSet);
+        ProblemSet problemSet = ProblemSet.of(aiResponse);
+        ProblemSet savedPs = problemSetRepository.save(problemSet);
 
-            GenerationResponse response = new GenerationResponse(
-                hashUtil.encode(savedPs.getId())
-            );
+        GenerationResponse response = new GenerationResponse(
+            hashUtil.encode(savedPs.getId())
+        );
 
-            slackNotifier.notifyText("""
-                ✅ [퀴즈 생성 완료 알림]
-                ProblemSet ID: %s
-                """.formatted(
-                response.getProblemSetId()
-            ));
+        slackNotifier.notifyText("""
+            ✅ [퀴즈 생성 완료 알림]
+            ProblemSet ID: %s
+            """.formatted(
+            response.getProblemSetId()
+        ));
 
-            return response;
-        } catch (Throwable error) {
-            throw unifyError(error);
-        }
+        return response;
     }
 
     private void validateQuizCount(FeGenerationRequest feGenerationRequest) {
@@ -60,12 +56,4 @@ public class GenerationServiceImpl implements GenerationService {
             throw new CustomException(ExceptionMessage.INVALID_QUIZ_COUNT_REQUEST);
         }
     }
-
-    RuntimeException unifyError(Throwable error) {
-        if (error instanceof CustomException) {
-            return (CustomException) error;
-        }
-        return new CustomException(ExceptionMessage.DEFAULT_ERROR);
-    }
 }
-

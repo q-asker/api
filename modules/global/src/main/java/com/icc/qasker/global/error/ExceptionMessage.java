@@ -11,7 +11,6 @@ public enum ExceptionMessage {
     DEFAULT_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "에러가 발생했습니다."),
 
     // ## AWS ISSUE
-    AWS_SERVICE_ERROR(HttpStatus.SERVICE_UNAVAILABLE, "아마존 웹 서비스에 문제가 발생했습니다."),
     NO_FILE_UPLOADED(HttpStatus.BAD_REQUEST, "파일이 업로드되지 않았습니다."),
     FILE_NAME_NOT_EXIST(HttpStatus.BAD_REQUEST, "파일 이름이 존재하지 않습니다"),
     FILE_NAME_TOO_LONG(HttpStatus.BAD_REQUEST, "파일 이름이 깁니다"),
@@ -27,6 +26,8 @@ public enum ExceptionMessage {
 
     // ## AI ISSUE
     // GenerationService.java
+    AI_SERVER_COMMUNICATION_ERROR(HttpStatus.INTERNAL_SERVER_ERROR,
+        "AI 서버와 통신할 수 없습니다. 잠시 후 다시 시도해주세요."),
     AI_SERVER_TIMEOUT(HttpStatus.GATEWAY_TIMEOUT, "AI서버 응답 시간이 초과되었습니다."),
     AI_SERVER_CONNECTION_FAILED(HttpStatus.BAD_GATEWAY, "AI서버에 연결할 수 없습니다."),
     AI_SERVER_RESPONSE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "AI서버에서 오류가 발생했습니다."),

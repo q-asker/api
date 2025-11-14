@@ -18,34 +18,26 @@ import org.springframework.web.client.RestClient;
 @Service
 public class MockGenerationService {
 
-    private final GenerationServiceImpl generationServiceImpl;
+    private static final int DUMMY_PROBLEM_SET_ID = 1;
     private final RestClient aiRestClient;
     private final HashUtil hashUtil;
-    private static final int DUMMY_PROBLEM_SET_ID = 1;
 
-    public MockGenerationService(GenerationServiceImpl generationServiceImpl,
+    public MockGenerationService(
         HashUtil hashUtil,
         @Qualifier("aiMockingRestClient") RestClient aiRestClient1) {
-        this.generationServiceImpl = generationServiceImpl;
         this.hashUtil = hashUtil;
         this.aiRestClient = aiRestClient1;
     }
 
     public GenerationResponse processGenerationRequest(
         FeGenerationRequest feGenerationRequest) {
-        try {
-            AiGenerationResponse aiResponse = callAiServer(feGenerationRequest);
+        AiGenerationResponse aiResponse = callAiServer(feGenerationRequest);
 
-            ProblemSet.of(aiResponse);
+        ProblemSet.of(aiResponse);
 
-            GenerationResponse response = new GenerationResponse(
-                hashUtil.encode(DUMMY_PROBLEM_SET_ID)
-            );
-
-            return response;
-        } catch (Throwable error) {
-            throw generationServiceImpl.unifyError(error);
-        }
+        return new GenerationResponse(
+            hashUtil.encode(DUMMY_PROBLEM_SET_ID)
+        );
     }
 
 
@@ -56,7 +48,6 @@ public class MockGenerationService {
                 .body(feGenerationRequest)
                 .retrieve()
                 .body(AiGenerationResponse.class);
-
         } catch (HttpClientErrorException.TooManyRequests e) {
             throw new CustomException(ExceptionMessage.AI_SERVER_TO_MANY_REQUEST);
         } catch (ResourceAccessException e) {
