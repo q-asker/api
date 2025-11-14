@@ -13,9 +13,4 @@ public class AiGenerationResponse {
     @NotEmpty(message = "quiz가 null입니다.")
     @Valid
     private List<QuizGeneratedByAI> quiz;
-
-    public AiGenerationResponse(String title, List<QuizGeneratedByAI> quiz) {
-        this.title = title;
-        this.quiz = quiz;
-    }
 }

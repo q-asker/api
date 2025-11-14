@@ -1,4 +1,4 @@
-package com.icc.qasker.global.component;
+package com.icc.qasker.global.config;
 
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
@@ -9,12 +9,9 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class SwaggerConfig {
 
-    Info info = new Info()
-        .title("q-asker API 문서");
-
     @Bean
     public OpenAPI openAPI() {
         return new OpenAPI().components(new Components())
-            .info(info);
+            .info(new Info().title("q-asker API 문서"));
     }
 }

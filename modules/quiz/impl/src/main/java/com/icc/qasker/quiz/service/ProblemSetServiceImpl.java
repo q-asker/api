@@ -8,9 +8,9 @@ import com.icc.qasker.quiz.dto.response.ProblemSetResponse;
 import com.icc.qasker.quiz.entity.ProblemSet;
 import com.icc.qasker.quiz.mapper.ProblemSetResponseMapper;
 import com.icc.qasker.quiz.repository.ProblemSetRepository;
-import com.newrelic.api.agent.Trace;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @AllArgsConstructor
@@ -20,15 +20,14 @@ public class ProblemSetServiceImpl implements ProblemSetService {
     private final HashUtil hashUtil;
 
     @Override
-    @Trace(dispatcher = true)
+    @Transactional(readOnly = true)
     public ProblemSetResponse getProblemSet(String problemSetId) {
 
-        long id = decode(problemSetId);
+        long id = hashUtil.decode(problemSetId);
         ProblemSet problemSet = getProblemSetEntity(id);
         return toResponse(problemSet);
     }
 
-    @Trace
     private ProblemSet getProblemSetEntity(long id) {
         return problemSetRepository.findById(id)
             .orElseThrow(
@@ -36,12 +35,6 @@ public class ProblemSetServiceImpl implements ProblemSetService {
             );
     }
 
-    @Trace
-    public long decode(String hashId) {
-        return hashUtil.decode(hashId);
-    }
-
-    @Trace
     private ProblemSetResponse toResponse(ProblemSet problemSet) {
         return ProblemSetResponseMapper.fromEntity(problemSet);
     }
