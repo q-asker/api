@@ -1,5 +1,4 @@
 <configuration scan="true">
-  <debug>true</debug>
 
   <springProperty name="SLACK_ENABLED"     source="slack.enabled" />
   <springProperty name="SLACK_WEBHOOK_URL" source="slack.webhook-url-error" />

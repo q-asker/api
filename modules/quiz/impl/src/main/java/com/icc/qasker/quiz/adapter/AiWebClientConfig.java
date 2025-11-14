@@ -1,4 +1,4 @@
-package com.icc.qasker.global.config;
+package com.icc.qasker.quiz.adapter;
 
 import com.icc.qasker.global.properties.QAskerProperties;
 import java.time.Duration;

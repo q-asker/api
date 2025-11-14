@@ -7,4 +7,5 @@ dependencies {
     implementation project(":aws:aws-api")
     implementation project(":quiz:quiz-api")
     implementation "io.github.resilience4j:resilience4j-spring-boot3:2.3.0"
+    implementation "org.springframework.boot:spring-boot-starter-aop"
 }

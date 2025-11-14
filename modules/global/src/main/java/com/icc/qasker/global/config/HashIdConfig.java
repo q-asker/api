@@ -1,21 +1,19 @@
 package com.icc.qasker.global.config;
 
+import com.icc.qasker.global.properties.HashProperties;
+import lombok.AllArgsConstructor;
 import org.hashids.Hashids;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
+@AllArgsConstructor
 public class HashIdConfig {
 
-    @Value("${app.hashids.salt}")
-    private String salt;
-
-    @Value("${app.hashids.min-length}")
-    private int minLength;
+    private final HashProperties hashProperties;
 
     @Bean
     public Hashids hashids() {
-        return new Hashids(salt, minLength);
+        return new Hashids(hashProperties.getSalt(), hashProperties.getMinLength());
     }
 }
