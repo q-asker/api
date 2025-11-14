@@ -1,4 +1,4 @@
-package com.icc.qasker.aws.component;
+package com.icc.qasker.aws.config;
 
 import com.icc.qasker.aws.properties.AwsS3Properties;
 import lombok.AllArgsConstructor;

@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -22,6 +23,7 @@ public class ExplanationServiceImpl implements ExplanationService {
     private final ProblemRepository problemRepository;
 
     @Override
+    @Transactional(readOnly = true)
     public ExplanationResponse getExplanationByProblemSetId(String problemSetId) {
         long id = hashUtil.decode(problemSetId);
         List<Problem> problems = problemRepository.findByIdProblemSetId(id);

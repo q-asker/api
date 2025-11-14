@@ -15,8 +15,8 @@ import org.springframework.web.multipart.MultipartFile;
 @AllArgsConstructor
 public class S3ValidateServiceImpl implements S3ValidateService {
 
-    private AwsCloudFrontProperties awsCloudFrontProperties;
-    private AwsS3Properties awsS3Properties;
+    private final AwsCloudFrontProperties awsCloudFrontProperties;
+    private final AwsS3Properties awsS3Properties;
 
     @Override
     public void checkCloudFrontUrlWithThrowing(String url) {

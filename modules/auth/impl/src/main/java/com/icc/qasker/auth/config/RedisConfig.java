@@ -1,4 +1,4 @@
-package com.icc.qasker.auth.component;
+package com.icc.qasker.auth.config;
 
 import com.icc.qasker.auth.properties.RedisProperties;
 import lombok.AllArgsConstructor;
@@ -9,7 +9,7 @@ import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactor
 
 @Configuration
 @AllArgsConstructor
-public class Redis {
+public class RedisConfig {
 
     private final RedisProperties redisProperties;
 
