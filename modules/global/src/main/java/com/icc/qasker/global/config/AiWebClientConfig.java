@@ -1,7 +1,8 @@
-package com.icc.qasker.quiz.adapter;
+package com.icc.qasker.global.config;
 
+import com.icc.qasker.global.properties.QAskerProperties;
 import java.time.Duration;
-import org.springframework.beans.factory.annotation.Value;
+import lombok.AllArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -11,23 +12,20 @@ import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 
 @Configuration
+@AllArgsConstructor
 public class AiWebClientConfig {
 
-    @Value("${q-asker.ai-server-url}")
-    private String aiServerUrl;
+    private final QAskerProperties qAskerProperties;
 
-    @Value("${q-asker.ai-mocking-server-url}")
-    private String aiMockingServerUrl;
-
-    @Bean("aiRestClient")
     @Primary
+    @Bean("aiRestClient")
     public RestClient aiRestClient() {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(Duration.ofSeconds(10));
-        factory.setReadTimeout(Duration.ofSeconds(80));
+        factory.setConnectTimeout(Duration.ofSeconds(5));
+        factory.setReadTimeout(Duration.ofSeconds(60));
 
         return RestClient.builder()
-            .baseUrl(aiServerUrl)
+            .baseUrl(qAskerProperties.getAiServerUrl())
             .requestFactory(factory)
             .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .build();
@@ -36,11 +34,11 @@ public class AiWebClientConfig {
     @Bean("aiMockingRestClient")
     public RestClient aiMockingRestClient() {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(Duration.ofSeconds(10));
-        factory.setReadTimeout(Duration.ofSeconds(80));
+        factory.setConnectTimeout(Duration.ofSeconds(5));
+        factory.setReadTimeout(Duration.ofSeconds(60));
 
         return RestClient.builder()
-            .baseUrl(aiMockingServerUrl)
+            .baseUrl(qAskerProperties.getAiMockingServerUrl())
             .requestFactory(factory)
             .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .build();

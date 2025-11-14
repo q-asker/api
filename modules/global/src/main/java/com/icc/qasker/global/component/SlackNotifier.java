@@ -6,14 +6,14 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClient.Builder;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class SlackNotifier {
 
-    private final RestClient.Builder restClientBuilder;
+    private final Builder restClientBuilder;
     private final SlackProperties slackProperties;
 
     public void notifyText(String text) {
@@ -39,7 +39,6 @@ public class SlackNotifier {
                 .body(payload)
                 .retrieve()
                 .toBodilessEntity();
-
         } catch (Exception e) {
             log.warn("Slack 알림 실패: {}", e.toString());
         }
