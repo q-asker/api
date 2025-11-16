@@ -17,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestClient;
 
 @Service
@@ -38,6 +39,7 @@ public class SpecificExplanationServiceImpl implements SpecificExplanationServic
     }
 
     @Override
+    @Transactional(readOnly = true)
     public SpecificExplanationResponse getSpecificExplanation(String encodedProblemSetId,
         int number) {
         Long problemSetId = hashUtil.decode(encodedProblemSetId);
@@ -70,7 +72,6 @@ public class SpecificExplanationServiceImpl implements SpecificExplanationServic
             log.warn("AI 응답 파싱 실패: 원문 그대로 반환", e);
             explanationText = aiExplanationRaw;
         }
-
         return new SpecificExplanationResponse(explanationText);
     }
 }
