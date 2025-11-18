@@ -18,6 +18,11 @@
     !property("SLACK_WEBHOOK_URL").isEmpty()'>
     <then>
       <appender name="SLACK" class="com.github.maricn.logback.SlackAppender">
+
+        <!-- 1. NoResourceFoundException 은 슬랙에서 막기 -->
+        <filter class="com.icc.qasker.global.filter.NoResourceFoundSlackFilter" />
+
+        <!-- 2. 그 외 ERROR 로그는 슬랙으로 전송 -->
         <filter class="ch.qos.logback.classic.filter.LevelFilter">
           <level>ERROR</level>
           <onMatch>ACCEPT</onMatch>
