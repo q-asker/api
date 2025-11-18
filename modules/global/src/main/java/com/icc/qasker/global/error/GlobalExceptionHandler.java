@@ -14,7 +14,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(CustomException.class)
     public ResponseEntity<CustomErrorResponse> handleCustomException(
         CustomException customException) {
-        log.error("custom error occurred", customException);
+        log.error("Custom Error Occurred", customException);
 
         return ResponseEntity.status(customException.getHttpStatus())
             .body(
@@ -24,7 +24,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(CallNotPermittedException.class)
     public ResponseEntity<CustomErrorResponse> handleCustomException(
         CallNotPermittedException exception) {
-        log.error("unexpected error occurred", exception);
+        log.error("Circuit Breaker Activated", exception);
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
             .body(
@@ -36,7 +36,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<CustomErrorResponse> handleCustomException(
         Exception exception) {
-        log.error("unexpected error occurred", exception);
+        log.error("Unexpected Error Occurred", exception);
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
             .body(
