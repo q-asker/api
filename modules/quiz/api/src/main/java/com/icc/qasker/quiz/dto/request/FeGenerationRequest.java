@@ -21,7 +21,7 @@ public record FeGenerationRequest(
     @NotNull(message = "difficultyType가 null입니다.")
     DifficultyType difficultyType,
     @NotNull(message = "pageNumbers가 null입니다.")
-    @Size(min = 1, max = 100, message = "pageNumbers는 1개 이상 100 이하이어야 합니다.")
+    @Size(min = 1, max = 150, message = "pageNumbers는 1개 이상 150 이하이어야 합니다.")
     List<Integer> pageNumbers
 
 ) {

@@ -66,7 +66,5 @@ public class Problem extends CreatedAt {
         );
 
         return problem;
-
     }
-
 }
