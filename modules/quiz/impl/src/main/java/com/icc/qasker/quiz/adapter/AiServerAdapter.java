@@ -7,17 +7,22 @@ import com.icc.qasker.quiz.dto.request.FeGenerationRequest;
 import com.icc.qasker.quiz.dto.response.AiGenerationResponse;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import java.net.SocketTimeoutException;
-import lombok.AllArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpClientErrorException.TooManyRequests;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 
 @Component
-@AllArgsConstructor
 public class AiServerAdapter {
 
     private final RestClient aiRestClient;
+
+    public AiServerAdapter(
+        @Qualifier("aiGenerationRestClient")
+        RestClient aiRestClient) {
+        this.aiRestClient = aiRestClient;
+    }
 
     @CircuitBreaker(name = "aiServer")
     public AiGenerationResponse requestGenerate(FeGenerationRequest feGenerationRequest) {
@@ -27,7 +32,7 @@ public class AiServerAdapter {
                 .body(feGenerationRequest)
                 .retrieve()
                 .body(AiGenerationResponse.class);
-        } catch (HttpClientErrorException.TooManyRequests e) {
+        } catch (TooManyRequests e) {
             throw new ClientSideException(ExceptionMessage.AI_SERVER_TO_MANY_REQUEST);
         } catch (ResourceAccessException e) {
             if (e.getCause() instanceof SocketTimeoutException) {
