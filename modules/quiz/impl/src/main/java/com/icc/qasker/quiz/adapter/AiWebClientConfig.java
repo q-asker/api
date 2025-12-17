@@ -18,11 +18,25 @@ public class AiWebClientConfig {
     private final QAskerProperties qAskerProperties;
 
     @Primary
-    @Bean("aiRestClient")
+    @Bean("aiGenerationRestClient")
+    public RestClient aiGenerationRestClient() {
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(Duration.ofSeconds(5));
+        factory.setReadTimeout(Duration.ofSeconds(40));
+
+        return RestClient.builder()
+            .baseUrl(qAskerProperties.getAiServerUrl())
+            .requestFactory(factory)
+            .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .build();
+    }
+
+    @Primary
+    @Bean("aiFindRestClient")
     public RestClient aiRestClient() {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(Duration.ofSeconds(5));
-        factory.setReadTimeout(Duration.ofSeconds(60));
+        factory.setReadTimeout(Duration.ofSeconds(80));
 
         return RestClient.builder()
             .baseUrl(qAskerProperties.getAiServerUrl())
