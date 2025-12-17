@@ -8,12 +8,13 @@ import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.global.util.HashUtil;
 import com.icc.qasker.quiz.SpecificExplanationService;
 import com.icc.qasker.quiz.dto.request.SpecificExplanationRequest;
-import com.icc.qasker.quiz.dto.response.QuizGeneratedByAI;
+import com.icc.qasker.quiz.dto.response.QuizGeneratedByAI.SelectionsOfAi;
 import com.icc.qasker.quiz.dto.response.SpecificExplanationResponse;
 import com.icc.qasker.quiz.entity.Problem;
 import com.icc.qasker.quiz.repository.ProblemRepository;
 import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -29,7 +30,7 @@ public class SpecificExplanationServiceImpl implements SpecificExplanationServic
     private final ProblemRepository problemRepository;
 
     public SpecificExplanationServiceImpl(
-        RestClient aiRestClient,
+        @Qualifier("aiFindRestClient") RestClient aiRestClient,
         ProblemRepository problemRepository,
         HashUtil hashUtil
     ) {
@@ -48,13 +49,12 @@ public class SpecificExplanationServiceImpl implements SpecificExplanationServic
         SpecificExplanationRequest aiRequest = new SpecificExplanationRequest(
             problem.getTitle(),
             problem.getSelections().stream().map(selection -> {
-                QuizGeneratedByAI.SelectionsOfAi s = new QuizGeneratedByAI.SelectionsOfAi();
+                SelectionsOfAi s = new SelectionsOfAi();
                 s.setContent(selection.getContent());
                 s.setCorrect(selection.isCorrect());
                 return s;
             }).toList()
         );
-        log.debug("problem.getTitle() = {}", problem.getTitle());
         String aiExplanationRaw = Objects.requireNonNull(
             aiRestClient.post()
                 .uri("/specific-explanation")
