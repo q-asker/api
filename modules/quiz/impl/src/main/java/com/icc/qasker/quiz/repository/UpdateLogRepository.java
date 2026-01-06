@@ -6,5 +6,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface UpdateLogRepository extends JpaRepository<UpdateLog, Long> {
 
-    List<UpdateLog> findTop3ByOrderByDateTimeDesc();
+    List<UpdateLog> findTop3ByOrderByCreatedAtDesc();
 }

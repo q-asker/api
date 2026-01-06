@@ -10,7 +10,7 @@ public final class UpdateLogResponseMapper {
         return new UpdateLogResponse(
             entities.stream()
                 .map(entity -> new UpdateLogResponse.updateLog(
-                    entity.getDateTime(),
+                    entity.getCreatedAt(),
                     entity.getUpdateText()
                 ))
                 .toList()
