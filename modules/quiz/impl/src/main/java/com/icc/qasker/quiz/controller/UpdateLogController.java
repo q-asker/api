@@ -1,5 +1,6 @@
 package com.icc.qasker.quiz.controller;
 
+import com.icc.qasker.quiz.controller.doc.UpdateLogApiDocs;
 import com.icc.qasker.quiz.dto.request.UpdateLogRequest;
 import com.icc.qasker.quiz.dto.response.UpdateLogResponse;
 import com.icc.qasker.quiz.service.UpdateLogService;
@@ -14,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/updateLog")
-public class UpdateLogController {
+public class UpdateLogController implements UpdateLogApiDocs {
 
     private final UpdateLogService updateService;
 
@@ -24,8 +25,8 @@ public class UpdateLogController {
     }
 
     @PostMapping
-    public ResponseEntity<?> createUpdateLog(@RequestBody UpdateLogRequest request) {
-        updateService.createUpdateLog(request);
-        return ResponseEntity.ok().build();
+    public ResponseEntity<UpdateLogResponse> createUpdateLog(
+        @RequestBody UpdateLogRequest request) {
+        return ResponseEntity.ok(updateService.createUpdateLog(request));
     }
 }
