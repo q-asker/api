@@ -24,6 +24,16 @@ jobs:
           echo "${{ env.APPLICATION_PROD_YML }}" > app/src/main/resources/application-prod.yml
           echo "${{ env.GRADLE_PROPERTIES }}" > app/gradle.properties
 
+      - name: 모니터링 스크립트 전송
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USER }}
+          key: ${{ env.EC2_KEY }}
+          source: ".github/workflows/monitor_downtime.sh"
+          target: "/tmp"
+          strip_components: 2 # .github/workflows 경로를 제거하고 파일만 /tmp로 복사
+
       - name: JDK 21 설정
         uses: actions/setup-java@v4
         with:
@@ -65,16 +75,6 @@ jobs:
           # DOCKER_CONTAINER_NAME 생성, 등록
           DOCKER_CONTAINER_NAME_VALUE="${DOCKER_ID_VALUE}-${DOCKER_IMAGE_NAME_VALUE}"
           echo "DOCKER_CONTAINER_NAME=$DOCKER_CONTAINER_NAME_VALUE" >> $GITHUB_ENV
-
-      - name: 모니터링 스크립트 전송
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ env.EC2_HOST }}
-          username: ${{ env.EC2_USER }}
-          key: ${{ env.EC2_KEY }}
-          source: ".github/workflows/monitor_downtime.sh"
-          target: "/tmp"
-          strip_components: 2 # .github/workflows 경로를 제거하고 파일만 /tmp로 복사
 
       - name: EC2에 배포
         uses: appleboy/ssh-action@v0.1.7
