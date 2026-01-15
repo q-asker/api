@@ -1,0 +1,10 @@
+package com.icc.qasker.quiz.repository;
+
+import com.icc.qasker.quiz.entity.UpdateLog;
+import java.util.List;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface UpdateLogRepository extends JpaRepository<UpdateLog, Long> {
+
+    List<UpdateLog> findTop3ByOrderByCreatedAtDesc();
+}
