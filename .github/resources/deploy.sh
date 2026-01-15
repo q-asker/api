@@ -100,4 +100,8 @@ if [ -n "$CURRENT_PROFILE" ]; then
   docker-compose stop -t $SHUTDOWN_TIMEOUT $CURRENT_CONTAINER
 fi
 
+echo ">>> Pruning unused Docker images..."
+# 이름 없는(<none>) 댕글링 이미지만 삭제 (안전)
+docker image prune -f
+
 echo ">>> 🎉 Deployment Completed Successfully!"
