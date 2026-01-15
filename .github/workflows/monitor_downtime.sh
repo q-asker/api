@@ -10,7 +10,7 @@ function send_slack() {
   local MESSAGE="$1"
 
   # 1. 봇 이름 및 아이콘 설정
-  local USERNAME="Deploy Monitor"
+  local USERNAME="배포 상태 알림이"
   local ICON=":rocket:" # 배포=:rocket:, 알림=:loudspeaker:, 경고=:rotating_light:
 
   # 2. 메시지 내용에 따라 아이콘 동적 변경 (선택 사항)
