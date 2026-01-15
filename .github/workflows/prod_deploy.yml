@@ -2,7 +2,7 @@ name: Docker Hub Push & 배포 서버 EC2 배포
 on:
   push:
     branches:
-      - ICC-199-blue-green
+      - main
   workflow_dispatch:
 
 jobs:
@@ -65,7 +65,7 @@ jobs:
           # DOCKER_CONTAINER_NAME 생성, 등록
           DOCKER_CONTAINER_NAME_VALUE="${DOCKER_ID_VALUE}-${DOCKER_IMAGE_NAME_VALUE}"
           echo "DOCKER_CONTAINER_NAME=$DOCKER_CONTAINER_NAME_VALUE" >> $GITHUB_ENV
-          
+
       - name: 코드 체크아웃
         uses: actions/checkout@v4
 
