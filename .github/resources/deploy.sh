@@ -41,8 +41,8 @@ echo ">>> Target Profile  : $TARGET_PROFILE ($TARGET_CONTAINER)"
 
 # 3. 최신 이미지 Pull 및 컨테이너 실행
 echo ">>> Docker Pull & Up ($TARGET_CONTAINER)..."
-docker-compose pull $TARGET_CONTAINER
-docker-compose up -d $TARGET_CONTAINER
+docker compose pull $TARGET_CONTAINER
+docker compose up -d $TARGET_CONTAINER
 
 # 4. 헬스 체크 (Spring Boot Actuator)
 echo ">>> Health Check Start (Port: $TARGET_PORT)..."
@@ -62,7 +62,7 @@ for ((i=1; i<=MAX_RETRIES; i++)); do
     echo ">>> ❌ Health Check Failed after $MAX_RETRIES attempts."
     echo ">>> Response: $RESPONSE"
     echo ">>> Deployment Aborted. Stopping $TARGET_CONTAINER..."
-    docker-compose stop $TARGET_CONTAINER
+    docker compose stop $TARGET_CONTAINER
     exit 1
   fi
 
@@ -85,7 +85,7 @@ IS_NGINX_RUNNING=$(docker ps | grep nginx)
 if [ -z "$IS_NGINX_RUNNING" ]; then
     echo ">>> Nginx is not running. Starting Nginx..."
     # Nginx가 꺼져있으면 실행 (depends_on 때문에 app 컨테이너도 확인하지만, 이미 위에서 띄웠으므로 안전함)
-    docker-compose up -d nginx
+    docker compose up -d nginx
 else
     echo ">>> Nginx is running. Reloading..."
     # 켜져 있으면 설정만 리로드 (무중단)
@@ -97,7 +97,7 @@ fi
 if [ -n "$CURRENT_PROFILE" ]; then
   echo ">>> Stopping Old Container ($CURRENT_CONTAINER) with ${SHUTDOWN_TIMEOUT}s timeout..."
   # [-t 초] 옵션: 컨테이너에게 종료 신호를 보내고 지정된 시간만큼 기다림
-  docker-compose stop -t $SHUTDOWN_TIMEOUT $CURRENT_CONTAINER
+  docker compose stop -t $SHUTDOWN_TIMEOUT $CURRENT_CONTAINER
 fi
 
 echo ">>> Pruning unused Docker images..."
