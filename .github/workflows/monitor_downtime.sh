@@ -1,7 +1,7 @@
 #!/bin/bash
 
 WEBHOOK="$1"
-TARGET="http://localhost:8080" # 내부 호출이므로 localhost 고정
+TARGET="http://localhost:8080/actuator/health" # 내부 호출이므로 localhost 고정
 TIMEOUT=180
 HOST_NAME=$(hostname)
 
