@@ -47,10 +47,9 @@ jib {
         }
     }
     container {
-        def activeProfile = project.findProperty("PROFILE") ?: 'local'
         def jvmHeapSize = project.property("JVM_HEAP_SIZE")
 
-        jvmFlags = ["-Xms${jvmHeapSize}", "-Xmx${jvmHeapSize}", "-Dspring.profiles.active=${activeProfile}"]
+        jvmFlags = ["-Xms${jvmHeapSize}", "-Xmx${jvmHeapSize}"]
 
         def newRelicConfig = project.file("newrelic/newrelic.yml")
         def newRelicJar = project.file("newrelic/newrelic.jar")
