@@ -76,9 +76,21 @@ echo ">>> Switching Nginx Traffic to $TARGET_CONTAINER..."
 # service-url.inc 파일 내용을 타겟 컨테이너 주소로 덮어쓰기
 echo "set \$service_url http://$TARGET_CONTAINER:8080;" > ./nginx/conf.d/service-url.inc
 
-# Nginx 설정 리로드 (무중단 적용)
-echo ">>> Reloading Nginx..."
-docker exec nginx nginx -s reload
+# ------------------------------------------------------------------------------
+# Nginx 컨테이너 실행 여부 확인 및 실행
+# ------------------------------------------------------------------------------
+# Nginx 컨테이너가 실행 중인지 확인
+IS_NGINX_RUNNING=$(docker ps | grep nginx)
+
+if [ -z "$IS_NGINX_RUNNING" ]; then
+    echo ">>> Nginx is not running. Starting Nginx..."
+    # Nginx가 꺼져있으면 실행 (depends_on 때문에 app 컨테이너도 확인하지만, 이미 위에서 띄웠으므로 안전함)
+    docker-compose up -d nginx
+else
+    echo ">>> Nginx is running. Reloading..."
+    # 켜져 있으면 설정만 리로드 (무중단)
+    docker exec nginx nginx -s reload
+fi
 
 # 6. 이전 버전 컨테이너 중지
 # 첫 배포(CURRENT_PROFILE이 비어있음)가 아닐 때만 중지 시도
