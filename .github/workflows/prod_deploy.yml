@@ -2,7 +2,7 @@ name: Docker Hub Push & 배포 서버 EC2 배포
 on:
   push:
     branches:
-      - main
+      - ICC-199-blue-green
   workflow_dispatch:
 
 jobs:
@@ -44,6 +44,7 @@ jobs:
       EC2_HOST: ${{ secrets.EC2_HOST }}
       EC2_USER: ${{ secrets.EC2_USER }}
       EC2_KEY: ${{ secrets.EC2_KEY }}
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
     steps:
       - name: gradle.properties 값 환경 변수로 등록 및 마스킹
@@ -65,6 +66,16 @@ jobs:
           DOCKER_CONTAINER_NAME_VALUE="${DOCKER_ID_VALUE}-${DOCKER_IMAGE_NAME_VALUE}"
           echo "DOCKER_CONTAINER_NAME=$DOCKER_CONTAINER_NAME_VALUE" >> $GITHUB_ENV
 
+      - name: 모니터링 스크립트 전송
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USER }}
+          key: ${{ env.EC2_KEY }}
+          source: ".github/workflows/monitor_downtime.sh"
+          target: "/tmp"
+          strip_components: 2 # .github/workflows 경로를 제거하고 파일만 /tmp로 복사
+
       - name: EC2에 배포
         uses: appleboy/ssh-action@v0.1.7
         with:
@@ -73,6 +84,15 @@ jobs:
           key: ${{ env.EC2_KEY }}
           debug: true
           script: |
+            # 1. 전송된 스크립트에 권한 부여
+            chmod +x /tmp/monitor_downtime.sh
+
+            # 2. 백그라운드 실행 (nohup)
+            # 파일은 scp로 이미 /tmp에 존재함
+            nohup /tmp/monitor_downtime.sh "${{ env.SLACK_WEBHOOK_URL }}" > /dev/null 2>&1 &
+            
+            echo "🚀 모니터링 봇 실행 완료. 배포 시작..."
+            
             echo "${{ env.DOCKER_PASSWORD }}" | docker login -u "${{ env.DOCKER_ID }}" --password-stdin
             docker pull ${{ env.DOCKER_ID }}/${{ env.DOCKER_IMAGE_NAME }}
             docker stop ${{ env.DOCKER_CONTAINER_NAME }} || true
