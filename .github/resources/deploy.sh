@@ -18,7 +18,7 @@ echo "🚀 Blue/Green Deployment Start..."
 # 1. 현재 구동 중인 프로필 확인 (Actuator 또는 커스텀 API 활용)
 # curl 접속이 안 되거나(첫 배포), 응답이 없으면 빈 값
 # {"profile":"blue","port":8081,"status":"UP"} 파싱
-CURRENT_PROFILE=$(curl -s --connect-timeout 3 http://localhost/status | grep -o '"profile":"[^"]*"' | cut -d'"' -f4)
+CURRENT_PROFILE=$(curl -s --connect-timeout 3 http://localhost:8080/status | grep -o '"profile":"[^"]*"' | cut -d'"' -f4)
 
 # 2. 타겟 프로필 및 포트 설정
 # 현재가 blue라면 -> 타겟은 green
