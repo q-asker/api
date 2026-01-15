@@ -1,0 +1,28 @@
+services:
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+    # app-blue, app-green이 먼저 실행되고 실행하라는 뜻
+    depends_on:
+      - app-blue
+      - app-green
+
+  app-blue:
+    image: ${DOCKER_IMAGE}
+    container_name: app-blue
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod,blue
+    ports:
+      - "8081:8080"
+
+  app-green:
+    image: ${DOCKER_IMAGE}
+    container_name: app-green
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod,green
+    ports:
+      - "8082:8080"

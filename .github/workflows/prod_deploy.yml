@@ -69,15 +69,16 @@ jobs:
       - name: 코드 체크아웃
         uses: actions/checkout@v4
 
-      - name: 모니터링 스크립트 전송
+      # [추가됨] 블루/그린 배포에 필요한 파일들을 서버로 전송
+      - name: 배포 파일(Docker Compose, Script, Nginx, 모니터링 스크립트) 전송
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ env.EC2_HOST }}
           username: ${{ env.EC2_USER }}
           key: ${{ env.EC2_KEY }}
-          source: ".github/workflows/monitor_downtime.sh"
-          target: "/tmp"
-          strip_components: 2 # .github/workflows 경로를 제거하고 파일만 /tmp로 복사
+          source: ".github/resources/*"
+          target: "/home/${{ env.EC2_USER }}/deploy"
+          strip_components: 2
 
       - name: EC2에 배포
         uses: appleboy/ssh-action@v0.1.7
@@ -87,18 +88,22 @@ jobs:
           key: ${{ env.EC2_KEY }}
           debug: true
           script: |
-            # 1. 전송된 스크립트에 권한 부여
+            # 1. 모니터링 봇 실행 (기존 유지)
             chmod +x /tmp/monitor_downtime.sh
-
-            # 2. 백그라운드 실행 (nohup)
-            # 파일은 scp로 이미 /tmp에 존재함
             nohup /tmp/monitor_downtime.sh "${{ env.SLACK_WEBHOOK_URL }}" > /dev/null 2>&1 &
+            echo "🚀 모니터링 봇 실행 완료."
             
-            echo "🚀 모니터링 봇 실행 완료. 배포 시작..."
+            # 2. 배포 폴더로 이동 (SCP로 전송된 위치)
+            cd /home/${{ env.EC2_USER }}/deploy
             
+            # 3. .env 파일 생성 (docker-compose.yml에서 사용)
+            # Jib가 푸시한 이미지명을 DOCKER_IMAGE 변수로 저장
+            echo "DOCKER_IMAGE=${{ env.DOCKER_ID }}/${{ env.DOCKER_IMAGE_NAME }}" > .env
+            
+            # 4. Docker 로그인
             echo "${{ env.DOCKER_PASSWORD }}" | docker login -u "${{ env.DOCKER_ID }}" --password-stdin
-            docker pull ${{ env.DOCKER_ID }}/${{ env.DOCKER_IMAGE_NAME }}
-            docker stop ${{ env.DOCKER_CONTAINER_NAME }} || true
-            docker rm ${{ env.DOCKER_CONTAINER_NAME }} || true
-            docker run -d --name ${{ env.DOCKER_CONTAINER_NAME }} -p 8080:8080 -p 9999:9999 ${{ env.DOCKER_ID }}/${{ env.DOCKER_IMAGE_NAME }}
-            docker image prune -af
+            
+            # 5. [핵심] deploy.sh 실행 (기존의 docker run 대신 사용)
+            chmod +x deploy.sh
+            echo "🚀 Blue-Green 배포 스크립트 실행..."
+            ./deploy.sh

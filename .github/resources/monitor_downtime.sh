@@ -1,7 +1,8 @@
 #!/bin/bash
 
 WEBHOOK="$1"
-TARGET="http://localhost:8080/actuator/health" # 내부 호출이므로 localhost 고정
+# 내부 호출이므로 localhost 고정
+TARGET="http://localhost:8080/status"
 TIMEOUT=180
 HOST_NAME=$(hostname)
 
@@ -11,7 +12,7 @@ function send_slack() {
 
   # 1. 봇 이름 및 아이콘 설정
   local USERNAME="배포 상태 알림이"
-  local ICON=":rocket:" # 배포=:rocket:, 알림=:loudspeaker:, 경고=:rotating_light:
+  local ICON=":rocket:"
 
   # 2. 메시지 내용에 따라 아이콘 동적 변경 (선택 사항)
   # 실패/Time out 문구가 있으면 경광등(:rotating_light:)으로 변경
