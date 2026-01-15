@@ -88,22 +88,18 @@ jobs:
           key: ${{ env.EC2_KEY }}
           debug: true
           script: |
-            # 1. 모니터링 봇 실행 (기존 유지)
-            chmod +x /tmp/monitor_downtime.sh
-            nohup /tmp/monitor_downtime.sh "${{ env.SLACK_WEBHOOK_URL }}" > /dev/null 2>&1 &
-            echo "🚀 모니터링 봇 실행 완료."
-            
-            # 2. 배포 폴더로 이동 (SCP로 전송된 위치)
+            # 1. 배포 폴더로 이동 (SCP로 전송된 위치)
             cd /home/${{ env.EC2_USER }}/deploy
             
-            # 3. .env 파일 생성 (docker-compose.yml에서 사용)
+            # 2. .env 파일 생성 (docker-compose.yml에서 사용)
             # Jib가 푸시한 이미지명을 DOCKER_IMAGE 변수로 저장
             echo "DOCKER_IMAGE=${{ env.DOCKER_ID }}/${{ env.DOCKER_IMAGE_NAME }}" > .env
             
-            # 4. Docker 로그인
+            # 3. Docker 로그인
             echo "${{ env.DOCKER_PASSWORD }}" | docker login -u "${{ env.DOCKER_ID }}" --password-stdin
             
-            # 5. [핵심] deploy.sh 실행 (기존의 docker run 대신 사용)
+            # 4. [핵심] deploy.sh 실행 (기존의 docker run 대신 사용)
             chmod +x deploy.sh
             echo "🚀 Blue-Green 배포 스크립트 실행..."
-            ./deploy.sh
+            # 수정됨: 스크립트 뒤에 비밀 변수(Secrets)를 인자로 전달
+            ./deploy.sh "${{ env.SLACK_WEBHOOK_URL }}"
