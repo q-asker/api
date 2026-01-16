@@ -59,7 +59,7 @@ send_slack ">>> 현재 컨테이너 : $CURRENT_CONTAINER ($OLD_IMAGE_NAME)"
 send_slack ">>> 띄울 컨테이너 : $TARGET_CONTAINER ($NEW_IMAGE_NAME)"
 
 # 3. 최신 이미지 Pull 및 컨테이너 실행
-send_slack ">>> Docker Pull 시작 ($TARGET_CONTAINER)..."
+send_slack ">>> Docker Pull 시작 ($NEW_IMAGE_NAME)..."
 
 timeout $PULL_TIMEOUT docker compose pull $TARGET_CONTAINER
 EXIT_CODE=$?
