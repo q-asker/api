@@ -34,7 +34,7 @@ BLUE_PORT=$2
 GREEN_PORT=$3
 
 # 배포 시작 시간 기록
-TOTA  L_START_TIME=$(date +%s)
+TOTAL_START_TIME=$(date +%s)
 
 send_slack "🚀 블루-그린 배포 시작..."
 
@@ -89,7 +89,7 @@ for ((i=1; i<=MAX_RETRIES; i++)); do
     exit 1
   fi
 
-  send_slack ">>> Waiting for service... ($i/$MAX_RETRIES)"
+  send_slack ">>> ($TARGET_CONTAINER) 응답 대기중... ($i/$MAX_RETRIES)"
   sleep $SLEEP_TIME
 done
 
