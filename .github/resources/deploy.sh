@@ -1,11 +1,11 @@
 #!/bin/bash
 
-WEBHOOK="$1"
 # Slack 전송 함수
+WEBHOOK="$1"
 function send_slack() {
   local MESSAGE="$1"
   local USERNAME="배포 상태 알림이"
-  local ICON=":rocket:"
+  local ICON=":gear:"
 
   if [[ "$MESSAGE" == *"실패"* ]] || [[ "$MESSAGE" == *"Time out"* ]]; then
       ICON=":rotating_light:"
@@ -30,11 +30,13 @@ EOF
 MAX_RETRIES=36
 SLEEP_TIME=5
 SHUTDOWN_TIMEOUT=60
+BLUE_PORT=$2
+GREEN_PORT=$3
 
-# [추가됨 1] 배포 시작 시간 기록
-TOTAL_START_TIME=$(date +%s)
+# 배포 시작 시간 기록
+TOTA  L_START_TIME=$(date +%s)
 
-send_slack "🚀 Blue/Green Deployment Start..."
+send_slack "🚀 블루-그린 배포 시작..."
 
 # 1. 현재 구동 중인 프로필 확인
 CURRENT_PROFILE=$(curl -s --connect-timeout 3 http://localhost:8080/status | grep -o '"profile":"[^"]*"' | cut -d'"' -f4)
@@ -42,18 +44,16 @@ CURRENT_PROFILE=$(curl -s --connect-timeout 3 http://localhost:8080/status | gre
 # 2. 타겟 프로필 및 포트 설정
 if [[ "$CURRENT_PROFILE" == *"blue"* ]]; then
   CURRENT_CONTAINER="app-blue"
-  TARGET_PROFILE="green"
-  TARGET_PORT=8082
+  TARGET_PORT=GREEN_PORT
   TARGET_CONTAINER="app-green"
 else
   CURRENT_CONTAINER="app-green"
-  TARGET_PROFILE="blue"
-  TARGET_PORT=8081
+  TARGET_PORT=BLUE_PORT
   TARGET_CONTAINER="app-blue"
 fi
 
-send_slack ">>> Current Profile : $CURRENT_PROFILE ($CURRENT_CONTAINER)"
-send_slack ">>> Target Profile  : $TARGET_PROFILE ($TARGET_CONTAINER)"
+send_slack ">>> 현재 컨테이너 : $CURRENT_CONTAINER"
+send_slack ">>> 띄울 컨테이너 : $TARGET_CONTAINER"
 
 # 3. 최신 이미지 Pull 및 컨테이너 실행
 send_slack ">>> Docker Pull & Up ($TARGET_CONTAINER)..."
@@ -63,7 +63,7 @@ docker compose up -d $TARGET_CONTAINER
 # 4. 헬스 체크
 send_slack ">>> Health Check Start (Port: $TARGET_PORT)..."
 
-# [추가됨 1] 헬스 체크 시작 시간 기록
+# 헬스 체크 시작 시간 기록
 HEALTH_START_TIME=$(date +%s)
 
 for ((i=1; i<=MAX_RETRIES; i++)); do
@@ -73,25 +73,23 @@ for ((i=1; i<=MAX_RETRIES; i++)); do
   UP_CHECK=$(echo "$RESPONSE" | grep -o '"status":"UP"')
 
   if [ ! -z "$UP_CHECK" ]; then
-    # [추가됨 2] 성공 시 종료 시간 기록 및 소요 시간 계산
+    # 성공 시 종료 시간 기록 및 소요 시간 계산
     HEALTH_END_TIME=$(date +%s)
     HEALTH_DURATION=$((HEALTH_END_TIME - HEALTH_START_TIME))
 
-    echo ">>> Health Check Success! (Attempt $i/$MAX_RETRIES)"
-
-    # [수정됨] 슬랙 알림에 부팅 소요 시간 포함
+    # 슬랙 알림에 부팅 소요 시간 포함
     send_slack ">>> ✅ Health Check Passed! (Startup Time: ${HEALTH_DURATION}s)"
     break
   fi
   if [ $i -eq $MAX_RETRIES ]; then
     echo ">>> ❌ Health Check Failed after $MAX_RETRIES attempts."
-    echo ">>> Response: $RESPONSE"
-    echo ">>> Deployment Aborted. Stopping $TARGET_CONTAINER..."
+    echo ">>> "
+    send_slack ">>> ⚠️ 배포 실패!! Stopping $TARGET_CONTAINER... \nResponse: $RESPONSE"
     docker compose stop $TARGET_CONTAINER
     exit 1
   fi
 
-  echo ">>> Waiting for service... ($i/$MAX_RETRIES)"
+  send_slack ">>> Waiting for service... ($i/$MAX_RETRIES)"
   sleep $SLEEP_TIME
 done
 
@@ -131,9 +129,7 @@ fi
 send_slack ">>> Pruning unused Docker images..."
 docker image prune -f
 
-# [추가됨 2] 전체 소요 시간 계산
 TOTAL_END_TIME=$(date +%s)
 TOTAL_DURATION=$((TOTAL_END_TIME - TOTAL_START_TIME))
 
-# [수정됨] 완료 메시지에 소요 시간 포함
 send_slack ">>> 🎉 Deployment Completed Successfully! (Total Time: ${TOTAL_DURATION}s)"

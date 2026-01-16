@@ -44,6 +44,8 @@ jobs:
       EC2_HOST: ${{ secrets.EC2_HOST }}
       EC2_USER: ${{ secrets.EC2_USER }}
       EC2_KEY: ${{ secrets.EC2_KEY }}
+      GREEN_PORT: 8001
+      BLUE_PORT: 8002
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
     steps:
@@ -92,14 +94,13 @@ jobs:
             cd /home/${{ env.EC2_USER }}/deploy
             
             # 2. .env 파일 생성 (docker-compose.yml에서 사용)
-            # Jib가 푸시한 이미지명을 DOCKER_IMAGE 변수로 저장
             echo "DOCKER_IMAGE=${{ env.DOCKER_ID }}/${{ env.DOCKER_IMAGE_NAME }}" > .env
+            echo "BLUE_PORT=${{ env.BLUE_PORT }}" >> .env
+            echo "GREEN_PORT=${{ env.GREEN_PORT }}" >> .env
             
             # 3. Docker 로그인
             echo "${{ env.DOCKER_PASSWORD }}" | docker login -u "${{ env.DOCKER_ID }}" --password-stdin
             
-            # 4. [핵심] deploy.sh 실행 (기존의 docker run 대신 사용)
+            # 4. eploy.sh 실행 (기존의 docker run 대신 사용)
             chmod +x deploy.sh
-            echo "🚀 Blue-Green 배포 스크립트 실행..."
-            # 수정됨: 스크립트 뒤에 비밀 변수(Secrets)를 인자로 전달
-            ./deploy.sh "${{ env.SLACK_WEBHOOK_URL }}"
+            ./deploy.sh "${{ env.SLACK_WEBHOOK_URL }}" "${{ env.BLUE_PORT }}" "${{ env.GREEN_PORT }}"
