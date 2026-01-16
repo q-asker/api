@@ -4,7 +4,7 @@ on:
   pull_request:
     types: [ opened, edited ] # PR이 열리거나 제목이 수정될 때 동작
     branches:
-      - develop # main 브랜치를 대상으로 하는 PR만
+      - main # main 브랜치를 대상으로 하는 PR만
 
 permissions:
   contents: write # 리포지토리에 커밋을 푸시하기 위해 쓰기 권한 필수
