@@ -67,7 +67,7 @@ send_slack ">>> Health Check Start (Port: $TARGET_PORT)..."
 HEALTH_START_TIME=$(date +%s)
 
 for ((i=1; i<=MAX_RETRIES; i++)); do
-  # Actuator health endpoint 호출
+  # status endpoint 호출
   RESPONSE=$(curl -s --connect-timeout 3 --max-time 5 http://localhost:$TARGET_PORT/status)
   # 응답에 "status":"UP"이 포함되어 있는지 확인
   UP_CHECK=$(echo "$RESPONSE" | grep -o '"status":"UP"')
