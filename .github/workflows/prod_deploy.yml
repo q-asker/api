@@ -71,6 +71,21 @@ jobs:
       - name: 코드 체크아웃
         uses: actions/checkout@v4
 
+      - name: build.gradle 버전 추출
+        run: |
+          # version = "1.2.3" 또는 '1.2.3' 패턴에서 숫자 부분만 추출
+          VERSION=$(sed -nE "s/.*version = ['\"]([^'\"]+)['\"].*/\1/p" build.gradle)
+
+          if [ -z "$VERSION" ]; then
+            echo "::error::build.gradle에서 버전을 찾을 수 없습니다."
+            exit 1
+          fi
+
+          echo "Extracted Version: $VERSION"
+          
+          # 도커 이미지 변수 참조 가능하게 함
+          echo "DOCKER_IMAGE_NAME=${{ env.DOCKER_ID }}/${{ env.DOCKER_IMAGE_NAME }}:$VERSION" >> $GITHUB_ENV
+
       - name: 배포 파일(Docker Compose, Script, Nginx) 전송
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -93,14 +108,14 @@ jobs:
             cd /home/${{ env.EC2_USER }}/deploy
             
             # 2. .env 파일 생성 (docker-compose.yml에서 사용)
-            echo "DOCKER_IMAGE=${{ env.DOCKER_ID }}/${{ env.DOCKER_IMAGE_NAME }}" > .env
+            echo "DOCKER_IMAGE=${{ env.DOCKER_IMAGE_NAME }}" > .env
             echo "BLUE_PORT=${{ env.BLUE_PORT }}" >> .env
             echo "GREEN_PORT=${{ env.GREEN_PORT }}" >> .env
             
             # 3. Docker 로그인
             echo "${{ env.DOCKER_PASSWORD }}" | docker login -u "${{ env.DOCKER_ID }}" --password-stdin
             
-            # 4. eploy.sh 실행 (기존의 docker run 대신 사용)
+            # 4. deploy.sh 실행 (기존의 docker run 대신 사용)
             chmod +x deploy.sh
             export SLACK_WEBHOOK_URL="${{ env.SLACK_WEBHOOK_URL }}"
-            ./deploy.sh "${{ env.BLUE_PORT }}" "${{ env.GREEN_PORT }}"
+            ./deploy.sh "${{ env.BLUE_PORT }}" "${{ env.GREEN_PORT }}" "${{ env.DOCKER_IMAGE }}"

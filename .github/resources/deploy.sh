@@ -108,9 +108,11 @@ else
     docker exec nginx nginx -s reload
 fi
 
+OLD_IMAGE_NAME="없음 (최초 배포)"
 # 6. 이전 버전 컨테이너 중지
 if [ -n "$CURRENT_PROFILE" ]; then
   send_slack ">>> Stopping Old Container ($CURRENT_CONTAINER) with ${SHUTDOWN_TIMEOUT}s timeout..."
+  OLD_IMAGE_NAME=$(docker inspect --format='{{.Config.Image}}' $CURRENT_CONTAINER)
 
   STOP_START=$(date +%s)
   docker compose stop -t $SHUTDOWN_TIMEOUT $CURRENT_CONTAINER
@@ -131,5 +133,6 @@ docker image prune -f
 
 TOTAL_END_TIME=$(date +%s)
 TOTAL_DURATION=$((TOTAL_END_TIME - TOTAL_START_TIME))
+NEW_IMAGE_NAME="${3:?NEW_IMAGE_NAME is required}"
 
-send_slack ">>> 🎉 Deployment Completed Successfully! (Total Time: ${TOTAL_DURATION}s)"
+send_slack ">>> 🎉 Deployment Completed Successfully! \n${OLD_IMAGE_NAME}->${NEW_IMAGE_NAME} \n(Total Time: ${TOTAL_DURATION}s)"
