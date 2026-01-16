@@ -2,7 +2,7 @@ name: Docker Hub Push & 배포 서버 EC2 배포
 on:
   push:
     branches:
-      - main
+      - ICC-199-blue-green
   workflow_dispatch:
 
 jobs:
@@ -102,4 +102,5 @@ jobs:
             
             # 4. eploy.sh 실행 (기존의 docker run 대신 사용)
             chmod +x deploy.sh
-            ./deploy.sh "${{ env.SLACK_WEBHOOK_URL }}" "${{ env.BLUE_PORT }}" "${{ env.GREEN_PORT }}"
+            export SLACK_WEBHOOK_URL="${{ env.SLACK_WEBHOOK_URL }}"
+            ./deploy.sh "${{ env.BLUE_PORT }}" "${{ env.GREEN_PORT }}"

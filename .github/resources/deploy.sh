@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # Slack 전송 함수
-WEBHOOK="$1"
+WEBHOOK="${SLACK_WEBHOOK_URL:?SLACK_WEBHOOK_URL is required}"
+
 function send_slack() {
   local MESSAGE="$1"
   local USERNAME="배포 상태 알림이"
@@ -21,7 +22,7 @@ function send_slack() {
 }
 EOF
 )
-  curl -s -X POST -H 'Content-type: application/json' --data "$PAYLOAD" "$WEBHOOK" > /dev/null
+  curl --connect-timeout 3 --max-time 5 -s -X POST -H 'Content-type: application/json' --data "$PAYLOAD" "$WEBHOOK" > /dev/null
 }
 
 # ==============================================================================
@@ -30,16 +31,15 @@ EOF
 MAX_RETRIES=36
 SLEEP_TIME=5
 SHUTDOWN_TIMEOUT=60
-BLUE_PORT=$2
-GREEN_PORT=$3
-
+BLUE_PORT="${1:?BLUE_PORT is required}"
+GREEN_PORT="${2:?GREEN_PORT is required}"
 # 배포 시작 시간 기록
 TOTAL_START_TIME=$(date +%s)
 
 send_slack "🚀 블루-그린 배포 시작..."
 
 # 1. 현재 구동 중인 프로필 확인
-CURRENT_PROFILE=$(curl -s --connect-timeout 3 http://localhost:8080/status | grep -o '"profile":"[^"]*"' | cut -d'"' -f4)
+CURRENT_PROFILE=$(curl -s --connect-timeout 3 --max-time 5 http://localhost:8080/status | grep -o '"profile":"[^"]*"' | cut -d'"' -f4)
 
 # 2. 타겟 프로필 및 포트 설정
 if [[ "$CURRENT_PROFILE" == *"blue"* ]]; then
@@ -68,7 +68,7 @@ HEALTH_START_TIME=$(date +%s)
 
 for ((i=1; i<=MAX_RETRIES; i++)); do
   # Actuator health endpoint 호출
-  RESPONSE=$(curl -s http://localhost:$TARGET_PORT/status)
+  RESPONSE=$(curl -s --connect-timeout 3 --max-time 5 http://localhost:$TARGET_PORT/status)
   # 응답에 "status":"UP"이 포함되어 있는지 확인
   UP_CHECK=$(echo "$RESPONSE" | grep -o '"status":"UP"')
 
