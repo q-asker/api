@@ -71,8 +71,7 @@ jobs:
       - name: 코드 체크아웃
         uses: actions/checkout@v4
 
-      # [추가됨] 블루/그린 배포에 필요한 파일들을 서버로 전송
-      - name: 배포 파일(Docker Compose, Script, Nginx, 모니터링 스크립트) 전송
+      - name: 배포 파일(Docker Compose, Script, Nginx) 전송
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ env.EC2_HOST }}
