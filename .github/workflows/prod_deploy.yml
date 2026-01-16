@@ -2,7 +2,7 @@ name: Docker Hub Push & 배포 서버 EC2 배포
 on:
   push:
     branches:
-      - ICC-199-blue-green
+      - main
   workflow_dispatch:
 
 jobs:
