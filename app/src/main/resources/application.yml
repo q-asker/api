@@ -1,3 +1,8 @@
 spring:
   application:
     name: q-asker
+  lifecycle:
+    timeout-per-shutdown-phase: 60s
+
+server:
+  shutdown: graceful
