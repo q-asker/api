@@ -1,0 +1,24 @@
+services:
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+
+  app-blue:
+    image: ${DOCKER_IMAGE}
+    container_name: app-blue
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod,blue
+    ports:
+      - "${BLUE_PORT}:8080"
+
+  app-green:
+    image: ${DOCKER_IMAGE}
+    container_name: app-green
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod,green
+    ports:
+      - "${GREEN_PORT}:8080"
