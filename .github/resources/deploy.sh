@@ -141,8 +141,7 @@ TOTAL_DURATION=$((TOTAL_END_TIME - TOTAL_START_TIME))
 
 send_slack ">>> 🎉 *배포가 성공적으로 완료되었습니다!*
            (총 소요 시간: ${TOTAL_DURATION}초)
-           \`\`\`
-           [변경 전] ${OLD_IMAGE_NAME}
+
+           [변경 전] \`${OLD_IMAGE_NAME}\`
            ⬇️
-           [변경 후] ${NEW_IMAGE_NAME}
-           \`\`\`"
+           [변경 후] \`${NEW_IMAGE_NAME}\`"
