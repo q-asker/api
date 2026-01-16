@@ -28,7 +28,7 @@ jobs:
           echo "Checking PR Title: $TITLE"
           
           # 정규식: v1.2.3 또는 release/v1.2.3 등에서 숫자.숫자.숫자 추출
-          if [[ $TITLE =~ v([0-9]+\.[0-9]+\.[0-9]+) ]]; then
+          if [[ $TITLE =~ ([0-9]+\.[0-9]+\.[0-9]+) ]]; then
             NEW_VERSION="${BASH_REMATCH[1]}"
             echo "New Version Detected: $NEW_VERSION"
             echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
