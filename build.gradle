@@ -19,8 +19,6 @@ subprojects {
         }
     }
 
-    group = "com.icc.qasker"
-    version = "1.4.6"
     sourceCompatibility = '21'
 
     configurations {

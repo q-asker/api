@@ -14,12 +14,19 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: 토큰 발급
+        uses: actions/create-github-app-token@v1
+        id: app-token
+        with:
+          app-id: ${{ vars.VERSION_BUMPER_APPID }}
+          private-key: ${{ secrets.VERSION_BUMPER_SECRET }}
+
       - name: Checkout Source Branch
         uses: actions/checkout@v4
         with:
           # 중요: PR의 머지된 코드가 아니라, 소스 브랜치(develop) 자체를 체크아웃해야 푸시 가능
           ref: ${{ github.head_ref }}
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ steps.app-token.outputs.token }}
 
       - name: Extract Version from PR Title
         id: get_version
@@ -42,8 +49,8 @@ jobs:
         if: env.NEW_VERSION != ''
         run: |
           # build.gradle 파일에서 version = "..." 패턴을 찾아 새 버전으로 교체
-          # 주의: 사용하시는 포맷(version = "1.4.0")에 맞춰 정규식 작성됨
-          sed -i -E "s/version = \"[0-9]+\.[0-9]+\.[0-9]+\"/version = \"$NEW_VERSION\"/" build.gradle
+          # sed 개선: 큰따옴표, 작은따옴표, 공백 유연성 확보 (version= '1.0.0' 등)
+          sed -i -E "s/version ?= ?[\"'][0-9]+\.[0-9]+\.[0-9]+[\"']/version = \"$NEW_VERSION\"/" build.gradle
           
           # 변경 내용 확인 (로그용)
           grep "version =" build.gradle
