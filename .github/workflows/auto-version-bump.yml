@@ -33,8 +33,9 @@ jobs:
             echo "New Version Detected: $NEW_VERSION"
             echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
           else
-            echo "No version pattern (vX.Y.Z) found in title. Skipping."
-            echo "NEW_VERSION=" >> $GITHUB_ENV
+            # [수정된 부분] 실패 메시지를 출력하고 exit 1로 종료
+            echo "::error::PR 제목에서 버전 형식(예: v1.0.0)을 찾을 수 없습니다. 제목을 확인해주세요."
+            exit 1
           fi
 
       - name: Update build.gradle
