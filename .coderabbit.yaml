@@ -1,0 +1,41 @@
+# CodeRabbit 언어 설정
+# 리뷰 코멘트 및 요약을 한국어로 출력합니다.
+language: "ko-KR"
+
+# 실험적 기능 사용 여부
+# false: 검증된 안정적인 기능만 사용합니다. (true 설정 시 베타 기능 활성화)
+early_access: false
+
+reviews:
+  # 리뷰 강도(성격) 설정
+  # "chill": 사소한 지적을 줄이고, 중요한 버그나 로직 오류 위주로 부드럽게 리뷰합니다.
+  # (대안: "assertive" - 꼼꼼하고 엄격하게 리뷰)
+  profile: "chill"
+
+  # 고수준 요약 생성 여부
+  # true: PR 본문 상단에 전체 변경 사항에 대한 요약을 자동으로 작성합니다.
+  high_level_summary: true
+
+  # 리뷰 상태 표시 여부
+  # true: GitHub/GitLab의 PR 체크 리스트(Status Check)에 리뷰 진행 상태를 표시합니다.
+  review_status: true
+
+  # 변경 사항 상세 설명(Walkthrough) 접기 여부
+  # false: 파일별 변경 내역 설명을 기본적으로 펼쳐서 보여줍니다. (true: 접힌 상태로 시작)
+  collapse_walkthrough: false
+
+  # 자동 리뷰 트리거 설정
+  auto_review:
+    # 자동 리뷰 활성화 여부
+    # false: PR 생성/업데이트 시 자동으로 리뷰하지 않습니다.
+    # (PR 댓글에 "@coderabbitai review" 명령어로 수동 호출해야 함)
+    enabled: false
+
+    # Draft PR 자동 리뷰 여부
+    # false: 초안(Draft) 상태인 PR은 리뷰하지 않습니다.
+    drafts: false
+
+chat:
+  # 대화형 자동 응답 설정
+  # true: 사용자가 봇의 리뷰에 댓글을 달면, 문맥을 파악하여 자동으로 답변합니다.
+  auto_reply: true

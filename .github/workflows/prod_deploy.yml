@@ -31,10 +31,10 @@ jobs:
           java-version: '21'
 
       - name: Gradle 설정
-        uses: gradle/gradle-build-action@v2
+        uses: gradle/actions/setup-gradle@v4
 
       - name: Jib로 Docker 이미지 빌드 및 푸시
-        run: ./gradlew jib -PPROFILE=prod
+        run: ./gradlew jib -PPROFILE=prod --build-cache
 
   deploy:
     name: EC2 배포
@@ -44,6 +44,9 @@ jobs:
       EC2_HOST: ${{ secrets.EC2_HOST }}
       EC2_USER: ${{ secrets.EC2_USER }}
       EC2_KEY: ${{ secrets.EC2_KEY }}
+      BLUE_PORT: 8001
+      GREEN_PORT: 8002
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
     steps:
       - name: gradle.properties 값 환경 변수로 등록 및 마스킹
@@ -65,6 +68,34 @@ jobs:
           DOCKER_CONTAINER_NAME_VALUE="${DOCKER_ID_VALUE}-${DOCKER_IMAGE_NAME_VALUE}"
           echo "DOCKER_CONTAINER_NAME=$DOCKER_CONTAINER_NAME_VALUE" >> $GITHUB_ENV
 
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+
+      - name: build.gradle 버전 추출
+        run: |
+          # version = "1.2.3" 또는 '1.2.3' 패턴에서 숫자 부분만 추출
+          VERSION=$(sed -nE "s/.*version = ['\"]([^'\"]+)['\"].*/\1/p" build.gradle)
+
+          if [ -z "$VERSION" ]; then
+            echo "::error::build.gradle에서 버전을 찾을 수 없습니다."
+            exit 1
+          fi
+
+          echo "Extracted Version: $VERSION"
+          
+          # 도커 이미지 변수 참조 가능하게 함
+          echo "DOCKER_IMAGE_NAME=${{ env.DOCKER_ID }}/${{ env.DOCKER_IMAGE_NAME }}:$VERSION" >> $GITHUB_ENV
+
+      - name: 배포 파일(Docker Compose, Script, Nginx) 전송
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USER }}
+          key: ${{ env.EC2_KEY }}
+          source: ".github/resources/*"
+          target: "/home/${{ env.EC2_USER }}/deploy"
+          strip_components: 2
+
       - name: EC2에 배포
         uses: appleboy/ssh-action@v0.1.7
         with:
@@ -73,9 +104,18 @@ jobs:
           key: ${{ env.EC2_KEY }}
           debug: true
           script: |
+            # 1. 배포 폴더로 이동 (SCP로 전송된 위치)
+            cd /home/${{ env.EC2_USER }}/deploy
+            
+            # 2. .env 파일 생성 (docker-compose.yml에서 사용)
+            echo "DOCKER_IMAGE=${{ env.DOCKER_IMAGE_NAME }}" > .env
+            echo "BLUE_PORT=${{ env.BLUE_PORT }}" >> .env
+            echo "GREEN_PORT=${{ env.GREEN_PORT }}" >> .env
+            
+            # 3. Docker 로그인
             echo "${{ env.DOCKER_PASSWORD }}" | docker login -u "${{ env.DOCKER_ID }}" --password-stdin
-            docker pull ${{ env.DOCKER_ID }}/${{ env.DOCKER_IMAGE_NAME }}
-            docker stop ${{ env.DOCKER_CONTAINER_NAME }} || true
-            docker rm ${{ env.DOCKER_CONTAINER_NAME }} || true
-            docker run -d --name ${{ env.DOCKER_CONTAINER_NAME }} -p 8080:8080 -p 9999:9999 ${{ env.DOCKER_ID }}/${{ env.DOCKER_IMAGE_NAME }}
-            docker image prune -af
+            
+            # 4. deploy.sh 실행 (기존의 docker run 대신 사용)
+            chmod +x deploy.sh
+            export SLACK_WEBHOOK_URL="${{ env.SLACK_WEBHOOK_URL }}"
+            ./deploy.sh "${{ env.BLUE_PORT }}" "${{ env.GREEN_PORT }}" "${{ env.DOCKER_IMAGE_NAME }}"

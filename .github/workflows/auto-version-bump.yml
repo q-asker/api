@@ -1,0 +1,73 @@
+name: Auto Bump Version on PR
+
+on:
+  pull_request:
+    types: [ opened, edited, synchronize ] # PR이 열리거나 제목이 수정될 때 동작
+    branches:
+      - main # main 브랜치를 대상으로 하는 PR만
+
+permissions:
+  contents: write # 리포지토리에 커밋을 푸시하기 위해 쓰기 권한 필수
+
+jobs:
+  bump-version:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 토큰 발급
+        uses: actions/create-github-app-token@v1
+        id: app-token
+        with:
+          app-id: ${{ vars.VERSION_BUMPER_APPID }}
+          private-key: ${{ secrets.VERSION_BUMPER_SECRET }}
+
+      - name: Checkout Source Branch
+        uses: actions/checkout@v4
+        with:
+          # 중요: PR의 머지된 코드가 아니라, 소스 브랜치(develop) 자체를 체크아웃해야 푸시 가능
+          ref: ${{ github.head_ref }}
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Extract Version from PR Title
+        id: get_version
+        run: |
+          TITLE="${{ github.event.pull_request.title }}"
+          echo "Checking PR Title: $TITLE"
+          
+          # 정규식: v1.2.3 또는 release/v1.2.3 등에서 숫자.숫자.숫자 추출
+          if [[ $TITLE =~ ([0-9]+\.[0-9]+\.[0-9]+) ]]; then
+            NEW_VERSION="${BASH_REMATCH[1]}"
+            echo "New Version Detected: $NEW_VERSION"
+            echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
+          else
+            # [수정된 부분] 실패 메시지를 출력하고 exit 1로 종료
+            echo "::error::PR 제목에서 버전 형식(예: v1.0.0)을 찾을 수 없습니다. 제목을 확인해주세요."
+            exit 1
+          fi
+
+      - name: Update build.gradle
+        if: env.NEW_VERSION != ''
+        run: |
+          # build.gradle 파일에서 version = "..." 패턴을 찾아 새 버전으로 교체
+          # sed 개선: 큰따옴표, 작은따옴표, 공백 유연성 확보 (version= '1.0.0' 등)
+          sed -i -E "s/version ?= ?[\"'][0-9]+\.[0-9]+\.[0-9]+[\"']/version = \"$NEW_VERSION\"/" build.gradle
+          
+          # 변경 내용 확인 (로그용)
+          grep "version =" build.gradle
+
+      - name: Commit and Push Changes
+        if: env.NEW_VERSION != ''
+        run: |
+          # Git 사용자 설정 (봇 이름으로 설정)
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          # 변경 사항이 있을 때만 커밋
+          if [[ -n $(git status -s) ]]; then
+            git add build.gradle
+            git commit -m "chore: bump version to $NEW_VERSION"
+            git push origin HEAD:${{ github.head_ref }}
+            echo "Successfully pushed version update."
+          else
+            echo "No changes to commit."
+          fi
