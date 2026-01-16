@@ -2,7 +2,7 @@ name: Auto Bump Version on PR
 
 on:
   pull_request:
-    types: [ opened, edited ] # PR이 열리거나 제목이 수정될 때 동작
+    types: [ opened, edited, synchronize ] # PR이 열리거나 제목이 수정될 때 동작
     branches:
       - main # main 브랜치를 대상으로 하는 PR만
 
@@ -65,7 +65,7 @@ jobs:
           # 변경 사항이 있을 때만 커밋
           if [[ -n $(git status -s) ]]; then
             git add build.gradle
-            git commit -m "chore: bump version to $NEW_VERSION [skip ci]"
+            git commit -m "chore: bump version to $NEW_VERSION"
             git push origin HEAD:${{ github.head_ref }}
             echo "Successfully pushed version update."
           else
