@@ -44,11 +44,11 @@ CURRENT_PROFILE=$(curl -s --connect-timeout 3 http://localhost:8080/status | gre
 # 2. 타겟 프로필 및 포트 설정
 if [[ "$CURRENT_PROFILE" == *"blue"* ]]; then
   CURRENT_CONTAINER="app-blue"
-  TARGET_PORT=GREEN_PORT
+  TARGET_PORT=$GREEN_PORT
   TARGET_CONTAINER="app-green"
 else
   CURRENT_CONTAINER="app-green"
-  TARGET_PORT=BLUE_PORT
+  TARGET_PORT=$BLUE_PORT
   TARGET_CONTAINER="app-blue"
 fi
 

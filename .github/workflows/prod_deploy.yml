@@ -44,8 +44,8 @@ jobs:
       EC2_HOST: ${{ secrets.EC2_HOST }}
       EC2_USER: ${{ secrets.EC2_USER }}
       EC2_KEY: ${{ secrets.EC2_KEY }}
-      GREEN_PORT: 8001
-      BLUE_PORT: 8002
+      BLUE_PORT: 8001
+      GREEN_PORT: 8002
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
     steps:
