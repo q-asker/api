@@ -24,7 +24,7 @@ jib {
     }
     to {
         image = "${project.property("DOCKER_ID")}/${project.property("DOCKER_IMAGE_NAME")}"
-        tags = ["latest"]
+        tags = ["latest", rootProject.version.toString()]
         auth {
             username = project.property("DOCKER_ID")
             password = project.property("DOCKER_PASSWORD")
