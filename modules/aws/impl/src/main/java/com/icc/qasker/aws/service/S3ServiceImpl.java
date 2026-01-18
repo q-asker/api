@@ -69,8 +69,9 @@ public class S3ServiceImpl implements S3Service {
         String originalFileName = req.originalFileName();
         String contentType = req.contentType();
         String extension = getExtensionOf(originalFileName);
+        long fileSize = req.fileSize();
 
-        s3ValidateService.validateFileWithThrowing(originalFileName, contentType);
+        s3ValidateService.validateFileWithThrowing(originalFileName, fileSize, contentType);
         boolean isPdf = contentType.equals("application/pdf") && extension.equals(".pdf");
 
         String uuid = UUID.randomUUID().toString();
@@ -87,7 +88,7 @@ public class S3ServiceImpl implements S3Service {
                 .bucket(awsS3Properties.bucketName())
                 .key(uploadKey)
                 .contentType(req.contentType())
-                .contentLength(req.fileSize())
+                .contentLength(fileSize)
                 .metadata(metadata))
             .build();
 

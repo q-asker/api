@@ -8,6 +8,7 @@ public record AwsS3Properties(
     String bucketName,
     String accessKey,
     String secretKey,
+    long maxFileSize,
     int signatureDuration,
     int maxFileNameLength,
     String allowedExtensions
