@@ -23,10 +23,13 @@ public class S3ValidateServiceImpl implements S3ValidateService {
     }
 
     @Override
-    public void validateFileWithThrowing(String fileName, String contentType) {
+    public void validateFileWithThrowing(String fileName, long fileSize, String contentType) {
         int maxFileNameLength = awsS3Properties.maxFileNameLength();
         String allowedExtensions = awsS3Properties.allowedExtensions();
 
+        if (fileSize > awsS3Properties.maxFileSize()) {
+            throw new CustomException(ExceptionMessage.OUT_OF_FILE_SIZE);
+        }
         if (fileName == null) {
             throw new CustomException(ExceptionMessage.FILE_NAME_NOT_EXIST);
         }
