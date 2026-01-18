@@ -42,3 +42,5 @@ out/
 .env
 app/gradle.properties
 app/newrelic/newrelic.yml
+heapdump.hprof
+heapdump.hprof.hwcache
