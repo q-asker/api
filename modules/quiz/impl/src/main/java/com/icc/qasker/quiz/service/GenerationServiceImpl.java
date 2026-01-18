@@ -1,6 +1,9 @@
 package com.icc.qasker.quiz.service;
 
+import com.icc.qasker.aws.S3Service;
 import com.icc.qasker.aws.S3ValidateService;
+import com.icc.qasker.aws.dto.FileExistStatusResponse;
+import com.icc.qasker.aws.dto.Status;
 import com.icc.qasker.global.component.SlackNotifier;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
@@ -24,12 +27,17 @@ public class GenerationServiceImpl implements GenerationService {
     private final ProblemSetRepository problemSetRepository;
     private final HashUtil hashUtil;
     private final S3ValidateService s3ValidateService;
+    private final S3Service s3Service;
 
     @Override
     public GenerationResponse processGenerationRequest(
         FeGenerationRequest feGenerationRequest) {
         validateQuizCount(feGenerationRequest);
-        s3ValidateService.validateS3Bucket(feGenerationRequest.uploadedUrl());
+        FileExistStatusResponse fileExistStatusResponse = s3Service.checkFileExistence(
+            feGenerationRequest.uploadedUrl());
+        if (fileExistStatusResponse.status().equals(Status.NOT_EXIST)) {
+            throw new CustomException(ExceptionMessage.FILE_NOT_FOUND_ON_S3);
+        }
         s3ValidateService.checkCloudFrontUrlWithThrowing(feGenerationRequest.uploadedUrl());
 
         AiGenerationResponse aiResponse = aiServerAdapter.requestGenerate(feGenerationRequest);
