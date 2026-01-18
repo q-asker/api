@@ -3,11 +3,14 @@ package com.icc.qasker.quiz.dto.response;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Getter
+@NoArgsConstructor
+@AllArgsConstructor
 public class QuizGeneratedByAI {
 
     @NotNull(message = "number가 null입니다.")
@@ -28,6 +31,7 @@ public class QuizGeneratedByAI {
     @Getter
     @Setter
     @NoArgsConstructor
+    @AllArgsConstructor
     public static class SelectionsOfAi {
 
         @NotBlank(message = "selection의 content가 존재하지 않습니다.")

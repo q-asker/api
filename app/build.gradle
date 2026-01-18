@@ -20,7 +20,7 @@ tasks.named("jib") {
 
 jib {
     from {
-        image = "qasker/eclipse-temurin-21-libreoffice"
+        image = "amazoncorretto:21"
     }
     to {
         image = "${project.property("DOCKER_ID")}/${project.property("DOCKER_IMAGE_NAME")}"
