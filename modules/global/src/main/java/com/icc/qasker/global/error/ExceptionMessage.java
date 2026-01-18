@@ -11,6 +11,7 @@ public enum ExceptionMessage {
     DEFAULT_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "에러가 발생했습니다."),
 
     // ## AWS ISSUE
+    OUT_OF_FILE_SIZE(HttpStatus.BAD_REQUEST, "허용되지 않은 파일 크기입니다."),
     NO_FILE_UPLOADED(HttpStatus.BAD_REQUEST, "파일이 업로드되지 않았습니다."),
     FILE_NAME_NOT_EXIST(HttpStatus.BAD_REQUEST, "파일 이름이 존재하지 않습니다"),
     FILE_NAME_TOO_LONG(HttpStatus.BAD_REQUEST, "파일 이름이 깁니다"),
