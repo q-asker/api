@@ -22,7 +22,7 @@ public class AiWebClientConfig {
     public RestClient aiGenerationRestClient() {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(Duration.ofSeconds(5));
-        factory.setReadTimeout(Duration.ofSeconds(40));
+        factory.setReadTimeout(Duration.ofSeconds(80));
 
         return RestClient.builder()
             .baseUrl(qAskerProperties.getAiServerUrl())
