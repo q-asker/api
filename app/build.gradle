@@ -22,10 +22,6 @@ springBoot {
     buildInfo()
 }
 
-tasks.named("jib") {
-    dependsOn "generateJmxConfigFiles"
-}
-
 jib {
     from {
         image = "amazoncorretto:21"
