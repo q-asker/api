@@ -22,7 +22,7 @@ function send_slack() {
 }
 EOF
 )
-  curl --connect-timeout 3 --max-time 5 -s -X POST -H 'Content-type: application/json' --data "$PAYLOAD" "$WEBHOOK" > /dev/null
+  curl --connect-timeout 3 --max-time 5 -s -X POST -H 'Content-type: application/json' --data "$PAYLOAD" "$WEBHOOK" > /dev/null 2>&1 &
 }
 
 # ==============================================================================
