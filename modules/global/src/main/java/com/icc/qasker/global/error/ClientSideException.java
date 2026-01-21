@@ -1,8 +1,8 @@
 package com.icc.qasker.global.error;
 
-public class ClientSideException extends CustomException {
+public class ClientSideException extends RuntimeException {
 
-    public ClientSideException(ExceptionMessage exceptionMessage) {
-        super(exceptionMessage);
+    public ClientSideException(String message) {
+        super(message);
     }
 }
