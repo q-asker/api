@@ -1,5 +1,7 @@
 package com.icc.qasker.quiz.adapter;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.icc.qasker.global.error.ClientSideException;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
@@ -33,11 +35,26 @@ public class AiServerAdapter {
                 .retrieve()
                 .body(AiGenerationResponse.class);
 
-            // 1. 429 에러 -> 서킷 브레이커가 무시해야 함 (ignoreExceptions)
-        } catch (HttpClientErrorException.TooManyRequests e) {
-            log.error("AI Server Rate Limit Exceeded: Status={}, Body={}", e.getStatusCode(),
-                e.getResponseBodyAsString());
-            throw new ClientSideException(ExceptionMessage.AI_SERVER_TO_MANY_REQUEST);
+            // 1. 400 에러 -> 서킷 브레이커가 무시해야 함 (ignoreExceptions)
+        } catch (HttpClientErrorException e) {
+
+            String messageBody = e.getResponseBodyAsString();
+            log.error("[AI Server] Bad Request: Status={}, Body={}", e.getStatusCode(),
+                messageBody);
+
+            String message = "";
+            try {
+                ObjectMapper objectMapper = new ObjectMapper();
+                JsonNode rootNode = objectMapper.readTree(messageBody);
+
+                if (rootNode.has("detail")) {
+                    message = rootNode.get("detail").asText();
+                }
+            } catch (Exception exception) {
+                message = messageBody;
+            }
+
+            throw new ClientSideException(message);
 
             // 2. 5xx 에러 (Server Fault) -> 서킷 브레이커가 실패로 기록해야 함
         } catch (HttpServerErrorException e) {
