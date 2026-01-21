@@ -1,4 +1,4 @@
-package com.icc.qasker.quiz.adapter;
+package com.icc.qasker.quiz.config;
 
 import com.icc.qasker.global.properties.QAskerProperties;
 import java.time.Duration;
@@ -22,7 +22,7 @@ public class AiWebClientConfig {
     public RestClient aiGenerationRestClient() {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(Duration.ofSeconds(5));
-        factory.setReadTimeout(Duration.ofSeconds(40));
+        factory.setReadTimeout(Duration.ofSeconds(80));
 
         return RestClient.builder()
             .baseUrl(qAskerProperties.getAiServerUrl())
@@ -36,7 +36,7 @@ public class AiWebClientConfig {
     public RestClient aiRestClient() {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(Duration.ofSeconds(5));
-        factory.setReadTimeout(Duration.ofSeconds(80));
+        factory.setReadTimeout(Duration.ofSeconds(40));
 
         return RestClient.builder()
             .baseUrl(qAskerProperties.getAiServerUrl())

@@ -21,6 +21,13 @@ public class GlobalExceptionHandler {
                 new CustomErrorResponse(customException.getMessage()));
     }
 
+    @ExceptionHandler(ClientSideException.class)
+    public ResponseEntity<CustomErrorResponse> handleClientException(
+        ClientSideException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+            .body(new CustomErrorResponse(e.getMessage()));
+    }
+
     @ExceptionHandler(CallNotPermittedException.class)
     public ResponseEntity<CustomErrorResponse> handleCustomException(
         CallNotPermittedException exception) {
