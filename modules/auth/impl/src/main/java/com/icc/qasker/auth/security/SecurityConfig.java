@@ -2,7 +2,6 @@ package com.icc.qasker.auth.security;
 
 import com.icc.qasker.auth.TokenRotationService;
 import com.icc.qasker.auth.entity.User;
-import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.auth.repository.UserRepository;
 import com.icc.qasker.auth.security.filter.JwtTokenAuthenticationFilter;
 import com.icc.qasker.auth.security.filter.RefreshRotationFilter;
@@ -11,12 +10,13 @@ import com.icc.qasker.auth.security.provider.GoogleUserInfo;
 import com.icc.qasker.auth.security.provider.KakaoUserInfo;
 import com.icc.qasker.auth.security.provider.OAuth2UserInfo;
 import com.icc.qasker.auth.util.NicknameGenerateUtil;
+import com.icc.qasker.global.error.ExceptionMessage;
+import com.icc.qasker.global.properties.QAskerProperties;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -46,6 +46,7 @@ public class SecurityConfig {
     private final UserRepository userRepository;
     private final TokenRotationService tokenRotationService;
     private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
+    private final QAskerProperties qAskerProperties;
 
     @Bean
     public AuthenticationManager authenticationManager(
@@ -143,8 +144,7 @@ public class SecurityConfig {
     public static class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 
         private final TokenRotationService tokenRotationService;
-        @Value("${q-asker.frontend-deploy-url}")
-        private String frontendDeployUrl;
+        private final QAskerProperties qAskerProperties;
 
         @Override
         public void onAuthenticationSuccess(HttpServletRequest request,
@@ -154,7 +154,7 @@ public class SecurityConfig {
             PrincipalDetails principal = (PrincipalDetails) authentication.getPrincipal();
             User user = principal.getUser();
             tokenRotationService.issueRefreshToken(user.getUserId(), response);
-            response.sendRedirect(frontendDeployUrl);
+            response.sendRedirect(qAskerProperties.getFrontendDeployUrl());
         }
     }
 

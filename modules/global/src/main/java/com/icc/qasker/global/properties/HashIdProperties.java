@@ -6,8 +6,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @Getter
 @AllArgsConstructor
-@ConfigurationProperties("app.hashids")
-public class HashProperties {
+@ConfigurationProperties("q-asker.hashid")
+public class HashIdProperties {
 
     private final String salt;
     private final int minLength;

@@ -4,7 +4,7 @@ import lombok.Getter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @Getter
-@ConfigurationProperties(prefix = "jwt")
+@ConfigurationProperties(prefix = "spring.security.jwt")
 public class JwtProperties {
 
     public static String SECRET;
