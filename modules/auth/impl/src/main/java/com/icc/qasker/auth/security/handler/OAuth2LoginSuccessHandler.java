@@ -2,7 +2,7 @@ package com.icc.qasker.auth.security.handler;
 
 import com.icc.qasker.auth.TokenRotationService;
 import com.icc.qasker.auth.entity.User;
-import com.icc.qasker.auth.security.principal.PrincipalDetails;
+import com.icc.qasker.auth.principal.UserPrincipal;
 import com.icc.qasker.global.properties.QAskerProperties;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -24,7 +24,7 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
         HttpServletResponse response,
         Authentication authentication) throws IOException {
 
-        PrincipalDetails principal = (PrincipalDetails) authentication.getPrincipal();
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
         User user = principal.getUser();
         tokenRotationService.issueRefreshToken(user.getUserId(), response);
         response.sendRedirect(qAskerProperties.getFrontendDeployUrl());

@@ -5,6 +5,7 @@ import com.icc.qasker.quiz.dto.response.GenerationResponse;
 
 public interface GenerationService {
 
-    GenerationResponse processGenerationRequest(FeGenerationRequest feGenerationRequest);
+    GenerationResponse processGenerationRequest(FeGenerationRequest feGenerationRequest,
+        String userId);
 }
 

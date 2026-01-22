@@ -1,6 +1,6 @@
 package com.icc.qasker.auth.util;
 
-import com.icc.qasker.auth.properties.JwtProperties;
+import com.icc.qasker.global.properties.JwtProperties;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Arrays;

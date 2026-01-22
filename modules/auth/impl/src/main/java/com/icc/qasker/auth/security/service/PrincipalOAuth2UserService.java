@@ -1,14 +1,13 @@
 package com.icc.qasker.auth.security.service;
 
 import com.icc.qasker.auth.entity.User;
+import com.icc.qasker.auth.principal.UserPrincipal;
 import com.icc.qasker.auth.repository.UserRepository;
-import com.icc.qasker.auth.security.principal.PrincipalDetails;
 import com.icc.qasker.auth.security.provider.GoogleUserInfo;
 import com.icc.qasker.auth.security.provider.KakaoUserInfo;
 import com.icc.qasker.auth.security.provider.OAuth2UserInfo;
 import com.icc.qasker.auth.util.NicknameGenerateUtil;
 import lombok.AllArgsConstructor;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
@@ -20,7 +19,6 @@ import org.springframework.stereotype.Component;
 public class PrincipalOAuth2UserService extends DefaultOAuth2UserService {
 
     private final UserRepository userRepository;
-    private final BCryptPasswordEncoder bCryptPasswordEncoder;
 
     @Override
     public OAuth2User loadUser(OAuth2UserRequest userRequest)
@@ -36,19 +34,17 @@ public class PrincipalOAuth2UserService extends DefaultOAuth2UserService {
         String userId = oAuth2UserInfo.getProvider() + "_" + oAuth2UserInfo.getProviderId();
         String provider = oAuth2UserInfo.getProvider();
         String nickname = NicknameGenerateUtil.generate();
-        String password = bCryptPasswordEncoder.encode("temporaryPassword");
         String role = "ROLE_USER";
         User user = userRepository.findById(userId).orElse(null);
         if (user == null) {
             user = User.builder()
                 .userId(userId)
-                .password(password)
                 .role(role)
                 .nickname(nickname)
                 .provider(provider)
                 .build();
             userRepository.save(user);
         }
-        return new PrincipalDetails(user, oAuth2User.getAttributes());
+        return new UserPrincipal(user, oAuth2User.getAttributes());
     }
 }

@@ -1,10 +1,10 @@
 package com.icc.qasker.auth.util;
 
 import com.icc.qasker.auth.entity.RefreshToken;
-import com.icc.qasker.auth.properties.JwtProperties;
 import com.icc.qasker.auth.repository.RefreshTokenRepository;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
+import com.icc.qasker.global.properties.JwtProperties;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
@@ -58,6 +58,10 @@ public class RefreshTokenUtil {
             .ifPresent(refreshTokenRepository::delete);
     }
 
+    private Instant nextExpiry() {
+        return Instant.now().plusSeconds(jwtProperties.getRefreshExpirationTime());
+    }
+
     public record RotateResult(String userId, String newRtPlain) {
 
     }
@@ -85,9 +89,5 @@ public class RefreshTokenUtil {
                 throw new IllegalStateException(e);
             }
         }
-    }
-
-    private Instant nextExpiry() {
-        return Instant.now().plusSeconds(jwtProperties.getRefreshExpirationTime());
     }
 }

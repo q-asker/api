@@ -1,9 +1,7 @@
 package com.icc.qasker.auth.security;
 
-import com.icc.qasker.auth.TokenRotationService;
 import com.icc.qasker.auth.repository.UserRepository;
 import com.icc.qasker.auth.security.filter.JwtTokenAuthenticationFilter;
-import com.icc.qasker.auth.security.filter.RefreshRotationFilter;
 import com.icc.qasker.auth.security.handler.OAuth2LoginSuccessHandler;
 import com.icc.qasker.auth.security.service.PrincipalOAuth2UserService;
 import com.icc.qasker.global.error.ExceptionMessage;
@@ -27,7 +25,6 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final UserRepository userRepository;
-    private final TokenRotationService tokenRotationService;
     private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
     private final PrincipalOAuth2UserService principalOauth2UserService;
 
@@ -57,14 +54,10 @@ public class SecurityConfig {
             .addFilterBefore(
                 new JwtTokenAuthenticationFilter(authenticationManager, userRepository),
                 UsernamePasswordAuthenticationFilter.class)
-            .addFilterBefore(new RefreshRotationFilter(tokenRotationService),
-                JwtTokenAuthenticationFilter.class)
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/login/**", "/oauth2/**").permitAll()
-                .requestMatchers("/statistics/**").authenticated()
                 .requestMatchers("/admin/**").hasRole("ADMIN")
-                .requestMatchers("/test").authenticated()
-                .anyRequest().denyAll()
+                .requestMatchers("/statistics/**", "/test").authenticated()
+                .anyRequest().permitAll()
             )
             .oauth2Login(oauth -> oauth
                 .userInfoEndpoint(user -> user.userService(principalOauth2UserService))

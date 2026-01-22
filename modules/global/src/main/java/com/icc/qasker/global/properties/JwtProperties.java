@@ -1,4 +1,4 @@
-package com.icc.qasker.auth.properties;
+package com.icc.qasker.global.properties;
 
 import lombok.Getter;
 import org.springframework.boot.context.properties.ConfigurationProperties;

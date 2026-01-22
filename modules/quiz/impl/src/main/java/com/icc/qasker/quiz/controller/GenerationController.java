@@ -1,5 +1,6 @@
 package com.icc.qasker.quiz.controller;
 
+import com.icc.qasker.global.annotation.UserId;
 import com.icc.qasker.quiz.GenerationService;
 import com.icc.qasker.quiz.controller.doc.GenerationApiDoc;
 import com.icc.qasker.quiz.dto.request.FeGenerationRequest;
@@ -24,8 +25,11 @@ public class GenerationController implements GenerationApiDoc {
     @PostMapping
     @Override
     public ResponseEntity<GenerationResponse> postProblemSetId(
+        @UserId
+        String userId,
         @Valid @RequestBody FeGenerationRequest feGenerationRequest) {
-        return ResponseEntity.ok(generationService.processGenerationRequest(feGenerationRequest));
+        return ResponseEntity.ok(
+            generationService.processGenerationRequest(feGenerationRequest, userId));
     }
 
     @PostMapping("/mock")
