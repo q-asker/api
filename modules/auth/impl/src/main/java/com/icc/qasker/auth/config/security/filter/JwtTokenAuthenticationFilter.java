@@ -1,4 +1,4 @@
-package com.icc.qasker.auth.security.filter;
+package com.icc.qasker.auth.config.security.filter;
 
 
 import static com.auth0.jwt.JWT.require;

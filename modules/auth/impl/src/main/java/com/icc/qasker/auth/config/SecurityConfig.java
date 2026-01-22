@@ -1,9 +1,9 @@
-package com.icc.qasker.auth.security;
+package com.icc.qasker.auth.config;
 
+import com.icc.qasker.auth.config.security.filter.JwtTokenAuthenticationFilter;
+import com.icc.qasker.auth.config.security.handler.OAuth2LoginSuccessHandler;
+import com.icc.qasker.auth.config.security.service.PrincipalOAuth2UserService;
 import com.icc.qasker.auth.repository.UserRepository;
-import com.icc.qasker.auth.security.filter.JwtTokenAuthenticationFilter;
-import com.icc.qasker.auth.security.handler.OAuth2LoginSuccessHandler;
-import com.icc.qasker.auth.security.service.PrincipalOAuth2UserService;
 import com.icc.qasker.global.error.ExceptionMessage;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;

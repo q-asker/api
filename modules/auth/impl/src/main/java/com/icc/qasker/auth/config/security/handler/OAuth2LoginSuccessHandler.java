@@ -1,4 +1,4 @@
-package com.icc.qasker.auth.security.handler;
+package com.icc.qasker.auth.config.security.handler;
 
 import com.icc.qasker.auth.TokenRotationService;
 import com.icc.qasker.auth.entity.User;
@@ -27,6 +27,6 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
         User user = principal.getUser();
         tokenRotationService.issueRefreshToken(user.getUserId(), response);
-        response.sendRedirect(qAskerProperties.getFrontendDeployUrl());
+        response.sendRedirect(qAskerProperties.getFrontendDeployUrl() + "/login/redirect");
     }
 }

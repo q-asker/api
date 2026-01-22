@@ -2,6 +2,7 @@ package com.icc.qasker.auth.controller;
 
 import com.icc.qasker.auth.LogoutService;
 import com.icc.qasker.auth.TokenRotationService;
+import com.icc.qasker.auth.dto.response.RotateTokenResponse;
 import com.icc.qasker.auth.util.CookieUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -26,12 +27,11 @@ public class AuthController {
         return ResponseEntity.ok().build();
     }
 
-
     @PostMapping("/refresh")
-    public ResponseEntity<?> refresh(HttpServletRequest request, HttpServletResponse response) {
+    public ResponseEntity<RotateTokenResponse> refresh(HttpServletRequest request,
+        HttpServletResponse response) {
         var rtCookie = CookieUtil.getCookie(request, "refresh_token").orElse(null);
-        tokenRotationService.rotateTokens(rtCookie.getValue(), response);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(tokenRotationService.rotateTokens(rtCookie.getValue(), response));
     }
 
     @PostMapping("/logout")

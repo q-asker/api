@@ -1,11 +1,11 @@
-package com.icc.qasker.auth.security.service;
+package com.icc.qasker.auth.config.security.service;
 
+import com.icc.qasker.auth.config.security.provider.GoogleUserInfo;
+import com.icc.qasker.auth.config.security.provider.KakaoUserInfo;
+import com.icc.qasker.auth.config.security.provider.OAuth2UserInfo;
 import com.icc.qasker.auth.entity.User;
 import com.icc.qasker.auth.principal.UserPrincipal;
 import com.icc.qasker.auth.repository.UserRepository;
-import com.icc.qasker.auth.security.provider.GoogleUserInfo;
-import com.icc.qasker.auth.security.provider.KakaoUserInfo;
-import com.icc.qasker.auth.security.provider.OAuth2UserInfo;
 import com.icc.qasker.auth.util.NicknameGenerateUtil;
 import lombok.AllArgsConstructor;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
