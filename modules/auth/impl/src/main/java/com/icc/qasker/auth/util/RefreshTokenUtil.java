@@ -1,34 +1,30 @@
 package com.icc.qasker.auth.util;
 
+import com.icc.qasker.auth.entity.RefreshToken;
+import com.icc.qasker.auth.properties.JwtProperties;
+import com.icc.qasker.auth.repository.RefreshTokenRepository;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
-import com.icc.qasker.auth.properties.JwtProperties;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
-import java.time.Duration;
+import java.time.Instant;
 import java.util.Base64;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
 public class RefreshTokenUtil {
 
-    private final StringRedisTemplate redis;
-    private final RtKeys rtKeys;
+    private final RefreshTokenRepository refreshTokenRepository;
+    private final JwtProperties jwtProperties;
 
     public String issue(String userId) {
         try {
             String rtPlain = TokenUtils.randomUrlSafe(64);
             String rtHash = TokenUtils.sha256Hex(rtPlain);
-            String setKey = rtKeys.userSet(userId);
-
-            redis.opsForHash().put(rtHash, "userId", userId);
-            redis.opsForSet().add(setKey, rtHash);
-            redis.expire(rtHash, rtKeys.ttl());
-            redis.expire(setKey, rtKeys.ttl());
+            refreshTokenRepository.save(new RefreshToken(userId, rtHash, nextExpiry()));
 
             return rtPlain;
         } catch (Exception e) {
@@ -40,48 +36,30 @@ public class RefreshTokenUtil {
     public RotateResult validateAndRotate(String oldRtPlain) {
         String oldRtHash = TokenUtils.sha256Hex(oldRtPlain);
 
-        String userId = (String) redis.opsForHash().get(oldRtHash, "userId");
+        RefreshToken refreshToken = refreshTokenRepository.findByRtHash(oldRtHash)
+            .orElseThrow(() -> new CustomException(ExceptionMessage.UNAUTHORIZED));
 
-        if (userId == null) {
+        if (refreshToken.isExpired(Instant.now())) {
+            refreshTokenRepository.delete(refreshToken);
             throw new CustomException(ExceptionMessage.UNAUTHORIZED);
         }
-        redis.delete(oldRtHash);
-        redis.opsForSet().remove(rtKeys.userSet(userId), oldRtHash);
 
-        String newRtPlain = issue(userId);
-        return new RotateResult(userId, newRtPlain);
+        String newRtPlain = TokenUtils.randomUrlSafe(64);
+        String newRtHash = TokenUtils.sha256Hex(newRtPlain);
+        refreshToken.rotate(newRtHash, nextExpiry());
+        refreshTokenRepository.save(refreshToken);
+
+        return new RotateResult(refreshToken.getUserId(), newRtPlain);
     }
 
     public void revoke(String presentedRtPlain) {
         String rtHash = TokenUtils.sha256Hex(presentedRtPlain);
-        String userId = (String) redis.opsForHash().get(rtHash, "userId");
-        if (userId == null) {
-            return;
-        }
-        redis.delete(rtHash);
-        redis.opsForSet().remove(rtKeys.userSet(userId), rtHash);
+        refreshTokenRepository.findByRtHash(rtHash)
+            .ifPresent(refreshTokenRepository::delete);
     }
 
     public record RotateResult(String userId, String newRtPlain) {
 
-    }
-
-    @Component
-    public static class RtKeys {
-
-        private final JwtProperties jwtProperties;
-
-        public RtKeys(JwtProperties jwtProperties) {
-            this.jwtProperties = jwtProperties;
-        }
-
-        public String userSet(String userId) {
-            return "rt:u:" + userId;
-        }
-
-        public Duration ttl() {
-            return Duration.ofSeconds(jwtProperties.getRefreshExpirationTime());
-        }
     }
 
     public static class TokenUtils {
@@ -107,5 +85,9 @@ public class RefreshTokenUtil {
                 throw new IllegalStateException(e);
             }
         }
+    }
+
+    private Instant nextExpiry() {
+        return Instant.now().plusSeconds(jwtProperties.getRefreshExpirationTime());
     }
 }
