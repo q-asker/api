@@ -1,19 +1,17 @@
 package com.icc.qasker.auth.entity;
 
+import com.icc.qasker.global.entity.CreatedAt;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-import lombok.ToString;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.redis.core.RedisHash;
+import lombok.NoArgsConstructor;
 
-@RedisHash(value = "refreshToken", timeToLive = 0)
+@Entity
 @Getter
-@ToString
-@RequiredArgsConstructor
-
-public class RefreshToken {
+@NoArgsConstructor
+public class RefreshToken extends CreatedAt {
 
     @Id
-    private final String rtHash;
-    private final String userId;
+    private String userId;
+    private String rtHash;
 }

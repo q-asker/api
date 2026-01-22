@@ -28,27 +28,15 @@ public class RefreshRotationFilter extends OncePerRequestFilter {
     private static final String BEARER_PREFIX = "Bearer ";
     private final TokenRotationService tokenRotationService;
 
-    private boolean skip(String path) {
-        // 인증이 필요하지 않은 url 적기
-        return path.startsWith("/auth/")
-            || path.startsWith("/oauth2")
-            || path.startsWith("/login/oauth2")
-            || path.startsWith("/s3/upload")
-            || path.startsWith("/explanation/")
-            || path.startsWith("/problem-set/")
-            || path.startsWith("/specific-explanation/")
-            || path.startsWith("/generation");
-    }
-
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
         FilterChain filterChain) throws ServletException, IOException {
-        if (skip(request.getRequestURI())) {
+        String auth = request.getHeader(HttpHeaders.AUTHORIZATION);
+        if (auth == null) {
             filterChain.doFilter(request, response);
             return;
         }
-        String auth = request.getHeader(HttpHeaders.AUTHORIZATION);
-        if (auth != null && auth.startsWith(BEARER_PREFIX)) {
+        if (auth.startsWith(BEARER_PREFIX)) {
             String at = auth.substring(BEARER_PREFIX.length());
             try {
                 JWT.require(Algorithm.HMAC512(JwtProperties.SECRET)).build().verify(at);
