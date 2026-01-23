@@ -20,6 +20,13 @@ public class RefreshTokenUtil {
     private final RefreshTokenRepository refreshTokenRepository;
     private final JwtProperties jwtProperties;
 
+    /**
+     * Generates and persists a new refresh token for the given user.
+     *
+     * @param userId the id of the user to associate with the refresh token
+     * @return the newly generated plain (unhashed) refresh token string
+     * @throws CustomException if token generation or persistence fails
+     */
     public String issue(String userId) {
         try {
             String rtPlain = TokenUtils.randomUrlSafe(64);
@@ -33,6 +40,13 @@ public class RefreshTokenUtil {
         }
     }
 
+    /**
+     * Validates a presented refresh token, rotates it if valid, and issues a new refresh token for the same user.
+     *
+     * @param oldRtPlain the presented plain-text refresh token to validate and rotate
+     * @return a RotateResult containing the associated userId and the newly issued plain refresh token
+     * @throws CustomException with ExceptionMessage.UNAUTHORIZED if the presented token is not found or is expired
+     */
     public RotateResult validateAndRotate(String oldRtPlain) {
         String oldRtHash = TokenUtils.sha256Hex(oldRtPlain);
 
@@ -52,12 +66,22 @@ public class RefreshTokenUtil {
         return new RotateResult(refreshToken.getUserId(), newRtPlain);
     }
 
+    /**
+     * Removes the stored refresh token that corresponds to the provided plain token, if present.
+     *
+     * @param presentedRtPlain the plain (unhashed) refresh token presented by the client
+     */
     public void revoke(String presentedRtPlain) {
         String rtHash = TokenUtils.sha256Hex(presentedRtPlain);
         refreshTokenRepository.findByRtHash(rtHash)
             .ifPresent(refreshTokenRepository::delete);
     }
 
+    /**
+     * Compute the expiry instant for a new refresh token.
+     *
+     * @return the Instant representing the current time plus the configured refresh token lifetime (in seconds)
+     */
     private Instant nextExpiry() {
         return Instant.now().plusSeconds(jwtProperties.getRefreshExpirationTime());
     }

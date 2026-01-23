@@ -16,16 +16,31 @@ public class UserPrincipal implements OAuth2User {
     private User user;
     private Map<String, Object> attributes;
 
+    /**
+     * Principal name that identifies the application user.
+     *
+     * @return the user's identifier (`userId`) as a String
+     */
     @Override
     public String getName() {
         return user.getUserId();
     }
 
+    /**
+     * Provides the OAuth2 attributes associated with this principal.
+     *
+     * @return the attributes map supplied by the OAuth2 provider
+     */
     @Override
     public Map<String, Object> getAttributes() {
         return attributes;
     }
 
+    /**
+     * Provide authorities granted to the user based on the user's role.
+     *
+     * @return a collection containing a single {@link GrantedAuthority} whose authority equals the user's role
+     */
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         Collection<GrantedAuthority> collect = new ArrayList<GrantedAuthority>();

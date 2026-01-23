@@ -12,6 +12,11 @@ public class HashIdConfig {
 
     private final HashIdProperties hashIdProperties;
 
+    /**
+     * Create a {@link Hashids} instance configured from the injected HashIdProperties.
+     *
+     * @return a {@link Hashids} initialized with the configured salt and minimum hash length
+     */
     @Bean
     public Hashids hashids() {
         return new Hashids(hashIdProperties.getSalt(), hashIdProperties.getMinLength());

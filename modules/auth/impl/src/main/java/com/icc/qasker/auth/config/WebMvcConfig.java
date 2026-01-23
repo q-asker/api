@@ -16,6 +16,15 @@ public class WebMvcConfig implements WebMvcConfigurer {
     private final UserIdArgumentResolver userIdArgumentResolver;
     private final QAskerProperties qAskerProperties;
 
+    /**
+     * Configure global CORS settings for all request paths.
+     *
+     * <p>Allows requests from the frontend development and deployed origins, permits
+     * GET, POST, PUT and DELETE methods, enables credentials, and sets preflight
+     * cache duration to 3600 seconds.</p>
+     *
+     * @param registry the CorsRegistry to configure
+     */
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
@@ -26,6 +35,12 @@ public class WebMvcConfig implements WebMvcConfigurer {
             .maxAge(3600);
     }
 
+    /**
+     * Registers the configured UserIdArgumentResolver with Spring MVC's argument resolver list.
+     *
+     * @param resolvers the mutable list of HandlerMethodArgumentResolver instances provided by Spring MVC;
+     *                  the UserIdArgumentResolver will be appended to this list
+     */
     @Override
     public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
         resolvers.add(userIdArgumentResolver);

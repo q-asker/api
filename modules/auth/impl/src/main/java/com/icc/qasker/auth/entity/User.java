@@ -18,6 +18,15 @@ public class User extends CreatedAt {
     private String provider;
     private String nickname;
 
+    /**
+     * Creates a User entity with the specified identifiers and profile attributes.
+     *
+     * @param userId   the unique identifier for the user
+     * @param password accepted for builder compatibility; not stored on the entity
+     * @param role     the user's role (e.g., "USER", "ADMIN")
+     * @param provider the authentication provider (e.g., "google", "github")
+     * @param nickname the user's display name
+     */
     @Builder
     public User(String userId, String password, String role, String provider, String nickname) {
         this.userId = userId;

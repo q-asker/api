@@ -29,6 +29,16 @@ public class GenerationServiceImpl implements GenerationService {
     private final S3ValidateService s3ValidateService;
     private final S3Service s3Service;
 
+    /**
+     * Handles a quiz generation request: validates the request and uploaded URL, requests quiz data from the AI server,
+     * persists the resulting ProblemSet associated with the given user, and returns the encoded ProblemSet identifier.
+     *
+     * @param feGenerationRequest the front-end generation request containing quiz parameters and uploaded URL
+     * @param userId              the identifier of the user who initiated the generation (associated with the saved ProblemSet)
+     * @return                    a GenerationResponse containing the encoded ID of the created ProblemSet
+     * @throws CustomException    if the requested quiz count is not a multiple of five, if the uploaded file is not found on S3,
+     *                            or if the CloudFront URL validation fails
+     */
     @Override
     public GenerationResponse processGenerationRequest(
         FeGenerationRequest feGenerationRequest, String userId) {

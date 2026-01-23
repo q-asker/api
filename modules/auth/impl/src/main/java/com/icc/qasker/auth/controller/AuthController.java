@@ -21,12 +21,24 @@ public class AuthController {
     private final TokenRotationService tokenRotationService;
     private final LogoutService logoutService;
 
+    /**
+     * Health-check endpoint for the auth controller that responds with HTTP 200 OK.
+     *
+     * @return ResponseEntity with HTTP 200 OK and no body.
+     */
     @GetMapping("/test")
     public ResponseEntity<?> test() {
         System.out.println("test 성공");
         return ResponseEntity.ok().build();
     }
 
+    /**
+     * Rotate authentication tokens using the refresh token stored in the "refresh_token" cookie and send the new tokens in the response.
+     *
+     * @param request  the incoming HTTP request which should contain the "refresh_token" cookie
+     * @param response the HTTP response where the rotated tokens (e.g., new cookies) will be written
+     * @return a RotateTokenResponse containing the newly issued tokens and related metadata
+     */
     @PostMapping("/refresh")
     public ResponseEntity<RotateTokenResponse> refresh(HttpServletRequest request,
         HttpServletResponse response) {
@@ -34,6 +46,11 @@ public class AuthController {
         return ResponseEntity.ok(tokenRotationService.rotateTokens(rtCookie.getValue(), response));
     }
 
+    /**
+     * Invalidates the current user's authentication (clears session/cookies as applicable) and returns success.
+     *
+     * @return an HTTP 200 OK response with an empty body
+     */
     @PostMapping("/logout")
     public ResponseEntity<?> logout(HttpServletRequest request, HttpServletResponse response) {
         logoutService.logout(request, response);

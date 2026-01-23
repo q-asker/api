@@ -22,6 +22,13 @@ public class GenerationController implements GenerationApiDoc {
     private final GenerationService generationService;
     private final MockGenerationService mockGenerationService;
 
+    /**
+     * Generate a problem set based on the provided request for the specified user.
+     *
+     * @param userId               the authenticated user's identifier extracted via the {@code @UserId} annotation
+     * @param feGenerationRequest  the generation request payload containing parameters for the problem set
+     * @return                     the resulting {@link GenerationResponse} describing the generated content
+     */
     @PostMapping
     @Override
     public ResponseEntity<GenerationResponse> postProblemSetId(
@@ -32,6 +39,12 @@ public class GenerationController implements GenerationApiDoc {
             generationService.processGenerationRequest(feGenerationRequest, userId));
     }
 
+    /**
+     * Generate a mock quiz from the provided generation request.
+     *
+     * @param feGenerationRequest the generation request payload containing criteria for the mock quiz
+     * @return a ResponseEntity containing the generated GenerationResponse
+     */
     @PostMapping("/mock")
     @Override
     public ResponseEntity<GenerationResponse> generateMockQuiz(

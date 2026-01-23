@@ -28,12 +28,29 @@ public class SecurityConfig {
     private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
     private final PrincipalOAuth2UserService principalOauth2UserService;
 
+    /**
+     * Exposes the AuthenticationManager from the provided AuthenticationConfiguration as a Spring bean.
+     *
+     * @param authenticationConfiguration the AuthenticationConfiguration to obtain the AuthenticationManager from
+     * @return the configured AuthenticationManager for the application
+     * @throws Exception if the AuthenticationManager cannot be obtained from the provided configuration
+     */
     @Bean
     public AuthenticationManager authenticationManager(
         AuthenticationConfiguration authenticationConfiguration) throws Exception {
         return authenticationConfiguration.getAuthenticationManager();
     }
 
+    /**
+     * Configures and returns the application's HTTP security filter chain.
+     *
+     * <p>The chain enforces stateless sessions, disables CSRF, form login, and HTTP Basic,
+     * injects a JWT authentication filter, configures OAuth2 login with a custom user service
+     * and success handler, and provides custom JSON responses for unauthorized and forbidden errors.
+     *
+     * @return the configured SecurityFilterChain
+     * @throws Exception if the HttpSecurity configuration cannot be built
+     */
     @Bean
     public SecurityFilterChain apiFilterChain(HttpSecurity http,
         AuthenticationManager authenticationManager) throws Exception {
@@ -66,6 +83,13 @@ public class SecurityConfig {
         return http.build();
     }
 
+    /**
+     * Writes a 401 Unauthorized JSON error response to the provided HttpServletResponse.
+     *
+     * @param response the HttpServletResponse to modify; its status is set to 401 and a JSON
+     *                 body with an authorization error message is written
+     * @throws IOException if an I/O error occurs while writing the response
+     */
     public void createUnauthorizedResponse(HttpServletResponse response) throws IOException {
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType("application/json;charset=UTF-8");
@@ -74,6 +98,15 @@ public class SecurityConfig {
         );
     }
 
+    /**
+     * Send a 403 Forbidden JSON response indicating insufficient access.
+     *
+     * Sets the HTTP status to 403, the content type to "application/json;charset=UTF-8",
+     * and writes a JSON object containing the `NOT_ENOUGH_ACCESS` message.
+     *
+     * @param response the HTTP response to modify
+     * @throws IOException if writing to the response fails
+     */
     public void createForbiddenResponse(HttpServletResponse response) throws IOException {
         response.setStatus(HttpServletResponse.SC_FORBIDDEN);
         response.setContentType("application/json;charset=UTF-8");

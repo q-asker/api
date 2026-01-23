@@ -33,10 +33,27 @@ public class ProblemSet extends CreatedAt {
     @OneToMany(mappedBy = "problemSet", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Problem> problems;
 
+    /**
+     * Create a ProblemSet from an AI generation response with no user identifier.
+     *
+     * @param aiResponse the AI generation response containing title and quiz data
+     * @return a ProblemSet constructed from the given response; the resulting ProblemSet's `userId` will be `null`
+     */
     public static ProblemSet of(AiGenerationResponse aiResponse) {
         return of(aiResponse, null);
     }
 
+    /**
+     * Create a ProblemSet from an AI generation response and associate it with an optional user ID.
+     *
+     * Constructs a ProblemSet whose title is taken from the AI response and whose problems are
+     * created from the response's quiz items; each Problem is linked to the created ProblemSet.
+     *
+     * @param aiResponse the AI generation response containing a title and quiz items; must not be null and must contain a quiz list
+     * @param userId an optional user identifier to associate with the ProblemSet; may be null
+     * @return a new ProblemSet populated with the title, userId, and converted Problem instances
+     * @throws CustomException with ExceptionMessage.NULL_AI_RESPONSE if {@code aiResponse} is null or {@code aiResponse.getQuiz()} is null
+     */
     public static ProblemSet of(AiGenerationResponse aiResponse, String userId) {
         if (aiResponse == null || aiResponse.getQuiz() == null) {
             throw new CustomException(ExceptionMessage.NULL_AI_RESPONSE);

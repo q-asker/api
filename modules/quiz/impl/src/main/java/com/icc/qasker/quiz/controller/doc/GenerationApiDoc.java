@@ -11,7 +11,14 @@ import org.springframework.web.bind.annotation.RequestBody;
 @Tag(name = "Generation", description = "생성 관련 API")
 public interface GenerationApiDoc {
 
-    @Operation(summary = "문제를 생성한다")
+    /**
+         * Generate a new problem set for the specified user.
+         *
+         * @param userId the identifier of the user requesting the generation
+         * @param feGenerationRequest the generation request payload containing parameters for the problem set
+         * @return a ResponseEntity containing a GenerationResponse with the generated problem set and related metadata
+         */
+        @Operation(summary = "문제를 생성한다")
     @PostMapping
     ResponseEntity<GenerationResponse> postProblemSetId(
         String userId,

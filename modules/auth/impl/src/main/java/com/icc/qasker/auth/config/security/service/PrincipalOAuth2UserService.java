@@ -20,6 +20,12 @@ public class PrincipalOAuth2UserService extends DefaultOAuth2UserService {
 
     private final UserRepository userRepository;
 
+    /**
+     * Load an OAuth2 user from the external provider, create and persist a local User if one does not exist, and return a UserPrincipal.
+     *
+     * @param userRequest the OAuth2 user request containing client registration and token information
+     * @return a UserPrincipal containing the existing or newly created User and the provider's user attributes
+     */
     @Override
     public OAuth2User loadUser(OAuth2UserRequest userRequest)
         throws OAuth2AuthenticationException {

@@ -17,12 +17,23 @@ import org.springframework.web.method.support.ModelAndViewContainer;
 @Component
 public class UserIdArgumentResolver implements HandlerMethodArgumentResolver {
 
+    /**
+     * Determine whether a controller method parameter should be resolved as a user ID.
+     *
+     * @param parameter the method parameter to inspect
+     * @return `true` if the parameter is annotated with `@UserId` and its type is `String`, `false` otherwise
+     */
     @Override
     public boolean supportsParameter(MethodParameter parameter) {
         return parameter.hasParameterAnnotation(UserId.class)
             && parameter.getParameterType().equals(String.class);
     }
 
+    /**
+     * Resolve the current authenticated user's ID for a method argument annotated with {@code @UserId}.
+     *
+     * @return the resolved userId string if the request is authenticated and the principal exposes a userId; `null` if unauthenticated, anonymous, or the principal does not provide a userId
+     */
     @Override
     public @Nullable Object resolveArgument(MethodParameter parameter,
         @Nullable ModelAndViewContainer mavContainer, NativeWebRequest webRequest,
