@@ -4,6 +4,8 @@ import com.icc.qasker.auth.LogoutService;
 import com.icc.qasker.auth.TokenRotationService;
 import com.icc.qasker.auth.dto.response.RotateTokenResponse;
 import com.icc.qasker.auth.util.CookieUtil;
+import com.icc.qasker.global.error.CustomException;
+import com.icc.qasker.global.error.ExceptionMessage;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -30,7 +32,8 @@ public class AuthController {
     @PostMapping("/refresh")
     public ResponseEntity<RotateTokenResponse> refresh(HttpServletRequest request,
         HttpServletResponse response) {
-        var rtCookie = CookieUtil.getCookie(request, "refresh_token").orElse(null);
+        var rtCookie = CookieUtil.getCookie(request, "refresh_token")
+            .orElseThrow(() -> new CustomException(ExceptionMessage.UNAUTHORIZED));
         return ResponseEntity.ok(tokenRotationService.rotateTokens(rtCookie.getValue(), response));
     }
 
