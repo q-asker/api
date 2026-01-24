@@ -5,6 +5,7 @@ import com.icc.qasker.auth.config.security.handler.OAuth2LoginSuccessHandler;
 import com.icc.qasker.auth.config.security.service.PrincipalOAuth2UserService;
 import com.icc.qasker.auth.repository.UserRepository;
 import com.icc.qasker.global.error.ExceptionMessage;
+import com.icc.qasker.global.properties.JwtProperties;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import lombok.AllArgsConstructor;
@@ -36,7 +37,7 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain apiFilterChain(HttpSecurity http,
-        AuthenticationManager authenticationManager) throws Exception {
+        AuthenticationManager authenticationManager, JwtProperties jwtProperties) throws Exception {
         http
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(
@@ -52,7 +53,8 @@ public class SecurityConfig {
                 })
             )
             .addFilterBefore(
-                new JwtTokenAuthenticationFilter(authenticationManager, userRepository),
+                new JwtTokenAuthenticationFilter(authenticationManager, userRepository,
+                    jwtProperties),
                 UsernamePasswordAuthenticationFilter.class)
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/admin/**").hasRole("ADMIN")

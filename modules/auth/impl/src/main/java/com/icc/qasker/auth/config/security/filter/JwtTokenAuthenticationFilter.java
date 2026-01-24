@@ -27,11 +27,13 @@ import org.springframework.security.web.authentication.www.BasicAuthenticationFi
 public class JwtTokenAuthenticationFilter extends BasicAuthenticationFilter {
 
     private static final String BEARER_PREFIX = "Bearer ";
+    private final JwtProperties jwtProperties;
     private final UserRepository userRepository;
 
     public JwtTokenAuthenticationFilter(AuthenticationManager authManager,
-        UserRepository userRepository) {
+        UserRepository userRepository, JwtProperties jwtProperties) {
         super(authManager);
+        this.jwtProperties = jwtProperties;
         this.userRepository = userRepository;
     }
 
@@ -46,7 +48,7 @@ public class JwtTokenAuthenticationFilter extends BasicAuthenticationFilter {
         }
         String accessToken = authorizationHeader.substring(BEARER_PREFIX.length());
         try {
-            var decoded = require(Algorithm.HMAC512(JwtProperties.SECRET)).build()
+            var decoded = require(Algorithm.HMAC512(jwtProperties.getSecret())).build()
                 .verify(accessToken);
 
             String userId = decoded.getClaim("userId").asString();

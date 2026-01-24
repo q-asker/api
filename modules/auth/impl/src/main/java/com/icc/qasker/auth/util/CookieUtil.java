@@ -1,22 +1,24 @@
 package com.icc.qasker.auth.util;
 
-import com.icc.qasker.global.properties.JwtProperties;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Arrays;
 import java.util.Optional;
-import lombok.RequiredArgsConstructor;
+import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseCookie;
+import org.springframework.stereotype.Component;
 
-@RequiredArgsConstructor
+@Component
+@AllArgsConstructor
 public class CookieUtil {
 
-    public static ResponseCookie buildCookies(String value) {
+
+    public static ResponseCookie buildCookies(String value, long expireTime) {
         return ResponseCookie.from("refresh_token", value)
             .httpOnly(true)
             .secure(true)
             .path("/")
-            .maxAge(JwtProperties.REFRESH_EXPIRATION_TIME)
+            .maxAge(expireTime)
             .build();
     }
 

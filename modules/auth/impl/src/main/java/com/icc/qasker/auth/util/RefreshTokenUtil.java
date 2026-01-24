@@ -11,8 +11,10 @@ import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.Base64;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class RefreshTokenUtil {
@@ -28,7 +30,7 @@ public class RefreshTokenUtil {
 
             return rtPlain;
         } catch (Exception e) {
-            System.out.println(e.getMessage());
+            log.error(e.getMessage());
             throw new CustomException(ExceptionMessage.TOKEN_GENERATION_FAILED);
         }
     }

@@ -5,6 +5,7 @@ import com.icc.qasker.auth.component.AccessTokenHandler;
 import com.icc.qasker.auth.dto.response.RotateTokenResponse;
 import com.icc.qasker.auth.util.CookieUtil;
 import com.icc.qasker.auth.util.RefreshTokenUtil;
+import com.icc.qasker.global.properties.JwtProperties;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class TokenRotationServiceImpl implements TokenRotationService {
 
+    private final JwtProperties jwtProperties;
     private final RefreshTokenUtil refreshTokenUtil;
     private final AccessTokenHandler accessTokenHandler;
 
@@ -43,7 +45,8 @@ public class TokenRotationServiceImpl implements TokenRotationService {
 
     private void setRefreshToken(HttpServletResponse response, String newRtPlain) {
         response.setHeader(HttpHeaders.SET_COOKIE,
-            CookieUtil.buildCookies(newRtPlain).toString());
+            CookieUtil.buildCookies(newRtPlain, jwtProperties.getAccessExpirationTime())
+                .toString());
     }
 }
 
