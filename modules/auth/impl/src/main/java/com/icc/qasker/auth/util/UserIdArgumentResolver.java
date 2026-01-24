@@ -38,8 +38,8 @@ public class UserIdArgumentResolver implements HandlerMethodArgumentResolver {
         if (principal instanceof User user) {
             return user.getUserId();
         }
-        if (principal instanceof UserPrincipal userPrinCipal) {
-            return userPrinCipal.getUser().getUserId();
+        if (principal instanceof UserPrincipal userPrincipal) {
+            return userPrincipal.getUser().getUserId();
         }
         if (principal instanceof String userId && !userId.isBlank()
             && !"anonymousUser".equalsIgnoreCase(userId)) {
