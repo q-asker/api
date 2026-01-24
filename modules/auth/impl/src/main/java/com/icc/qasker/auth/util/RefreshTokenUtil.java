@@ -5,6 +5,7 @@ import com.icc.qasker.auth.repository.RefreshTokenRepository;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.global.properties.JwtProperties;
+import jakarta.transaction.Transactional;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
@@ -35,14 +36,16 @@ public class RefreshTokenUtil {
         }
     }
 
+    @Transactional(dontRollbackOn = CustomException.class)
     public RotateResult validateAndRotate(String oldRtPlain) {
         String oldRtHash = TokenUtils.sha256Hex(oldRtPlain);
 
         RefreshToken refreshToken = refreshTokenRepository.findByRtHash(oldRtHash)
             .orElseThrow(() -> new CustomException(ExceptionMessage.UNAUTHORIZED));
 
+        refreshTokenRepository.delete(refreshToken);
+
         if (refreshToken.isExpired(Instant.now())) {
-            refreshTokenRepository.delete(refreshToken);
             throw new CustomException(ExceptionMessage.UNAUTHORIZED);
         }
 
