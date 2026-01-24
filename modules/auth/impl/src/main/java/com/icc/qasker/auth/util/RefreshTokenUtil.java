@@ -36,14 +36,12 @@ public class RefreshTokenUtil {
         }
     }
 
-    @Transactional(dontRollbackOn = CustomException.class)
+    @Transactional
     public RotateResult validateAndRotate(String oldRtPlain) {
         String oldRtHash = TokenUtils.sha256Hex(oldRtPlain);
 
         RefreshToken refreshToken = refreshTokenRepository.findByRtHash(oldRtHash)
             .orElseThrow(() -> new CustomException(ExceptionMessage.UNAUTHORIZED));
-
-        refreshTokenRepository.delete(refreshToken);
 
         if (refreshToken.isExpired(Instant.now())) {
             throw new CustomException(ExceptionMessage.UNAUTHORIZED);
@@ -57,6 +55,7 @@ public class RefreshTokenUtil {
         return new RotateResult(refreshToken.getUserId(), newRtPlain);
     }
 
+    @Transactional
     public void revoke(String presentedRtPlain) {
         String rtHash = TokenUtils.sha256Hex(presentedRtPlain);
         refreshTokenRepository.findByRtHash(rtHash)
