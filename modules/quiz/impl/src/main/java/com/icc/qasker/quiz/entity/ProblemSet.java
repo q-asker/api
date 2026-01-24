@@ -27,7 +27,6 @@ public class ProblemSet extends CreatedAt {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private String title;
     private String userId;
 
     @OneToMany(mappedBy = "problemSet", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -42,7 +41,6 @@ public class ProblemSet extends CreatedAt {
             throw new CustomException(ExceptionMessage.NULL_AI_RESPONSE);
         }
         ProblemSet problemSet = new ProblemSet();
-        problemSet.setTitle(aiResponse.getTitle());
         problemSet.setUserId(userId);
         List<Problem> problems = aiResponse.getQuiz().stream()
             .map(quizDto -> Problem.of(quizDto, problemSet))

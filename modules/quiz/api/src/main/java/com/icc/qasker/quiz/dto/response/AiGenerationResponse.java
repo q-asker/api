@@ -12,8 +12,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class AiGenerationResponse {
 
-    private String title;
-
     @NotEmpty(message = "quiz가 null입니다.")
     @Valid
     private List<QuizGeneratedByAI> quiz;
