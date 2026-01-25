@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 @AllArgsConstructor
 public class ProblemSetServiceImpl implements ProblemSetService {
 
+    private final ProblemSetResponseMapper problemSetResponseMapper;
     private final ProblemSetRepository problemSetRepository;
     private final HashUtil hashUtil;
 
@@ -25,7 +26,7 @@ public class ProblemSetServiceImpl implements ProblemSetService {
 
         long id = hashUtil.decode(problemSetId);
         ProblemSet problemSet = getProblemSetEntity(id);
-        return toResponse(problemSet);
+        return problemSetResponseMapper.fromEntity(problemSet);
     }
 
     private ProblemSet getProblemSetEntity(long id) {
@@ -33,10 +34,6 @@ public class ProblemSetServiceImpl implements ProblemSetService {
             .orElseThrow(
                 () -> new CustomException(ExceptionMessage.PROBLEM_SET_NOT_FOUND)
             );
-    }
-
-    private ProblemSetResponse toResponse(ProblemSet problemSet) {
-        return ProblemSetResponseMapper.fromEntity(problemSet);
     }
 }
 

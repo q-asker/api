@@ -4,7 +4,7 @@ import com.icc.qasker.global.annotation.UserId;
 import com.icc.qasker.quiz.GenerationService;
 import com.icc.qasker.quiz.doc.GenerationApiDoc;
 import com.icc.qasker.quiz.dto.feRequest.GenerationRequest;
-import com.icc.qasker.quiz.dto.feResponse.GenerationResponse;
+import com.icc.qasker.quiz.dto.feResponse.ProblemSetResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
@@ -23,10 +23,11 @@ public class GenerationController implements GenerationApiDoc {
 
     @PostMapping(produces = MediaType.APPLICATION_NDJSON_VALUE)
     @Override
-    public Flux<GenerationResponse> postProblemSetId(
+    public Flux<ProblemSetResponse> postProblemSetId(
         @UserId
         String userId,
-        @Valid @RequestBody GenerationRequest generationRequest) {
+        @Valid @RequestBody
+        GenerationRequest generationRequest) {
         return generationService.processGenerationRequest(generationRequest, userId);
     }
 }

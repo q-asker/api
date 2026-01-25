@@ -62,7 +62,7 @@ public class AiServerAdapter {
                     )
             )
             .bodyToFlux(GenerationResponseFromAI.class)
-            .timeout(Duration.ofSeconds(30))
+            .timeout(Duration.ofSeconds(60))
             .doOnError(e -> {
                 if (!(e instanceof ClientSideException) && !(e instanceof CustomException)) {
                     log.error("AI Server Network/Timeout Error: {}", e.getMessage());

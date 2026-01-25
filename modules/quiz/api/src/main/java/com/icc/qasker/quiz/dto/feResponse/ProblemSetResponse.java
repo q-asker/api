@@ -10,6 +10,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class ProblemSetResponse {
 
+    private String problemSetId;
+    private int totalCount;
     private List<QuizForFe> quiz;
 
 
