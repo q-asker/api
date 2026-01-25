@@ -1,8 +1,8 @@
 package com.icc.qasker.quiz.controller;
 
 import com.icc.qasker.quiz.ProblemSetService;
-import com.icc.qasker.quiz.controller.doc.ProblemSetApiDoc;
-import com.icc.qasker.quiz.dto.response.ProblemSetResponse;
+import com.icc.qasker.quiz.doc.ProblemSetApiDoc;
+import com.icc.qasker.quiz.dto.feResponse.ProblemSetResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;

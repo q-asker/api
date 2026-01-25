@@ -13,6 +13,7 @@ dependencies {
     implementation project(':auth:auth-impl')
     implementation project(':aws:aws-impl')
     implementation project(':quiz:quiz-impl')
+    implementation project(':util:util-impl')
 
     implementation "org.springframework.boot:spring-boot-starter-actuator"
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'

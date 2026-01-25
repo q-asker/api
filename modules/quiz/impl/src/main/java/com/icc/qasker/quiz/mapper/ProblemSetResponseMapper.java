@@ -1,8 +1,8 @@
 package com.icc.qasker.quiz.mapper;
 
-import com.icc.qasker.quiz.dto.response.ProblemSetResponse;
-import com.icc.qasker.quiz.dto.response.ProblemSetResponse.QuizForFe;
-import com.icc.qasker.quiz.dto.response.ProblemSetResponse.QuizForFe.SelectionsForFE;
+import com.icc.qasker.quiz.dto.feResponse.ProblemSetResponse;
+import com.icc.qasker.quiz.dto.feResponse.ProblemSetResponse.QuizForFe;
+import com.icc.qasker.quiz.dto.feResponse.ProblemSetResponse.QuizForFe.SelectionsForFE;
 import com.icc.qasker.quiz.entity.Problem;
 import com.icc.qasker.quiz.entity.ProblemSet;
 import com.icc.qasker.quiz.entity.Selection;

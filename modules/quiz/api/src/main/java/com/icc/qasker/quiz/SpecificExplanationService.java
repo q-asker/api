@@ -1,6 +1,6 @@
 package com.icc.qasker.quiz;
 
-import com.icc.qasker.quiz.dto.response.SpecificExplanationResponse;
+import com.icc.qasker.quiz.dto.feResponse.SpecificExplanationResponse;
 
 public interface SpecificExplanationService {
 

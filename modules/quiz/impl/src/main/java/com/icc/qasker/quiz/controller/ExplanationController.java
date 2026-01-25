@@ -1,8 +1,8 @@
 package com.icc.qasker.quiz.controller;
 
 import com.icc.qasker.quiz.ExplanationService;
-import com.icc.qasker.quiz.controller.doc.ExplanationApiDoc;
-import com.icc.qasker.quiz.dto.response.ExplanationResponse;
+import com.icc.qasker.quiz.doc.ExplanationApiDoc;
+import com.icc.qasker.quiz.dto.feResponse.ExplanationResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;

@@ -7,9 +7,9 @@ import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.global.util.HashUtil;
 import com.icc.qasker.quiz.SpecificExplanationService;
-import com.icc.qasker.quiz.dto.request.SpecificExplanationRequest;
-import com.icc.qasker.quiz.dto.response.QuizGeneratedByAI.SelectionsOfAi;
-import com.icc.qasker.quiz.dto.response.SpecificExplanationResponse;
+import com.icc.qasker.quiz.dto.aiRequest.SpecificExplanationRequestToAI;
+import com.icc.qasker.quiz.dto.aiResponse.QuizGeneratedFromAI.SelectionsOfAi;
+import com.icc.qasker.quiz.dto.feResponse.SpecificExplanationResponse;
 import com.icc.qasker.quiz.entity.Problem;
 import com.icc.qasker.quiz.repository.ProblemRepository;
 import java.util.Objects;
@@ -30,7 +30,7 @@ public class SpecificExplanationServiceImpl implements SpecificExplanationServic
     private final ProblemRepository problemRepository;
 
     public SpecificExplanationServiceImpl(
-        @Qualifier("aiFindRestClient") RestClient aiRestClient,
+        @Qualifier("aiRestClient") RestClient aiRestClient,
         ProblemRepository problemRepository,
         HashUtil hashUtil
     ) {
@@ -46,7 +46,7 @@ public class SpecificExplanationServiceImpl implements SpecificExplanationServic
         Long problemSetId = hashUtil.decode(encodedProblemSetId);
         Problem problem = problemRepository.findByIdProblemSetIdAndIdNumber(problemSetId, number)
             .orElseThrow(() -> new CustomException(ExceptionMessage.PROBLEM_SET_NOT_FOUND));
-        SpecificExplanationRequest aiRequest = new SpecificExplanationRequest(
+        SpecificExplanationRequestToAI aiRequest = new SpecificExplanationRequestToAI(
             problem.getTitle(),
             problem.getSelections().stream().map(selection -> {
                 SelectionsOfAi s = new SelectionsOfAi();
