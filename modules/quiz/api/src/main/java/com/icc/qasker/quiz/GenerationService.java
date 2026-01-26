@@ -1,11 +1,12 @@
 package com.icc.qasker.quiz;
 
-import com.icc.qasker.quiz.dto.request.FeGenerationRequest;
-import com.icc.qasker.quiz.dto.response.GenerationResponse;
+import com.icc.qasker.quiz.dto.feRequest.GenerationRequest;
+import com.icc.qasker.quiz.dto.feResponse.ProblemSetResponse;
+import reactor.core.publisher.Flux;
 
 public interface GenerationService {
 
-    GenerationResponse processGenerationRequest(FeGenerationRequest feGenerationRequest,
+    Flux<ProblemSetResponse> processGenerationRequest(GenerationRequest generationRequest,
         String userId);
 }
 

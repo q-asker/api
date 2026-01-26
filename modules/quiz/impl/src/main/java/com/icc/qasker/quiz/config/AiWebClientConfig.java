@@ -10,6 +10,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.reactive.function.client.WebClient;
 
 @Configuration
 @AllArgsConstructor
@@ -18,21 +19,15 @@ public class AiWebClientConfig {
     private final QAskerProperties qAskerProperties;
 
     @Primary
-    @Bean("aiGenerationRestClient")
-    public RestClient aiGenerationRestClient() {
-        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(Duration.ofSeconds(5));
-        factory.setReadTimeout(Duration.ofSeconds(80));
-
-        return RestClient.builder()
+    @Bean("aiStreamClient")
+    public WebClient aiGenerationClient() {
+        return WebClient.builder()
             .baseUrl(qAskerProperties.getAiServerUrl())
-            .requestFactory(factory)
-            .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .build();
     }
 
     @Primary
-    @Bean("aiFindRestClient")
+    @Bean("aiRestClient")
     public RestClient aiRestClient() {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(Duration.ofSeconds(5));
@@ -40,19 +35,6 @@ public class AiWebClientConfig {
 
         return RestClient.builder()
             .baseUrl(qAskerProperties.getAiServerUrl())
-            .requestFactory(factory)
-            .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-            .build();
-    }
-
-    @Bean("aiMockingRestClient")
-    public RestClient aiMockingRestClient() {
-        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(Duration.ofSeconds(5));
-        factory.setReadTimeout(Duration.ofSeconds(60));
-
-        return RestClient.builder()
-            .baseUrl(qAskerProperties.getAiMockingServerUrl())
             .requestFactory(factory)
             .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .build();

@@ -1,6 +1,6 @@
 package com.icc.qasker.quiz;
 
-import com.icc.qasker.quiz.dto.response.ProblemSetResponse;
+import com.icc.qasker.quiz.dto.feResponse.ProblemSetResponse;
 
 public interface ProblemSetService {
 
