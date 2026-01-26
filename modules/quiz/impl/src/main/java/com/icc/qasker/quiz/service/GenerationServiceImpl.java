@@ -31,7 +31,7 @@ public class GenerationServiceImpl implements GenerationService {
 
     @Override
     public GenerationResponse processGenerationRequest(
-        FeGenerationRequest feGenerationRequest) {
+        FeGenerationRequest feGenerationRequest, String userId) {
         validateQuizCount(feGenerationRequest);
         FileExistStatusResponse fileExistStatusResponse = s3Service.checkFileExistence(
             feGenerationRequest.uploadedUrl());
@@ -42,7 +42,7 @@ public class GenerationServiceImpl implements GenerationService {
 
         AiGenerationResponse aiResponse = aiServerAdapter.requestGenerate(feGenerationRequest);
 
-        ProblemSet problemSet = ProblemSet.of(aiResponse);
+        ProblemSet problemSet = ProblemSet.of(aiResponse, userId);
         ProblemSet savedPs = problemSetRepository.save(problemSet);
 
         GenerationResponse response = new GenerationResponse(

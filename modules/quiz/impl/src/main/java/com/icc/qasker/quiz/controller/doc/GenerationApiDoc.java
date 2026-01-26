@@ -14,6 +14,7 @@ public interface GenerationApiDoc {
     @Operation(summary = "문제를 생성한다")
     @PostMapping
     ResponseEntity<GenerationResponse> postProblemSetId(
+        String userId,
         @RequestBody FeGenerationRequest feGenerationRequest);
 
 

@@ -42,6 +42,6 @@ public class MockAiServerAdapter extends AiServerAdapter {
             ))
             .toList();
 
-        return new AiGenerationResponse("Mock Problem Set Title", quizzes);
+        return new AiGenerationResponse(quizzes);
     }
 }

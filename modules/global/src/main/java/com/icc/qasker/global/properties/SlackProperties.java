@@ -4,8 +4,9 @@ import java.net.URI;
 import lombok.Getter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+
 @Getter
-@ConfigurationProperties(prefix = "slack")
+@ConfigurationProperties(prefix = "q-asker.slack")
 public class SlackProperties {
 
     private final boolean enabled;

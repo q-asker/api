@@ -17,7 +17,6 @@ public final class ProblemSetResponseMapper {
             .toList();
 
         return new ProblemSetResponse(
-            problemSet.getTitle(),
             quizzes
         );
     }

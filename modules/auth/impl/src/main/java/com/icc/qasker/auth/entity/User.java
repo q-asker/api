@@ -8,23 +8,19 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
-@NoArgsConstructor
 @Getter
+@NoArgsConstructor
 public class User extends CreatedAt {
 
     @Id
     private String userId;
-    private String password;
     private String role;
     private String provider;
     private String nickname;
 
     @Builder
-    private User(String userId, String password, String role, String provider,
-        String nickname) {
-        super();
+    public User(String userId, String password, String role, String provider, String nickname) {
         this.userId = userId;
-        this.password = password;
         this.role = role;
         this.provider = provider;
         this.nickname = nickname;

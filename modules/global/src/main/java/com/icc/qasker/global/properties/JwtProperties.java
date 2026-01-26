@@ -6,9 +6,10 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @Getter
 @AllArgsConstructor
-@ConfigurationProperties("app.hashids")
-public class HashProperties {
+@ConfigurationProperties(prefix = "spring.security.jwt")
+public class JwtProperties {
 
-    private final String salt;
-    private final int minLength;
+    private String secret;
+    private long accessExpirationTime;
+    private long refreshExpirationTime;
 }

@@ -1,4 +1,4 @@
-package com.icc.qasker.auth.security.filter;
+package com.icc.qasker.auth.config.security.filter;
 
 
 import static com.auth0.jwt.JWT.require;
@@ -6,8 +6,8 @@ import static com.auth0.jwt.JWT.require;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.TokenExpiredException;
 import com.icc.qasker.auth.entity.User;
-import com.icc.qasker.auth.properties.JwtProperties;
 import com.icc.qasker.auth.repository.UserRepository;
+import com.icc.qasker.global.properties.JwtProperties;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -27,11 +27,13 @@ import org.springframework.security.web.authentication.www.BasicAuthenticationFi
 public class JwtTokenAuthenticationFilter extends BasicAuthenticationFilter {
 
     private static final String BEARER_PREFIX = "Bearer ";
+    private final JwtProperties jwtProperties;
     private final UserRepository userRepository;
 
     public JwtTokenAuthenticationFilter(AuthenticationManager authManager,
-        UserRepository userRepository) {
+        UserRepository userRepository, JwtProperties jwtProperties) {
         super(authManager);
+        this.jwtProperties = jwtProperties;
         this.userRepository = userRepository;
     }
 
@@ -46,7 +48,7 @@ public class JwtTokenAuthenticationFilter extends BasicAuthenticationFilter {
         }
         String accessToken = authorizationHeader.substring(BEARER_PREFIX.length());
         try {
-            var decoded = require(Algorithm.HMAC512(JwtProperties.SECRET)).build()
+            var decoded = require(Algorithm.HMAC512(jwtProperties.getSecret())).build()
                 .verify(accessToken);
 
             String userId = decoded.getClaim("userId").asString();
