@@ -36,7 +36,7 @@ jib {
     extraDirectories {
         paths {
             path {
-                setFrom(file("./app/scouter").toPath())
+                setFrom(file("./scouter").toPath())
                 into = "/app/scouter"
             }
         }
