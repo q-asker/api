@@ -108,7 +108,7 @@ echo "set \$service_url http://$TARGET_CONTAINER:8080;" > ./nginx/conf.d/service
 IS_NGINX_RUNNING=$(docker ps | grep nginx)
 if [ -z "$IS_NGINX_RUNNING" ]; then
     send_slack ">>> Nginx가 실행 중이지 않습니다. Nginx 시작..."
-    docker compose -f docker-compose-infra.yml up -d nginx
+    docker compose up -d nginx
 else
     send_slack ">>> Nginx가 실행 중입니다. 설정 리로드(Reload)..."
     docker exec nginx nginx -s reload
