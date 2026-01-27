@@ -75,8 +75,12 @@ jib {
                     "-Dnet_collector_udp_port=${collectorPort}",
                     "-Dnet_collector_tcp_port=${collectorPort}",
 
+                    // [보안 설정: 권장] 클라이언트에서 제어 기능(HeapDump, Method Patch 등) 비활성화
+                    "-Denable_mgr_agent=false",
+
                     // [권장] 어플리케이션 이름
                     "-Dobj_name=${objName}"
+
             ]
         }
     }
