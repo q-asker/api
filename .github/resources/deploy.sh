@@ -106,13 +106,20 @@ send_slack ">>> Nginx 트래픽 전환 ($TARGET_CONTAINER)..."
 echo "set \$service_url http://$TARGET_CONTAINER:8080;" > ./nginx/conf.d/service-url.inc
 
 IS_NGINX_RUNNING=$(docker ps | grep nginx)
-
 if [ -z "$IS_NGINX_RUNNING" ]; then
     send_slack ">>> Nginx가 실행 중이지 않습니다. Nginx 시작..."
-    docker compose up -d nginx
+    docker compose -f docker-compose-infra.yml up -d nginx
 else
     send_slack ">>> Nginx가 실행 중입니다. 설정 리로드(Reload)..."
     docker exec nginx nginx -s reload
+fi
+
+IS_SCOUTER_RUNNING=$(docker ps | grep scouter-server)
+if [ -z "$IS_SCOUTER_RUNNING" ]; then
+    send_slack ">>> Scouter가 실행 중이지 않습니다. Scouter 시작..."
+    docker compose -f docker-compose-infra.yml up -d scouter-server
+else
+    send_slack ">>> Scouter가 실행 중입니다. 패스..."
 fi
 
 # 6. 이전 버전 컨테이너 중지
