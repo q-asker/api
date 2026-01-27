@@ -39,11 +39,6 @@ subprojects {
         testRuntimeOnly "org.junit.platform:junit-platform-launcher"
 
         // ────────────────────────────────
-        // APM
-        // ────────────────────────────────
-        implementation "com.newrelic.agent.java:newrelic-api:8.11.0"
-
-        // ────────────────────────────────
         // 스프링부트 web과 JPA
         // ────────────────────────────────
         implementation "org.springframework.boot:spring-boot-starter-web"

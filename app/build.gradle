@@ -14,7 +14,6 @@ dependencies {
     implementation project(':aws:aws-impl')
     implementation project(':quiz:quiz-impl')
 
-    implementation "org.springframework.boot:spring-boot-starter-actuator"
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
 }
 
@@ -37,22 +36,47 @@ jib {
     extraDirectories {
         paths {
             path {
-                setFrom(file("newrelic").toPath())
-                into = "/app/newrelic"
+                setFrom(file("./app/scouter").toPath())
+                into = "/app/scouter"
             }
         }
     }
     container {
         def jvmHeapSize = project.property("JVM_HEAP_SIZE")
 
+        // 기본 JVM 플래그 설정
         jvmFlags = ["-Xms${jvmHeapSize}", "-Xmx${jvmHeapSize}"]
 
-        def newRelicConfig = project.file("newrelic/newrelic.yml")
-        def newRelicJar = project.file("newrelic/newrelic.jar")
-        if (newRelicConfig.exists() && newRelicJar.exists()) {
+        def scouterJar = project.file("scouter/scouter.agent.jar")
+
+        if (scouterJar.exists()) {
+            // 1. 필수값 검증 (값이 없으면 여기서 빌드 실패함 🛑)
+            if (!project.hasProperty("SCOUTER_IP")) {
+                throw new GradleException("❌ [빌드 실패] SCOUTER_IP 프로퍼티가 없습니다. (-PSCOUTER_IP=... 옵션 필요)")
+            }
+            if (!project.hasProperty("SCOUTER_PORT")) {
+                throw new GradleException("❌ [빌드 실패] SCOUTER_PORT 프로퍼티가 없습니다. (-PSCOUTER_IP=... 옵션 필요)")
+            }
+            if (!project.hasProperty("SCOUTER_OBJ_NAME")) {
+                throw new GradleException("❌ [빌드 실패] SCOUTER_OBJ_NAME 프로퍼티가 없습니다. (-PSCOUTER_OBJ_NAME=... 옵션 필요)")
+            }
+
+            // 2. 값 할당 (검증 통과했으므로 안전하게 가져옴)
+            def collectorIp = project.property("SCOUTER_IP")
+            def objName = project.property("SCOUTER_OBJ_NAME")
+            def collectorPort = project.property("SCOUTER_PORT")
+
             jvmFlags = jvmFlags + [
-                    "-Dnewrelic.config.file=/app/newrelic/newrelic.yml",
-                    "-javaagent:/app/newrelic/newrelic.jar",
+                    // [필수] 에이전트 로드
+                    "-javaagent:/app/scouter/agent.java/scouter.agent.jar",
+
+                    // [필수] conf 파일 대신 직접 설정 주입
+                    "-Dnet_collector_ip=${collectorIp}",
+                    "-Dnet_collector_udp_port=${collectorPort}",
+                    "-Dnet_collector_tcp_port=${collectorPort}",
+
+                    // [권장] 어플리케이션 이름
+                    "-Dobj_name=${objName}"
             ]
         }
     }
