@@ -133,7 +133,8 @@ if [ -n "$CURRENT_PROFILE" ]; then
   send_slack ">>> 🛑 구 버전 컨테이너 중지 완료: ${STOP_DURATION}초 소요 ($STOP_MSG)"
 fi
 
-send_slack ">>> 사용하지 않는 Docker 이미지 정리(Prune)..."
+send_slack ">>> 사용하지 않는 Docker 이미지 정리..."
+docker images qasker/api --format "{{.Repository}}:{{.Tag}}" | grep -v ":latest" | xargs docker rmi
 docker image prune -f
 
 TOTAL_END_TIME=$(date +%s)
