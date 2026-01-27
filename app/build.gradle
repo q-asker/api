@@ -47,7 +47,7 @@ jib {
         // 기본 JVM 플래그 설정
         jvmFlags = ["-Xms${jvmHeapSize}", "-Xmx${jvmHeapSize}"]
 
-        def scouterJar = project.file("scouter/scouter.agent.jar")
+        def scouterJar = project.file("/app/scouter/agent.java/scouter.agent.jar")
 
         if (scouterJar.exists()) {
             // 1. 필수값 검증 (값이 없으면 여기서 빌드 실패함 🛑)
@@ -55,7 +55,7 @@ jib {
                 throw new GradleException("❌ [빌드 실패] SCOUTER_IP 프로퍼티가 없습니다. (-PSCOUTER_IP=... 옵션 필요)")
             }
             if (!project.hasProperty("SCOUTER_PORT")) {
-                throw new GradleException("❌ [빌드 실패] SCOUTER_PORT 프로퍼티가 없습니다. (-PSCOUTER_IP=... 옵션 필요)")
+                throw new GradleException("❌ [빌드 실패] SCOUTER_PORT 프로퍼티가 없습니다. (-PSCOUTER_PORT=... 옵션 필요)")
             }
             if (!project.hasProperty("SCOUTER_OBJ_NAME")) {
                 throw new GradleException("❌ [빌드 실패] SCOUTER_OBJ_NAME 프로퍼티가 없습니다. (-PSCOUTER_OBJ_NAME=... 옵션 필요)")
