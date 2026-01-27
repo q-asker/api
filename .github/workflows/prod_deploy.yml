@@ -20,7 +20,6 @@ jobs:
 
       - name: 환경변수들 등록
         run: |
-          echo "${{ env.NEWRELIC_YML }}" > app/newrelic/newrelic.yml
           echo "${{ env.APPLICATION_PROD_YML }}" > app/src/main/resources/application-prod.yml
           echo "${{ env.GRADLE_PROPERTIES }}" > app/gradle.properties
 
