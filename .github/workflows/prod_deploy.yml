@@ -33,7 +33,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Jib로 Docker 이미지 빌드 및 푸시
-        run: ./gradlew jib -PPROFILE=prod --build-cache
+        run: ./gradlew jib --build-cache
 
   deploy:
     name: EC2 배포
