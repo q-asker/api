@@ -15,13 +15,13 @@ services:
       - "6100:6100/tcp"
       - "6100:6100/udp"
     environment:
-      - JAVA_OPTS=-Xmx256m
+      - JAVA_OPTS=-Xmx512m
     volumes:
       - scouter-server-data:/home/scouter-server/database
     deploy:
       resources:
         limits:
-          memory: 312m
+          memory: 1024m
 
 volumes:
   scouter-server-data:

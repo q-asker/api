@@ -114,14 +114,6 @@ else
     docker exec nginx nginx -s reload
 fi
 
-IS_SCOUTER_RUNNING=$(docker ps | grep scouter-server)
-if [ -z "$IS_SCOUTER_RUNNING" ]; then
-    send_slack ">>> Scouter가 실행 중이지 않습니다. Scouter 시작..."
-    docker compose -f docker-compose-infra.yml up -d scouter-server
-else
-    send_slack ">>> Scouter가 실행 중입니다. 패스..."
-fi
-
 # 6. 이전 버전 컨테이너 중지
 if [ -n "$CURRENT_PROFILE" ]; then
   send_slack ">>> 구 버전 컨테이너($CURRENT_CONTAINER) 중지 (대기 시간: ${SHUTDOWN_TIMEOUT}초)..."
