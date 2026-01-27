@@ -70,6 +70,10 @@ jib {
                 // [필수] 에이전트 로드
                 "-javaagent:/app/scouter/agent.java/scouter.agent.jar",
 
+                // [필수] Java 16+ 대응을 위한 모듈 접근 허용 옵션
+                "--add-opens=java.base/java.lang=ALL-UNNAMED",
+                "--add-opens=java.base/java.util=ALL-UNNAMED",
+
                 // [필수] conf 파일 대신 직접 설정 주입
                 "-Dnet_collector_ip=${collectorIp}",
                 "-Dnet_collector_udp_port=${collectorPort}",
