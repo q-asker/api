@@ -1,12 +1,11 @@
 package com.icc.qasker.quiz;
 
 import com.icc.qasker.quiz.dto.feRequest.GenerationRequest;
-import com.icc.qasker.quiz.dto.feResponse.ProblemSetResponse;
-import reactor.core.publisher.Flux;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 public interface GenerationService {
 
-    Flux<ProblemSetResponse> processGenerationRequest(GenerationRequest generationRequest,
+    SseEmitter processGenerationRequest(GenerationRequest generationRequest,
         String userId);
 }
 
