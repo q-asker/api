@@ -1,4 +1,4 @@
-package com.icc.qasker.quiz.adapter;
+package com.icc.qasker.quiz.config;
 
 import com.icc.qasker.global.properties.QAskerProperties;
 import java.time.Duration;
@@ -18,7 +18,7 @@ import org.springframework.web.client.RestClient;
 
 @Configuration
 @AllArgsConstructor
-public class AiWebClientConfig {
+public class RestClientConfig {
 
     private final QAskerProperties qAskerProperties;
 
@@ -35,14 +35,13 @@ public class AiWebClientConfig {
             .setDefaultRequestConfig(requestConfig)
             .build();
 
-        // 2. RestClient 빌드 (WebClient와 비슷합니다)
+        // 2. RestClient 빌드
         return RestClient.builder()
             .baseUrl(qAskerProperties.getAiServerUrl())
             .requestFactory(new HttpComponentsClientHttpRequestFactory(httpClient))
             .build();
     }
 
-    @Primary
     @Bean("aiRestClient")
     public RestClient aiRestClient() {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();

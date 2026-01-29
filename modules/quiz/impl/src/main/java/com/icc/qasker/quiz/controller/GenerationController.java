@@ -20,7 +20,7 @@ public class GenerationController implements GenerationApiDoc {
 
     private final GenerationService generationService;
 
-    @PostMapping(produces = MediaType.APPLICATION_NDJSON_VALUE)
+    @PostMapping(produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @Override
     public SseEmitter postProblemSetId(
         @UserId
