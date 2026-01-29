@@ -14,7 +14,6 @@ dependencies {
     implementation project(':aws:aws-impl')
     implementation project(':quiz:quiz-impl')
 
-    implementation "org.springframework.boot:spring-boot-starter-actuator"
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
 }
 
@@ -37,23 +36,55 @@ jib {
     extraDirectories {
         paths {
             path {
-                setFrom(file("newrelic").toPath())
-                into = "/app/newrelic"
+                setFrom(file("./scouter").toPath())
+                into = "/app/scouter"
             }
         }
     }
     container {
         def jvmHeapSize = project.property("JVM_HEAP_SIZE")
 
+        // 기본 JVM 플래그 설정
         jvmFlags = ["-Xms${jvmHeapSize}", "-Xmx${jvmHeapSize}"]
 
-        def newRelicConfig = project.file("newrelic/newrelic.yml")
-        def newRelicJar = project.file("newrelic/newrelic.jar")
-        if (newRelicConfig.exists() && newRelicJar.exists()) {
-            jvmFlags = jvmFlags + [
-                    "-Dnewrelic.config.file=/app/newrelic/newrelic.yml",
-                    "-javaagent:/app/newrelic/newrelic.jar",
-            ]
+        def scouterJar = project.file("./scouter/agent.java/scouter.agent.jar")
+
+        if (!scouterJar.exists()) {
+            throw new GradleException("Scouter agent file not found: ${scouterJar.absolutePath}")
         }
+
+        // 1. 필수값 검증 (값이 없으면 여기서 빌드 실패함 🛑)
+        def requiredProps = ["SCOUTER_IP", "SCOUTER_PORT", "SCOUTER_OBJ_NAME"]
+        requiredProps.each { prop ->
+            if (!project.hasProperty(prop)) {
+                throw new GradleException("❌ [빌드 실패] ${prop} 프로퍼티가 누락되었습니다. (-P${prop}=값 필요)")
+            }
+        }
+
+        // 2. 값 할당 (검증 통과했으므로 안전하게 가져옴)
+        def collectorIp = project.property("SCOUTER_IP")
+        def objName = project.property("SCOUTER_OBJ_NAME")
+        def collectorPort = project.property("SCOUTER_PORT")
+
+        jvmFlags = jvmFlags + [
+                // [필수] 에이전트 로드
+                "-javaagent:/app/scouter/agent.java/scouter.agent.jar",
+
+                // [필수] Java 16+ 대응을 위한 모듈 접근 허용 옵션
+                "--add-opens=java.base/java.lang=ALL-UNNAMED",
+                "--add-opens=java.base/java.util=ALL-UNNAMED",
+
+                // [필수] conf 파일 대신 직접 설정 주입
+                "-Dnet_collector_ip=${collectorIp}",
+                "-Dnet_collector_udp_port=${collectorPort}",
+                "-Dnet_collector_tcp_port=${collectorPort}",
+
+                // [보안 설정: 권장] 클라이언트에서 제어 기능(HeapDump, Method Patch 등) 비활성화
+                "-Denable_mgr_agent=false",
+
+                // [권장] 어플리케이션 이름
+                "-Dobj_name=${objName}"
+
+        ]
     }
 }
