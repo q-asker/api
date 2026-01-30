@@ -66,11 +66,14 @@ public class GenerationServiceImpl implements GenerationService {
         ProblemSet finalSaveProblemSet = saveProblemSet;
         Thread.ofVirtual().start(() -> {
             try {
-                aiServerAdapter.streamRequest(request,
-                    (line) -> processLine(request, line, emitter, finalSaveProblemSet));
-                finalizeSuccess(finalSaveProblemSet.getId(), request, emitter);
+                aiServerAdapter.streamRequest(
+                    request,
+                    (line) -> processLine(request, line, emitter, finalSaveProblemSet)
+                );
+
+                finalizeSuccess(request, finalSaveProblemSet.getId(), emitter);
             } catch (Exception e) {
-                finalizeError(emitter, e, finalSaveProblemSet);
+                finalizeError(request, finalSaveProblemSet.getId(), emitter, e);
             }
         });
         return emitter;
@@ -100,29 +103,64 @@ public class GenerationServiceImpl implements GenerationService {
         }
     }
 
-    private void finalizeSuccess(Long problemSetId, GenerationRequest request,
-        SseEmitter emitter) {
+    private void finalizeSuccess(
+        GenerationRequest request,
+        Long problemSetId,
+        SseEmitter emitter
+    ) {
         String encodedId = hashUtil.encode(problemSetId);
-        int count = problemRepository.countByProblemSetId(problemSetId);
         slackNotifier.asyncNotifyText("""
             ✅ [퀴즈 생성 완료 알림]
-            ProblemSet ID: %s
+            ProblemSetId: %s
             퀴즈 타입: %s
-            문제 수: %d개 중 %d개 생성됨
+            문제 수: %d
             """.formatted(
             encodedId,
             request.quizType(),
-            request.quizCount(),
-            count
+            request.quizCount()
         ));
         emitter.complete();
     }
 
-    private void finalizeError(SseEmitter emitter, Exception e, ProblemSet problemSet) {
-        sendErrorAndComplete(emitter, e);
-        // 영속성 컨텍스트 추가 -> 삭제 비용
-//        problemSetRepository.delete(problemSet);
-        problemSetRepository.deleteById(problemSet.getId());
+    private void finalizeError(
+        GenerationRequest request,
+        Long problemSetId,
+        SseEmitter emitter,
+        Exception e
+    ) {
+
+        int generatedCount = problemRepository.countByProblemSetId(problemSetId);
+        if (generatedCount > 0) {
+            log.warn("⚠ 퀴즈 생성 중 오류 발생, 일부 데이터({}개)는 보존됨, Error: {}",
+                generatedCount,
+                e.getMessage()
+            );
+
+            emitter.complete();
+
+            slackNotifier.asyncNotifyText("""
+                ⚠️ [퀴즈 생성 부분 완료]
+                ProblemSetId: %s
+                생성된 문제 수: %d개 중 %d개
+                시유: 생성 중단 (%s)
+                """.formatted(
+                hashUtil.encode(problemSetId),
+                request.quizCount(),
+                generatedCount,
+                e.getMessage()
+            ));
+        } else {
+            sendErrorAndComplete(emitter, e);
+            // 영속성 컨텍스트 추가 -> 삭제 비용
+            // problemSetRepository.delete(problemSet);
+            slackNotifier.asyncNotifyText("""
+                ❌ [퀴즈 생성 실패]
+                사유: %s
+                """.formatted(
+                e.getMessage()
+            ));
+            problemSetRepository.deleteById(problemSetId);
+        }
     }
 
     private void sendErrorAndComplete(SseEmitter emitter, Exception e) {
