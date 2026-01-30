@@ -68,9 +68,8 @@ public class GenerationServiceImpl implements GenerationService {
             try {
                 aiServerAdapter.streamRequest(
                     request,
-                    (line) -> processLine(request, line, emitter, finalSaveProblemSet)
+                    (line) -> doMainLogic(request, line, emitter, finalSaveProblemSet)
                 );
-
                 finalizeSuccess(request, finalSaveProblemSet.getId(), emitter);
             } catch (Exception e) {
                 finalizeError(request, finalSaveProblemSet.getId(), emitter, e);
@@ -79,7 +78,7 @@ public class GenerationServiceImpl implements GenerationService {
         return emitter;
     }
 
-    private void processLine(GenerationRequest request, String line, SseEmitter emitter,
+    private void doMainLogic(GenerationRequest request, String line, SseEmitter emitter,
         ProblemSet saveProblemSet) {
         try {
             String encodedId = hashUtil.encode(saveProblemSet.getId());
