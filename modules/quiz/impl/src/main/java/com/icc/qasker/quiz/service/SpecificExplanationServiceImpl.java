@@ -8,7 +8,7 @@ import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.quiz.SpecificExplanationService;
 import com.icc.qasker.quiz.dto.aiRequest.SpecificExplanationRequestToAI;
-import com.icc.qasker.quiz.dto.aiResponse.QuizEvent.QuizGeneratedFromAI.SelectionsOfAi;
+import com.icc.qasker.quiz.dto.aiResponse.ProblemSetGeneratedEvent.QuizGeneratedFromAI.SelectionsOfAI;
 import com.icc.qasker.quiz.dto.feResponse.SpecificExplanationResponse;
 import com.icc.qasker.quiz.entity.Problem;
 import com.icc.qasker.quiz.repository.ProblemRepository;
@@ -49,10 +49,10 @@ public class SpecificExplanationServiceImpl implements SpecificExplanationServic
         SpecificExplanationRequestToAI aiRequest = new SpecificExplanationRequestToAI(
             problem.getTitle(),
             problem.getSelections().stream().map(selection -> {
-                SelectionsOfAi s = new SelectionsOfAi();
-                s.setContent(selection.getContent());
-                s.setCorrect(selection.isCorrect());
-                return s;
+                SelectionsOfAI selectionOfAI = new SelectionsOfAI();
+                selectionOfAI.setContent(selection.getContent());
+                selectionOfAI.setCorrect(selection.isCorrect());
+                return selectionOfAI;
             }).toList()
         );
         String aiExplanationRaw = Objects.requireNonNull(

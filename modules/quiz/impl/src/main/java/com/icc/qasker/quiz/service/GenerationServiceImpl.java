@@ -1,19 +1,19 @@
 package com.icc.qasker.quiz.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.icc.qasker.global.component.HashUtil;
 import com.icc.qasker.global.component.SlackNotifier;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.quiz.GenerationService;
 import com.icc.qasker.quiz.adapter.AIServerAdapter;
-import com.icc.qasker.quiz.dto.aiResponse.QuizEvent;
-import com.icc.qasker.quiz.dto.aiResponse.QuizEvent.QuizGeneratedFromAI;
+import com.icc.qasker.quiz.dto.aiResponse.ProblemSetGeneratedEvent;
+import com.icc.qasker.quiz.dto.aiResponse.ProblemSetGeneratedEvent.QuizGeneratedFromAI;
 import com.icc.qasker.quiz.dto.feRequest.GenerationRequest;
 import com.icc.qasker.quiz.dto.feResponse.ProblemSetResponse;
 import com.icc.qasker.quiz.dto.feResponse.ProblemSetResponse.QuizForFe;
 import com.icc.qasker.quiz.entity.Problem;
 import com.icc.qasker.quiz.entity.ProblemSet;
+import com.icc.qasker.quiz.mapper.FeRequestToAIRequestMapper;
 import com.icc.qasker.quiz.mapper.ProblemSetResponseMapper;
 import com.icc.qasker.quiz.repository.ProblemRepository;
 import com.icc.qasker.quiz.repository.ProblemSetRepository;
@@ -41,7 +41,6 @@ public class GenerationServiceImpl implements GenerationService {
     private final HashUtil hashUtil;
     private final ProblemRepository problemRepository;
     private final AIServerAdapter aiServerAdapter;
-    private final ObjectMapper objectMapper;
 
     @Override
     public SseEmitter processGenerationRequest(
@@ -74,7 +73,7 @@ public class GenerationServiceImpl implements GenerationService {
         Thread.ofVirtual().start(() -> {
             try {
                 aiServerAdapter.streamRequest(
-                    request,
+                    FeRequestToAIRequestMapper.toAIRequest(request),
                     (quiz) -> {
                         if (cancelled.get()) {
                             return;
@@ -106,7 +105,8 @@ public class GenerationServiceImpl implements GenerationService {
         return emitter;
     }
 
-    private void doMainLogic(GenerationRequest request, QuizEvent quiz, SseEmitter emitter,
+    private void doMainLogic(GenerationRequest request, ProblemSetGeneratedEvent quiz,
+        SseEmitter emitter,
         ProblemSet saveProblemSet) {
         try {
             String encodedId = hashUtil.encode(saveProblemSet.getId());

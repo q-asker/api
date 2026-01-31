@@ -1,18 +1,12 @@
 package com.icc.qasker.quiz.dto.aiRequest;
 
-import com.icc.qasker.quiz.dto.aiResponse.QuizEvent.QuizGeneratedFromAI.SelectionsOfAi;
+import com.icc.qasker.quiz.dto.aiResponse.ProblemSetGeneratedEvent.QuizGeneratedFromAI.SelectionsOfAI;
 import java.util.List;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
 
-@Getter
-@Setter
-@AllArgsConstructor
-@NoArgsConstructor
-public class SpecificExplanationRequestToAI {
+public record SpecificExplanationRequestToAI(
+    String title,
+    List<SelectionsOfAI> selections
+) {
 
-    private String title;
-    private List<SelectionsOfAi> selections;
-}
+
+};

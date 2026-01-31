@@ -6,8 +6,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.icc.qasker.global.error.ClientSideException;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
+import com.icc.qasker.quiz.dto.aiRequest.GenerationRequestToAI;
 import com.icc.qasker.quiz.dto.aiResponse.ErrorEvent;
-import com.icc.qasker.quiz.dto.aiResponse.QuizEvent;
+import com.icc.qasker.quiz.dto.aiResponse.ProblemSetGeneratedEvent;
 import com.icc.qasker.quiz.dto.aiResponse.StreamEvent;
 import com.icc.qasker.quiz.dto.feRequest.GenerationRequest;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
@@ -34,7 +35,8 @@ public class AIServerAdapter {
     private final RestClient aiStreamClient;
 
     @CircuitBreaker(name = "aiServer", fallbackMethod = "fallback")
-    public void streamRequest(GenerationRequest request, Consumer<QuizEvent> onLineReceived) {
+    public void streamRequest(GenerationRequestToAI request,
+        Consumer<ProblemSetGeneratedEvent> onLineReceived) {
         aiStreamClient.post()
             .uri("/generation")
             .body(request)
@@ -71,12 +73,12 @@ public class AIServerAdapter {
                         }
                         StreamEvent event = objectMapper.readValue(line, StreamEvent.class);
                         if (event instanceof ErrorEvent error) {
-                            if (400 <= error.getCode() && error.getCode() <= 499) {
-                                throw new ClientSideException(error.getMessage());
+                            if (400 <= error.code() && error.code() <= 499) {
+                                throw new ClientSideException(error.message());
                             } else {
-                                throw new RuntimeException(error.getMessage());
+                                throw new RuntimeException(error.message());
                             }
-                        } else if (event instanceof QuizEvent quiz) {
+                        } else if (event instanceof ProblemSetGeneratedEvent quiz) {
                             onLineReceived.accept(quiz);
                         }
                     }
@@ -88,7 +90,8 @@ public class AIServerAdapter {
             });
     }
 
-    private void fallback(GenerationRequest request, Consumer<QuizEvent> onLineReceived,
+    private void fallback(GenerationRequest request,
+        Consumer<ProblemSetGeneratedEvent> onLineReceived,
         Throwable t) {
         if (t instanceof CallNotPermittedException) {
             log.error("⛔ [CircuitBreaker] AI 서버 요청 차단됨 (Circuit Open): {}", t.getMessage());

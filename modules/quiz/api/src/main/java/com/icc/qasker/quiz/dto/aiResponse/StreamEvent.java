@@ -13,7 +13,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo.Id;
     visible = true
 )
 @JsonSubTypes({
-    @JsonSubTypes.Type(value = QuizEvent.class, name = "quiz"),
+    @JsonSubTypes.Type(value = ProblemSetGeneratedEvent.class, name = "quiz"),
     @JsonSubTypes.Type(value = ErrorEvent.class, name = "error")
 })
 public interface StreamEvent {
