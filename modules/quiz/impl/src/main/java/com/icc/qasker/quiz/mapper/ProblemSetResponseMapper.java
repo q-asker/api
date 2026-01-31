@@ -1,6 +1,6 @@
 package com.icc.qasker.quiz.mapper;
 
-import com.icc.qasker.global.util.HashUtil;
+import com.icc.qasker.global.component.HashUtil;
 import com.icc.qasker.quiz.dto.feResponse.ProblemSetResponse;
 import com.icc.qasker.quiz.dto.feResponse.ProblemSetResponse.QuizForFe;
 import com.icc.qasker.quiz.dto.feResponse.ProblemSetResponse.QuizForFe.SelectionsForFE;

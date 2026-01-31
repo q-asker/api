@@ -1,6 +1,7 @@
 package com.icc.qasker.util.controller;
 
 import com.icc.qasker.util.doc.UpdateLogApiDocs;
+import com.icc.qasker.util.dto.request.UpdateLogRequest;
 import com.icc.qasker.util.dto.response.UpdateLogResponse;
 import com.icc.qasker.util.service.UpdateLogService;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +27,7 @@ public class UpdateLogController implements UpdateLogApiDocs {
 
     @PostMapping
     public ResponseEntity<UpdateLogResponse> createUpdateLog(
-        @RequestBody com.icc.qasker.util.dto.request.UpdateLogRequest request) {
+        @RequestBody UpdateLogRequest request) {
         return ResponseEntity.ok(updateService.createUpdateLog(request));
     }
 }

@@ -6,6 +6,8 @@ import lombok.AllArgsConstructor;
 import org.apache.hc.client5.http.config.RequestConfig;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
+import org.apache.hc.core5.http.io.SocketConfig;
 import org.apache.hc.core5.util.Timeout;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -25,13 +27,22 @@ public class RestClientConfig {
     @Primary
     @Bean("aiStreamClient")
     public RestClient aiGenerationClient(QAskerProperties qAskerProperties) {
-        // 1. Apache HttpClient 5 설정 (타임아웃 등)
+        // 1. 소켓 레벨 타임아웃 설정 (데이터 패킷 간 최대 유휴 시간)
+        SocketConfig socketConfig = SocketConfig.custom()
+            .setSoTimeout(Timeout.ofSeconds(50))
+            .build();
+
+        PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
+        connectionManager.setDefaultSocketConfig(socketConfig);
+
+        // 1. Apache HttpClient 5 설정
         RequestConfig requestConfig = RequestConfig.custom()
-            .setResponseTimeout(Timeout.ofSeconds(100))
-            .setConnectTimeout(Timeout.ofSeconds(5))
+            .setResponseTimeout(Timeout.ofSeconds(50))
+            .setConnectTimeout(Timeout.ofSeconds(3))
             .build();
 
         CloseableHttpClient httpClient = HttpClients.custom()
+            .setConnectionManager(connectionManager)
             .setDefaultRequestConfig(requestConfig)
             .build();
 

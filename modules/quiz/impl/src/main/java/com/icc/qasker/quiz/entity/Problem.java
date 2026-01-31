@@ -4,7 +4,7 @@ import static jakarta.persistence.FetchType.LAZY;
 import static java.util.stream.Collectors.toList;
 
 import com.icc.qasker.global.entity.CreatedAt;
-import com.icc.qasker.quiz.dto.aiResponse.QuizGeneratedFromAI;
+import com.icc.qasker.quiz.dto.aiResponse.QuizEvent.QuizGeneratedFromAI;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.EmbeddedId;

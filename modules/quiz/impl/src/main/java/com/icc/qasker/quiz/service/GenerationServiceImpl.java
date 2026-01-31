@@ -1,14 +1,14 @@
 package com.icc.qasker.quiz.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.icc.qasker.global.component.HashUtil;
 import com.icc.qasker.global.component.SlackNotifier;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
-import com.icc.qasker.global.util.HashUtil;
 import com.icc.qasker.quiz.GenerationService;
 import com.icc.qasker.quiz.adapter.AIServerAdapter;
-import com.icc.qasker.quiz.dto.aiResponse.GenerationResponseFromAI;
-import com.icc.qasker.quiz.dto.aiResponse.QuizGeneratedFromAI;
+import com.icc.qasker.quiz.dto.aiResponse.QuizEvent;
+import com.icc.qasker.quiz.dto.aiResponse.QuizEvent.QuizGeneratedFromAI;
 import com.icc.qasker.quiz.dto.feRequest.GenerationRequest;
 import com.icc.qasker.quiz.dto.feResponse.ProblemSetResponse;
 import com.icc.qasker.quiz.dto.feResponse.ProblemSetResponse.QuizForFe;
@@ -61,6 +61,7 @@ public class GenerationServiceImpl implements GenerationService {
         } catch (Exception e) {
             log.error("초기 저장 실패: {}", e.getMessage());
             sendErrorAndComplete(emitter, e);
+            return emitter;
         }
 
         ProblemSet finalSaveProblemSet = saveProblemSet;
@@ -68,9 +69,25 @@ public class GenerationServiceImpl implements GenerationService {
             try {
                 aiServerAdapter.streamRequest(
                     request,
-                    (line) -> doMainLogic(request, line, emitter, finalSaveProblemSet)
+                    (quiz) -> doMainLogic(request, quiz, emitter, finalSaveProblemSet)
                 );
-                finalizeSuccess(request, finalSaveProblemSet.getId(), emitter);
+
+                Long problemSetId = finalSaveProblemSet.getId();
+                int generatedCount = problemRepository.countByIdProblemSetId(
+                    finalSaveProblemSet.getId());
+                if (generatedCount == 0) {
+                    throw new CustomException(ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR);
+                }
+                if (generatedCount == request.quizCount()) {
+                    finalizeSuccess(request, problemSetId, emitter);
+                } else {
+                    finalizePartialSuccess(
+                        request,
+                        generatedCount,
+                        problemSetId,
+                        emitter
+                    );
+                }
             } catch (Exception e) {
                 finalizeError(request, finalSaveProblemSet.getId(), emitter, e);
             }
@@ -78,15 +95,13 @@ public class GenerationServiceImpl implements GenerationService {
         return emitter;
     }
 
-    private void doMainLogic(GenerationRequest request, String line, SseEmitter emitter,
+    private void doMainLogic(GenerationRequest request, QuizEvent quiz, SseEmitter emitter,
         ProblemSet saveProblemSet) {
         try {
             String encodedId = hashUtil.encode(saveProblemSet.getId());
             List<Problem> problems = new ArrayList<>();
             List<QuizForFe> quizForFeList = new ArrayList<>();
-            GenerationResponseFromAI dto = objectMapper.readValue(line,
-                GenerationResponseFromAI.class);
-            for (QuizGeneratedFromAI quizGeneratedFromAI : dto.getQuiz()) {
+            for (QuizGeneratedFromAI quizGeneratedFromAI : quiz.getQuiz()) {
                 Problem problem = Problem.of(quizGeneratedFromAI, saveProblemSet);
                 problems.add(problem);
                 quizForFeList.add(problemSetResponseMapper.fromEntity(problem));
@@ -107,18 +122,35 @@ public class GenerationServiceImpl implements GenerationService {
         Long problemSetId,
         SseEmitter emitter
     ) {
-        String encodedId = hashUtil.encode(problemSetId);
+        emitter.complete();
         slackNotifier.asyncNotifyText("""
             ✅ [퀴즈 생성 완료 알림]
             ProblemSetId: %s
             퀴즈 타입: %s
             문제 수: %d
             """.formatted(
-            encodedId,
+            hashUtil.encode(problemSetId),
             request.quizType(),
             request.quizCount()
         ));
+    }
+
+    private void finalizePartialSuccess(
+        GenerationRequest request,
+        int generatedCount,
+        Long problemSetId,
+        SseEmitter emitter
+    ) {
         emitter.complete();
+        slackNotifier.asyncNotifyText("""
+            ⚠️ [퀴즈 생성 부분 완료]
+            ProblemSetId: %s
+            생성된 문제 수: %d개 중 %d개
+            """.formatted(
+            hashUtil.encode(problemSetId),
+            request.quizCount(),
+            generatedCount
+        ));
     }
 
     private void finalizeError(
@@ -127,39 +159,17 @@ public class GenerationServiceImpl implements GenerationService {
         SseEmitter emitter,
         Exception e
     ) {
-
-        int generatedCount = problemRepository.countByProblemSetId(problemSetId);
-        if (generatedCount > 0) {
-            log.warn("⚠ 퀴즈 생성 중 오류 발생, 일부 데이터({}개)는 보존됨, Error: {}",
-                generatedCount,
-                e.getMessage()
-            );
-
-            emitter.complete();
-
-            slackNotifier.asyncNotifyText("""
-                ⚠️ [퀴즈 생성 부분 완료]
-                ProblemSetId: %s
-                생성된 문제 수: %d개 중 %d개
-                시유: 생성 중단 (%s)
-                """.formatted(
-                hashUtil.encode(problemSetId),
-                request.quizCount(),
-                generatedCount,
-                e.getMessage()
-            ));
-        } else {
-            sendErrorAndComplete(emitter, e);
-            // 영속성 컨텍스트 추가 -> 삭제 비용
-            // problemSetRepository.delete(problemSet);
-            slackNotifier.asyncNotifyText("""
-                ❌ [퀴즈 생성 실패]
-                사유: %s
-                """.formatted(
-                e.getMessage()
-            ));
-            problemSetRepository.deleteById(problemSetId);
-        }
+        sendErrorAndComplete(emitter, e);
+        // 보상 트랜잭션 수행
+        // 영속성 컨텍스트 추가 -> 삭제 비용
+        // problemSetRepository.delete(problemSet);
+        problemSetRepository.deleteById(problemSetId);
+        slackNotifier.asyncNotifyText("""
+            ❌ [퀴즈 생성 실패]
+            사유: %s
+            """.formatted(
+            e.getMessage()
+        ));
     }
 
     private void sendErrorAndComplete(SseEmitter emitter, Exception e) {

@@ -20,7 +20,7 @@ public class SlackNotifier {
     @Async
     public void asyncNotifyText(String text) {
         boolean enabled = slackProperties.isEnabled();
-        String webhookUrl = slackProperties.getWebhookUrlNotify().toString();
+        String webhookUrl = slackProperties.getWebhookUrlNotify();
         if (!enabled || webhookUrl == null || webhookUrl.isBlank()) {
             return;
         }

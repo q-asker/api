@@ -1,4 +1,4 @@
-package com.icc.qasker.global.util;
+package com.icc.qasker.global.component;
 
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;

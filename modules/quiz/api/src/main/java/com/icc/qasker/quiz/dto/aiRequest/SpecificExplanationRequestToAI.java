@@ -1,6 +1,6 @@
 package com.icc.qasker.quiz.dto.aiRequest;
 
-import com.icc.qasker.quiz.dto.aiResponse.QuizGeneratedFromAI.SelectionsOfAi;
+import com.icc.qasker.quiz.dto.aiResponse.QuizEvent.QuizGeneratedFromAI.SelectionsOfAi;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
