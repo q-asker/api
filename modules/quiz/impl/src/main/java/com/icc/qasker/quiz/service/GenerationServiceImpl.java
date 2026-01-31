@@ -75,11 +75,12 @@ public class GenerationServiceImpl implements GenerationService {
             try {
                 aiServerAdapter.streamRequest(
                     request,
-                    (quiz) ->{
-                        if(cancelled.get()){
+                    (quiz) -> {
+                        if (cancelled.get()) {
                             return;
                         }
-                        doMainLogic(request, quiz, emitter, finalSaveProblemSet)}
+                        doMainLogic(request, quiz, emitter, finalSaveProblemSet);
+                    }
                 );
 
                 Long problemSetId = finalSaveProblemSet.getId();

@@ -31,6 +31,7 @@ public class QuizEvent implements StreamEvent {
         private String title;
 
         @NotNull(message = "selections가 null입니다.")
+        @Valid
         private List<SelectionsOfAi> selections;
 
         @NotBlank(message = "explanation이 null입니다.")
