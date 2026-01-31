@@ -23,6 +23,7 @@ import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -64,16 +65,25 @@ public class GenerationServiceImpl implements GenerationService {
             return emitter;
         }
 
+        final AtomicBoolean cancelled = new AtomicBoolean(false);
+        emitter.onTimeout(() -> cancelled.set(true));
+        emitter.onCompletion(() -> cancelled.set(true));
+        emitter.onError(e -> cancelled.set(true));
+
         ProblemSet finalSaveProblemSet = saveProblemSet;
         Thread.ofVirtual().start(() -> {
             try {
                 aiServerAdapter.streamRequest(
                     request,
-                    (quiz) -> doMainLogic(request, quiz, emitter, finalSaveProblemSet)
+                    (quiz) ->{
+                        if(cancelled.get()){
+                            return;
+                        }
+                        doMainLogic(request, quiz, emitter, finalSaveProblemSet)}
                 );
 
                 Long problemSetId = finalSaveProblemSet.getId();
-                int generatedCount = problemRepository.countByIdProblemSetId(
+                long generatedCount = problemRepository.countByIdProblemSetId(
                     finalSaveProblemSet.getId());
                 if (generatedCount == 0) {
                     throw new CustomException(ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR);
@@ -137,7 +147,7 @@ public class GenerationServiceImpl implements GenerationService {
 
     private void finalizePartialSuccess(
         GenerationRequest request,
-        int generatedCount,
+        long generatedCount,
         Long problemSetId,
         SseEmitter emitter
     ) {

@@ -22,7 +22,11 @@ public record GenerationRequest(
     DifficultyType difficultyType,
     @NotNull(message = "pageNumbers가 null입니다.")
     @Size(min = 1, max = 150, message = "pageNumbers는 1개 이상 150 이하이어야 합니다.")
-    List<Integer> pageNumbers
+    List<
+        @NotNull(message = "배열 요소가 null입니다.")
+        @Min(value = 1, message = "배열 요소는 1 이상이어야 합니다.")
+            Integer
+        > pageNumbers
 
 ) {
 

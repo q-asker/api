@@ -12,6 +12,6 @@ public interface ProblemRepository extends JpaRepository<Problem, ProblemId> {
 
     Optional<Problem> findByIdProblemSetIdAndIdNumber(Long problemSetId, int number);
 
-    int countByIdProblemSetId(Long id);
+    long countByIdProblemSetId(Long id);
 }
 

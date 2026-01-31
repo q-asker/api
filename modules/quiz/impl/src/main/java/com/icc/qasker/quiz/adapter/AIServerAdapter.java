@@ -88,7 +88,8 @@ public class AIServerAdapter {
             });
     }
 
-    private void fallback(GenerationRequest request, Consumer<String> onLineReceived, Throwable t) {
+    private void fallback(GenerationRequest request, Consumer<QuizEvent> onLineReceived,
+        Throwable t) {
         if (t instanceof CallNotPermittedException) {
             log.error("⛔ [CircuitBreaker] AI 서버 요청 차단됨 (Circuit Open): {}", t.getMessage());
             throw new CustomException(ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR);
