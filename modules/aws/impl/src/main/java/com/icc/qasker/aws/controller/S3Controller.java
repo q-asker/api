@@ -1,7 +1,7 @@
 package com.icc.qasker.aws.controller;
 
 import com.icc.qasker.aws.S3Service;
-import com.icc.qasker.aws.controller.doc.S3ApiDoc;
+import com.icc.qasker.aws.doc.S3ApiDoc;
 import com.icc.qasker.aws.dto.FileExistStatusResponse;
 import com.icc.qasker.aws.dto.PresignRequest;
 import com.icc.qasker.aws.dto.PresignResponse;

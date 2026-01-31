@@ -1,11 +1,11 @@
 package com.icc.qasker.quiz;
 
-import com.icc.qasker.quiz.dto.request.FeGenerationRequest;
-import com.icc.qasker.quiz.dto.response.GenerationResponse;
+import com.icc.qasker.quiz.dto.feRequest.GenerationRequest;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 public interface GenerationService {
 
-    GenerationResponse processGenerationRequest(FeGenerationRequest feGenerationRequest,
+    SseEmitter processGenerationRequest(GenerationRequest generationRequest,
         String userId);
 }
 
