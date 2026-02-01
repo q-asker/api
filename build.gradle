@@ -7,7 +7,7 @@ plugins {
 
 
 group = "com.icc.qasker"
-version = "1.6.5"
+version = "1.7.0"
 
 subprojects {
     apply plugin: 'java'
@@ -37,11 +37,6 @@ subprojects {
         // ────────────────────────────────
         testImplementation "org.springframework.boot:spring-boot-starter-test"
         testRuntimeOnly "org.junit.platform:junit-platform-launcher"
-
-        // ────────────────────────────────
-        // APM
-        // ────────────────────────────────
-        implementation "com.newrelic.agent.java:newrelic-api:8.11.0"
 
         // ────────────────────────────────
         // 스프링부트 web과 JPA

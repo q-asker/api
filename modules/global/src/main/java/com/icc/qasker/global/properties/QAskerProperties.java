@@ -6,7 +6,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @Getter
 @AllArgsConstructor
-@ConfigurationProperties(prefix = "q-asker")
+@ConfigurationProperties(prefix = "q-asker.web")
 public class QAskerProperties {
 
     private final String frontendDeployUrl;

@@ -42,5 +42,5 @@ out/
 .env
 app/gradle.properties
 app/newrelic/newrelic.yml
-/heapdump
+**/heapdump
 monitor_downtime.sh

@@ -4,7 +4,7 @@ import static jakarta.persistence.FetchType.LAZY;
 import static java.util.stream.Collectors.toList;
 
 import com.icc.qasker.global.entity.CreatedAt;
-import com.icc.qasker.quiz.dto.response.QuizGeneratedByAI;
+import com.icc.qasker.quiz.dto.aiResponse.ProblemSetGeneratedEvent.QuizGeneratedFromAI;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.EmbeddedId;
@@ -43,7 +43,7 @@ public class Problem extends CreatedAt {
     @OneToMany(mappedBy = "problem", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ReferencedPage> referencedPages = new ArrayList<>();
 
-    public static Problem of(QuizGeneratedByAI quizDto, ProblemSet problemSet) {
+    public static Problem of(QuizGeneratedFromAI quizDto, ProblemSet problemSet) {
         Problem problem = new Problem();
         ProblemId problemId = new ProblemId();
         problemId.setNumber(quizDto.getNumber());
