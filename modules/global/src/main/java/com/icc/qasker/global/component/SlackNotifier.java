@@ -5,6 +5,7 @@ import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient.Builder;
 
@@ -16,9 +17,10 @@ public class SlackNotifier {
     private final Builder restClientBuilder;
     private final SlackProperties slackProperties;
 
-    public void notifyText(String text) {
+    @Async
+    public void asyncNotifyText(String text) {
         boolean enabled = slackProperties.isEnabled();
-        String webhookUrl = slackProperties.getWebhookUrlNotify().toString();
+        String webhookUrl = slackProperties.getWebhookUrlNotify();
         if (!enabled || webhookUrl == null || webhookUrl.isBlank()) {
             return;
         }

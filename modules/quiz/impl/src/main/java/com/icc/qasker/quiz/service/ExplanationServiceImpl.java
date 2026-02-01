@@ -1,11 +1,11 @@
 package com.icc.qasker.quiz.service;
 
+import com.icc.qasker.global.component.HashUtil;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
-import com.icc.qasker.global.util.HashUtil;
 import com.icc.qasker.quiz.ExplanationService;
-import com.icc.qasker.quiz.dto.response.ExplanationResponse;
-import com.icc.qasker.quiz.dto.response.ResultResponse;
+import com.icc.qasker.quiz.dto.feResponse.ExplanationResponse;
+import com.icc.qasker.quiz.dto.feResponse.ResultResponse;
 import com.icc.qasker.quiz.entity.Problem;
 import com.icc.qasker.quiz.entity.ReferencedPage;
 import com.icc.qasker.quiz.repository.ProblemRepository;
