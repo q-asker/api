@@ -48,6 +48,7 @@ public final class ProblemSetResponseMapper {
 
         return new ProblemSetResponse(
             hashUtil.encode(problemSet.getId()),
+            problemSet.getStatus().toString(),
             quizzes.size(),
             quizzes
         );
