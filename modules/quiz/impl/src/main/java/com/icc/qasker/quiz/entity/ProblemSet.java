@@ -6,6 +6,8 @@ import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.quiz.dto.aiResponse.ProblemSetGeneratedEvent;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -31,6 +33,11 @@ public class ProblemSet extends CreatedAt {
     @OneToMany(mappedBy = "problemSet", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Problem> problems;
 
+    @Enumerated(EnumType.STRING)
+    private GenerationStatus status;
+
+
+    // 이하 헬퍼 함수
     @Builder
     public ProblemSet(String userId) {
         this.userId = userId;
@@ -49,5 +56,17 @@ public class ProblemSet extends CreatedAt {
             .map(quizDto -> Problem.of(quizDto, problemSet))
             .toList();
         return problemSet;
+    }
+
+    public void updateStatus(GenerationStatus status) {
+        this.status = status;
+    }
+
+    // 상태 정의를 위한 ENUM
+    public enum GenerationStatus {
+        WAITING,
+        GENERATING,
+        COMPLETED,
+        FAILED
     }
 }

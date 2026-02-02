@@ -23,7 +23,6 @@ public class ProblemSetServiceImpl implements ProblemSetService {
     @Override
     @Transactional(readOnly = true)
     public ProblemSetResponse getProblemSet(String problemSetId) {
-
         long id = hashUtil.decode(problemSetId);
         ProblemSet problemSet = getProblemSetEntity(id);
         return problemSetResponseMapper.fromEntity(problemSet);

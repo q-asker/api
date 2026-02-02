@@ -11,9 +11,9 @@ import lombok.NoArgsConstructor;
 public class ProblemSetResponse {
 
     private String problemSetId;
+    private String generationStatus;
     private int totalCount;
     private List<QuizForFe> quiz;
-
 
     @Getter
     @NoArgsConstructor
