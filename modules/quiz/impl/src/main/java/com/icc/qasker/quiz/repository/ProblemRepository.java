@@ -19,7 +19,7 @@ public interface ProblemRepository extends JpaRepository<Problem, ProblemId> {
         SELECT p
         FROM Problem p
         WHERE p.id.number > :number
-        AND p.id.problemSetId = :prblemSetId
+        AND p.id.problemSetId = :problemSetId
         """)
     List<Problem> findMissedProblems(Long problemSetId, Integer number);
 }

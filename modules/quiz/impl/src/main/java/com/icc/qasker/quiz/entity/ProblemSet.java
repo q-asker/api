@@ -7,6 +7,7 @@ import com.icc.qasker.quiz.GenerationStatus;
 import com.icc.qasker.quiz.dto.aiResponse.ProblemSetGeneratedEvent;
 import com.icc.qasker.quiz.dto.feRequest.enums.QuizType;
 import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -37,7 +38,9 @@ public class ProblemSet extends CreatedAt {
     private List<Problem> problems;
 
     @Enumerated(EnumType.STRING)
-    private GenerationStatus status;
+    @Builder.Default
+    @Column(nullable = false)
+    private GenerationStatus status = GenerationStatus.GENERATING;
 
     @Enumerated(EnumType.STRING)
     private QuizType quizType;

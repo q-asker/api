@@ -83,9 +83,11 @@ public class QuizCommandServiceImpl implements QuizCommandService {
 
     @Transactional
     @Override
-    public Long initProblemSet(String userId, Integer totalQuizCount, QuizType quizType) {
+    public Long initProblemSet(String userId, String sessionId, Integer totalQuizCount,
+        QuizType quizType) {
         ProblemSet problemSet = ProblemSet
             .builder()
+            .sessionId(sessionId)
             .userId(userId)
             .totalQuizCount(totalQuizCount)
             .quizType(quizType)
@@ -96,10 +98,10 @@ public class QuizCommandServiceImpl implements QuizCommandService {
 
     @Transactional
     @Override
-    public void updateStatus(Long problemSetId, String status) {
+    public void updateStatus(Long problemSetId, GenerationStatus status) {
         ProblemSet problemSet = problemSetRepository.findById(problemSetId)
             .orElseThrow(() -> new CustomException(ExceptionMessage.PROBLEM_SET_NOT_FOUND));
-        problemSet.updateStatus(GenerationStatus.valueOf(status));
+        problemSet.updateStatus(status);
     }
 
     @Transactional
