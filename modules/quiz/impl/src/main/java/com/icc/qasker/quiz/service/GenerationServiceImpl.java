@@ -1,10 +1,15 @@
 package com.icc.qasker.quiz.service;
 
+import static com.icc.qasker.quiz.GenerationStatus.COMPLETED;
+
 import com.icc.qasker.global.component.HashUtil;
 import com.icc.qasker.global.component.SlackNotifier;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.quiz.GenerationService;
+import com.icc.qasker.quiz.GenerationStatus;
+import com.icc.qasker.quiz.QuizCommandService;
+import com.icc.qasker.quiz.SseNotificationService;
 import com.icc.qasker.quiz.adapter.AIServerAdapter;
 import com.icc.qasker.quiz.dto.aiRequest.GenerationRequestToAI;
 import com.icc.qasker.quiz.dto.aiResponse.ProblemSetGeneratedEvent;
@@ -12,18 +17,8 @@ import com.icc.qasker.quiz.dto.feRequest.GenerationRequest;
 import com.icc.qasker.quiz.dto.feRequest.enums.QuizType;
 import com.icc.qasker.quiz.dto.feResponse.ProblemSetResponse;
 import com.icc.qasker.quiz.dto.feResponse.ProblemSetResponse.QuizForFe;
-import com.icc.qasker.quiz.entity.Problem;
 import com.icc.qasker.quiz.mapper.FeRequestToAIRequestMapper;
-import com.icc.qasker.quiz.mapper.ProblemSetResponseMapper;
-import io.github.resilience4j.circuitbreaker.CircuitBreaker;
-import io.github.resilience4j.circuitbreaker.CircuitBreaker.State;
-import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
-import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -35,37 +30,65 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 public class GenerationServiceImpl implements GenerationService {
 
     // 핵심
-    private final Map<String, SseEmitter> emitterMap = new ConcurrentHashMap<>();
     private final AIServerAdapter aiServerAdapter;
     private final QuizCommandService quizCommandService;
+    private final SseNotificationService notificationService;
     // 유틸
     private final HashUtil hashUtil;
     private final SlackNotifier slackNotifier;
-    private final CircuitBreakerRegistry circuitBreakerRegistry;
     // 매퍼
     private final FeRequestToAIRequestMapper feRequestToAIRequestMapper;
-    private final ProblemSetResponseMapper problemSetResponseMapper;
 
-    public SseEmitter subscribe(String sessionID, String lastEventID) {
-        CircuitBreaker circuitBreaker = circuitBreakerRegistry.circuitBreaker("aiServer");
-        if (circuitBreaker.getState() == State.OPEN) {
-            throw new CustomException(ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR);
+    public SseEmitter subscribe(String sessionId, String lastEventID) {
+        GenerationStatus status = quizCommandService.getGenerationStatusBySessionId(sessionId);
+        switch (status) {
+            case COMPLETED -> {
+                ProblemSetResponse ps = quizCommandService.getMissedProblems(
+                    sessionId,
+                    lastEventID
+                );
+                notificationService.sendToClient(
+                    sessionId,
+                    "created",
+                    ps
+                );
+                notificationService.complete(sessionId);
+            }
+            case GENERATING -> {
+                ProblemSetResponse ps = quizCommandService.getMissedProblems(
+                    sessionId,
+                    lastEventID
+                );
+                notificationService.sendToClient(
+                    sessionId,
+                    "created",
+                    ps
+                );
+            }
+            case NOT_EXIST -> {
+                notificationService.sendToClient(sessionId, "error",
+                    ExceptionMessage.PROBLEM_SET_NOT_FOUND.getMessage());
+                notificationService.complete(sessionId);
+            }
+            case WAITING -> {
+
+            }
         }
-
-        SseEmitter emitter = new SseEmitter(100 * 1000L);
-        emitterMap.put(sessionID, emitter);
-
-        emitter.onCompletion(() -> emitterMap.remove(sessionID));
-        emitter.onTimeout(() -> emitterMap.remove(sessionID));
-        emitter.onError((e) -> emitterMap.remove(sessionID));
-        return emitter;
+        return notificationService.createSseEmitter(sessionId);
     }
 
     public void triggerGeneration(
-        String useId,
+        String userId,
         GenerationRequest request
     ) {
-        Long problemSetId = quizCommandService.initProblemSet(useId);
+        GenerationStatus status = quizCommandService.getGenerationStatusBySessionId(
+            request.sessionId());
+        if (status == GenerationStatus.GENERATING || status == COMPLETED) {
+            return;
+        }
+
+        Long problemSetId = quizCommandService.initProblemSet(userId, request.quizCount(),
+            request.quizType());
         String encodedId = hashUtil.encode(problemSetId);
         Thread.ofVirtual().start(() -> processAsyncGeneration(
             request.sessionId(),
@@ -75,26 +98,31 @@ public class GenerationServiceImpl implements GenerationService {
         ));
     }
 
-    private void processAsyncGeneration(UUID sessionId, Long problemSetId, String encodedId,
-        GenerationRequestToAI request) {
+    private void processAsyncGeneration(
+        String sessionId,
+        Long problemSetId,
+        String encodedId,
+        GenerationRequestToAI request
+    ) {
         try {
             aiServerAdapter.streamRequest(
                 request,
                 (ProblemSetGeneratedEvent problemSet) -> {
-                    List<Problem> problems = quizCommandService.saveAll(problemSet.getQuiz(),
-                        problemSetId);
+                    List<QuizForFe> quizForFeList = quizCommandService.saveBatch(
+                        problemSet.getQuiz(), problemSetId);
 
-                    List<QuizForFe> quizForFeList = new ArrayList<>();
-                    for (Problem problem : problems) {
-                        quizForFeList.add(problemSetResponseMapper.fromEntity(problem));
-                    }
+                    notificationService.sendToClient(sessionId,
+                        "created",
+                        String.valueOf(quizForFeList.getLast().getNumber()),
 
-                    notifyClient(sessionId, new ProblemSetResponse(
-                        encodedId,
-                        quizCommandService.getGenerationStatus(problemSetId).toString(),
-                        request.quizCount(),
-                        quizForFeList
-                    ));
+                        new ProblemSetResponse(
+                            sessionId,
+                            encodedId,
+                            quizCommandService.getGenerationStatus(problemSetId),
+                            request.quizType(),
+                            request.quizCount(),
+                            quizForFeList
+                        ));
                 }
             );
 
@@ -102,43 +130,31 @@ public class GenerationServiceImpl implements GenerationService {
             if (generatedCount == 0) {
                 throw new CustomException(ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR);
             } else if (generatedCount == request.quizCount()) {
-                finalizeSuccess(problemSetId, encodedId, request.quizType(), generatedCount);
+                finalizeSuccess(sessionId, encodedId, request.quizType(), generatedCount);
             } else {
-                finalizePartialSuccess(problemSetId, request.quizCount(), generatedCount);
+                finalizePartialSuccess(
+                    sessionId,
+                    problemSetId,
+                    request.quizCount(),
+                    generatedCount
+                );
             }
         } catch (Exception e) {
             // 보상 트랜잭션 수행
             // 영속성 컨텍스트 추가 -> 삭제 비용
             // problemSetRepository.delete(problemSet);
             quizCommandService.delete(problemSetId);
-            finalizeError(problemSetId, e.getMessage());
-        }
-    }
-
-    private void notifyClient(UUID sessionId, ProblemSetResponse data) {
-        SseEmitter emitter = emitterMap.get(sessionId);
-        sendClientByEmitter(emitter, "quiz", data);
-    }
-
-    private void sendClientByEmitter(SseEmitter emitter, String eventName, Object data) {
-        if (emitter != null) {
-            try {
-                emitter.send(SseEmitter.event().name(eventName).data(data));
-            } catch (IOException e) {
-                emitter.complete();
-                log.error("클라이언트에게 전송 중 에러 발생: {}", e.getMessage());
-            }
+            finalizeError(sessionId, e.getMessage());
         }
     }
 
     private void finalizeSuccess(
-        Long problemSetId,
+        String sessionID,
         String encodedId,
         QuizType quizType,
         long generatedCount
     ) {
-        SseEmitter emitter = emitterMap.get(problemSetId);
-        emitter.complete();
+        notificationService.complete(sessionID);
         slackNotifier.asyncNotifyText("""
             ✅ [퀴즈 생성 완료 알림]
             ProblemSetId: %s
@@ -152,11 +168,10 @@ public class GenerationServiceImpl implements GenerationService {
     }
 
     private void finalizeError(
-        Long problemSetId,
+        String sessionID,
         String errorMessage
     ) {
-        SseEmitter emitter = emitterMap.get(problemSetId);
-        sendClientByEmitter(emitter, "error", errorMessage);
+        notificationService.sendToClient(sessionID, "error", errorMessage);
         slackNotifier.asyncNotifyText("""
             ❌ [퀴즈 생성 실패]
             사유: %s
@@ -166,12 +181,12 @@ public class GenerationServiceImpl implements GenerationService {
     }
 
     private void finalizePartialSuccess(
+        String sessionID,
         Long problemSetId,
         long quizCount,
         long generatedCount
     ) {
-        SseEmitter emitter = emitterMap.get(problemSetId);
-        emitter.complete();
+        notificationService.complete(sessionID);
         slackNotifier.asyncNotifyText("""
             ⚠️ [퀴즈 생성 부분 완료]
             ProblemSetId: %s

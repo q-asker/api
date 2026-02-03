@@ -5,6 +5,7 @@ import com.icc.qasker.quiz.entity.ProblemId;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
 public interface ProblemRepository extends JpaRepository<Problem, ProblemId> {
 
@@ -13,5 +14,13 @@ public interface ProblemRepository extends JpaRepository<Problem, ProblemId> {
     Optional<Problem> findByIdProblemSetIdAndIdNumber(Long problemSetId, int number);
 
     long countByIdProblemSetId(Long id);
+
+    @Query("""
+        SELECT p
+        FROM Problem p
+        WHERE p.id.number > :number
+        AND p.id.problemSetId = :prblemSetId
+        """)
+    List<Problem> findMissedProblems(Long problemSetId, Integer number);
 }
 

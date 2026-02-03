@@ -1,5 +1,7 @@
 package com.icc.qasker.quiz.dto.feResponse;
 
+import com.icc.qasker.quiz.GenerationStatus;
+import com.icc.qasker.quiz.dto.feRequest.enums.QuizType;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -10,9 +12,11 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class ProblemSetResponse {
 
+    private String sessionId;
     private String problemSetId;
-    private String generationStatus;
-    private int totalCount;
+    private GenerationStatus generationStatus;
+    private QuizType quizType;
+    private Integer totalCount;
     private List<QuizForFe> quiz;
 
     @Getter

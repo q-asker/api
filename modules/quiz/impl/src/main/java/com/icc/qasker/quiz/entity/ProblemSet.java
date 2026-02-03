@@ -3,7 +3,9 @@ package com.icc.qasker.quiz.entity;
 import com.icc.qasker.global.entity.CreatedAt;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
+import com.icc.qasker.quiz.GenerationStatus;
 import com.icc.qasker.quiz.dto.aiResponse.ProblemSetGeneratedEvent;
+import com.icc.qasker.quiz.dto.feRequest.enums.QuizType;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -13,7 +15,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import java.util.List;
-import java.util.UUID;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -21,10 +23,10 @@ import lombok.NoArgsConstructor;
 
 @Entity
 @Getter
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
+@Builder
 public class ProblemSet extends CreatedAt {
-
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -37,14 +39,15 @@ public class ProblemSet extends CreatedAt {
     @Enumerated(EnumType.STRING)
     private GenerationStatus status;
 
-    private UUID sessionID;
+    @Enumerated(EnumType.STRING)
+    private QuizType quizType;
+
+    private Integer totalQuizCount;
+
+    private String sessionId;
+
 
     // 이하 헬퍼 함수
-    @Builder
-    public ProblemSet(String userId) {
-        this.userId = userId;
-    }
-
     public static ProblemSet of(ProblemSetGeneratedEvent aiResponse) {
         return of(aiResponse, null);
     }
@@ -62,13 +65,5 @@ public class ProblemSet extends CreatedAt {
 
     public void updateStatus(GenerationStatus status) {
         this.status = status;
-    }
-
-    // 상태 정의를 위한 ENUM
-    public enum GenerationStatus {
-        WAITING,
-        GENERATING,
-        COMPLETED,
-        FAILED
     }
 }

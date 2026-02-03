@@ -12,15 +12,14 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinColumns;
 import jakarta.persistence.ManyToOne;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 @Entity
 @Getter
-@NoArgsConstructor
-@Setter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 public class Selection extends CreatedAt {
 
@@ -39,6 +38,7 @@ public class Selection extends CreatedAt {
     })
     private Problem problem;
 
+    // 이하 헬퍼 함수
     public static Selection of(SelectionsOfAI dto, Problem problem) {
         Selection selection = new Selection();
         selection.content = dto.getContent();
