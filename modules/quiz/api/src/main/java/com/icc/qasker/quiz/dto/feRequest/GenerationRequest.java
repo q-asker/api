@@ -8,9 +8,12 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.util.List;
+import java.util.UUID;
 
 public record GenerationRequest(
 
+    @NotNull
+    UUID sessionId,
     @NotBlank(message = "url이 존재하지 않습니다.")
     String uploadedUrl,
     @Min(value = 5, message = "quizCount는 5이상입니다.")
@@ -27,7 +30,6 @@ public record GenerationRequest(
         @Min(value = 1, message = "배열 요소는 1 이상이어야 합니다.")
             Integer
         > pageNumbers
-
 ) {
 
 };
