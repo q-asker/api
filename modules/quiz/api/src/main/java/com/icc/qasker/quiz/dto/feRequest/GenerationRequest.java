@@ -8,12 +8,13 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.util.List;
-import java.util.UUID;
+import org.hibernate.validator.constraints.UUID;
 
 public record GenerationRequest(
 
     @NotNull
-    UUID sessionId,
+    @UUID
+    String sessionId,
     @NotBlank(message = "url이 존재하지 않습니다.")
     String uploadedUrl,
     @Min(value = 5, message = "quizCount는 5이상입니다.")

@@ -2,18 +2,19 @@ package com.icc.qasker.quiz.entity;
 
 import jakarta.persistence.Embeddable;
 import java.io.Serializable;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 @Embeddable
-@Getter
 @EqualsAndHashCode
-@NoArgsConstructor
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
-@Setter
+@Builder
 public class ProblemId implements Serializable {
 
     private Long problemSetId;

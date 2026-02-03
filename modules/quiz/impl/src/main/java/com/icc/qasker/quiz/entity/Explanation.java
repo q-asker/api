@@ -10,14 +10,17 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinColumns;
 import jakarta.persistence.MapsId;
 import jakarta.persistence.OneToOne;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 @Entity
 @Getter
-@NoArgsConstructor
-@Setter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
+@Builder
 public class Explanation extends CreatedAt {
 
     private static final int MAX_CONTENT_LENGTH = 20000;
@@ -35,13 +38,14 @@ public class Explanation extends CreatedAt {
     })
     private Problem problem;
 
+    // 이하 헬퍼 함수
     public static Explanation of(String content, Problem problem) {
-        Explanation explanation = new Explanation();
         if (content.length() > MAX_CONTENT_LENGTH) {
             content = content.substring(0, MAX_CONTENT_LENGTH);
         }
-        explanation.setContent(content);
-        explanation.setProblem(problem);
-        return explanation;
+        return Explanation.builder()
+            .content(content)
+            .problem(problem)
+            .build();
     }
 }
