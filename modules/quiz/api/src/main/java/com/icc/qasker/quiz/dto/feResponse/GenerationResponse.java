@@ -1,6 +1,6 @@
 package com.icc.qasker.quiz.dto.feResponse;
 
-public record GenerationSessionResponse(
+public record GenerationResponse(
     String sessionId
 ) {
 

@@ -10,11 +10,9 @@ import com.icc.qasker.quiz.dto.aiRequest.GenerationRequestToAI;
 import com.icc.qasker.quiz.dto.aiResponse.ProblemSetGeneratedEvent;
 import com.icc.qasker.quiz.dto.feRequest.GenerationRequest;
 import com.icc.qasker.quiz.dto.feRequest.enums.QuizType;
-import com.icc.qasker.quiz.dto.feResponse.GenerationSessionResponse;
 import com.icc.qasker.quiz.dto.feResponse.ProblemSetResponse;
 import com.icc.qasker.quiz.dto.feResponse.ProblemSetResponse.QuizForFe;
 import com.icc.qasker.quiz.entity.Problem;
-import com.icc.qasker.quiz.entity.ProblemSet.GenerationStatus;
 import com.icc.qasker.quiz.mapper.FeRequestToAIRequestMapper;
 import com.icc.qasker.quiz.mapper.ProblemSetResponseMapper;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
@@ -24,6 +22,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,7 +35,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 public class GenerationServiceImpl implements GenerationService {
 
     // 핵심
-    private final Map<Long, SseEmitter> emitterMap = new ConcurrentHashMap<>();
+    private final Map<String, SseEmitter> emitterMap = new ConcurrentHashMap<>();
     private final AIServerAdapter aiServerAdapter;
     private final QuizCommandService quizCommandService;
     // 유틸
@@ -47,44 +46,36 @@ public class GenerationServiceImpl implements GenerationService {
     private final FeRequestToAIRequestMapper feRequestToAIRequestMapper;
     private final ProblemSetResponseMapper problemSetResponseMapper;
 
-    public SseEmitter subscribe(String encodedId) {
-        Long problemSetId = hashUtil.decode(encodedId);
-        SseEmitter emitter = new SseEmitter(100 * 1000L);
-        GenerationStatus status = quizCommandService.getGenerationStatus(problemSetId);
-        if (status == GenerationStatus.COMPLETED) {
-            sendClientByEmitter(emitter, "complete", status);
-            return emitter;
-        }
-
-        emitterMap.put(problemSetId, emitter);
-
-        emitter.onCompletion(() -> emitterMap.remove(problemSetId));
-        emitter.onTimeout(() -> emitterMap.remove(problemSetId));
-        emitter.onError((e) -> emitterMap.remove(problemSetId));
-        return emitter;
-    }
-
-    public GenerationSessionResponse triggerGeneration(
-        String useId,
-        GenerationRequest request
-    ) {
-
+    public SseEmitter subscribe(String sessionID, String lastEventID) {
         CircuitBreaker circuitBreaker = circuitBreakerRegistry.circuitBreaker("aiServer");
         if (circuitBreaker.getState() == State.OPEN) {
             throw new CustomException(ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR);
         }
 
+        SseEmitter emitter = new SseEmitter(100 * 1000L);
+        emitterMap.put(sessionID, emitter);
+
+        emitter.onCompletion(() -> emitterMap.remove(sessionID));
+        emitter.onTimeout(() -> emitterMap.remove(sessionID));
+        emitter.onError((e) -> emitterMap.remove(sessionID));
+        return emitter;
+    }
+
+    public void triggerGeneration(
+        String useId,
+        GenerationRequest request
+    ) {
         Long problemSetId = quizCommandService.initProblemSet(useId);
         String encodedId = hashUtil.encode(problemSetId);
         Thread.ofVirtual().start(() -> processAsyncGeneration(
+            request.sessionId(),
             problemSetId,
             encodedId,
             feRequestToAIRequestMapper.toAIRequest(request)
         ));
-        return new GenerationSessionResponse(encodedId);
     }
 
-    private void processAsyncGeneration(Long problemSetId, String encodedId,
+    private void processAsyncGeneration(UUID sessionId, Long problemSetId, String encodedId,
         GenerationRequestToAI request) {
         try {
             aiServerAdapter.streamRequest(
@@ -98,7 +89,7 @@ public class GenerationServiceImpl implements GenerationService {
                         quizForFeList.add(problemSetResponseMapper.fromEntity(problem));
                     }
 
-                    notifyClient(problemSetId, new ProblemSetResponse(
+                    notifyClient(sessionId, new ProblemSetResponse(
                         encodedId,
                         quizCommandService.getGenerationStatus(problemSetId).toString(),
                         request.quizCount(),
@@ -124,8 +115,8 @@ public class GenerationServiceImpl implements GenerationService {
         }
     }
 
-    private void notifyClient(Long problemSetId, ProblemSetResponse data) {
-        SseEmitter emitter = emitterMap.get(problemSetId);
+    private void notifyClient(UUID sessionId, ProblemSetResponse data) {
+        SseEmitter emitter = emitterMap.get(sessionId);
         sendClientByEmitter(emitter, "quiz", data);
     }
 
@@ -134,9 +125,8 @@ public class GenerationServiceImpl implements GenerationService {
             try {
                 emitter.send(SseEmitter.event().name(eventName).data(data));
             } catch (IOException e) {
-                log.error("클라이언트에게 전송 중 에러 발생: {}", e.getMessage());
-            } finally {
                 emitter.complete();
+                log.error("클라이언트에게 전송 중 에러 발생: {}", e.getMessage());
             }
         }
     }

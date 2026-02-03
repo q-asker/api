@@ -13,6 +13,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import java.util.List;
+import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -36,6 +37,7 @@ public class ProblemSet extends CreatedAt {
     @Enumerated(EnumType.STRING)
     private GenerationStatus status;
 
+    private UUID sessionID;
 
     // 이하 헬퍼 함수
     @Builder

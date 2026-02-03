@@ -18,12 +18,25 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 @Service
 @AllArgsConstructor
-@Transactional
 public class QuizCommandService {
 
     private final ProblemSetRepository problemSetRepository;
     private final ProblemRepository problemRepository;
 
+    @Transactional(readOnly = true)
+    public GenerationStatus getGenerationStatus(Long problemSetId) {
+        return problemSetRepository.findById(problemSetId)
+            .map(ProblemSet::getStatus)
+            .orElseThrow(() -> new CustomException(ExceptionMessage.PROBLEM_SET_NOT_FOUND));
+    }
+
+
+    @Transactional(readOnly = true)
+    public Long getCount(Long id) {
+        return problemRepository.countByIdProblemSetId(id);
+    }
+
+    @Transactional
     public Long initProblemSet(String userId) {
         ProblemSet problemSet = ProblemSet
             .builder()
@@ -33,19 +46,14 @@ public class QuizCommandService {
         return problemSet.getId();
     }
 
-    @Transactional(readOnly = true)
-    public GenerationStatus getGenerationStatus(Long problemSetId) {
-        return problemSetRepository.findById(problemSetId)
-            .map(ProblemSet::getStatus)
-            .orElseThrow(() -> new CustomException(ExceptionMessage.PROBLEM_SET_NOT_FOUND));
-    }
-
+    @Transactional
     public void updateStatus(Long problemSetId, GenerationStatus status) {
         ProblemSet problemSet = problemSetRepository.findById(problemSetId)
             .orElseThrow(() -> new CustomException(ExceptionMessage.PROBLEM_SET_NOT_FOUND));
         problemSet.updateStatus(status);
     }
 
+    @Transactional
     public List<Problem> saveAll(List<QuizGeneratedFromAI> generatedProblems, Long problemSetId) {
         ProblemSet problemSet = problemSetRepository.findById(problemSetId)
             .orElseThrow(() -> new CustomException(ExceptionMessage.PROBLEM_SET_NOT_FOUND));
@@ -57,10 +65,7 @@ public class QuizCommandService {
         return problems;
     }
 
-    public Long getCount(Long id) {
-        return problemRepository.countByIdProblemSetId(id);
-    }
-
+    @Transactional
     public void delete(Long id) {
         problemSetRepository.deleteById(id);
     }
