@@ -52,23 +52,21 @@ public class Problem extends CreatedAt {
     public static Problem of(QuizGeneratedFromAI quizDto, ProblemSet problemSet) {
         Problem problem = new Problem();
         ProblemId problemId = ProblemId.builder()
+            .problemSetId(problemSet.getId())
             .number(quizDto.getNumber())
             .build();
 
-        return Problem.builder()
-            .id(problemId)
-            .title(quizDto.getTitle())
-            .problemSet(problemSet)
-            .selections(
-                quizDto.getSelections().stream()
-                    .map(selDto -> Selection.of(selDto, problem))
-                    .collect(toList())
-            )
-            .explanation(Explanation.of(quizDto.getExplanation(), problem))
-            .referencedPages(
-                quizDto.getReferencedPages().stream()
-                    .map(page -> ReferencedPage.of(page, problem))
-                    .collect(toList())
-            ).build();
+        problem.id = problemId;
+        problem.title = quizDto.getTitle();
+        problem.problemSet = problemSet;
+        problem.selections = quizDto.getSelections().stream()
+            .map(selDto -> Selection.of(selDto, problem))
+            .collect(toList());
+        problem.explanation = Explanation.of(quizDto.getExplanation(), problem);
+        problem.referencedPages = quizDto.getReferencedPages().stream()
+            .map(page -> ReferencedPage.of(page, problem))
+            .collect(toList());
+
+        return problem;
     }
 }

@@ -1,7 +1,5 @@
 package com.icc.qasker.quiz.service;
 
-import static com.icc.qasker.quiz.GenerationStatus.COMPLETED;
-
 import com.icc.qasker.global.component.HashUtil;
 import com.icc.qasker.global.component.SlackNotifier;
 import com.icc.qasker.global.error.CustomException;
@@ -41,6 +39,7 @@ public class GenerationServiceImpl implements GenerationService {
 
     public SseEmitter subscribe(String sessionId, String lastEventID) {
         GenerationStatus status = quizCommandService.getGenerationStatusBySessionId(sessionId);
+        SseEmitter emitter = notificationService.createSseEmitter(sessionId);
         switch (status) {
             case COMPLETED -> {
                 ProblemSetResponse ps = quizCommandService.getMissedProblems(
@@ -66,15 +65,14 @@ public class GenerationServiceImpl implements GenerationService {
                 );
             }
             case NOT_EXIST -> {
-                notificationService.sendToClient(sessionId, "error",
-                    ExceptionMessage.PROBLEM_SET_NOT_FOUND.getMessage());
-                notificationService.complete(sessionId);
-            }
-            case WAITING -> {
-
+                notificationService.sendToClient(
+                    sessionId,
+                    "connected",
+                    "hello"
+                );
             }
         }
-        return notificationService.createSseEmitter(sessionId);
+        return emitter;
     }
 
     public void triggerGeneration(
@@ -83,12 +81,17 @@ public class GenerationServiceImpl implements GenerationService {
     ) {
         GenerationStatus status = quizCommandService.getGenerationStatusBySessionId(
             request.sessionId());
-        if (status == GenerationStatus.GENERATING || status == COMPLETED) {
+        if (status != GenerationStatus.NOT_EXIST) {
+            log.info("중복 요청이 발생함 {}", request.sessionId());
             return;
         }
 
-        Long problemSetId = quizCommandService.initProblemSet(userId, request.quizCount(),
-            request.quizType());
+        Long problemSetId = quizCommandService.initProblemSet(
+            userId,
+            request.sessionId(),
+            request.quizCount(),
+            request.quizType()
+        );
         String encodedId = hashUtil.encode(problemSetId);
         Thread.ofVirtual().start(() -> processAsyncGeneration(
             request.sessionId(),
@@ -111,10 +114,10 @@ public class GenerationServiceImpl implements GenerationService {
                     List<QuizForFe> quizForFeList = quizCommandService.saveBatch(
                         problemSet.getQuiz(), problemSetId);
 
-                    notificationService.sendToClient(sessionId,
-                        "created",
+                    notificationService.sendToClient(
+                        sessionId,
                         String.valueOf(quizForFeList.getLast().getNumber()),
-
+                        "created",
                         new ProblemSetResponse(
                             sessionId,
                             encodedId,
@@ -122,7 +125,8 @@ public class GenerationServiceImpl implements GenerationService {
                             request.quizType(),
                             request.quizCount(),
                             quizForFeList
-                        ));
+                        )
+                    );
                 }
             );
 
@@ -154,6 +158,7 @@ public class GenerationServiceImpl implements GenerationService {
         QuizType quizType,
         long generatedCount
     ) {
+        quizCommandService.updateStatus(hashUtil.decode(encodedId), GenerationStatus.COMPLETED);
         notificationService.complete(sessionID);
         slackNotifier.asyncNotifyText("""
             ✅ [퀴즈 생성 완료 알림]

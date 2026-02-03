@@ -30,6 +30,11 @@ public class SseNotificationServiceImpl implements SseNotificationService {
             throw new CustomException(ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR);
         }
 
+        SseEmitter oldEmitter = emitterMap.get(sessionID);
+        if (oldEmitter != null) {
+            oldEmitter.complete();
+        }
+
         SseEmitter emitter = new SseEmitter(100 * 1000L);
         emitterMap.put(sessionID, emitter);
 

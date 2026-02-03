@@ -21,11 +21,13 @@ public interface QuizCommandService {
     @Transactional(readOnly = true)
     ProblemSetResponse getMissedProblems(String sessionId, String lastEventId);
 
-    @Transactional
-    Long initProblemSet(String userId, Integer totalQuizCount, QuizType quizType);
 
     @Transactional
-    void updateStatus(Long problemSetId, String status);
+    Long initProblemSet(String userId, String sessionId, Integer totalQuizCount,
+        QuizType quizType);
+
+    @Transactional
+    void updateStatus(Long problemSetId, GenerationStatus status);
 
     @Transactional
     List<QuizForFe> saveBatch(List<QuizGeneratedFromAI> generatedProblems, Long problemSetId);
