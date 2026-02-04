@@ -1,6 +1,5 @@
 package com.icc.qasker.quiz.service;
 
-import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.quiz.SseNotificationService;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
@@ -22,25 +21,37 @@ public class SseNotificationServiceImpl implements SseNotificationService {
 
     private final Map<String, SseEmitter> emitterMap = new ConcurrentHashMap<>();
     private final CircuitBreakerRegistry circuitBreakerRegistry;
+    private final long TIMEOUT = 100 * 1000L;
 
     @Override
-    public SseEmitter createSseEmitter(String sessionID) {
+    public SseEmitter createSseEmitter(String sessionId) {
+        SseEmitter emitter = new SseEmitter(TIMEOUT);
+
+        emitter.onCompletion(() -> emitterMap.remove(sessionId, emitter));
+        emitter.onTimeout(() -> emitterMap.remove(sessionId, emitter));
+        emitter.onError((e) -> {
+            log.error("SSE 연결 중 에러 발생 (Session: {}): {}", sessionId, e.getMessage());
+            emitterMap.remove(sessionId, emitter);
+        });
+
         CircuitBreaker circuitBreaker = circuitBreakerRegistry.circuitBreaker("aiServer");
         if (circuitBreaker.getState() == State.OPEN) {
-            throw new CustomException(ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR);
+            try {
+                emitter.send(SseEmitter.event()
+                    .name("error")
+                    .data(ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR.getMessage()));
+                emitter.complete();
+            } catch (IOException ignored) {
+            }
+            return emitter;
         }
 
-        SseEmitter oldEmitter = emitterMap.get(sessionID);
+        SseEmitter oldEmitter = emitterMap.put(sessionId, emitter);
         if (oldEmitter != null) {
             oldEmitter.complete();
         }
+        sendToClient(sessionId, "connect", "hello");
 
-        SseEmitter emitter = new SseEmitter(100 * 1000L);
-        emitterMap.put(sessionID, emitter);
-
-        emitter.onCompletion(() -> emitterMap.remove(sessionID));
-        emitter.onTimeout(() -> emitterMap.remove(sessionID));
-        emitter.onError((e) -> emitterMap.remove(sessionID));
         return emitter;
     }
 
@@ -51,8 +62,8 @@ public class SseNotificationServiceImpl implements SseNotificationService {
             try {
                 emitter.send(SseEmitter.event().name(eventName).data(data));
             } catch (IOException e) {
-                emitter.complete();
                 log.error("클라이언트에게 전송 중 에러 발생: {}", e.getMessage());
+                emitter.completeWithError(e);
             }
         }
     }
@@ -81,7 +92,10 @@ public class SseNotificationServiceImpl implements SseNotificationService {
         SseEmitter sseEmitter = emitterMap.get(sessionID);
         if (sseEmitter != null) {
             try {
-                sseEmitter.send(SseEmitter.event().name("complete"));
+                SseEventBuilder eventBuilder = SseEmitter
+                    .event()
+                    .name("complete");
+                sseEmitter.send(eventBuilder);
                 sseEmitter.complete();
             } catch (IOException ignored) {
             }

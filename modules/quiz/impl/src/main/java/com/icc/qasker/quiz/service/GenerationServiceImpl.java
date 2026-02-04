@@ -46,8 +46,10 @@ public class GenerationServiceImpl implements GenerationService {
                     sessionId,
                     lastEventID
                 );
+                int newLastId = Integer.parseInt(lastEventID) + ps.getQuiz().size();
                 notificationService.sendToClient(
                     sessionId,
+                    String.valueOf(newLastId),
                     "created",
                     ps
                 );
@@ -58,18 +60,15 @@ public class GenerationServiceImpl implements GenerationService {
                     sessionId,
                     lastEventID
                 );
+                int newLastId = Integer.parseInt(lastEventID) + ps.getQuiz().size();
                 notificationService.sendToClient(
                     sessionId,
+                    String.valueOf(newLastId),
                     "created",
                     ps
                 );
             }
             case NOT_EXIST -> {
-                notificationService.sendToClient(
-                    sessionId,
-                    "connected",
-                    "hello"
-                );
             }
         }
         return emitter;
@@ -145,8 +144,6 @@ public class GenerationServiceImpl implements GenerationService {
             }
         } catch (Exception e) {
             // 보상 트랜잭션 수행
-            // 영속성 컨텍스트 추가 -> 삭제 비용
-            // problemSetRepository.delete(problemSet);
             quizCommandService.delete(problemSetId);
             finalizeError(sessionId, e.getMessage());
         }
