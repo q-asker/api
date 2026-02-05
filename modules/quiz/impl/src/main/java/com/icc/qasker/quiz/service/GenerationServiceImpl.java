@@ -177,7 +177,7 @@ public class GenerationServiceImpl implements GenerationService {
         String sessionID,
         String errorMessage
     ) {
-        notificationService.sendToClient(sessionID, "error", errorMessage);
+        notificationService.sendToClient(sessionID, "error-finish", errorMessage);
         slackNotifier.asyncNotifyText("""
             ❌ [퀴즈 생성 실패]
             사유: %s
