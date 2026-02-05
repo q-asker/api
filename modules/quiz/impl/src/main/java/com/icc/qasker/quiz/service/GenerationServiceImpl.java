@@ -40,13 +40,15 @@ public class GenerationServiceImpl implements GenerationService {
     public SseEmitter subscribe(String sessionId, String lastEventID) {
         GenerationStatus status = quizCommandService.getGenerationStatusBySessionId(sessionId);
         SseEmitter emitter = notificationService.createSseEmitter(sessionId);
+
+        int lastEvenNumber = lastEventID.isEmpty() ? 0 : Integer.parseInt(lastEventID);
         switch (status) {
             case COMPLETED -> {
                 ProblemSetResponse ps = quizCommandService.getMissedProblems(
                     sessionId,
                     lastEventID
                 );
-                int newLastId = Integer.parseInt(lastEventID) + ps.getQuiz().size();
+                int newLastId = lastEvenNumber + ps.getQuiz().size();
                 notificationService.sendToClient(
                     sessionId,
                     String.valueOf(newLastId),
@@ -60,7 +62,7 @@ public class GenerationServiceImpl implements GenerationService {
                     sessionId,
                     lastEventID
                 );
-                int newLastId = Integer.parseInt(lastEventID) + ps.getQuiz().size();
+                int newLastId = lastEvenNumber + ps.getQuiz().size();
                 notificationService.sendToClient(
                     sessionId,
                     String.valueOf(newLastId),
@@ -111,7 +113,9 @@ public class GenerationServiceImpl implements GenerationService {
                 request,
                 (ProblemSetGeneratedEvent problemSet) -> {
                     List<QuizForFe> quizForFeList = quizCommandService.saveBatch(
-                        problemSet.getQuiz(), problemSetId);
+                        problemSet.getQuiz(),
+                        problemSetId
+                    );
 
                     notificationService.sendToClient(
                         sessionId,

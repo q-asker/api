@@ -53,7 +53,7 @@ public final class ProblemSetResponseMapper {
             hashUtil.encode(problemSet.getId()),
             problemSet.getStatus(),
             problemSet.getQuizType(),
-            quizzes.size(),
+            problemSet.getTotalQuizCount(),
             quizzes
         );
     }
