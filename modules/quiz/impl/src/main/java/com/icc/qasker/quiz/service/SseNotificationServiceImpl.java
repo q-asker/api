@@ -21,36 +21,24 @@ public class SseNotificationServiceImpl implements SseNotificationService {
 
     private final Map<String, SseEmitter> emitterMap = new ConcurrentHashMap<>();
     private final CircuitBreakerRegistry circuitBreakerRegistry;
-    private final long TIMEOUT = 100 * 1000L;
+    private final long TIMEOUT = 300 * 1000L;
 
     @Override
     public SseEmitter createSseEmitter(String sessionId) {
         SseEmitter emitter = new SseEmitter(TIMEOUT);
 
         emitter.onCompletion(() -> {
-            log.info("SSE Complete: {}", sessionId);
-            try {
-                SseEventBuilder eventBuilder = SseEmitter
-                    .event()
-                    .name("complete");
-                emitter.send(eventBuilder);
-            } catch (IOException ignored) {
-            }
+            log.info("SSE 연결 종료 (Completion): {}", sessionId);
             emitterMap.remove(sessionId, emitter);
         });
         emitter.onTimeout(() -> {
-            log.error("SSE Time Out: {}", sessionId);
-            try {
-                SseEventBuilder eventBuilder = SseEmitter
-                    .event()
-                    .name("timeout");
-                emitter.send(eventBuilder);
-            } catch (IOException ignored) {
-            }
+            log.warn("SSE 연결 타임아웃 (Timeout): {}", sessionId);
+            emitter.complete();
             emitterMap.remove(sessionId, emitter);
         });
         emitter.onError((e) -> {
-            log.error("SSE 연결 중 에러 발생 (Session: {}): {}", sessionId, e.getMessage());
+            log.error("SSE 연결 에러 발생 (Session: {}): {}", sessionId, e.getMessage());
+            emitter.completeWithError(e);
             emitterMap.remove(sessionId, emitter);
         });
 
@@ -58,7 +46,7 @@ public class SseNotificationServiceImpl implements SseNotificationService {
         if (circuitBreaker.getState() == State.OPEN) {
             try {
                 emitter.send(SseEmitter.event()
-                    .name("error")
+                    .name("error-finish")
                     .data(ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR.getMessage()));
                 emitter.complete();
             } catch (IOException ignored) {
@@ -93,7 +81,6 @@ public class SseNotificationServiceImpl implements SseNotificationService {
             }
         }
     }
-
 
     @Override
     public void sendToClient(String sessionID, String eventId, String eventName, Object data) {
