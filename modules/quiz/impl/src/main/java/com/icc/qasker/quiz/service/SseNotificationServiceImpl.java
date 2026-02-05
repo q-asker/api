@@ -27,8 +27,28 @@ public class SseNotificationServiceImpl implements SseNotificationService {
     public SseEmitter createSseEmitter(String sessionId) {
         SseEmitter emitter = new SseEmitter(TIMEOUT);
 
-        emitter.onCompletion(() -> emitterMap.remove(sessionId, emitter));
-        emitter.onTimeout(() -> emitterMap.remove(sessionId, emitter));
+        emitter.onCompletion(() -> {
+            log.info("SSE Complete: {}", sessionId);
+            try {
+                SseEventBuilder eventBuilder = SseEmitter
+                    .event()
+                    .name("complete");
+                emitter.send(eventBuilder);
+            } catch (IOException ignored) {
+            }
+            emitterMap.remove(sessionId, emitter);
+        });
+        emitter.onTimeout(() -> {
+            log.error("SSE Time Out: {}", sessionId);
+            try {
+                SseEventBuilder eventBuilder = SseEmitter
+                    .event()
+                    .name("timeout");
+                emitter.send(eventBuilder);
+            } catch (IOException ignored) {
+            }
+            emitterMap.remove(sessionId, emitter);
+        });
         emitter.onError((e) -> {
             log.error("SSE 연결 중 에러 발생 (Session: {}): {}", sessionId, e.getMessage());
             emitterMap.remove(sessionId, emitter);
@@ -48,7 +68,13 @@ public class SseNotificationServiceImpl implements SseNotificationService {
 
         SseEmitter oldEmitter = emitterMap.put(sessionId, emitter);
         if (oldEmitter != null) {
-            oldEmitter.complete();
+            try {
+                SseEventBuilder eventBuilder = SseEmitter
+                    .event()
+                    .name("complete");
+                emitter.send(eventBuilder);
+            } catch (IOException ignored) {
+            }
         }
         sendToClient(sessionId, "connect", "hello");
 
@@ -89,14 +115,14 @@ public class SseNotificationServiceImpl implements SseNotificationService {
 
     @Override
     public void complete(String sessionID) {
-        SseEmitter sseEmitter = emitterMap.get(sessionID);
-        if (sseEmitter != null) {
+        SseEmitter emitter = emitterMap.get(sessionID);
+        if (emitter != null) {
             try {
                 SseEventBuilder eventBuilder = SseEmitter
                     .event()
-                    .name("complete");
-                sseEmitter.send(eventBuilder);
-                sseEmitter.complete();
+                    .name("complete")
+                    .data("complete");
+                emitter.send(eventBuilder);
             } catch (IOException ignored) {
             }
         }
