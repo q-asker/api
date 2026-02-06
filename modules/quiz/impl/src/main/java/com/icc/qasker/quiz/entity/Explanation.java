@@ -40,7 +40,7 @@ public class Explanation extends CreatedAt {
 
     // 이하 헬퍼 함수
     public static Explanation of(String content, Problem problem) {
-        if (content.length() > MAX_CONTENT_LENGTH) {
+        if (content != null && content.length() > MAX_CONTENT_LENGTH) {
             content = content.substring(0, MAX_CONTENT_LENGTH);
         }
         return Explanation.builder()

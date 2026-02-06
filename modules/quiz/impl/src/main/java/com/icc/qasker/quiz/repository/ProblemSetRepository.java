@@ -13,8 +13,9 @@ public interface ProblemSetRepository extends JpaRepository<ProblemSet, Long> {
         SELECT p.status
         FROM ProblemSet p
         WHERE p.sessionId = :sessionId
-        ORDER BY p.createdAt DESC""")
+        ORDER BY p.createdAt DESC
+        LIMIT 1""")
     Optional<GenerationStatus> findStatusBySessionId(@Param("sessionId") String sessionId);
 
-    Optional<ProblemSet> findBySessionIdOrderByCreatedAtDesc(String sessionId);
+    Optional<ProblemSet> findFirstBySessionIdOrderByCreatedAtDesc(String sessionId);
 }

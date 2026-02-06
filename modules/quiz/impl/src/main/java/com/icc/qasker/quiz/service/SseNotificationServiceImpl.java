@@ -1,6 +1,7 @@
 package com.icc.qasker.quiz.service;
 
-import com.icc.qasker.global.error.ExceptionMessage;
+import static com.icc.qasker.global.error.ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR;
+
 import com.icc.qasker.quiz.SseNotificationService;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker.State;
@@ -10,9 +11,9 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter.SseEventBuilder;
 
 @Slf4j
 @Service
@@ -25,6 +26,22 @@ public class SseNotificationServiceImpl implements SseNotificationService {
 
     @Override
     public SseEmitter createSseEmitter(String sessionId) {
+        SseEmitter emitter = getSseEmitter(sessionId);
+
+        CircuitBreaker circuitBreaker = circuitBreakerRegistry.circuitBreaker("aiServer");
+        if (circuitBreaker.getState() == State.OPEN) {
+            finishWithError(sessionId, AI_SERVER_COMMUNICATION_ERROR.getMessage());
+            return emitter;
+        }
+
+        complete(sessionId);
+        emitterMap.put(sessionId, emitter);
+        sendCreatedMessageWithId(sessionId, "connect", "hello");
+
+        return emitter;
+    }
+
+    private @NonNull SseEmitter getSseEmitter(String sessionId) {
         SseEmitter emitter = new SseEmitter(TIMEOUT);
 
         emitter.onCompletion(() -> {
@@ -33,83 +50,55 @@ public class SseNotificationServiceImpl implements SseNotificationService {
         });
         emitter.onTimeout(() -> {
             log.warn("SSE 연결 타임아웃 (Timeout): {}", sessionId);
-            emitter.complete();
             emitterMap.remove(sessionId, emitter);
         });
         emitter.onError((e) -> {
             log.error("SSE 연결 에러 발생 (Session: {}): {}", sessionId, e.getMessage());
-            emitter.completeWithError(e);
             emitterMap.remove(sessionId, emitter);
         });
-
-        CircuitBreaker circuitBreaker = circuitBreakerRegistry.circuitBreaker("aiServer");
-        if (circuitBreaker.getState() == State.OPEN) {
-            try {
-                emitter.send(SseEmitter.event()
-                    .name("error-finish")
-                    .data(ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR.getMessage()));
-                emitter.complete();
-            } catch (IOException ignored) {
-            }
-            return emitter;
-        }
-
-        SseEmitter oldEmitter = emitterMap.put(sessionId, emitter);
-        if (oldEmitter != null) {
-            try {
-                SseEventBuilder eventBuilder = SseEmitter
-                    .event()
-                    .name("complete");
-                emitter.send(eventBuilder);
-            } catch (IOException ignored) {
-            }
-        }
-        sendToClient(sessionId, "connect", "hello");
-
         return emitter;
     }
 
     @Override
-    public void sendToClient(String sessionID, String eventName, Object data) {
+    public void sendCreatedMessageWithId(String sessionID, String eventId, Object data) {
         SseEmitter emitter = emitterMap.get(sessionID);
         if (emitter != null) {
             try {
-                emitter.send(SseEmitter.event().name(eventName).data(data));
-            } catch (IOException e) {
-                log.error("클라이언트에게 전송 중 에러 발생: {}", e.getMessage());
-                emitter.completeWithError(e);
-            }
-        }
-    }
-
-    @Override
-    public void sendToClient(String sessionID, String eventId, String eventName, Object data) {
-        SseEmitter emitter = emitterMap.get(sessionID);
-        if (emitter != null) {
-            try {
-                SseEventBuilder eventBuilder = SseEmitter
+                emitter.send(SseEmitter
                     .event()
                     .id(eventId)
-                    .name(eventName)
-                    .data(data);
-                emitter.send(eventBuilder);
+                    .name("created")
+                    .data(data));
             } catch (IOException e) {
-                emitter.complete();
+                emitter.completeWithError(e);
                 log.error("클라이언트에게 전송 중 에러 발생: {} 사유: {}", data, e.getMessage());
             }
         }
     }
 
     @Override
-    public void complete(String sessionID) {
-        SseEmitter emitter = emitterMap.get(sessionID);
+    public void finishWithError(String sessionId, String message) {
+        SseEmitter emitter = emitterMap.get(sessionId);
         if (emitter != null) {
             try {
-                SseEventBuilder eventBuilder = SseEmitter
+                emitter.send(SseEmitter
+                    .event()
+                    .name("error-finish")
+                    .data(message));
+            } catch (IOException ignored) {
+            }
+        }
+    }
+
+    @Override
+    public void complete(String sessionId) {
+        SseEmitter emitter = emitterMap.get(sessionId);
+        if (emitter != null) {
+            try {
+                emitter.send(SseEmitter
                     .event()
                     .name("complete")
-                    .data("complete");
-                emitter.send(eventBuilder);
+                    .data("complete"));
             } catch (IOException ignored) {
             }
         }

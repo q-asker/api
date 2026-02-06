@@ -41,18 +41,21 @@ public class GenerationServiceImpl implements GenerationService {
         GenerationStatus status = quizCommandService.getGenerationStatusBySessionId(sessionId);
         SseEmitter emitter = notificationService.createSseEmitter(sessionId);
 
-        int lastEvenNumber = lastEventID.isEmpty() ? 0 : Integer.parseInt(lastEventID);
+        int lastEvenNumber = 0;
+        try {
+            lastEvenNumber = lastEventID.isEmpty() ? 0 : Integer.parseInt(lastEventID);
+        } catch (NumberFormatException ignored) {
+        }
         switch (status) {
             case COMPLETED -> {
                 ProblemSetResponse ps = quizCommandService.getMissedProblems(
                     sessionId,
-                    lastEventID
+                    lastEvenNumber
                 );
                 int newLastId = lastEvenNumber + ps.getQuiz().size();
-                notificationService.sendToClient(
+                notificationService.sendCreatedMessageWithId(
                     sessionId,
                     String.valueOf(newLastId),
-                    "created",
                     ps
                 );
                 notificationService.complete(sessionId);
@@ -60,13 +63,12 @@ public class GenerationServiceImpl implements GenerationService {
             case GENERATING -> {
                 ProblemSetResponse ps = quizCommandService.getMissedProblems(
                     sessionId,
-                    lastEventID
+                    lastEvenNumber
                 );
                 int newLastId = lastEvenNumber + ps.getQuiz().size();
-                notificationService.sendToClient(
+                notificationService.sendCreatedMessageWithId(
                     sessionId,
                     String.valueOf(newLastId),
-                    "created",
                     ps
                 );
             }
@@ -117,10 +119,9 @@ public class GenerationServiceImpl implements GenerationService {
                         problemSetId
                     );
 
-                    notificationService.sendToClient(
+                    notificationService.sendCreatedMessageWithId(
                         sessionId,
                         String.valueOf(quizForFeList.getLast().getNumber()),
-                        "created",
                         new ProblemSetResponse(
                             sessionId,
                             encodedId,
@@ -177,7 +178,7 @@ public class GenerationServiceImpl implements GenerationService {
         String sessionID,
         String errorMessage
     ) {
-        notificationService.sendToClient(sessionID, "error-finish", errorMessage);
+        notificationService.sendCreatedMessageWithId(sessionID, "error-finish", errorMessage);
         slackNotifier.asyncNotifyText("""
             ❌ [퀴즈 생성 실패]
             사유: %s
