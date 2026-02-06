@@ -22,9 +22,9 @@ public interface GenerationApiDoc {
     @GetMapping(value = "/{sessionID}/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     SseEmitter subscribeToGeneration(
         @PathVariable @UUID
-        String sessionID,
+        String sessionId,
         @RequestHeader(value = "Last-Event-ID", required = false, defaultValue = "")
-        String lastEventID
+        String lastEventId
     );
 
     @Operation(summary = "세션에 문제를 전송한다")

@@ -6,7 +6,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 public interface GenerationService {
 
     void triggerGeneration(
-        String useId,
+        String userId,
         GenerationRequest request
     );
 
