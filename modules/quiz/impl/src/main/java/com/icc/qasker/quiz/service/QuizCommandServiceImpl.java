@@ -20,7 +20,6 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 
 @Slf4j
 @Service
@@ -55,22 +54,15 @@ public class QuizCommandServiceImpl implements QuizCommandService {
 
     @Transactional(readOnly = true)
     @Override
-    public ProblemSetResponse getMissedProblems(String sessionId, String lastEventId) {
-        ProblemSet problemSet = problemSetRepository.findBySessionIdOrderByCreatedAtDesc(sessionId)
+    public ProblemSetResponse getMissedProblems(String sessionId, Integer lastQuizNumber) {
+        ProblemSet problemSet = problemSetRepository.findFirstBySessionIdOrderByCreatedAtDesc(
+                sessionId)
             .orElseThrow(() -> new CustomException(ExceptionMessage.PROBLEM_SET_NOT_FOUND));
-
         List<QuizForFe> quizForFeList;
         Long problemSetId = problemSet.getId();
-        if (StringUtils.hasText(lastEventId)) {
-            List<Problem> problems = problemRepository.findMissedProblems(problemSetId,
-                Integer.valueOf(lastEventId));
-            quizForFeList = problems.stream()
-                .map(problemSetResponseMapper::fromEntity).toList();
-        } else {
-            List<Problem> problems = problemRepository.findByIdProblemSetId(problemSetId);
-            quizForFeList = problems.stream()
-                .map(problemSetResponseMapper::fromEntity).toList();
-        }
+        List<Problem> problems = problemRepository.findMissedProblems(problemSetId, lastQuizNumber);
+        quizForFeList = problems.stream()
+            .map(problemSetResponseMapper::fromEntity).toList();
         return new ProblemSetResponse(
             sessionId,
             hashUtil.encode(problemSetId),

@@ -67,6 +67,9 @@ public class ProblemSet extends CreatedAt {
     }
 
     public void updateStatus(GenerationStatus status) {
+        if (status == null) {
+            throw new IllegalArgumentException("status must not be null");
+        }
         this.status = status;
     }
 }

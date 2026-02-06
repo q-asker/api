@@ -6,9 +6,9 @@ public interface SseNotificationService {
 
     SseEmitter createSseEmitter(String sessionID);
 
-    void sendToClient(String sessionID, String eventName, Object data);
+    void sendCreatedMessageWithId(String sessionID, String eventName, Object data);
 
-    void sendToClient(String sessionID, String eventId, String eventName, Object data);
+    void finishWithError(String sessionId, String message);
 
-    void complete(String sessionID);
+    void complete(String sessionId);
 }

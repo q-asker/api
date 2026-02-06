@@ -19,8 +19,7 @@ public interface QuizCommandService {
     Long getCount(Long id);
 
     @Transactional(readOnly = true)
-    ProblemSetResponse getMissedProblems(String sessionId, String lastEventId);
-
+    ProblemSetResponse getMissedProblems(String sessionId, Integer lastQuizNumber);
 
     @Transactional
     Long initProblemSet(String userId, String sessionId, Integer totalQuizCount,
