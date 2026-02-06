@@ -46,13 +46,13 @@ public class Problem extends CreatedAt {
     private Explanation explanation;
 
     @OneToMany(mappedBy = "problem", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
     private List<ReferencedPage> referencedPages = new ArrayList<>();
 
     // 이하 헬퍼 함수
     public static Problem of(QuizGeneratedFromAI quizDto, ProblemSet problemSet) {
         Problem problem = new Problem();
         ProblemId problemId = ProblemId.builder()
-            .problemSetId(problemSet.getId())
             .number(quizDto.getNumber())
             .build();
 

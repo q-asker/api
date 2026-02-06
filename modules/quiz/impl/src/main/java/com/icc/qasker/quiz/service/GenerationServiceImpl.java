@@ -149,7 +149,11 @@ public class GenerationServiceImpl implements GenerationService {
             }
         } catch (Exception e) {
             // 보상 트랜잭션 수행
-            quizCommandService.delete(problemSetId);
+            try {
+                quizCommandService.delete(problemSetId);
+            } catch (Exception deleteEx) {
+                log.error("보상 트랜잭션(delete) 실패: problemSetId={}", problemSetId, deleteEx);
+            }
             finalizeError(sessionId, e.getMessage());
         }
     }
@@ -193,6 +197,7 @@ public class GenerationServiceImpl implements GenerationService {
         long quizCount,
         long generatedCount
     ) {
+        quizCommandService.updateStatus(problemSetId, GenerationStatus.COMPLETED);
         notificationService.complete(sessionID);
         slackNotifier.asyncNotifyText("""
             ⚠️ [퀴즈 생성 부분 완료]

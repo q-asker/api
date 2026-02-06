@@ -30,9 +30,9 @@ public class GenerationController implements GenerationApiDoc {
         @PathVariable @UUID
         String sessionId,
         @RequestHeader(value = "Last-Event-ID", required = false, defaultValue = "")
-        String lastEventID
+        String lastEventId
     ) {
-        return generationService.subscribe(sessionId, lastEventID);
+        return generationService.subscribe(sessionId, lastEventId);
     }
 
     @Override

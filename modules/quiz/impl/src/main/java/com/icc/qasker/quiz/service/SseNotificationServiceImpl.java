@@ -9,7 +9,7 @@ import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
 import org.springframework.stereotype.Service;
@@ -17,12 +17,12 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @Slf4j
 @Service
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class SseNotificationServiceImpl implements SseNotificationService {
 
+    private final static long TIMEOUT = 300 * 1000L;
     private final Map<String, SseEmitter> emitterMap = new ConcurrentHashMap<>();
     private final CircuitBreakerRegistry circuitBreakerRegistry;
-    private final long TIMEOUT = 300 * 1000L;
 
     @Override
     public SseEmitter createSseEmitter(String sessionId) {
@@ -30,6 +30,7 @@ public class SseNotificationServiceImpl implements SseNotificationService {
 
         CircuitBreaker circuitBreaker = circuitBreakerRegistry.circuitBreaker("aiServer");
         if (circuitBreaker.getState() == State.OPEN) {
+            emitterMap.put(sessionId, emitter);
             finishWithError(sessionId, AI_SERVER_COMMUNICATION_ERROR.getMessage());
             return emitter;
         }
