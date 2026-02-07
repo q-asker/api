@@ -1,5 +1,7 @@
 package com.icc.qasker.quiz.infra.sse;
 
+import com.icc.qasker.global.error.ExceptionMessage;
+import java.io.IOException;
 import lombok.extern.slf4j.Slf4j;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.implementation.MethodDelegation;
@@ -21,8 +23,18 @@ public class SseEmitterFactory {
                 .getConstructor(Long.class)
                 .newInstance(timeout);
         } catch (Exception e) {
-            log.error("SseEmitter 프록시 생성 실패 원인: {}", e.getMessage());
-            throw new RuntimeException("SseEmitter 프록시 생성 실패", e);
+            log.error("SseEmitter 프록시 생성 실패", e);
+
+            SseEmitter fallbackEmitter = new SseEmitter(10 * 1000L);
+            try {
+                fallbackEmitter.send(SseEmitter.event()
+                    .name("error")
+                    .data(ExceptionMessage.DEFAULT_ERROR.getMessage()));
+                return fallbackEmitter;
+            } catch (IOException ioException) {
+                log.error("fallback 에러 메시지 전송 실패", ioException);
+                return null;
+            }
         }
     }
 }

@@ -59,7 +59,7 @@ public class ProblemSet extends CreatedAt {
 
     public static ProblemSet of(ProblemSetGeneratedEvent aiResponse, String userId) {
         if (aiResponse == null || aiResponse.getQuiz() == null) {
-            throw new CustomException(ExceptionMessage.NULL_AI_RESPONSE);
+            throw new CustomException(ExceptionMessage.AI_SERVER_GENERATION_FAILED);
         }
         ProblemSet problemSet = ProblemSet.builder().userId(userId).build();
         problemSet.problems = aiResponse.getQuiz().stream()
