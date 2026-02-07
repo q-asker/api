@@ -24,7 +24,7 @@ public interface ProblemRepository extends JpaRepository<Problem, ProblemId> {
         """)
     List<Problem> findMissedProblems(
         @Param("problemSetId") Long problemSetId,
-        Integer number
+        @Param("number") Integer number
     );
 }
 

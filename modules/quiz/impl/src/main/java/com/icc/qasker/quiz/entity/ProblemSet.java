@@ -49,6 +49,7 @@ public class ProblemSet extends CreatedAt {
 
     private Integer totalQuizCount;
 
+    @Column(unique = true, nullable = false)
     private String sessionId;
 
 
@@ -62,9 +63,9 @@ public class ProblemSet extends CreatedAt {
             throw new CustomException(ExceptionMessage.AI_SERVER_GENERATION_FAILED);
         }
         ProblemSet problemSet = ProblemSet.builder().userId(userId).build();
-        problemSet.problems = aiResponse.getQuiz().stream()
+        problemSet.problems = new ArrayList<>(aiResponse.getQuiz().stream()
             .map(quizDto -> Problem.of(quizDto, problemSet))
-            .toList();
+            .toList());
         return problemSet;
     }
 
