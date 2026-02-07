@@ -19,7 +19,7 @@ public interface GenerationApiDoc {
 
 
     @Operation(summary = "제공받은 세션키로 문제 전송을 위한 emitter를 생성한다")
-    @GetMapping(value = "/{sessionID}/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @GetMapping(value = "/{sessionId}/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     SseEmitter subscribeToGeneration(
         @PathVariable @UUID
         String sessionId,

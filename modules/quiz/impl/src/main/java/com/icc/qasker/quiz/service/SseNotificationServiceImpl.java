@@ -35,7 +35,9 @@ public class SseNotificationServiceImpl implements SseNotificationService {
             return emitter;
         }
 
+        // 구 emitter로 complete 메시지 보냄
         complete(sessionId);
+        // 새 emitter로 덮어 씌움
         emitterMap.put(sessionId, emitter);
         sendCreatedMessageWithId(sessionId, "connect", "hello");
 
@@ -86,7 +88,8 @@ public class SseNotificationServiceImpl implements SseNotificationService {
                     .event()
                     .name("error-finish")
                     .data(message));
-            } catch (IOException ignored) {
+            } catch (IOException e) {
+                emitter.completeWithError(e);
             }
         }
     }
@@ -100,7 +103,8 @@ public class SseNotificationServiceImpl implements SseNotificationService {
                     .event()
                     .name("complete")
                     .data("complete"));
-            } catch (IOException ignored) {
+            } catch (IOException e) {
+                emitter.completeWithError(e);
             }
         }
     }

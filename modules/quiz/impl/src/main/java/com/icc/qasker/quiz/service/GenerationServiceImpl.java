@@ -182,7 +182,7 @@ public class GenerationServiceImpl implements GenerationService {
         String sessionID,
         String errorMessage
     ) {
-        notificationService.sendCreatedMessageWithId(sessionID, "error-finish", errorMessage);
+        notificationService.finishWithError(sessionID, errorMessage);
         slackNotifier.asyncNotifyText("""
             ❌ [퀴즈 생성 실패]
             사유: %s

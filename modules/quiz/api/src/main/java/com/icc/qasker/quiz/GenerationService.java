@@ -10,6 +10,6 @@ public interface GenerationService {
         GenerationRequest request
     );
 
-    SseEmitter subscribe(String sessionID, String lastEventID);
+    SseEmitter subscribe(String sessionId, String lastEventId);
 }
 
