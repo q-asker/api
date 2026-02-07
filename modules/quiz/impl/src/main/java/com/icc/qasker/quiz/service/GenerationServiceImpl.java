@@ -41,18 +41,18 @@ public class GenerationServiceImpl implements GenerationService {
         GenerationStatus status = quizCommandService.getGenerationStatusBySessionId(sessionId);
         SseEmitter emitter = notificationService.createSseEmitter(sessionId);
 
-        int lastEvenNumber = 0;
+        int lastEventNumber = 0;
         try {
-            lastEvenNumber = lastEventID.isEmpty() ? 0 : Integer.parseInt(lastEventID);
+            lastEventNumber = lastEventID.isEmpty() ? 0 : Integer.parseInt(lastEventID);
         } catch (NumberFormatException ignored) {
         }
         switch (status) {
             case COMPLETED -> {
                 ProblemSetResponse ps = quizCommandService.getMissedProblems(
                     sessionId,
-                    lastEvenNumber
+                    lastEventNumber
                 );
-                int newLastId = lastEvenNumber + ps.getQuiz().size();
+                int newLastId = lastEventNumber + ps.getQuiz().size();
                 notificationService.sendCreatedMessageWithId(
                     sessionId,
                     String.valueOf(newLastId),
@@ -63,9 +63,9 @@ public class GenerationServiceImpl implements GenerationService {
             case GENERATING -> {
                 ProblemSetResponse ps = quizCommandService.getMissedProblems(
                     sessionId,
-                    lastEvenNumber
+                    lastEventNumber
                 );
-                int newLastId = lastEvenNumber + ps.getQuiz().size();
+                int newLastId = lastEventNumber + ps.getQuiz().size();
                 notificationService.sendCreatedMessageWithId(
                     sessionId,
                     String.valueOf(newLastId),

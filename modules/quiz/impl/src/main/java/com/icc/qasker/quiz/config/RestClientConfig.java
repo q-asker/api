@@ -41,6 +41,8 @@ public class RestClientConfig {
         PoolingHttpClientConnectionManager connectionManager = PoolingHttpClientConnectionManagerBuilder.create()
             .setDefaultSocketConfig(socketConfig)
             .setDefaultConnectionConfig(connectionConfig)
+            .setMaxConnTotal(100)
+            .setMaxConnPerRoute(100)
             .build();
 
         RequestConfig requestConfig = RequestConfig.custom()
