@@ -15,6 +15,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
+import java.util.ArrayList;
 import java.util.List;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -35,7 +36,8 @@ public class ProblemSet extends CreatedAt {
     private String userId;
 
     @OneToMany(mappedBy = "problemSet", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Problem> problems;
+    @Builder.Default
+    private List<Problem> problems = new ArrayList<>();
 
     @Enumerated(EnumType.STRING)
     @Builder.Default
