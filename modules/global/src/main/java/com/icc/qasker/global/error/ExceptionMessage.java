@@ -8,7 +8,7 @@ import org.springframework.http.HttpStatus;
 @AllArgsConstructor
 public enum ExceptionMessage {
     // ## Default ISSUE
-    DEFAULT_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "에러가 발생했습니다."),
+    DEFAULT_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 오류가 발생했습니다."),
 
     // ## AWS ISSUE
     OUT_OF_FILE_SIZE(HttpStatus.BAD_REQUEST, "허용되지 않은 파일 크기입니다."),
