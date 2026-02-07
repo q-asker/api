@@ -3,6 +3,7 @@ package com.icc.qasker.quiz.service;
 import static com.icc.qasker.global.error.ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR;
 
 import com.icc.qasker.quiz.SseNotificationService;
+import com.icc.qasker.quiz.infra.sse.SseEmitterFactory;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker.State;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
@@ -45,7 +46,7 @@ public class SseNotificationServiceImpl implements SseNotificationService {
     }
 
     private @NonNull SseEmitter getSseEmitter(String sessionId) {
-        SseEmitter emitter = new SseEmitter(TIMEOUT);
+        SseEmitter emitter = SseEmitterFactory.createThreadSafeEmitter(TIMEOUT);
 
         emitter.onCompletion(() -> {
             log.info("SSE 연결 종료 (Completion): {}", sessionId);
