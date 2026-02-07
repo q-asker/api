@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface ProblemRepository extends JpaRepository<Problem, ProblemId> {
 
@@ -21,6 +22,9 @@ public interface ProblemRepository extends JpaRepository<Problem, ProblemId> {
         WHERE p.id.number > :number
         AND p.id.problemSetId = :problemSetId
         """)
-    List<Problem> findMissedProblems(Long problemSetId, Integer number);
+    List<Problem> findMissedProblems(
+        @Param("problemSetId") Long problemSetId,
+        Integer number
+    );
 }
 
