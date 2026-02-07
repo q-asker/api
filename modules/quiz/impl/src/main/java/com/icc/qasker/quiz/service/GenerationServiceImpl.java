@@ -19,6 +19,7 @@ import com.icc.qasker.quiz.mapper.FeRequestToAIRequestMapper;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -88,13 +89,18 @@ public class GenerationServiceImpl implements GenerationService {
             log.info("중복 요청이 발생함 {}", request.sessionId());
             return;
         }
-
-        Long problemSetId = quizCommandService.initProblemSet(
-            userId,
-            request.sessionId(),
-            request.quizCount(),
-            request.quizType()
-        );
+        Long problemSetId;
+        try {
+            problemSetId = quizCommandService.initProblemSet(
+                userId,
+                request.sessionId(),
+                request.quizCount(),
+                request.quizType()
+            );
+        } catch (DataIntegrityViolationException e) {
+            log.info("중복 요청이 발생 Unique Constraint 위반: {}", request.sessionId());
+            return;
+        }
         String encodedId = hashUtil.encode(problemSetId);
         Thread.ofVirtual().start(() -> processAsyncGeneration(
             request.sessionId(),
@@ -103,6 +109,7 @@ public class GenerationServiceImpl implements GenerationService {
             feRequestToAIRequestMapper.toAIRequest(request)
         ));
     }
+
 
     private void processAsyncGeneration(
         String sessionId,

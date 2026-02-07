@@ -11,20 +11,25 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 @Slf4j
 public class SseEmitterFactory {
 
+    private static final Class<? extends SseEmitter> PROXY_CLASS;
+
+    static {
+        PROXY_CLASS = new ByteBuddy()
+            .subclass(SseEmitter.class)
+            .method(ElementMatchers.nameStartsWith("send"))
+            .intercept(MethodDelegation.to(new LockingInterceptor()))
+            .make()
+            .load(SseEmitterFactory.class.getClassLoader())
+            .getLoaded();
+    }
+
     public static SseEmitter createThreadSafeEmitter(Long timeout) {
         try {
-            return new ByteBuddy()
-                .subclass(SseEmitter.class)
-                .method(ElementMatchers.nameStartsWith("send"))
-                .intercept(MethodDelegation.to(new LockingInterceptor()))
-                .make()
-                .load(SseEmitterFactory.class.getClassLoader())
-                .getLoaded()
+            return PROXY_CLASS
                 .getConstructor(Long.class)
                 .newInstance(timeout);
         } catch (Exception e) {
             log.error("SseEmitter 프록시 생성 실패", e);
-
             SseEmitter fallbackEmitter = new SseEmitter(10 * 1000L);
             try {
                 fallbackEmitter.send(SseEmitter.event()
@@ -33,7 +38,7 @@ public class SseEmitterFactory {
                 return fallbackEmitter;
             } catch (IOException ioException) {
                 log.error("fallback 에러 메시지 전송 실패", ioException);
-                return null;
+                return fallbackEmitter;
             }
         }
     }
