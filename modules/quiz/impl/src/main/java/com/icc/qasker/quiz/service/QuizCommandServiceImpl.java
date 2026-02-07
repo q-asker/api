@@ -84,8 +84,8 @@ public class QuizCommandServiceImpl implements QuizCommandService {
             .totalQuizCount(totalQuizCount)
             .quizType(quizType)
             .build();
-        problemSetRepository.save(problemSet);
-        return problemSet.getId();
+        ProblemSet saved = problemSetRepository.save(problemSet);
+        return saved.getId();
     }
 
     @Transactional
@@ -98,11 +98,17 @@ public class QuizCommandServiceImpl implements QuizCommandService {
 
     @Transactional
     @Override
-    public List<QuizForFe> saveBatch(List<QuizGeneratedFromAI> generatedProblems,
-        Long problemSetId) {
+    public List<QuizForFe> saveBatch(
+        List<QuizGeneratedFromAI> generatedProblems,
+        Long problemSetId
+    ) {
         ProblemSet problemSet = problemSetRepository.findById(problemSetId)
             .orElseThrow(() -> new CustomException(ExceptionMessage.PROBLEM_SET_NOT_FOUND));
         List<Problem> problems = new ArrayList<>();
+
+        if (generatedProblems.isEmpty()) {
+            throw new CustomException(ExceptionMessage.PROBLEM_NOT_FOUND);
+        }
         for (QuizGeneratedFromAI quiz : generatedProblems) {
             problems.add(Problem.of(quiz, problemSet));
         }
