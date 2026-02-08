@@ -12,8 +12,8 @@ import org.hibernate.validator.constraints.UUID;
 
 public record GenerationRequest(
 
-    @NotNull
-    @UUID
+    @NotNull(message = "sessionId가 null입니다.")
+    @UUID(message = "sessionId가 유효한 UUID 형식이 아닙니다.")
     String sessionId,
     @NotBlank(message = "url이 존재하지 않습니다.")
     String uploadedUrl,

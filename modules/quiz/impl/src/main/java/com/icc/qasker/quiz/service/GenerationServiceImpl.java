@@ -98,7 +98,7 @@ public class GenerationServiceImpl implements GenerationService {
                 request.quizType()
             );
         } catch (DataIntegrityViolationException e) {
-            log.info("중복 요청이 발생 Unique Constraint 위반: {}", request.sessionId());
+            log.info("중복 요청이 발생, Unique Constraint 위반: {}", request.sessionId());
             return;
         }
         String encodedId = hashUtil.encode(problemSetId);
@@ -110,7 +110,6 @@ public class GenerationServiceImpl implements GenerationService {
         ));
     }
 
-
     private void processAsyncGeneration(
         String sessionId,
         Long problemSetId,
@@ -121,6 +120,10 @@ public class GenerationServiceImpl implements GenerationService {
             aiServerAdapter.streamRequest(
                 request,
                 (ProblemSetGeneratedEvent problemSet) -> {
+                    if (problemSet.getQuiz() == null || problemSet.getQuiz().isEmpty()) {
+                        log.warn("빈 배치 수신, 건너뜀: sessionId={}", sessionId);
+                        return;
+                    }
                     List<QuizForFe> quizForFeList = quizCommandService.saveBatch(
                         problemSet.getQuiz(),
                         problemSetId
@@ -145,7 +148,13 @@ public class GenerationServiceImpl implements GenerationService {
             if (generatedCount == 0) {
                 throw new CustomException(ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR);
             } else if (generatedCount == request.quizCount()) {
-                finalizeSuccess(sessionId, encodedId, request.quizType(), generatedCount);
+                finalizeSuccess(
+                    problemSetId,
+                    encodedId,
+                    sessionId,
+                    request.quizType(),
+                    generatedCount
+                );
             } else {
                 finalizePartialSuccess(
                     sessionId,
@@ -166,13 +175,14 @@ public class GenerationServiceImpl implements GenerationService {
     }
 
     private void finalizeSuccess(
-        String sessionID,
+        Long problemSetId,
         String encodedId,
+        String sessionId,
         QuizType quizType,
         long generatedCount
     ) {
-        quizCommandService.updateStatus(hashUtil.decode(encodedId), GenerationStatus.COMPLETED);
-        notificationService.complete(sessionID);
+        quizCommandService.updateStatus(problemSetId, GenerationStatus.COMPLETED);
+        notificationService.complete(sessionId);
         slackNotifier.asyncNotifyText("""
             ✅ [퀴즈 생성 완료 알림]
             ProblemSetId: %s
