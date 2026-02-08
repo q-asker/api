@@ -1,6 +1,8 @@
 package com.icc.qasker.quiz.entity;
 
 import com.icc.qasker.global.entity.CreatedAt;
+import com.icc.qasker.global.error.CustomException;
+import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.quiz.GenerationStatus;
 import com.icc.qasker.quiz.dto.feRequest.enums.QuizType;
 import jakarta.persistence.CascadeType;
@@ -19,9 +21,11 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Entity
 @Getter
+@Slf4j
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
@@ -52,7 +56,8 @@ public class ProblemSet extends CreatedAt {
     // 이하 헬퍼 함수
     public void updateStatus(GenerationStatus status) {
         if (status == null) {
-            throw new IllegalArgumentException("status must not be null");
+            log.error("ProblemSet status는 null일 수 없습니다");
+            throw new CustomException(ExceptionMessage.DEFAULT_ERROR);
         }
         this.status = status;
     }
