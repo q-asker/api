@@ -5,7 +5,11 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 public interface GenerationService {
 
-    SseEmitter processGenerationRequest(GenerationRequest generationRequest,
-        String userId);
+    void triggerGeneration(
+        String userId,
+        GenerationRequest request
+    );
+
+    SseEmitter subscribe(String sessionId, String lastEventId);
 }
 

@@ -3,25 +3,33 @@ package com.icc.qasker.quiz.entity;
 import com.icc.qasker.global.entity.CreatedAt;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
-import com.icc.qasker.quiz.dto.aiResponse.ProblemSetGeneratedEvent;
+import com.icc.qasker.quiz.GenerationStatus;
+import com.icc.qasker.quiz.dto.feRequest.enums.QuizType;
 import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
+import java.util.ArrayList;
 import java.util.List;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Entity
 @Getter
-@NoArgsConstructor
+@Slf4j
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
+@Builder
 public class ProblemSet extends CreatedAt {
-
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -29,25 +37,28 @@ public class ProblemSet extends CreatedAt {
     private String userId;
 
     @OneToMany(mappedBy = "problemSet", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Problem> problems;
+    @Builder.Default
+    private List<Problem> problems = new ArrayList<>();
 
-    @Builder
-    public ProblemSet(String userId) {
-        this.userId = userId;
-    }
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    @Column(nullable = false)
+    private GenerationStatus status = GenerationStatus.GENERATING;
 
-    public static ProblemSet of(ProblemSetGeneratedEvent aiResponse) {
-        return of(aiResponse, null);
-    }
+    @Enumerated(EnumType.STRING)
+    private QuizType quizType;
 
-    public static ProblemSet of(ProblemSetGeneratedEvent aiResponse, String userId) {
-        if (aiResponse == null || aiResponse.getQuiz() == null) {
-            throw new CustomException(ExceptionMessage.NULL_AI_RESPONSE);
+    private Integer totalQuizCount;
+
+    @Column(unique = true, nullable = false)
+    private String sessionId;
+
+    // 이하 헬퍼 함수
+    public void updateStatus(GenerationStatus status) {
+        if (status == null) {
+            log.error("ProblemSet status는 null일 수 없습니다");
+            throw new CustomException(ExceptionMessage.DEFAULT_ERROR);
         }
-        ProblemSet problemSet = ProblemSet.builder().userId(userId).build();
-        problemSet.problems = aiResponse.getQuiz().stream()
-            .map(quizDto -> Problem.of(quizDto, problemSet))
-            .toList();
-        return problemSet;
+        this.status = status;
     }
 }

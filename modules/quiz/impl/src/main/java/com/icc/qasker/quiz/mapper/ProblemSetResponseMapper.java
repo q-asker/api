@@ -41,13 +41,18 @@ public final class ProblemSetResponseMapper {
     }
 
     public ProblemSetResponse fromEntity(ProblemSet problemSet) {
-        List<QuizForFe> quizzes = problemSet.getProblems().stream()
+        List<QuizForFe> quizzes = problemSet
+            .getProblems()
+            .stream()
             .map(this::fromEntity)
             .toList();
 
         return new ProblemSetResponse(
+            problemSet.getSessionId(),
             hashUtil.encode(problemSet.getId()),
-            quizzes.size(),
+            problemSet.getStatus(),
+            problemSet.getQuizType(),
+            problemSet.getTotalQuizCount(),
             quizzes
         );
     }

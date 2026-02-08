@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 @AllArgsConstructor
 public class FeRequestToAIRequestMapper {
 
-    public static GenerationRequestToAI toAIRequest(GenerationRequest fe) {
+    public GenerationRequestToAI toAIRequest(GenerationRequest fe) {
         return GenerationRequestToAI.builder()
             .uploadedUrl(fe.uploadedUrl())
             .quizCount(fe.quizCount())

@@ -16,12 +16,17 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import java.util.ArrayList;
 import java.util.List;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
-import lombok.Setter;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Getter
-@Setter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
+@Builder
 public class Problem extends CreatedAt {
 
     @EmbeddedId
@@ -41,29 +46,30 @@ public class Problem extends CreatedAt {
     private Explanation explanation;
 
     @OneToMany(mappedBy = "problem", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
     private List<ReferencedPage> referencedPages = new ArrayList<>();
 
+    // 이하 헬퍼 함수
     public static Problem of(QuizGeneratedFromAI quizDto, ProblemSet problemSet) {
         Problem problem = new Problem();
-        ProblemId problemId = new ProblemId();
-        problemId.setNumber(quizDto.getNumber());
-        problem.setId(problemId);
-        problem.setTitle(quizDto.getTitle());
+        ProblemId problemId = ProblemId.builder()
+            .number(quizDto.getNumber())
+            .build();
 
-        problem.setProblemSet(problemSet);
-
-        problem.setSelections(
+        problem.id = problemId;
+        problem.title = quizDto.getTitle();
+        problem.problemSet = problemSet;
+        problem.selections = quizDto.getSelections() == null
+            ? new ArrayList<>() :
             quizDto.getSelections().stream()
                 .map(selDto -> Selection.of(selDto, problem))
-                .collect(toList())
-        );
-        problem.setExplanation(Explanation.of(quizDto.getExplanation(), problem));
-
-        problem.setReferencedPages(
+                .collect(toList());
+        problem.explanation = Explanation.of(quizDto.getExplanation(), problem);
+        problem.referencedPages = quizDto.getReferencedPages() == null
+            ? new ArrayList<>() :
             quizDto.getReferencedPages().stream()
                 .map(page -> ReferencedPage.of(page, problem))
-                .collect(toList())
-        );
+                .collect(toList());
 
         return problem;
     }
