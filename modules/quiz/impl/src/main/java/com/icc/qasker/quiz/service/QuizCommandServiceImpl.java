@@ -106,12 +106,6 @@ public class QuizCommandServiceImpl implements QuizCommandService {
             .orElseThrow(() -> new CustomException(ExceptionMessage.PROBLEM_SET_NOT_FOUND));
         List<Problem> problems = new ArrayList<>();
 
-        if (generatedProblems == null) {
-            throw new CustomException(ExceptionMessage.AI_SERVER_GENERATION_FAILED);
-        }
-        if (generatedProblems.isEmpty()) {
-            throw new CustomException(ExceptionMessage.AI_SERVER_GENERATION_FAILED);
-        }
         for (QuizGeneratedFromAI quiz : generatedProblems) {
             problems.add(Problem.of(quiz, problemSet));
         }

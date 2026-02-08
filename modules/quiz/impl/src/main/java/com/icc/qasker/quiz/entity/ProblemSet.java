@@ -1,10 +1,7 @@
 package com.icc.qasker.quiz.entity;
 
 import com.icc.qasker.global.entity.CreatedAt;
-import com.icc.qasker.global.error.CustomException;
-import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.quiz.GenerationStatus;
-import com.icc.qasker.quiz.dto.aiResponse.ProblemSetGeneratedEvent;
 import com.icc.qasker.quiz.dto.feRequest.enums.QuizType;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -52,23 +49,7 @@ public class ProblemSet extends CreatedAt {
     @Column(unique = true, nullable = false)
     private String sessionId;
 
-
     // 이하 헬퍼 함수
-    public static ProblemSet of(ProblemSetGeneratedEvent aiResponse) {
-        return of(aiResponse, null);
-    }
-
-    public static ProblemSet of(ProblemSetGeneratedEvent aiResponse, String userId) {
-        if (aiResponse == null || aiResponse.getQuiz() == null) {
-            throw new CustomException(ExceptionMessage.AI_SERVER_GENERATION_FAILED);
-        }
-        ProblemSet problemSet = ProblemSet.builder().userId(userId).build();
-        problemSet.problems = new ArrayList<>(aiResponse.getQuiz().stream()
-            .map(quizDto -> Problem.of(quizDto, problemSet))
-            .toList());
-        return problemSet;
-    }
-
     public void updateStatus(GenerationStatus status) {
         if (status == null) {
             throw new IllegalArgumentException("status must not be null");
