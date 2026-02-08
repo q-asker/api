@@ -36,6 +36,7 @@ public class RestClientConfig {
 
         ConnectionConfig connectionConfig = ConnectionConfig.custom()
             .setConnectTimeout(Timeout.ofSeconds(3))
+            .setValidateAfterInactivity(Timeout.ofSeconds(5))
             .build();
 
         PoolingHttpClientConnectionManager connectionManager = PoolingHttpClientConnectionManagerBuilder.create()

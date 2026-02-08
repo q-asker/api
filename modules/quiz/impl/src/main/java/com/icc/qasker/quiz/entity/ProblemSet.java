@@ -27,7 +27,7 @@ import lombok.extern.slf4j.Slf4j;
 @Getter
 @Slf4j
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
 public class ProblemSet extends CreatedAt {
 

@@ -14,7 +14,6 @@ import com.icc.qasker.quiz.entity.ProblemSet;
 import com.icc.qasker.quiz.mapper.ProblemSetResponseMapper;
 import com.icc.qasker.quiz.repository.ProblemRepository;
 import com.icc.qasker.quiz.repository.ProblemSetRepository;
-import java.util.ArrayList;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -104,18 +103,17 @@ public class QuizCommandServiceImpl implements QuizCommandService {
     ) {
         ProblemSet problemSet = problemSetRepository.findById(problemSetId)
             .orElseThrow(() -> new CustomException(ExceptionMessage.PROBLEM_SET_NOT_FOUND));
-        List<Problem> problems = new ArrayList<>();
 
-        for (QuizGeneratedFromAI quiz : generatedProblems) {
-            problems.add(Problem.of(quiz, problemSet));
-        }
+        List<Problem> problems = generatedProblems.stream()
+            .map(quiz -> Problem.of(quiz, problemSet))
+            .toList();
+
         problemRepository.saveAll(problems);
 
-        List<QuizForFe> quizForFeList = new ArrayList<>();
-        for (Problem problem : problems) {
-            quizForFeList.add(problemSetResponseMapper.fromEntity(problem));
-        }
-        return quizForFeList;
+        return problems
+            .stream()
+            .map(problem -> problemSetResponseMapper.fromEntity(problem))
+            .toList();
     }
 
     @Transactional

@@ -48,7 +48,7 @@ public class GenerationServiceImpl implements GenerationService {
         } catch (NumberFormatException ignored) {
         }
         switch (status) {
-            case COMPLETED -> {
+            case COMPLETED, GENERATING -> {
                 ProblemSetResponse ps = quizCommandService.getMissedProblems(
                     sessionId,
                     lastEventNumber
@@ -59,19 +59,9 @@ public class GenerationServiceImpl implements GenerationService {
                     String.valueOf(newLastId),
                     ps
                 );
-                notificationService.complete(sessionId);
-            }
-            case GENERATING -> {
-                ProblemSetResponse ps = quizCommandService.getMissedProblems(
-                    sessionId,
-                    lastEventNumber
-                );
-                int newLastId = lastEventNumber + ps.getQuiz().size();
-                notificationService.sendCreatedMessageWithId(
-                    sessionId,
-                    String.valueOf(newLastId),
-                    ps
-                );
+                if (status == GenerationStatus.COMPLETED) {
+                    notificationService.complete(sessionId);
+                }
             }
             case NOT_EXIST -> {
             }
@@ -135,7 +125,7 @@ public class GenerationServiceImpl implements GenerationService {
                         new ProblemSetResponse(
                             sessionId,
                             encodedId,
-                            quizCommandService.getGenerationStatus(problemSetId),
+                            GenerationStatus.GENERATING,
                             request.quizType(),
                             request.quizCount(),
                             quizForFeList

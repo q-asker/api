@@ -64,8 +64,8 @@ public class SseNotificationServiceImpl implements SseNotificationService {
     }
 
     @Override
-    public void sendCreatedMessageWithId(String sessionID, String eventId, Object data) {
-        SseEmitter emitter = emitterMap.get(sessionID);
+    public void sendCreatedMessageWithId(String sessionId, String eventId, Object data) {
+        SseEmitter emitter = emitterMap.get(sessionId);
         if (emitter != null) {
             try {
                 emitter.send(SseEmitter
