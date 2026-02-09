@@ -1,4 +1,4 @@
-package com.icc.qasker.quiz.dto.ferequestt.enums;
+package com.icc.qasker.quiz.dto.ferequest.enums;
 
 public enum DifficultyType {
     RECALL,

@@ -2,7 +2,7 @@ package com.icc.qasker.quiz.entity;
 
 import com.icc.qasker.global.entity.CreatedAt;
 import com.icc.qasker.quiz.GenerationStatus;
-import com.icc.qasker.quiz.dto.ferequestt.enums.QuizType;
+import com.icc.qasker.quiz.dto.ferequest.enums.QuizType;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

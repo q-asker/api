@@ -1,6 +1,6 @@
 package com.icc.qasker.quiz;
 
-import com.icc.qasker.quiz.dto.ferequestt.GenerationRequest;
+import com.icc.qasker.quiz.dto.ferequest.GenerationRequest;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 public interface GenerationService {

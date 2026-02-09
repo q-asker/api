@@ -1,7 +1,7 @@
 package com.icc.qasker.quiz.doc;
 
 import com.icc.qasker.global.annotation.UserId;
-import com.icc.qasker.quiz.dto.ferequestt.GenerationRequest;
+import com.icc.qasker.quiz.dto.ferequest.GenerationRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
