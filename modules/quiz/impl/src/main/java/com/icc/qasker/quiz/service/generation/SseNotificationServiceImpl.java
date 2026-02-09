@@ -2,7 +2,6 @@ package com.icc.qasker.quiz.service.generation;
 
 import static com.icc.qasker.global.error.ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR;
 
-import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.quiz.SseNotificationService;
 import com.icc.qasker.quiz.infra.SseEmitterFactory;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
@@ -70,13 +69,13 @@ public class SseNotificationServiceImpl implements SseNotificationService {
         if (emitter != null) {
             try {
                 emitter.send(SseEmitter
-                        .event()
-                        .id(eventId)
-                        .name("created")
-                        .data(data));
+                    .event()
+                    .id(eventId)
+                    .name("created")
+                    .data(data));
             } catch (IOException e) {
-                finishWithError(sessionId, ExceptionMessage.DEFAULT_ERROR.getMessage());
                 log.error("클라이언트에게 전송 중 에러 발생: {} 사유: {}", data, e.getMessage());
+                emitter.completeWithError(e);
             }
         }
     }
@@ -87,9 +86,9 @@ public class SseNotificationServiceImpl implements SseNotificationService {
         if (emitter != null) {
             try {
                 emitter.send(SseEmitter
-                        .event()
-                        .name("error-finish")
-                        .data(message));
+                    .event()
+                    .name("error-finish")
+                    .data(message));
             } catch (IOException e) {
                 emitter.completeWithError(e);
             }
@@ -102,9 +101,9 @@ public class SseNotificationServiceImpl implements SseNotificationService {
         if (emitter != null) {
             try {
                 emitter.send(SseEmitter
-                        .event()
-                        .name("complete")
-                        .data("complete"));
+                    .event()
+                    .name("complete")
+                    .data("complete"));
             } catch (IOException e) {
                 emitter.completeWithError(e);
             }
