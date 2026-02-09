@@ -27,25 +27,44 @@ public class SseNotificationServiceImpl implements SseNotificationService {
 
     @Override
     public SseEmitter createSseEmitter(String sessionId) {
-        SseEmitter emitter = getSseEmitter(sessionId);
+        // [에러 | 새로고침 | 신규] 상황 구분할 수 없으므로 무조건 새로 만듦
+        SseEmitter emitter = initSseEmitter(sessionId);
 
+        // 새 emitter로 덮어 씌움
+        SseEmitter old = emitterMap.put(sessionId, emitter);
+        if (old != null) {
+            old.complete();
+        }
+
+        // 서킷 브레이커 OPEN 상태이면 즉시 종료
         CircuitBreaker circuitBreaker = circuitBreakerRegistry.circuitBreaker("aiServer");
         if (circuitBreaker.getState() == State.OPEN) {
-            emitterMap.put(sessionId, emitter);
-            finishWithError(sessionId, AI_SERVER_COMMUNICATION_ERROR.getMessage());
+            sendFinishWithError(sessionId, AI_SERVER_COMMUNICATION_ERROR.getMessage());
             return emitter;
         }
 
-        // 구 emitter로 complete 메시지 보냄
-        complete(sessionId);
-        // 새 emitter로 덮어 씌움
-        emitterMap.put(sessionId, emitter);
-        sendCreatedMessageWithId(sessionId, "connect", "hello");
-
+        // 연결 시작
+        sendConnected(sessionId);
         return emitter;
     }
 
-    private @NonNull SseEmitter getSseEmitter(String sessionId) {
+    @Override
+    public void sendConnected(String sessionId) {
+        SseEmitter emitter = emitterMap.get(sessionId);
+        if (emitter != null) {
+            try {
+                emitter.send(SseEmitter
+                    .event()
+                    .name("connected")
+                    .data("hello"));
+            } catch (IOException e) {
+                log.error("클라이언트에게 연결 중 에러 사유: {}", e.getMessage());
+                emitter.completeWithError(e);
+            }
+        }
+    }
+
+    private @NonNull SseEmitter initSseEmitter(String sessionId) {
         SseEmitter emitter = SseEmitterFactory.createThreadSafeEmitter(TIMEOUT);
 
         emitter.onCompletion(() -> {
@@ -81,7 +100,7 @@ public class SseNotificationServiceImpl implements SseNotificationService {
     }
 
     @Override
-    public void finishWithError(String sessionId, String message) {
+    public void sendFinishWithError(String sessionId, String message) {
         SseEmitter emitter = emitterMap.get(sessionId);
         if (emitter != null) {
             try {
@@ -96,7 +115,7 @@ public class SseNotificationServiceImpl implements SseNotificationService {
     }
 
     @Override
-    public void complete(String sessionId) {
+    public void sendComplete(String sessionId) {
         SseEmitter emitter = emitterMap.get(sessionId);
         if (emitter != null) {
             try {

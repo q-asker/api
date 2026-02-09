@@ -56,7 +56,7 @@ public class GenerationServiceImpl implements GenerationService {
 
         statusOptional.ifPresent(status -> {
             switch (status) {
-                case FAILED -> notificationService.finishWithError(sessionId,
+                case FAILED -> notificationService.sendFinishWithError(sessionId,
                     ExceptionMessage.AI_GENERATION_FAILED.getMessage());
 
                 case GENERATING, COMPLETED -> {
@@ -72,7 +72,7 @@ public class GenerationServiceImpl implements GenerationService {
 
                     // COMPLETE 상태일 경우 완료 메시지 전송
                     if (status == COMPLETED) {
-                        notificationService.complete(sessionId);
+                        notificationService.sendComplete(sessionId);
                     }
                 }
             }
@@ -182,7 +182,7 @@ public class GenerationServiceImpl implements GenerationService {
         QuizType quizType,
         long generatedCount) {
         quizCommandService.updateStatus(problemSetId, COMPLETED);
-        notificationService.complete(sessionId);
+        notificationService.sendComplete(sessionId);
         slackNotifier.asyncNotifyText("""
             ✅ [퀴즈 생성 완료 알림]
             ProblemSetId: %s
@@ -201,7 +201,7 @@ public class GenerationServiceImpl implements GenerationService {
         long generatedCount,
         long quizCount) {
         quizCommandService.updateStatus(problemSetId, COMPLETED);
-        notificationService.complete(sessionId);
+        notificationService.sendComplete(sessionId);
         slackNotifier.asyncNotifyText("""
             ⚠️ [퀴즈 생성 부분 완료]
             ProblemSetId: %s
@@ -219,7 +219,7 @@ public class GenerationServiceImpl implements GenerationService {
         Long problemSetId,
         String errorMessage) {
         quizCommandService.updateStatus(problemSetId, FAILED);
-        notificationService.finishWithError(sessionId, errorMessage);
+        notificationService.sendFinishWithError(sessionId, errorMessage);
         slackNotifier.asyncNotifyText("""
             ❌ [퀴즈 생성 실패]
             ProblemSetId: %s

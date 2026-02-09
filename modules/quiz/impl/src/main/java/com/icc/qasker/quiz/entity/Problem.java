@@ -53,23 +53,23 @@ public class Problem extends CreatedAt {
     public static Problem of(QuizGeneratedFromAI quizDto, ProblemSet problemSet) {
         Problem problem = new Problem();
         ProblemId problemId = ProblemId.builder()
-                .number(quizDto.getNumber())
-                .build();
+            .number(quizDto.getNumber())
+            .build();
 
         problem.id = problemId;
         problem.title = quizDto.getTitle();
         problem.problemSet = problemSet;
         problem.selections = quizDto.getSelections() == null ? new ArrayList<>()
-                : quizDto.getSelections()
-                        .stream()
-                        .map(selDto -> Selection.of(selDto, problem))
-                        .collect(toList());
+            : quizDto.getSelections()
+                .stream()
+                .map(selDto -> Selection.of(selDto, problem))
+                .collect(toList());
         problem.explanation = Explanation.of(quizDto.getExplanation(), problem);
         problem.referencedPages = quizDto.getReferencedPages() == null ? new ArrayList<>()
-                : quizDto.getReferencedPages()
-                        .stream()
-                        .map(page -> ReferencedPage.of(page, problem))
-                        .collect(toList());
+            : quizDto.getReferencedPages()
+                .stream()
+                .map(page -> ReferencedPage.of(page, problem))
+                .collect(toList());
 
         return problem;
     }
