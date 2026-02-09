@@ -1,4 +1,4 @@
-package com.icc.qasker.quiz.service;
+package com.icc.qasker.quiz.service.query;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;

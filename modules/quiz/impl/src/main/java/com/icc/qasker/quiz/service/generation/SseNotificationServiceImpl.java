@@ -1,4 +1,4 @@
-package com.icc.qasker.quiz.service;
+package com.icc.qasker.quiz.service.generation;
 
 import static com.icc.qasker.global.error.ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR;
 
