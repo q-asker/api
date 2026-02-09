@@ -1,7 +1,7 @@
-package com.icc.qasker.quiz.dto.feRequest;
+package com.icc.qasker.quiz.dto.ferequestt;
 
-import com.icc.qasker.quiz.dto.feRequest.enums.DifficultyType;
-import com.icc.qasker.quiz.dto.feRequest.enums.QuizType;
+import com.icc.qasker.quiz.dto.ferequestt.enums.DifficultyType;
+import com.icc.qasker.quiz.dto.ferequestt.enums.QuizType;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;

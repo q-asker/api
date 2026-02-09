@@ -30,16 +30,16 @@ public class ReferencedPage extends CreatedAt {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumns({
-        @JoinColumn(name = "problem_set_id", referencedColumnName = "problem_set_id"),
-        @JoinColumn(name = "number", referencedColumnName = "number")
+            @JoinColumn(name = "problem_set_id", referencedColumnName = "problem_set_id"),
+            @JoinColumn(name = "number", referencedColumnName = "number")
     })
     private Problem problem;
 
     // 이하 헬퍼 함수
     public static ReferencedPage of(int pageNumber, Problem problem) {
         return ReferencedPage.builder()
-            .pageNumber(pageNumber)
-            .problem(problem)
-            .build();
+                .pageNumber(pageNumber)
+                .problem(problem)
+                .build();
     }
 }

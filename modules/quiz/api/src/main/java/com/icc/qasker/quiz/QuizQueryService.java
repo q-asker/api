@@ -1,6 +1,6 @@
 package com.icc.qasker.quiz;
 
-import com.icc.qasker.quiz.dto.feResponse.ProblemSetResponse;
+import com.icc.qasker.quiz.dto.feresponset.ProblemSetResponse;
 import java.util.Optional;
 
 public interface QuizQueryService {
@@ -8,5 +8,5 @@ public interface QuizQueryService {
 
     Optional<GenerationStatus> getGenerationStatusBySessionId(String sessionId);
 
-    ProblemSetResponse getMissedProblems(String sessionId, Integer lastQuizNumber);
+    ProblemSetResponse getMissedProblems(String sessionId, int lastQuizNumber);
 }

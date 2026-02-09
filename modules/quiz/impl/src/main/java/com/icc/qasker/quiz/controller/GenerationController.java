@@ -4,7 +4,7 @@ package com.icc.qasker.quiz.controller;
 import com.icc.qasker.global.annotation.UserId;
 import com.icc.qasker.quiz.GenerationService;
 import com.icc.qasker.quiz.doc.GenerationApiDoc;
-import com.icc.qasker.quiz.dto.feRequest.GenerationRequest;
+import com.icc.qasker.quiz.dto.ferequestt.GenerationRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.hibernate.validator.constraints.UUID;

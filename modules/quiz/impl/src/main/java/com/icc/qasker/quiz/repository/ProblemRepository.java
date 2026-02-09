@@ -21,10 +21,9 @@ public interface ProblemRepository extends JpaRepository<Problem, ProblemId> {
         FROM Problem p
         WHERE p.id.number > :number
         AND p.id.problemSetId = :problemSetId
+        ORDER BY p.id.number ASC
         """)
-    List<Problem> findMissedProblems(
+    List<Problem> findRemainingProblems(
         @Param("problemSetId") Long problemSetId,
-        @Param("number") Integer number
-    );
+        @Param("number") Integer number);
 }
-

@@ -1,7 +1,7 @@
-package com.icc.qasker.quiz.dto.feResponse;
+package com.icc.qasker.quiz.dto.feresponset;
 
 import com.icc.qasker.quiz.GenerationStatus;
-import com.icc.qasker.quiz.dto.feRequest.enums.QuizType;
+import com.icc.qasker.quiz.dto.ferequestt.enums.QuizType;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Getter;

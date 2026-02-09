@@ -1,14 +1,14 @@
 package com.icc.qasker.quiz;
 
-import com.icc.qasker.quiz.dto.aiResponse.ProblemSetGeneratedEvent.QuizGeneratedFromAI;
-import com.icc.qasker.quiz.dto.feRequest.enums.QuizType;
-import com.icc.qasker.quiz.dto.feResponse.ProblemSetResponse.QuizForFe;
+import com.icc.qasker.quiz.dto.airesponse.ProblemSetGeneratedEvent.QuizGeneratedFromAI;
+import com.icc.qasker.quiz.dto.ferequestt.enums.QuizType;
+import com.icc.qasker.quiz.dto.feresponset.ProblemSetResponse.QuizForFe;
 import java.util.List;
 
 public interface QuizCommandService {
 
     Long initProblemSet(String userId, String sessionId, Integer totalQuizCount,
-            QuizType quizType);
+        QuizType quizType);
 
     void updateStatus(Long problemSetId, GenerationStatus status);
 

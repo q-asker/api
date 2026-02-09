@@ -9,6 +9,7 @@ public record GenerationRequestToAI(
     String uploadedUrl,
     int quizCount,
     QuizType quizType,
+    DifficultyType difficultyType,
     List<Integer> pageNumbers
 ) {
 

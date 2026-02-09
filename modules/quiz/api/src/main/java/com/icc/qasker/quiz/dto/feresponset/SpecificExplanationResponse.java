@@ -1,4 +1,4 @@
-package com.icc.qasker.quiz.dto.feResponse;
+package com.icc.qasker.quiz.dto.feresponset;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

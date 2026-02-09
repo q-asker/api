@@ -3,7 +3,7 @@ package com.icc.qasker.quiz.entity;
 import static jakarta.persistence.FetchType.LAZY;
 
 import com.icc.qasker.global.entity.CreatedAt;
-import com.icc.qasker.quiz.dto.aiResponse.ProblemSetGeneratedEvent.QuizGeneratedFromAI.SelectionsOfAI;
+import com.icc.qasker.quiz.dto.airesponse.ProblemSetGeneratedEvent.QuizGeneratedFromAI.SelectionsOfAI;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;

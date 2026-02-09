@@ -5,8 +5,8 @@ import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.quiz.GenerationStatus;
 import com.icc.qasker.quiz.QuizQueryService;
-import com.icc.qasker.quiz.dto.feResponse.ProblemSetResponse;
-import com.icc.qasker.quiz.dto.feResponse.ProblemSetResponse.QuizForFe;
+import com.icc.qasker.quiz.dto.feresponset.ProblemSetResponse;
+import com.icc.qasker.quiz.dto.feresponset.ProblemSetResponse.QuizForFe;
 import com.icc.qasker.quiz.entity.ProblemSet;
 import com.icc.qasker.quiz.mapper.ProblemSetResponseMapper;
 import com.icc.qasker.quiz.repository.ProblemRepository;
@@ -14,11 +14,10 @@ import com.icc.qasker.quiz.repository.ProblemSetRepository;
 import java.util.List;
 import java.util.Optional;
 import lombok.AllArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.Assert;
 
-@Slf4j
 @Service
 @AllArgsConstructor
 @Transactional(readOnly = true)
@@ -29,7 +28,6 @@ public class QuizQueryServiceImpl implements QuizQueryService {
     private final ProblemRepository problemRepository;
     private final ProblemSetResponseMapper problemSetResponseMapper;
 
-
     @Override
     public Optional<GenerationStatus> getGenerationStatusBySessionId(String sessionId) {
         return problemSetRepository
@@ -37,7 +35,8 @@ public class QuizQueryServiceImpl implements QuizQueryService {
     }
 
     @Override
-    public ProblemSetResponse getMissedProblems(String sessionId, Integer lastQuizNumber) {
+    public ProblemSetResponse getMissedProblems(String sessionId, int lastQuizNumber) {
+        Assert.hasText(sessionId, "sessionId must not be null");
         ProblemSet problemSet = problemSetRepository
             .findFirstBySessionIdOrderByCreatedAtDesc(sessionId)
             .orElseThrow(() -> new CustomException(ExceptionMessage.PROBLEM_SET_NOT_FOUND));
@@ -45,7 +44,7 @@ public class QuizQueryServiceImpl implements QuizQueryService {
         Long problemSetId = problemSet.getId();
 
         List<QuizForFe> quizForFeList = problemRepository
-            .findMissedProblems(problemSetId, lastQuizNumber)
+            .findRemainingProblems(problemSetId, lastQuizNumber)
             .stream()
             .map(problemSetResponseMapper::fromEntity).toList();
 
@@ -55,7 +54,6 @@ public class QuizQueryServiceImpl implements QuizQueryService {
             problemSet.getGenerationStatus(),
             problemSet.getQuizType(),
             problemSet.getTotalQuizCount(),
-            quizForFeList
-        );
+            quizForFeList);
     }
 }

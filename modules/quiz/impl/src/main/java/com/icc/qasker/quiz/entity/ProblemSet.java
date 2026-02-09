@@ -2,7 +2,7 @@ package com.icc.qasker.quiz.entity;
 
 import com.icc.qasker.global.entity.CreatedAt;
 import com.icc.qasker.quiz.GenerationStatus;
-import com.icc.qasker.quiz.dto.feRequest.enums.QuizType;
+import com.icc.qasker.quiz.dto.ferequestt.enums.QuizType;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -12,6 +12,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
+import jakarta.validation.constraints.PositiveOrZero;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.AccessLevel;
@@ -19,11 +20,9 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
 @Entity
 @Getter
-@Slf4j
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
@@ -46,6 +45,8 @@ public class ProblemSet extends CreatedAt {
     @Enumerated(EnumType.STRING)
     private QuizType quizType;
 
+    @PositiveOrZero
+    @Column(nullable = false)
     private Integer totalQuizCount;
 
     @Column(unique = true, nullable = false)

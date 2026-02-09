@@ -1,4 +1,4 @@
-package com.icc.qasker.quiz.dto.aiResponse;
+package com.icc.qasker.quiz.dto.airesponse;
 
 import java.util.List;
 import lombok.Getter;
