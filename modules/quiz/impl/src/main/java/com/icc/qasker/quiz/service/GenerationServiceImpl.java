@@ -7,6 +7,7 @@ import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.quiz.GenerationService;
 import com.icc.qasker.quiz.GenerationStatus;
 import com.icc.qasker.quiz.QuizCommandService;
+import com.icc.qasker.quiz.QuizQueryService;
 import com.icc.qasker.quiz.SseNotificationService;
 import com.icc.qasker.quiz.adapter.AIServerAdapter;
 import com.icc.qasker.quiz.dto.aiRequest.GenerationRequestToAI;
@@ -19,6 +20,7 @@ import com.icc.qasker.quiz.mapper.FeRequestToAIRequestMapper;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -30,8 +32,9 @@ public class GenerationServiceImpl implements GenerationService {
 
     // 핵심
     private final AIServerAdapter aiServerAdapter;
-    private final QuizCommandService quizCommandService;
     private final SseNotificationService notificationService;
+    private final QuizCommandService quizCommandService;
+    private final QuizQueryService quizQueryService;
     // 유틸
     private final HashUtil hashUtil;
     private final SlackNotifier slackNotifier;
@@ -39,32 +42,23 @@ public class GenerationServiceImpl implements GenerationService {
     private final FeRequestToAIRequestMapper feRequestToAIRequestMapper;
 
     public SseEmitter subscribe(String sessionId, String lastEventID) {
-        GenerationStatus status = quizCommandService.getGenerationStatusBySessionId(sessionId);
-        SseEmitter emitter = notificationService.createSseEmitter(sessionId);
+        GenerationStatus status = quizQueryService.getGenerationStatusBySessionId(sessionId);
 
-        int lastEventNumber = 0;
-        try {
-            lastEventNumber = lastEventID.isEmpty() ? 0 : Integer.parseInt(lastEventID);
-        } catch (NumberFormatException ignored) {
-        }
-        switch (status) {
-            case COMPLETED, GENERATING -> {
-                ProblemSetResponse ps = quizCommandService.getMissedProblems(
-                    sessionId,
-                    lastEventNumber
-                );
-                int newLastId = lastEventNumber + ps.getQuiz().size();
-                notificationService.sendCreatedMessageWithId(
-                    sessionId,
-                    String.valueOf(newLastId),
-                    ps
-                );
-                if (status == GenerationStatus.COMPLETED) {
-                    notificationService.complete(sessionId);
-                }
-            }
-            case NOT_EXIST -> {
-            }
+        int lastEventNumber = NumberUtils.toInt(lastEventID, 0);
+
+        ProblemSetResponse ps = quizQueryService.getMissedProblems(
+            sessionId,
+            lastEventNumber
+        );
+
+        SseEmitter emitter = notificationService.createSseEmitter(sessionId);
+        notificationService.sendCreatedMessageWithId(
+            sessionId,
+            String.valueOf(lastEventNumber + ps.getQuiz().size()),
+            ps
+        );
+        if (status == GenerationStatus.COMPLETED) {
+            notificationService.complete(sessionId);
         }
         return emitter;
     }
@@ -73,12 +67,15 @@ public class GenerationServiceImpl implements GenerationService {
         String userId,
         GenerationRequest request
     ) {
-        GenerationStatus status = quizCommandService.getGenerationStatusBySessionId(
+        // TOC
+        GenerationStatus status = quizQueryService.getGenerationStatusBySessionId(
             request.sessionId());
         if (status != GenerationStatus.NOT_EXIST) {
             log.info("중복 요청이 발생함 {}", request.sessionId());
             return;
         }
+
+        // TOU
         Long problemSetId;
         try {
             problemSetId = quizCommandService.initProblemSet(
@@ -88,7 +85,7 @@ public class GenerationServiceImpl implements GenerationService {
                 request.quizType()
             );
         } catch (DataIntegrityViolationException e) {
-            log.info("중복 요청이 발생, Unique Constraint 위반: {}", request.sessionId());
+            log.info("제약 조건 위반: {}", request.sessionId(), e);
             return;
         }
         String encodedId = hashUtil.encode(problemSetId);
@@ -134,7 +131,7 @@ public class GenerationServiceImpl implements GenerationService {
                 }
             );
 
-            long generatedCount = quizCommandService.getCount(problemSetId);
+            long generatedCount = quizQueryService.getCount(problemSetId);
             if (generatedCount == 0) {
                 throw new CustomException(ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR);
             } else if (generatedCount == request.quizCount()) {

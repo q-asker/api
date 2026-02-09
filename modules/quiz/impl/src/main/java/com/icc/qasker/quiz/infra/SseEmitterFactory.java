@@ -2,11 +2,9 @@ package com.icc.qasker.quiz.infra;
 
 import java.io.IOException;
 import java.util.concurrent.locks.ReentrantLock;
-import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-@Slf4j
 public class SseEmitterFactory {
 
     public static SseEmitter createThreadSafeEmitter(Long timeout) {

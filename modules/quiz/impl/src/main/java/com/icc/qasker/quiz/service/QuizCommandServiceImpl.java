@@ -1,13 +1,11 @@
 package com.icc.qasker.quiz.service;
 
-import com.icc.qasker.global.component.HashUtil;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.quiz.GenerationStatus;
 import com.icc.qasker.quiz.QuizCommandService;
 import com.icc.qasker.quiz.dto.aiResponse.ProblemSetGeneratedEvent.QuizGeneratedFromAI;
 import com.icc.qasker.quiz.dto.feRequest.enums.QuizType;
-import com.icc.qasker.quiz.dto.feResponse.ProblemSetResponse;
 import com.icc.qasker.quiz.dto.feResponse.ProblemSetResponse.QuizForFe;
 import com.icc.qasker.quiz.entity.Problem;
 import com.icc.qasker.quiz.entity.ProblemSet;
@@ -28,49 +26,7 @@ public class QuizCommandServiceImpl implements QuizCommandService {
     private final ProblemSetRepository problemSetRepository;
     private final ProblemRepository problemRepository;
     private final ProblemSetResponseMapper problemSetResponseMapper;
-    private final HashUtil hashUtil;
 
-    @Transactional(readOnly = true)
-    @Override
-    public GenerationStatus getGenerationStatus(Long problemSetId) {
-        return problemSetRepository.findById(problemSetId)
-            .map(ProblemSet::getStatus)
-            .orElseThrow(() -> new CustomException(ExceptionMessage.PROBLEM_SET_NOT_FOUND));
-    }
-
-    @Transactional(readOnly = true)
-    @Override
-    public Long getCount(Long id) {
-        return problemRepository.countByIdProblemSetId(id);
-    }
-
-    @Transactional(readOnly = true)
-    @Override
-    public GenerationStatus getGenerationStatusBySessionId(String sessionId) {
-        return problemSetRepository.findStatusBySessionId(sessionId)
-            .orElse(GenerationStatus.NOT_EXIST);
-    }
-
-    @Transactional(readOnly = true)
-    @Override
-    public ProblemSetResponse getMissedProblems(String sessionId, Integer lastQuizNumber) {
-        ProblemSet problemSet = problemSetRepository.findFirstBySessionIdOrderByCreatedAtDesc(
-                sessionId)
-            .orElseThrow(() -> new CustomException(ExceptionMessage.PROBLEM_SET_NOT_FOUND));
-        List<QuizForFe> quizForFeList;
-        Long problemSetId = problemSet.getId();
-        List<Problem> problems = problemRepository.findMissedProblems(problemSetId, lastQuizNumber);
-        quizForFeList = problems.stream()
-            .map(problemSetResponseMapper::fromEntity).toList();
-        return new ProblemSetResponse(
-            sessionId,
-            hashUtil.encode(problemSetId),
-            problemSet.getStatus(),
-            problemSet.getQuizType(),
-            problemSet.getTotalQuizCount(),
-            quizForFeList
-        );
-    }
 
     @Transactional
     @Override
