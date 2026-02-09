@@ -7,10 +7,12 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 public class SseEmitterFactory {
 
+    private SseEmitterFactory() {
+    }
+
     public static SseEmitter createThreadSafeEmitter(Long timeout) {
         return new ThreadSafeSseEmitter(timeout);
     }
-
 
     public static class ThreadSafeSseEmitter extends SseEmitter {
 
@@ -51,7 +53,7 @@ public class SseEmitterFactory {
         }
 
         @Override
-        public synchronized void completeWithError(@NonNull Throwable ex) {
+        public void completeWithError(@NonNull Throwable ex) {
             lock.lock();
             try {
                 super.completeWithError(ex);

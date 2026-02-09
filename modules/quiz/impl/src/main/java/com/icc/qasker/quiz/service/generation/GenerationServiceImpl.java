@@ -1,5 +1,9 @@
 package com.icc.qasker.quiz.service.generation;
 
+import static com.icc.qasker.quiz.GenerationStatus.COMPLETED;
+import static com.icc.qasker.quiz.GenerationStatus.FAILED;
+import static com.icc.qasker.quiz.GenerationStatus.GENERATING;
+
 import com.icc.qasker.global.component.HashUtil;
 import com.icc.qasker.global.component.SlackNotifier;
 import com.icc.qasker.global.error.ClientSideException;
@@ -45,31 +49,36 @@ public class GenerationServiceImpl implements GenerationService {
     private final FeRequestToAIRequestMapper feRequestToAIRequestMapper;
 
     public SseEmitter subscribe(String sessionId, String lastEventId) {
-        Optional<GenerationStatus> status = quizQueryService.getGenerationStatusBySessionId(
+        // DB 통신 실패할 수 있으므로 먼저
+        Optional<GenerationStatus> statusOptional = quizQueryService.getGenerationStatusBySessionId(
             sessionId);
 
         SseEmitter emitter = notificationService.createSseEmitter(sessionId);
 
-        if (status.isEmpty()) {
-            return emitter;
-        }
+        statusOptional.ifPresent(status -> {
+            switch (status) {
+                case FAILED -> notificationService.finishWithError(sessionId,
+                    ExceptionMessage.AI_GENERATION_FAILED.getMessage());
 
-        int lastEventNumber = NumberUtils.toInt(lastEventId, 0);
-        ProblemSetResponse ps = quizQueryService.getMissedProblems(
-            sessionId,
-            lastEventNumber);
+                case GENERATING, COMPLETED -> {
+                    int lastEventNumber = NumberUtils.toInt(lastEventId, 0);
+                    ProblemSetResponse ps = quizQueryService.getMissedProblems(
+                        sessionId,
+                        lastEventNumber);
 
-        notificationService.sendCreatedMessageWithId(
-            sessionId,
-            String.valueOf(lastEventNumber + ps.getQuiz().size()),
-            ps);
+                    notificationService.sendCreatedMessageWithId(
+                        sessionId,
+                        String.valueOf(lastEventNumber + ps.getQuiz().size()),
+                        ps);
 
-        if (status.get() == GenerationStatus.COMPLETED) {
-            notificationService.complete(sessionId);
-        } else if (status.get() == GenerationStatus.FAILED) {
-            notificationService.finishWithError(sessionId,
-                ExceptionMessage.AI_GENERATION_FAILED.getMessage());
-        }
+                    // COMPLETE 상태일 경우 완료 메시지 전송
+                    if (status == COMPLETED) {
+                        notificationService.complete(sessionId);
+                    }
+                }
+            }
+        });
+
         return emitter;
     }
 
@@ -139,7 +148,7 @@ public class GenerationServiceImpl implements GenerationService {
                         new ProblemSetResponse(
                             sessionId,
                             hashUtil.encode(problemSetId),
-                            GenerationStatus.GENERATING,
+                            GENERATING,
                             request.quizType(),
                             request.quizCount(),
                             quizForFeList));
@@ -178,7 +187,7 @@ public class GenerationServiceImpl implements GenerationService {
         Long problemSetId,
         QuizType quizType,
         long generatedCount) {
-        quizCommandService.updateStatus(problemSetId, GenerationStatus.COMPLETED);
+        quizCommandService.updateStatus(problemSetId, COMPLETED);
         notificationService.complete(sessionId);
         slackNotifier.asyncNotifyText("""
             ✅ [퀴즈 생성 완료 알림]
@@ -197,7 +206,7 @@ public class GenerationServiceImpl implements GenerationService {
         QuizType quizType,
         long generatedCount,
         long quizCount) {
-        quizCommandService.updateStatus(problemSetId, GenerationStatus.COMPLETED);
+        quizCommandService.updateStatus(problemSetId, COMPLETED);
         notificationService.complete(sessionId);
         slackNotifier.asyncNotifyText("""
             ⚠️ [퀴즈 생성 부분 완료]
@@ -215,7 +224,7 @@ public class GenerationServiceImpl implements GenerationService {
         String sessionId,
         Long problemSetId,
         String errorMessage) {
-        quizCommandService.updateStatus(problemSetId, GenerationStatus.FAILED);
+        quizCommandService.updateStatus(problemSetId, FAILED);
         notificationService.finishWithError(sessionId, errorMessage);
         slackNotifier.asyncNotifyText("""
             ❌ [퀴즈 생성 실패]
