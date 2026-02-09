@@ -31,11 +31,6 @@ public class QuizQueryServiceImpl implements QuizQueryService {
 
 
     @Override
-    public Long getCount(Long id) {
-        return problemRepository.countByIdProblemSetId(id);
-    }
-
-    @Override
     public Optional<GenerationStatus> getGenerationStatusBySessionId(String sessionId) {
         return problemSetRepository
             .findGenerationStatusBySessionId(sessionId);

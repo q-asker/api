@@ -5,7 +5,6 @@ import java.util.Optional;
 
 public interface QuizQueryService {
 
-    Long getCount(Long id);
 
     Optional<GenerationStatus> getGenerationStatusBySessionId(String sessionId);
 

@@ -39,5 +39,25 @@ public class SseEmitterFactory {
                 lock.unlock();
             }
         }
+
+        @Override
+        public void complete() {
+            lock.lock();
+            try {
+                super.complete();
+            } finally {
+                lock.unlock();
+            }
+        }
+
+        @Override
+        public synchronized void completeWithError(@NonNull Throwable ex) {
+            lock.lock();
+            try {
+                super.completeWithError(ex);
+            } finally {
+                lock.unlock();
+            }
+        }
     }
 }

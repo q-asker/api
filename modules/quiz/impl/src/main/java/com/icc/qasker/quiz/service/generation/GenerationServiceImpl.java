@@ -2,6 +2,7 @@ package com.icc.qasker.quiz.service.generation;
 
 import com.icc.qasker.global.component.HashUtil;
 import com.icc.qasker.global.component.SlackNotifier;
+import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.quiz.GenerationService;
 import com.icc.qasker.quiz.GenerationStatus;
 import com.icc.qasker.quiz.QuizCommandService;
@@ -17,6 +18,7 @@ import com.icc.qasker.quiz.dto.feResponse.ProblemSetResponse.QuizForFe;
 import com.icc.qasker.quiz.mapper.FeRequestToAIRequestMapper;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.math.NumberUtils;
@@ -108,10 +110,8 @@ public class GenerationServiceImpl implements GenerationService {
         Long problemSetId,
         GenerationRequestToAI request
     ) {
-
+        AtomicInteger atomicGeneratedCount = new AtomicInteger(0);
         String encodedId = hashUtil.encode(problemSetId);
-        String errorMessage = "알수 없는 에러";
-
         try {
             aiServerAdapter.streamRequest(
                 request,
@@ -125,6 +125,7 @@ public class GenerationServiceImpl implements GenerationService {
                         problemSetId
                     );
 
+                    atomicGeneratedCount.addAndGet(quizForFeList.size());
                     notificationService.sendCreatedMessageWithId(
                         sessionId,
                         String.valueOf(quizForFeList.getLast().getNumber()),
@@ -139,13 +140,11 @@ public class GenerationServiceImpl implements GenerationService {
                     );
                 }
             );
-        } catch (Exception e) {
-            log.error("생성 중 오류 발생", e);
-            errorMessage = e.getMessage();
-        } finally {
-            long generatedCount = quizQueryService.getCount(problemSetId);
+
+            int generatedCount = atomicGeneratedCount.get();
             if (generatedCount == 0) {
-                finalizeError(sessionId, problemSetId, errorMessage);
+                finalizeError(sessionId, problemSetId,
+                    ExceptionMessage.AI_SERVER_GENERATION_FAILED.getMessage());
             } else if (generatedCount == request.quizCount()) {
                 finalizeSuccess(
                     problemSetId,
@@ -162,6 +161,9 @@ public class GenerationServiceImpl implements GenerationService {
                     generatedCount
                 );
             }
+        } catch (Exception e) {
+            log.error("생성 중 오류 발생", e);
+            finalizeError(sessionId, problemSetId, e.getMessage());
         }
     }
 
@@ -213,9 +215,11 @@ public class GenerationServiceImpl implements GenerationService {
         quizCommandService.updateStatus(problemSetId, GenerationStatus.FAILED);
         notificationService.finishWithError(sessionId, errorMessage);
         slackNotifier.asyncNotifyText("""
-            ❌ [퀴즈 생성 실패]
-            사유: %s
+              ❌ [퀴즈 생성 실패]
+            ProblemSetId: %s
+            원인: %s
             """.formatted(
+            hashUtil.encode(problemSetId),
             errorMessage
         ));
     }
