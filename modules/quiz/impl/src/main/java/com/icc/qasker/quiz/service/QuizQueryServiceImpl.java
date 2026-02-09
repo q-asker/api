@@ -7,12 +7,12 @@ import com.icc.qasker.quiz.GenerationStatus;
 import com.icc.qasker.quiz.QuizQueryService;
 import com.icc.qasker.quiz.dto.feResponse.ProblemSetResponse;
 import com.icc.qasker.quiz.dto.feResponse.ProblemSetResponse.QuizForFe;
-import com.icc.qasker.quiz.entity.Problem;
 import com.icc.qasker.quiz.entity.ProblemSet;
 import com.icc.qasker.quiz.mapper.ProblemSetResponseMapper;
 import com.icc.qasker.quiz.repository.ProblemRepository;
 import com.icc.qasker.quiz.repository.ProblemSetRepository;
 import java.util.List;
+import java.util.Optional;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -36,10 +36,9 @@ public class QuizQueryServiceImpl implements QuizQueryService {
     }
 
     @Override
-    public GenerationStatus getGenerationStatusBySessionId(String sessionId) {
+    public Optional<GenerationStatus> getGenerationStatusBySessionId(String sessionId) {
         return problemSetRepository
-            .findStatusBySessionId(sessionId)
-            .orElseThrow(() -> new CustomException(ExceptionMessage.PROBLEM_SET_NOT_FOUND));
+            .findGenerationStatusBySessionId(sessionId);
     }
 
     @Override
@@ -50,14 +49,15 @@ public class QuizQueryServiceImpl implements QuizQueryService {
 
         Long problemSetId = problemSet.getId();
 
-        List<Problem> problems = problemRepository.findMissedProblems(problemSetId, lastQuizNumber);
-        List<QuizForFe> quizForFeList = problems.stream()
+        List<QuizForFe> quizForFeList = problemRepository
+            .findMissedProblems(problemSetId, lastQuizNumber)
+            .stream()
             .map(problemSetResponseMapper::fromEntity).toList();
 
         return new ProblemSetResponse(
             sessionId,
             hashUtil.encode(problemSetId),
-            problemSet.getStatus(),
+            problemSet.getGenerationStatus(),
             problemSet.getQuizType(),
             problemSet.getTotalQuizCount(),
             quizForFeList

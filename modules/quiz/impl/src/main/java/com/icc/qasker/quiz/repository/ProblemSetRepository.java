@@ -10,12 +10,13 @@ import org.springframework.data.repository.query.Param;
 public interface ProblemSetRepository extends JpaRepository<ProblemSet, Long> {
 
     @Query("""
-        SELECT p.status
+        SELECT p.generationStatus
         FROM ProblemSet p
         WHERE p.sessionId = :sessionId
         ORDER BY p.createdAt DESC
         LIMIT 1""")
-    Optional<GenerationStatus> findStatusBySessionId(@Param("sessionId") String sessionId);
+    Optional<GenerationStatus> findGenerationStatusBySessionId(
+        @Param("sessionId") String sessionId);
 
     Optional<ProblemSet> findFirstBySessionIdOrderByCreatedAtDesc(String sessionId);
 }

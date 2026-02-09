@@ -42,10 +42,10 @@ public class Selection extends CreatedAt {
 
     // 이하 헬퍼 함수
     public static Selection of(SelectionsOfAI dto, Problem problem) {
-        Selection selection = new Selection();
-        selection.content = dto.getContent();
-        selection.correct = dto.isCorrect();
-        selection.problem = problem;
-        return selection;
+        return Selection.builder()
+            .content(dto.getContent())
+            .correct(dto.isCorrect())
+            .problem(problem)
+            .build();
     }
 }

@@ -1,7 +1,7 @@
 package com.icc.qasker.quiz;
 
 public enum GenerationStatus {
-    NOT_EXIST,
+    FAILED,
     GENERATING,
     COMPLETED,
 }

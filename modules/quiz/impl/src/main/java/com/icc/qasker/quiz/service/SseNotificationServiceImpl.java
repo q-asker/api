@@ -21,7 +21,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 @RequiredArgsConstructor
 public class SseNotificationServiceImpl implements SseNotificationService {
 
-    private final static long TIMEOUT = 300 * 1000L;
+    private static final long TIMEOUT = 300 * 1000L;
     private final Map<String, SseEmitter> emitterMap = new ConcurrentHashMap<>();
     private final CircuitBreakerRegistry circuitBreakerRegistry;
 

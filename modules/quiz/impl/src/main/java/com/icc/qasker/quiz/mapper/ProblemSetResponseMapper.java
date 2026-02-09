@@ -51,7 +51,7 @@ public final class ProblemSetResponseMapper {
         return new ProblemSetResponse(
             problemSet.getSessionId(),
             hashUtil.encode(problemSet.getId()),
-            problemSet.getStatus(),
+            problemSet.getGenerationStatus(),
             problemSet.getQuizType(),
             problemSet.getTotalQuizCount(),
             quizzes

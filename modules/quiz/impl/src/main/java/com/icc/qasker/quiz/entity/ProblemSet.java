@@ -1,8 +1,6 @@
 package com.icc.qasker.quiz.entity;
 
 import com.icc.qasker.global.entity.CreatedAt;
-import com.icc.qasker.global.error.CustomException;
-import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.quiz.GenerationStatus;
 import com.icc.qasker.quiz.dto.feRequest.enums.QuizType;
 import jakarta.persistence.CascadeType;
@@ -43,7 +41,7 @@ public class ProblemSet extends CreatedAt {
     @Enumerated(EnumType.STRING)
     @Builder.Default
     @Column(nullable = false)
-    private GenerationStatus status = GenerationStatus.GENERATING;
+    private GenerationStatus generationStatus = GenerationStatus.GENERATING;
 
     @Enumerated(EnumType.STRING)
     private QuizType quizType;
@@ -56,9 +54,8 @@ public class ProblemSet extends CreatedAt {
     // 이하 헬퍼 함수
     public void updateStatus(GenerationStatus status) {
         if (status == null) {
-            log.error("ProblemSet status는 null일 수 없습니다");
-            throw new CustomException(ExceptionMessage.DEFAULT_ERROR);
+            throw new IllegalArgumentException("ProblemSet status must not be null");
         }
-        this.status = status;
+        this.generationStatus = status;
     }
 }

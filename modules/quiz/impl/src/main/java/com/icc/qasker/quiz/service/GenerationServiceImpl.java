@@ -2,8 +2,6 @@ package com.icc.qasker.quiz.service;
 
 import com.icc.qasker.global.component.HashUtil;
 import com.icc.qasker.global.component.SlackNotifier;
-import com.icc.qasker.global.error.CustomException;
-import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.quiz.GenerationService;
 import com.icc.qasker.quiz.GenerationStatus;
 import com.icc.qasker.quiz.QuizCommandService;
@@ -18,6 +16,7 @@ import com.icc.qasker.quiz.dto.feResponse.ProblemSetResponse;
 import com.icc.qasker.quiz.dto.feResponse.ProblemSetResponse.QuizForFe;
 import com.icc.qasker.quiz.mapper.FeRequestToAIRequestMapper;
 import java.util.List;
+import java.util.Optional;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.math.NumberUtils;
@@ -41,23 +40,29 @@ public class GenerationServiceImpl implements GenerationService {
     // 매퍼
     private final FeRequestToAIRequestMapper feRequestToAIRequestMapper;
 
-    public SseEmitter subscribe(String sessionId, String lastEventID) {
-        GenerationStatus status = quizQueryService.getGenerationStatusBySessionId(sessionId);
+    public SseEmitter subscribe(String sessionId, String lastEventId) {
+        Optional<GenerationStatus> status = quizQueryService.getGenerationStatusBySessionId(
+            sessionId);
 
-        int lastEventNumber = NumberUtils.toInt(lastEventID, 0);
+        SseEmitter emitter = notificationService.createSseEmitter(sessionId);
 
+        if (status.isEmpty()) {
+            return emitter;
+        }
+
+        int lastEventNumber = NumberUtils.toInt(lastEventId, 0);
         ProblemSetResponse ps = quizQueryService.getMissedProblems(
             sessionId,
             lastEventNumber
         );
 
-        SseEmitter emitter = notificationService.createSseEmitter(sessionId);
         notificationService.sendCreatedMessageWithId(
             sessionId,
             String.valueOf(lastEventNumber + ps.getQuiz().size()),
             ps
         );
-        if (status == GenerationStatus.COMPLETED) {
+
+        if (status.get() == GenerationStatus.COMPLETED) {
             notificationService.complete(sessionId);
         }
         return emitter;
@@ -68,10 +73,10 @@ public class GenerationServiceImpl implements GenerationService {
         GenerationRequest request
     ) {
         // TOC
-        GenerationStatus status = quizQueryService.getGenerationStatusBySessionId(
+        Optional<GenerationStatus> status = quizQueryService.getGenerationStatusBySessionId(
             request.sessionId());
-        if (status != GenerationStatus.NOT_EXIST) {
-            log.info("중복 요청이 발생함 {}", request.sessionId());
+        if (status.isPresent()) {
+            log.info("중복 요청 발생: sessionId: {}", request.sessionId());
             return;
         }
 
@@ -85,24 +90,28 @@ public class GenerationServiceImpl implements GenerationService {
                 request.quizType()
             );
         } catch (DataIntegrityViolationException e) {
-            log.info("제약 조건 위반: {}", request.sessionId(), e);
+            log.info("제약 조건 위반: sessionId={}", request.sessionId(), e);
             return;
         }
-        String encodedId = hashUtil.encode(problemSetId);
-        Thread.ofVirtual().start(() -> processAsyncGeneration(
-            request.sessionId(),
-            problemSetId,
-            encodedId,
-            feRequestToAIRequestMapper.toAIRequest(request)
-        ));
+        Thread.ofVirtual()
+            .uncaughtExceptionHandler((t, e)
+                -> log.error("가상 스레드 미처리 예외 발생: sessionId={}", request.sessionId(), e))
+            .start(() -> processAsyncGeneration(
+                request.sessionId(),
+                problemSetId,
+                feRequestToAIRequestMapper.toAIRequest(request)
+            ));
     }
 
     private void processAsyncGeneration(
         String sessionId,
         Long problemSetId,
-        String encodedId,
         GenerationRequestToAI request
     ) {
+
+        String encodedId = hashUtil.encode(problemSetId);
+        String errorMessage = "알수 없는 에러";
+
         try {
             aiServerAdapter.streamRequest(
                 request,
@@ -130,10 +139,13 @@ public class GenerationServiceImpl implements GenerationService {
                     );
                 }
             );
-
+        } catch (Exception e) {
+            log.error("생성 중 오류 발생", e);
+            errorMessage = e.getMessage();
+        } finally {
             long generatedCount = quizQueryService.getCount(problemSetId);
             if (generatedCount == 0) {
-                throw new CustomException(ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR);
+                finalizeError(sessionId, problemSetId, errorMessage);
             } else if (generatedCount == request.quizCount()) {
                 finalizeSuccess(
                     problemSetId,
@@ -150,14 +162,6 @@ public class GenerationServiceImpl implements GenerationService {
                     generatedCount
                 );
             }
-        } catch (Exception e) {
-            // 보상 트랜잭션 수행
-            try {
-                quizCommandService.delete(problemSetId);
-            } catch (Exception deleteEx) {
-                log.error("보상 트랜잭션(delete) 실패: problemSetId={}", problemSetId, deleteEx);
-            }
-            finalizeError(sessionId, e.getMessage());
         }
     }
 
@@ -182,27 +186,14 @@ public class GenerationServiceImpl implements GenerationService {
         ));
     }
 
-    private void finalizeError(
-        String sessionID,
-        String errorMessage
-    ) {
-        notificationService.finishWithError(sessionID, errorMessage);
-        slackNotifier.asyncNotifyText("""
-            ❌ [퀴즈 생성 실패]
-            사유: %s
-            """.formatted(
-            errorMessage
-        ));
-    }
-
     private void finalizePartialSuccess(
-        String sessionID,
+        String sessionId,
         Long problemSetId,
         long quizCount,
         long generatedCount
     ) {
         quizCommandService.updateStatus(problemSetId, GenerationStatus.COMPLETED);
-        notificationService.complete(sessionID);
+        notificationService.complete(sessionId);
         slackNotifier.asyncNotifyText("""
             ⚠️ [퀴즈 생성 부분 완료]
             ProblemSetId: %s
@@ -211,6 +202,21 @@ public class GenerationServiceImpl implements GenerationService {
             hashUtil.encode(problemSetId),
             quizCount,
             generatedCount
+        ));
+    }
+
+    private void finalizeError(
+        String sessionId,
+        Long problemSetId,
+        String errorMessage
+    ) {
+        quizCommandService.updateStatus(problemSetId, GenerationStatus.FAILED);
+        notificationService.finishWithError(sessionId, errorMessage);
+        slackNotifier.asyncNotifyText("""
+            ❌ [퀴즈 생성 실패]
+            사유: %s
+            """.formatted(
+            errorMessage
         ));
     }
 }

@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 @Service
 @AllArgsConstructor
+@Transactional
 public class QuizCommandServiceImpl implements QuizCommandService {
 
     private final ProblemSetRepository problemSetRepository;
@@ -28,7 +29,6 @@ public class QuizCommandServiceImpl implements QuizCommandService {
     private final ProblemSetResponseMapper problemSetResponseMapper;
 
 
-    @Transactional
     @Override
     public Long initProblemSet(String userId, String sessionId, Integer totalQuizCount,
         QuizType quizType) {
@@ -43,7 +43,6 @@ public class QuizCommandServiceImpl implements QuizCommandService {
         return saved.getId();
     }
 
-    @Transactional
     @Override
     public void updateStatus(Long problemSetId, GenerationStatus status) {
         ProblemSet problemSet = problemSetRepository.findById(problemSetId)
@@ -51,7 +50,6 @@ public class QuizCommandServiceImpl implements QuizCommandService {
         problemSet.updateStatus(status);
     }
 
-    @Transactional
     @Override
     public List<QuizForFe> saveBatch(
         List<QuizGeneratedFromAI> generatedProblems,
@@ -68,13 +66,7 @@ public class QuizCommandServiceImpl implements QuizCommandService {
 
         return problems
             .stream()
-            .map(problem -> problemSetResponseMapper.fromEntity(problem))
+            .map(problemSetResponseMapper::fromEntity)
             .toList();
-    }
-
-    @Transactional
-    @Override
-    public void delete(Long id) {
-        problemSetRepository.deleteById(id);
     }
 }
