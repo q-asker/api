@@ -6,7 +6,6 @@ import static com.icc.qasker.quiz.GenerationStatus.GENERATING;
 
 import com.icc.qasker.global.component.HashUtil;
 import com.icc.qasker.global.component.SlackNotifier;
-import com.icc.qasker.global.error.ClientSideException;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.quiz.GenerationService;
@@ -109,8 +108,6 @@ public class GenerationServiceImpl implements GenerationService {
         Thread.ofVirtual()
             .uncaughtExceptionHandler((t, e) -> {
                 log.error("가상 스레드 미처리 예외 발생: sessionId={}", request.sessionId(), e);
-                finalizeError(request.sessionId(), problemSetId,
-                    ExceptionMessage.AI_GENERATION_FAILED.getMessage());
             })
             .start(() -> processAsyncGeneration(
                 request.sessionId(),
@@ -153,32 +150,29 @@ public class GenerationServiceImpl implements GenerationService {
                             request.quizCount(),
                             quizForFeList));
                 });
-
-            int generatedCount = atomicGeneratedCount.get();
-            if (generatedCount == 0) {
-                finalizeError(sessionId, problemSetId,
-                    ExceptionMessage.AI_GENERATION_FAILED.getMessage());
-            } else if (generatedCount == request.quizCount()) {
-                finalizeSuccess(
-                    sessionId,
-                    problemSetId,
-                    request.quizType(),
-                    generatedCount);
-            } else {
-                finalizePartialSuccess(
-                    sessionId,
-                    problemSetId,
-                    request.quizType(),
-                    generatedCount,
-                    request.quizCount());
-            }
-        } catch (ClientSideException e) {
-            log.error("생성 중 사용자 오류 발생", e);
-            finalizeError(sessionId, problemSetId, e.getMessage());
         } catch (Exception e) {
-            log.error("생성 중 알수없는 오류 발생", e);
             finalizeError(sessionId, problemSetId,
                 ExceptionMessage.AI_GENERATION_FAILED.getMessage());
+            return;
+        }
+
+        int generatedCount = atomicGeneratedCount.get();
+        if (generatedCount == 0) {
+            finalizeError(sessionId, problemSetId,
+                ExceptionMessage.AI_GENERATION_FAILED.getMessage());
+        } else if (generatedCount == request.quizCount()) {
+            finalizeSuccess(
+                sessionId,
+                problemSetId,
+                request.quizType(),
+                generatedCount);
+        } else {
+            finalizePartialSuccess(
+                sessionId,
+                problemSetId,
+                request.quizType(),
+                generatedCount,
+                request.quizCount());
         }
     }
 

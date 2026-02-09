@@ -14,7 +14,7 @@ public class SseEmitterFactory {
         return new ThreadSafeSseEmitter(timeout);
     }
 
-    public static class ThreadSafeSseEmitter extends SseEmitter {
+    private static class ThreadSafeSseEmitter extends SseEmitter {
 
         private final ReentrantLock lock = new ReentrantLock();
 

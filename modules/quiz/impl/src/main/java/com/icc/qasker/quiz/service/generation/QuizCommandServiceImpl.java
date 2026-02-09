@@ -62,9 +62,9 @@ public class QuizCommandServiceImpl implements QuizCommandService {
             .map(quiz -> Problem.of(quiz, problemSet))
             .toList();
 
-        problemRepository.saveAll(problems);
+        List<Problem> saved = problemRepository.saveAll(problems);
 
-        return problems
+        return saved
             .stream()
             .map(problemSetResponseMapper::fromEntity)
             .toList();
