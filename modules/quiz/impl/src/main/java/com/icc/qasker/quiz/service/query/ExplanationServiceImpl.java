@@ -17,13 +17,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class ExplanationServiceImpl implements ExplanationService {
 
     private final HashUtil hashUtil;
     private final ProblemRepository problemRepository;
 
     @Override
-    @Transactional(readOnly = true)
     public ExplanationResponse getExplanationByProblemSetId(String problemSetId) {
         long id = hashUtil.decode(problemSetId);
         List<Problem> problems = problemRepository.findByIdProblemSetId(id);

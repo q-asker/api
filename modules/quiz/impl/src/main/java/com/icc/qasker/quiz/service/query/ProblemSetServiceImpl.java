@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @AllArgsConstructor
+@Transactional(readOnly = true)
 public class ProblemSetServiceImpl implements ProblemSetService {
 
     private final ProblemSetResponseMapper problemSetResponseMapper;
@@ -21,7 +22,6 @@ public class ProblemSetServiceImpl implements ProblemSetService {
     private final HashUtil hashUtil;
 
     @Override
-    @Transactional(readOnly = true)
     public ProblemSetResponse getProblemSet(String problemSetId) {
         long id = hashUtil.decode(problemSetId);
         ProblemSet problemSet = getProblemSetEntity(id);

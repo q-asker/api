@@ -26,9 +26,10 @@ public enum ExceptionMessage {
     // GenerationService.java
     AI_SERVER_COMMUNICATION_ERROR(HttpStatus.INTERNAL_SERVER_ERROR,
         "AI 서버와 통신할 수 없습니다. 잠시 후 다시 시도해주세요."),
-    AI_SERVER_GENERATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR,
+    AI_GENERATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR,
         "문제 생성에 실패했습니다. 잠시 후 다시 시도해주세요."),
-
+    AI_DUPLICATED_GENERATION(HttpStatus.BAD_REQUEST,
+        "이미 생성중인 퀴즈입니다."),
 
     // ## FE ISSUE
     PROBLEM_SET_NOT_FOUND(HttpStatus.NOT_FOUND, "문제 세트를 찾을 수 없습니다."),
