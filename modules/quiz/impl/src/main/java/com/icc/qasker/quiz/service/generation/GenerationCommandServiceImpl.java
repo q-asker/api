@@ -121,6 +121,7 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
                             quizForFeList));
                 });
         } catch (Exception e) {
+            log.error("생성 중 오류 발생: sessionId={}", sessionId, e);
             finalizeError(sessionId, problemSetId,
                 ExceptionMessage.AI_GENERATION_FAILED.getMessage());
             return;
