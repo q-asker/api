@@ -8,7 +8,7 @@ import com.icc.qasker.global.component.HashUtil;
 import com.icc.qasker.global.component.SlackNotifier;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
-import com.icc.qasker.quiz.GenerationService;
+import com.icc.qasker.quiz.GenerationCommandService;
 import com.icc.qasker.quiz.GenerationStatus;
 import com.icc.qasker.quiz.QuizCommandService;
 import com.icc.qasker.quiz.QuizQueryService;
@@ -21,20 +21,20 @@ import com.icc.qasker.quiz.dto.ferequest.enums.QuizType;
 import com.icc.qasker.quiz.dto.feresponse.ProblemSetResponse;
 import com.icc.qasker.quiz.dto.feresponse.ProblemSetResponse.QuizForFe;
 import com.icc.qasker.quiz.mapper.FeRequestToAIRequestMapper;
+import com.icc.qasker.quiz.mapper.QuizViewToQuizForFeMapper;
+import com.icc.qasker.quiz.view.QuizView;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.math.NumberUtils;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @Slf4j
 @Service
 @AllArgsConstructor
-public class GenerationServiceImpl implements GenerationService {
+public class GenerationCommandServiceImpl implements GenerationCommandService {
 
     // 핵심
     private final AIServerAdapter aiServerAdapter;
@@ -47,40 +47,7 @@ public class GenerationServiceImpl implements GenerationService {
     // 매퍼
     private final FeRequestToAIRequestMapper feRequestToAIRequestMapper;
 
-    public SseEmitter subscribe(String sessionId, String lastEventId) {
-        // DB 통신 실패할 수 있으므로 먼저
-        Optional<GenerationStatus> statusOptional = quizQueryService.getGenerationStatusBySessionId(
-            sessionId);
-
-        SseEmitter emitter = notificationService.createSseEmitter(sessionId);
-
-        statusOptional.ifPresent(status -> {
-            switch (status) {
-                case FAILED -> notificationService.sendFinishWithError(sessionId,
-                    ExceptionMessage.AI_GENERATION_FAILED.getMessage());
-
-                case GENERATING, COMPLETED -> {
-                    int lastEventNumber = NumberUtils.toInt(lastEventId, 0);
-                    ProblemSetResponse ps = quizQueryService.getMissedProblems(
-                        sessionId,
-                        lastEventNumber);
-
-                    notificationService.sendCreatedMessageWithId(
-                        sessionId,
-                        String.valueOf(lastEventNumber + ps.getQuiz().size()),
-                        ps);
-
-                    // COMPLETE 상태일 경우 완료 메시지 전송
-                    if (status == COMPLETED) {
-                        notificationService.sendComplete(sessionId);
-                    }
-                }
-            }
-        });
-
-        return emitter;
-    }
-
+    @Override
     public void triggerGeneration(
         String userId,
         GenerationRequest request) {
@@ -129,19 +96,22 @@ public class GenerationServiceImpl implements GenerationService {
                         log.warn("빈 배치 수신, 건너뜀: sessionId={}", sessionId);
                         return;
                     }
-                    List<QuizForFe> quizForFeList = quizCommandService.saveBatch(
-                        problemSet.getQuiz(),
+                    List<Integer> savedNumbers = quizCommandService.saveBatch(problemSet.getQuiz(),
                         problemSetId);
 
-                    if (quizForFeList.isEmpty()) {
-                        log.warn("saveBatch 결과 빈 리스트 수신, 건너뜀: sessionId={}", sessionId);
+                    List<QuizView> quizViews = quizQueryService.getQuizViews(problemSetId,
+                        savedNumbers);
+                    if (quizViews.isEmpty()) {
                         return;
                     }
 
-                    atomicGeneratedCount.addAndGet(quizForFeList.size());
+                    List<QuizForFe> quizForFeList = quizViews.stream().map(
+                        QuizViewToQuizForFeMapper::toQuizForFe).toList();
+
+                    atomicGeneratedCount.addAndGet(quizViews.size());
                     notificationService.sendCreatedMessageWithId(
                         sessionId,
-                        String.valueOf(quizForFeList.getLast().getNumber()),
+                        String.valueOf(quizViews.getLast().getNumber()),
                         new ProblemSetResponse(
                             sessionId,
                             hashUtil.encode(problemSetId),

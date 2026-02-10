@@ -2,7 +2,8 @@ package com.icc.qasker.quiz.controller;
 
 
 import com.icc.qasker.global.annotation.UserId;
-import com.icc.qasker.quiz.GenerationService;
+import com.icc.qasker.quiz.GenerationCommandService;
+import com.icc.qasker.quiz.GenerationQueryService;
 import com.icc.qasker.quiz.doc.GenerationApiDoc;
 import com.icc.qasker.quiz.dto.ferequest.GenerationRequest;
 import jakarta.validation.Valid;
@@ -25,7 +26,8 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 @RequestMapping("/generation")
 public class GenerationController implements GenerationApiDoc {
 
-    private final GenerationService generationService;
+    private final GenerationCommandService generationCommandService;
+    private final GenerationQueryService generationQueryService;
 
     @Override
     @GetMapping(value = "/{sessionId}/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -35,7 +37,7 @@ public class GenerationController implements GenerationApiDoc {
         @RequestHeader(value = "Last-Event-ID", required = false, defaultValue = "")
         String lastEventId
     ) {
-        return generationService.subscribe(sessionId, lastEventId);
+        return generationQueryService.subscribe(sessionId, lastEventId);
     }
 
     @Override
@@ -46,6 +48,6 @@ public class GenerationController implements GenerationApiDoc {
         String userId,
         @Valid @RequestBody
         GenerationRequest generationRequest) {
-        generationService.triggerGeneration(userId, generationRequest);
+        generationCommandService.triggerGeneration(userId, generationRequest);
     }
 }

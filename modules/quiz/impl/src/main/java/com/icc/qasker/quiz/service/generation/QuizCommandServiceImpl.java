@@ -6,10 +6,8 @@ import com.icc.qasker.quiz.GenerationStatus;
 import com.icc.qasker.quiz.QuizCommandService;
 import com.icc.qasker.quiz.dto.airesponse.ProblemSetGeneratedEvent.QuizGeneratedFromAI;
 import com.icc.qasker.quiz.dto.ferequest.enums.QuizType;
-import com.icc.qasker.quiz.dto.feresponse.ProblemSetResponse.QuizForFe;
 import com.icc.qasker.quiz.entity.Problem;
 import com.icc.qasker.quiz.entity.ProblemSet;
-import com.icc.qasker.quiz.mapper.ProblemSetResponseMapper;
 import com.icc.qasker.quiz.repository.ProblemRepository;
 import com.icc.qasker.quiz.repository.ProblemSetRepository;
 import java.util.List;
@@ -26,8 +24,6 @@ public class QuizCommandServiceImpl implements QuizCommandService {
 
     private final ProblemSetRepository problemSetRepository;
     private final ProblemRepository problemRepository;
-    private final ProblemSetResponseMapper problemSetResponseMapper;
-
 
     @Override
     public Long initProblemSet(String userId, String sessionId, Integer totalQuizCount,
@@ -51,7 +47,7 @@ public class QuizCommandServiceImpl implements QuizCommandService {
     }
 
     @Override
-    public List<QuizForFe> saveBatch(
+    public List<Integer> saveBatch(
         List<QuizGeneratedFromAI> generatedProblems,
         Long problemSetId
     ) {
@@ -62,11 +58,10 @@ public class QuizCommandServiceImpl implements QuizCommandService {
             .map(quiz -> Problem.of(quiz, problemSet))
             .toList();
 
-        List<Problem> saved = problemRepository.saveAll(problems);
-
-        return saved
+        List<Problem> savedProblems = problemRepository.saveAll(problems);
+        return savedProblems
             .stream()
-            .map(problemSetResponseMapper::fromEntity)
+            .map(problem -> problem.getId().getNumber())
             .toList();
     }
 }

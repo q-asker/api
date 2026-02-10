@@ -28,12 +28,12 @@ public class ProblemSetResponse {
         private String title;
         private int userAnswer;
         private boolean check;
-        private List<SelectionsForFE> selections;
+        private List<SelectionForFE> selections;
 
         @Getter
         @NoArgsConstructor
         @AllArgsConstructor
-        public static class SelectionsForFE {
+        public static class SelectionForFE {
 
             private int id;
             private String content;

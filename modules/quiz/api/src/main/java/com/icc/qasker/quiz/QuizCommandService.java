@@ -2,7 +2,6 @@ package com.icc.qasker.quiz;
 
 import com.icc.qasker.quiz.dto.airesponse.ProblemSetGeneratedEvent.QuizGeneratedFromAI;
 import com.icc.qasker.quiz.dto.ferequest.enums.QuizType;
-import com.icc.qasker.quiz.dto.feresponse.ProblemSetResponse.QuizForFe;
 import java.util.List;
 
 public interface QuizCommandService {
@@ -12,5 +11,5 @@ public interface QuizCommandService {
 
     void updateStatus(Long problemSetId, GenerationStatus status);
 
-    List<QuizForFe> saveBatch(List<QuizGeneratedFromAI> generatedProblems, Long problemSetId);
+    List<Integer> saveBatch(List<QuizGeneratedFromAI> generatedProblems, Long problemSetId);
 }

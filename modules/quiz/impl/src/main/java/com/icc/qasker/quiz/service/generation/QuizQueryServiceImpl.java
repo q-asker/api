@@ -7,10 +7,14 @@ import com.icc.qasker.quiz.GenerationStatus;
 import com.icc.qasker.quiz.QuizQueryService;
 import com.icc.qasker.quiz.dto.feresponse.ProblemSetResponse;
 import com.icc.qasker.quiz.dto.feresponse.ProblemSetResponse.QuizForFe;
+import com.icc.qasker.quiz.entity.Problem;
+import com.icc.qasker.quiz.entity.ProblemId;
 import com.icc.qasker.quiz.entity.ProblemSet;
 import com.icc.qasker.quiz.mapper.ProblemSetResponseMapper;
+import com.icc.qasker.quiz.mapper.ProblemToQuizViewMapper;
 import com.icc.qasker.quiz.repository.ProblemRepository;
 import com.icc.qasker.quiz.repository.ProblemSetRepository;
+import com.icc.qasker.quiz.view.QuizView;
 import java.util.List;
 import java.util.Optional;
 import lombok.AllArgsConstructor;
@@ -27,6 +31,26 @@ public class QuizQueryServiceImpl implements QuizQueryService {
     private final ProblemSetRepository problemSetRepository;
     private final ProblemRepository problemRepository;
     private final ProblemSetResponseMapper problemSetResponseMapper;
+
+
+    @Override
+    public List<QuizView> getQuizViews(long problemSetId, List<Integer> numbers) {
+        List<ProblemId> problemIds = numbers.stream().map(
+            number -> {
+                return ProblemId.builder()
+                    .problemSetId(problemSetId)
+                    .number(number)
+                    .build();
+            }
+        ).toList();
+
+        List<Problem> problems = problemRepository.findByIdInOrderByIdNumberAsc(
+            problemIds);
+
+        return problems.stream()
+            .map(ProblemToQuizViewMapper::toQuizView)
+            .toList();
+    }
 
     @Override
     public Optional<GenerationStatus> getGenerationStatusBySessionId(String sessionId) {

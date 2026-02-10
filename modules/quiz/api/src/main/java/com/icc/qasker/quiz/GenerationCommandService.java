@@ -1,15 +1,12 @@
 package com.icc.qasker.quiz;
 
 import com.icc.qasker.quiz.dto.ferequest.GenerationRequest;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-public interface GenerationService {
+public interface GenerationCommandService {
 
     void triggerGeneration(
         String userId,
         GenerationRequest request
     );
-
-    SseEmitter subscribe(String sessionId, String lastEventId);
 }
 
