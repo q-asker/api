@@ -3,7 +3,6 @@ package com.icc.qasker.quiz.entity;
 import static jakarta.persistence.FetchType.LAZY;
 
 import com.icc.qasker.global.entity.CreatedAt;
-import com.icc.qasker.quiz.dto.aiResponse.ProblemSetGeneratedEvent.QuizGeneratedFromAI.SelectionsOfAI;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -13,15 +12,15 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinColumns;
 import jakarta.persistence.ManyToOne;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 @Entity
 @Getter
 @NoArgsConstructor
-@Setter
 @AllArgsConstructor
+@Builder
 public class Selection extends CreatedAt {
 
     @Id
@@ -39,11 +38,4 @@ public class Selection extends CreatedAt {
     })
     private Problem problem;
 
-    public static Selection of(SelectionsOfAI dto, Problem problem) {
-        Selection selection = new Selection();
-        selection.content = dto.getContent();
-        selection.correct = dto.isCorrect();
-        selection.problem = problem;
-        return selection;
-    }
 }

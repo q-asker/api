@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @AllArgsConstructor
-public class FeRequestToAIRequestMapper {
+public final class FeRequestToAIRequestMapper {
 
     public static GenerationRequestToAI toAIRequest(GenerationRequest fe) {
         return GenerationRequestToAI.builder()

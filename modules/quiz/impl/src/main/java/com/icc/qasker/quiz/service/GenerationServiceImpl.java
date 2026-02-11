@@ -14,6 +14,7 @@ import com.icc.qasker.quiz.dto.feResponse.ProblemSetResponse.QuizForFe;
 import com.icc.qasker.quiz.entity.Problem;
 import com.icc.qasker.quiz.entity.ProblemSet;
 import com.icc.qasker.quiz.mapper.FeRequestToAIRequestMapper;
+import com.icc.qasker.quiz.mapper.ProblemMapper;
 import com.icc.qasker.quiz.mapper.ProblemSetResponseMapper;
 import com.icc.qasker.quiz.repository.ProblemRepository;
 import com.icc.qasker.quiz.repository.ProblemSetRepository;
@@ -113,7 +114,7 @@ public class GenerationServiceImpl implements GenerationService {
             List<Problem> problems = new ArrayList<>();
             List<QuizForFe> quizForFeList = new ArrayList<>();
             for (QuizGeneratedFromAI quizGeneratedFromAI : quiz.getQuiz()) {
-                Problem problem = Problem.of(quizGeneratedFromAI, saveProblemSet);
+                Problem problem = ProblemMapper.fromResponse(quizGeneratedFromAI, saveProblemSet);
                 problems.add(problem);
                 quizForFeList.add(problemSetResponseMapper.fromEntity(problem));
             }
