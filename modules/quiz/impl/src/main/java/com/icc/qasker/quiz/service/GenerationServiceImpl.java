@@ -11,6 +11,7 @@ import com.icc.qasker.quiz.dto.request.FeGenerationRequest;
 import com.icc.qasker.quiz.dto.response.AiGenerationResponse;
 import com.icc.qasker.quiz.dto.response.GenerationResponse;
 import com.icc.qasker.quiz.entity.ProblemSet;
+import com.icc.qasker.quiz.mapper.ProblemSetMapper;
 import com.icc.qasker.quiz.repository.ProblemSetRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -34,7 +35,7 @@ public class GenerationServiceImpl implements GenerationService {
 
         AiGenerationResponse aiResponse = aiServerAdapter.requestGenerate(feGenerationRequest);
 
-        ProblemSet problemSet = ProblemSet.of(aiResponse);
+        ProblemSet problemSet = ProblemSetMapper.fromResponse(aiResponse);
         ProblemSet savedPs = problemSetRepository.save(problemSet);
 
         GenerationResponse response = new GenerationResponse(
