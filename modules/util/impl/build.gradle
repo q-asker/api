@@ -5,4 +5,6 @@ plugins {
 dependencies {
     implementation project(":global")
     implementation project(":util:util-api")
+    implementation "org.springframework.boot:spring-boot-starter-web"
+    implementation "org.springframework.boot:spring-boot-starter-data-jpa"
 }
