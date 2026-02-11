@@ -6,7 +6,7 @@ import com.icc.qasker.global.util.HashUtil;
 import com.icc.qasker.quiz.dto.request.FeGenerationRequest;
 import com.icc.qasker.quiz.dto.response.AiGenerationResponse;
 import com.icc.qasker.quiz.dto.response.GenerationResponse;
-import com.icc.qasker.quiz.entity.ProblemSet;
+import com.icc.qasker.quiz.mapper.ProblemSetMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
@@ -33,7 +33,7 @@ public class MockGenerationService {
         FeGenerationRequest feGenerationRequest) {
         AiGenerationResponse aiResponse = callAiServer(feGenerationRequest);
 
-        ProblemSet.of(aiResponse);
+        ProblemSetMapper.fromResponse(aiResponse);
 
         return new GenerationResponse(
             hashUtil.encode(DUMMY_PROBLEM_SET_ID)
