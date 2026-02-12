@@ -24,7 +24,7 @@ dependencies {
     // ────────────────────────────────
     // 프로젝트 모듈
     // 모든 impl 모듈을 조립하여 하나의 실행 가능 애플리케이션으로 구성
-    // 예: Spring Boot가 기동될 때 각 모듈의 @Component, @Service, @Repository를
+    // 예: Spring Boot가 기동될 때 각 모듈의 @Component, @Service, @Repository를W
     //     컴포넌트 스캔으로 자동 발견하여 Bean으로 등록
     // ────────────────────────────────
     // 인증 구현 모듈: JWT 발급·검증, OAuth2 소셜 로그인 처리
@@ -44,7 +44,7 @@ dependencies {
     implementation project(':global')
     // AI 모듈: Google Gemini 기반 AI 기능
     // 예: AiService에서 ChatClient를 통해 Gemini API를 호출
-    implementation project(':ai')
+//    implementation project(':ai')
 
     // ────────────────────────────────
     // 스프링부트 Web & JPA

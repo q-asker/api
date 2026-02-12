@@ -6,21 +6,4 @@ plugins {
 }
 
 dependencies {
-
-    // ────────────────────────────────
-    // 스프링부트 Web
-    // ────────────────────────────────
-    // Spring MVC 기반 웹 애플리케이션 구성
-    // 예: @RestController, @PostMapping 등 어노테이션을 사용한 AWS 관련 컨트롤러 인터페이스 정의에 필요
-    implementation "org.springframework.boot:spring-boot-starter-web"
-
-    // ────────────────────────────────
-    // API 문서 (Swagger)
-    // ────────────────────────────────
-    // SpringDoc OpenAPI 코어: API 문서화 어노테이션 제공
-    // 예: @Operation(summary = "Presigned URL 발급") → Swagger UI에 API 설명 표시
-    implementation "org.springdoc:springdoc-openapi:2.3.0"
-    // SpringDoc WebMVC UI: Swagger UI 웹 페이지를 자동 생성
-    // 예: 서버 기동 후 /swagger-ui/index.html 접속하면 API 목록·테스트 UI가 제공됨
-    implementation "org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.8"
 }
