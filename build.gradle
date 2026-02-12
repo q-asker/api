@@ -1,7 +1,7 @@
 import org.springframework.boot.gradle.tasks.bundling.BootJar
 
 plugins {
-    id "org.springframework.boot" version "3.4.5" apply false
+    id "org.springframework.boot" version "3.4.13" apply false
     id "io.spring.dependency-management" version "1.1.4" apply false
 }
 
@@ -14,7 +14,7 @@ subprojects {
 
     dependencyManagement {
         imports {
-            mavenBom "org.springframework.boot:spring-boot-dependencies:3.4.5"
+            mavenBom "org.springframework.boot:spring-boot-dependencies:3.4.13"
         }
     }
 
@@ -32,7 +32,9 @@ subprojects {
 
     dependencies {
         // ────────────────────────────────
-        // Lombok
+        // 전 모듈 공통
+        // Lombok: 보일러플레이트 코드 생성
+        // Validation: DTO 검증 (Bean Validation)
         // ────────────────────────────────
         compileOnly "org.projectlombok:lombok"
         annotationProcessor "org.projectlombok:lombok"
@@ -40,7 +42,7 @@ subprojects {
     }
 
     test { useJUnitPlatform() }
-    왜 독ㄹ
+
     tasks.withType(JavaCompile).configureEach {
         options.compilerArgs += '-parameters'
     }

@@ -3,13 +3,25 @@ plugins {
 }
 
 dependencies {
+
+    // ────────────────────────────────
+    // 프로젝트 모듈
+    // ────────────────────────────────
     implementation project(":global")
     implementation project(":aws:aws-api")
     implementation project(":quiz:quiz-api")
 
-    implementation "io.github.resilience4j:resilience4j-spring-boot3:2.3.0"
-    implementation "org.springframework.boot:spring-boot-starter-aop"
-    implementation "org.apache.httpcomponents.client5:httpclient5:5.3.1"
+    // ────────────────────────────────
+    // 스프링부트 Web & JPA
+    // ────────────────────────────────
     implementation "org.springframework.boot:spring-boot-starter-web"
     implementation "org.springframework.boot:spring-boot-starter-data-jpa"
+    runtimeOnly "com.mysql:mysql-connector-j"
+    implementation "org.springframework.boot:spring-boot-starter-aop"
+
+    // ────────────────────────────────
+    // 장애 대응 & HTTP 클라이언트
+    // ────────────────────────────────
+    implementation "io.github.resilience4j:resilience4j-spring-boot3:2.3.0"
+    implementation "org.apache.httpcomponents.client5:httpclient5:5.3.1"
 }

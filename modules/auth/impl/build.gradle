@@ -3,14 +3,34 @@ plugins {
 }
 
 dependencies {
+
+    // ────────────────────────────────
+    // 프로젝트 모듈
+    // ────────────────────────────────
     implementation project(":global")
     implementation project(":auth:auth-api")
-    implementation "org.hashids:hashids:1.0.3"
-    implementation "com.auth0:java-jwt:4.5.0"
+
+    // ────────────────────────────────
+    // 스프링부트 Web & JPA
+    // ────────────────────────────────
+    implementation "org.springframework.boot:spring-boot-starter-web"
     implementation "org.springframework.boot:spring-boot-starter-data-jpa"
     runtimeOnly "com.mysql:mysql-connector-j"
-    implementation "org.springframework.boot:spring-boot-starter-web"
+
+    // ────────────────────────────────
+    // 인증 & 보안
+    // ────────────────────────────────
+    implementation "com.auth0:java-jwt:4.5.0"
+    implementation "org.springframework.boot:spring-boot-starter-oauth2-client"
+
+    // ────────────────────────────────
+    // API 문서 (Swagger)
+    // ────────────────────────────────
     implementation "org.springdoc:springdoc-openapi:2.3.0"
     implementation "org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.8"
-    implementation "org.springframework.boot:spring-boot-starter-oauth2-client"
+
+    // ────────────────────────────────
+    // 유틸리티
+    // ────────────────────────────────
+    implementation "org.hashids:hashids:1.0.3"
 }

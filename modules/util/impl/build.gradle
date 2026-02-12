@@ -3,8 +3,17 @@ plugins {
 }
 
 dependencies {
+
+    // ────────────────────────────────
+    // 프로젝트 모듈
+    // ────────────────────────────────
     implementation project(":global")
     implementation project(":util:util-api")
+
+    // ────────────────────────────────
+    // 스프링부트 Web & JPA
+    // ────────────────────────────────
     implementation "org.springframework.boot:spring-boot-starter-web"
     implementation "org.springframework.boot:spring-boot-starter-data-jpa"
+    runtimeOnly "com.mysql:mysql-connector-j"
 }

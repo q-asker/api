@@ -2,12 +2,29 @@ plugins {
     id 'java-library'
 }
 dependencies {
-    implementation "org.hashids:hashids:1.0.3"
+
+    // ────────────────────────────────
+    // 스프링부트 Web & JPA
+    // ────────────────────────────────
     implementation "org.springframework.boot:spring-boot-starter-web"
-    implementation "com.github.maricn:logback-slack-appender:1.6.1"
-    implementation 'org.codehaus.janino:janino:3.1.12'
+    implementation "org.springframework.boot:spring-boot-starter-data-jpa"
+    runtimeOnly "com.mysql:mysql-connector-j"
+
+    // ────────────────────────────────
+    // API 문서 (Swagger)
+    // ────────────────────────────────
     implementation "org.springdoc:springdoc-openapi:2.3.0"
     implementation "org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.8"
-    implementation "org.springframework.boot:spring-boot-starter-data-jpa"
+
+    // ────────────────────────────────
+    // 로깅
+    // ────────────────────────────────
+    implementation "com.github.maricn:logback-slack-appender:1.6.1"
+    implementation 'org.codehaus.janino:janino:3.1.12'
+
+    // ────────────────────────────────
+    // 유틸리티 & 장애 대응
+    // ────────────────────────────────
+    implementation "org.hashids:hashids:1.0.3"
     implementation "io.github.resilience4j:resilience4j-spring-boot3:2.3.0"
 }

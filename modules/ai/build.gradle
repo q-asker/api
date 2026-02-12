@@ -3,6 +3,11 @@ plugins {
 }
 
 dependencies {
+
+    // ────────────────────────────────
+    // 프로젝트 모듈
+    // ────────────────────────────────
     implementation project(":global")
-    implementation platform("org.springframework.ai:spring-ai-bom:1.0.0")
+
+
 }

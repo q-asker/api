@@ -10,13 +10,19 @@ group = rootProject.group
 
 dependencies {
 
+    // ────────────────────────────────
+    // 프로젝트 모듈
+    // ────────────────────────────────
     implementation project(':auth:auth-impl')
     implementation project(':aws:aws-impl')
     implementation project(':quiz:quiz-impl')
     implementation project(':util:util-impl')
     implementation project(':global')
-//    implementation project(':ai')
+    implementation project(':ai')
 
+    // ────────────────────────────────
+    // 스프링부트 Web & JPA
+    // ────────────────────────────────
     implementation "org.springframework.boot:spring-boot-starter-web"
     implementation "org.springframework.boot:spring-boot-starter-data-jpa"
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'

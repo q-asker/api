@@ -3,6 +3,14 @@ plugins {
 }
 
 dependencies {
+
+    // ────────────────────────────────
+    // 프로젝트 모듈
+    // ────────────────────────────────
     implementation project(":global")
+
+    // ────────────────────────────────
+    // 스프링부트 Web
+    // ────────────────────────────────
     implementation "org.springframework.boot:spring-boot-starter-web"
 }
