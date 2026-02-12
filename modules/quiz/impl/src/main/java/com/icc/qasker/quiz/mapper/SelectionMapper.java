@@ -4,7 +4,7 @@ import com.icc.qasker.quiz.dto.aiResponse.ProblemSetGeneratedEvent.QuizGenerated
 import com.icc.qasker.quiz.entity.Problem;
 import com.icc.qasker.quiz.entity.Selection;
 
-public class SelectionMapper {
+public final class SelectionMapper {
 
     public static Selection fromResponse(SelectionsOfAI dto, Problem problem) {
         return Selection.builder()
