@@ -1,6 +1,6 @@
 rootProject.name = 'q-asker'
 
-include ':app', ':global',
+include ':app', ':global', ':ai',
         ':auth:auth-api', ':auth:auth-impl',
         ':aws:aws-api', ':aws:aws-impl',
         ':quiz:quiz-api', ':quiz:quiz-impl',
@@ -8,6 +8,7 @@ include ':app', ':global',
 
 project(':app').projectDir = file('app')
 project(':global').projectDir = file('modules/global')
+project(':ai').projectDir = file('modules/ai')
 
 project(':auth:auth-api').projectDir = file('modules/auth/api')
 project(':auth:auth-impl').projectDir = file('modules/auth/impl')
@@ -20,3 +21,4 @@ project(':quiz:quiz-impl').projectDir = file('modules/quiz/impl')
 
 project(':util:util-api').projectDir = file('modules/util/api')
 project(':util:util-impl').projectDir = file('modules/util/impl')
+

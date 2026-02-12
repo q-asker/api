@@ -1,9 +1,59 @@
 plugins {
+    // java-library: api/implementation 의존성 구분을 지원하는 라이브러리 모듈용 플러그인
+    // 예: api로 선언한 의존성은 이 모듈을 사용하는 소비자에게 전이됨,
+    //     implementation으로 선언하면 내부에서만 사용되고 소비자에게 노출되지 않음
     id 'java-library'
 }
+
 dependencies {
-    implementation "org.hashids:hashids:1.0.3"
+
+    // ────────────────────────────────
+    // 스프링부트 Web & JPA
+    // ────────────────────────────────
+    // Spring MVC 기반 웹 애플리케이션 구성
+    // 예: @ControllerAdvice + @ExceptionHandler로 전역 예외 처리기를 구현,
+    //     모든 모듈의 컨트롤러에서 발생하는 예외를 한곳에서 처리
+    implementation "org.springframework.boot:spring-boot-starter-web"
+    // Spring Data JPA: JPA 기반 리포지토리 자동 생성, 엔티티 매핑 지원
+    // 예: @MappedSuperclass로 BaseEntity(createdAt, updatedAt)를 정의하면
+    //     모든 모듈의 엔티티가 이를 상속받아 공통 필드를 공유
+    implementation "org.springframework.boot:spring-boot-starter-data-jpa"
+    // MySQL JDBC 드라이버: 런타임에 DB 연결 시 사용 (컴파일 시에는 불필요)
+    // 예: application.yml의 spring.datasource.url에 mysql:// 연결 문자열을 설정하면
+    //     이 드라이버가 JDBC 커넥션을 생성
+    runtimeOnly "com.mysql:mysql-connector-j"
+
+    // ────────────────────────────────
+    // API 문서 (Swagger)
+    // ────────────────────────────────
+    // SpringDoc OpenAPI 코어: API 문서화 어노테이션 제공
+    // 예: @Schema(description = "공통 응답 코드") → 공통 DTO의 필드 설명이 Swagger에 표시됨
+    implementation "org.springdoc:springdoc-openapi:2.3.0"
+    // SpringDoc WebMVC UI: Swagger UI 웹 페이지를 자동 생성
+    // 예: 서버 기동 후 /swagger-ui/index.html 접속하면 API 목록·테스트 UI가 제공됨
+    implementation "org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.8"
+
+    // ────────────────────────────────
+    // 로깅
+    // ────────────────────────────────
+    // Logback Slack Appender: 로그 이벤트를 Slack 채널로 전송하는 Logback 플러그인
+    // 예: logback-spring.xml에 <appender class="com.github.maricn.logback.SlackAppender">로 설정하면
+    //     ERROR 레벨 로그 발생 시 지정된 Slack 웹훅 URL로 알림 메시지가 전송됨
     implementation "com.github.maricn:logback-slack-appender:1.6.1"
+    // Janino: Logback 설정에서 조건부 로깅을 사용하기 위한 경량 Java 컴파일러
+    // 예: logback-spring.xml에서 <if condition='property("ENV").equals("prod")'>로
+    //     환경별 로깅 설정을 분기할 수 있음 (Janino 없으면 <if> 태그 파싱 실패)
     implementation 'org.codehaus.janino:janino:3.1.12'
+
+    // ────────────────────────────────
+    // 유틸리티 & 장애 대응
+    // ────────────────────────────────
+    // Hashids: 숫자 ID를 짧은 고유 문자열로 인코딩/디코딩 (URL-safe ID 난독화)
+    // 예: hashids.encode(123) → "YDx" / hashids.decode("YDx") → [123]
+    //     DB의 auto-increment PK를 URL에 노출하지 않고 난독화된 문자열로 변환
+    implementation "org.hashids:hashids:1.0.3"
+    // Resilience4j: Circuit Breaker, Retry, Rate Limiter 등 장애 격리 패턴 제공
+    // 예: @CircuitBreaker(name = "externalApi") → 외부 API 연속 실패 시 자동으로 호출을 차단하고
+    //     일정 시간 후 half-open 상태로 전환하여 복구 여부를 확인
     implementation "io.github.resilience4j:resilience4j-spring-boot3:2.3.0"
 }

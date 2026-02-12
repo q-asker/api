@@ -11,16 +11,14 @@ dependencies {
     // 프로젝트 모듈
     // ────────────────────────────────
     // global: 공통 예외 처리, 공통 응답 DTO 등 프로젝트 전역 유틸리티 모듈
-    // 예: ApiResponse<T>를 퀴즈 API 응답 타입으로 사용
+    // 예: AI 호출 실패 시 GlobalException을 던져 공통 에러 응답으로 변환
     implementation project(":global")
 
     // ────────────────────────────────
-    // Jackson & Spring Web
+    // Spring AI
     // ────────────────────────────────
-    // Jackson 어노테이션: DTO 직렬화/역직렬화 설정
-    // 예: @JsonTypeInfo, @JsonSubTypes로 다형성 JSON 매핑
-    implementation "com.fasterxml.jackson.core:jackson-annotations"
-    // Spring WebMVC: SseEmitter 등 웹 관련 타입 제공
-    // 예: GenerationService 인터페이스에서 SseEmitter 반환 타입 사용
-    implementation "org.springframework:spring-webmvc"
+    // Spring AI Google GenAI Starter: Google Gemini 모델 연동을 위한 자동 구성 및 클라이언트 제공
+    // 예: ChatClient.create(geminiModel).prompt("질문을 생성해줘").call()로 Gemini API 호출,
+    //     application.yml에 spring.ai.google.genai.api-key 설정만으로 자동 연결
+    implementation "org.springframework.ai:spring-ai-starter-model-google-genai"
 }

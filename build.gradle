@@ -1,74 +1,115 @@
+// BootJar 태스크 클래스를 import (하단에서 duplicatesStrategy 설정에 사용)
 import org.springframework.boot.gradle.tasks.bundling.BootJar
 
 plugins {
-    id "org.springframework.boot" version "3.4.5" apply false
-    id "io.spring.dependency-management" version "1.1.4" apply false
+    // Spring Boot Gradle 플러그인 선언
+    // apply false: 루트에서는 적용하지 않고, 서브모듈(app)에서만 활성화하기 위해 버전만 등록
+    // 예: app/build.gradle에서 id 'org.springframework.boot'로 활성화하면
+    //     bootJar, bootRun 등 부트 전용 태스크가 생성됨
+    //     루트에 apply true로 두면 라이브러리 모듈에도 bootJar가 생겨 불필요한 실행 JAR이 만들어짐
+    id "org.springframework.boot" version "3.5.8" apply false
 }
 
-
+// 프로젝트 그룹 ID (Maven 좌표에서 groupId 역할)
+// 예: 빌드된 아티팩트가 com.icc.qasker:app:1.7.0 형태로 식별됨
 group = "com.icc.qasker"
+// 프로젝트 버전 (Docker 이미지 태그, 배포 아티팩트 버전에 사용)
+// 예: jib으로 빌드하면 Docker 이미지에 "1.7.0" 태그가 붙음
 version = "1.7.0"
 
 subprojects {
+    // java 플러그인: 컴파일·테스트·JAR 패키징 등 Java 빌드 라이프사이클을 제공
+    // 예: compileJava, test, jar 등의 태스크가 자동 생성되고,
+    //     src/main/java, src/main/resources 디렉토리 구조를 인식함
     apply plugin: 'java'
-    apply plugin: 'io.spring.dependency-management'
 
-    dependencyManagement {
-        imports {
-            mavenBom "org.springframework.boot:spring-boot-dependencies:3.4.5"
+    java {
+        toolchain {
+            // 빌드·컴파일에 사용할 JDK 버전 지정
+            // 예: 21로 설정하면 record, sealed class, pattern matching 등 Java 21 문법 사용 가능
+            //     로컬에 JDK 21이 없으면 Gradle이 자동으로 다운로드하여 사용함
+            languageVersion = JavaLanguageVersion.of(21)
         }
     }
 
-    sourceCompatibility = '21'
+    dependencies {
+        // ────────────────────────────────
+        // BOM (Bill of Materials): 라이브러리 버전 일괄 관리
+        // platform()으로 선언하면 실제 라이브러리는 추가되지 않고,
+        // 해당 BOM에 정의된 버전 번호만 프로젝트에 적용된다
+        // ────────────────────────────────
+
+        // Spring Boot BOM: Spring Boot 관련 라이브러리 버전 통합 관리
+        // 예: 하위 모듈에서 implementation "org.springframework.boot:spring-boot-starter-web" 선언 시
+        //     버전을 생략해도 이 BOM이 3.5.8에 맞는 버전을 자동 결정함
+        implementation platform("org.springframework.boot:spring-boot-dependencies:3.5.8")
+        // annotationProcessor에도 동일 BOM 적용
+        // 예: spring-boot-configuration-processor 버전도 BOM이 관리하므로 버전 명시 불필요
+        annotationProcessor platform("org.springframework.boot:spring-boot-dependencies:3.5.8")
+        // AWS SDK BOM: AWS 서비스 클라이언트 버전 통합 관리
+        // 예: implementation "software.amazon.awssdk:s3" 선언 시 버전 생략 가능,
+        //     S3, SQS 등 여러 AWS 모듈 간 버전 불일치 방지
+        implementation platform("software.amazon.awssdk:bom:2.27.24")
+        // Spring AI BOM: Spring AI 관련 라이브러리 버전 통합 관리
+        // 예: implementation "org.springframework.ai:spring-ai-starter-model-google-genai" 선언 시
+        //     버전 생략 가능, Spring AI 모듈 간 호환성 보장
+        implementation platform("org.springframework.ai:spring-ai-bom:1.1.2")
+
+        // ────────────────────────────────
+        // 전 모듈 공통 라이브러리
+        // ────────────────────────────────
+
+        // Lombok: 어노테이션으로 보일러플레이트 코드를 자동 생성
+        // 예: @Getter를 붙이면 getField() 메서드가 컴파일 시 자동 생성,
+        //     @Builder를 붙이면 Builder 패턴 코드가 생성됨
+        // compileOnly: 컴파일 시에만 사용되고 런타임 JAR에는 포함되지 않음
+        // 예: 생성된 getter/setter는 .class에 이미 포함되므로 런타임에 Lombok JAR 불필요
+        compileOnly "org.projectlombok:lombok"
+        // Lombok 어노테이션 프로세서: 컴파일 단계에서 코드를 생성하는 역할
+        // 예: javac가 @Getter 어노테이션을 만나면 이 프로세서가 getter 바이트코드를 삽입함
+        annotationProcessor "org.projectlombok:lombok"
+        // Bean Validation: DTO 필드 검증 어노테이션 제공
+        // 예: @NotNull String name → name이 null이면 MethodArgumentNotValidException 발생,
+        //     @Size(min=1, max=100) → 문자열 길이 범위를 벗어나면 검증 실패
+        implementation "org.springframework.boot:spring-boot-starter-validation"
+    }
 
     configurations {
         compileOnly {
+            // annotationProcessor에 선언된 의존성을 compileOnly에서도 참조할 수 있도록 확장
+            // 예: 이 설정이 없으면 IDE에서 Lombok 어노테이션(@Getter 등)을 "찾을 수 없는 심볼"로 표시함
+            //     extendsFrom으로 연결하면 annotationProcessor의 Lombok을 컴파일 클래스패스에서도 인식
             extendsFrom annotationProcessor
         }
     }
 
     repositories {
+        // Maven Central: 오픈소스 라이브러리를 다운로드하는 공개 저장소
+        // 예: org.springframework.boot:spring-boot-starter-web 등 외부 라이브러리를
+        //     https://repo.maven.apache.org/maven2 에서 다운로드
         mavenCentral()
     }
 
-    dependencies {
-        // ────────────────────────────────
-        // jUnit 테스트
-        // ────────────────────────────────
-        testImplementation "org.springframework.boot:spring-boot-starter-test"
-        testRuntimeOnly "org.junit.platform:junit-platform-launcher"
-
-        // ────────────────────────────────
-        // 스프링부트 web과 JPA
-        // ────────────────────────────────
-        implementation "org.springframework.boot:spring-boot-starter-web"
-        implementation "org.springframework.boot:spring-boot-starter-data-jpa"
-        runtimeOnly "com.mysql:mysql-connector-j"
-
-        // ────────────────────────────────
-        // API 문서 (Swagger)
-        // ────────────────────────────────
-        implementation "org.springdoc:springdoc-openapi:2.3.0"
-        implementation "org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.8"
-
-        // ────────────────────────────────
-        // Lombok
-        // ────────────────────────────────
-        compileOnly "org.projectlombok:lombok"
-        annotationProcessor "org.projectlombok:lombok"
-    }
-
-    test { useJUnitPlatform() }
-
     tasks.withType(JavaCompile).configureEach {
+        // -parameters: 컴파일된 .class에 메서드 파라미터 이름을 보존
+        // 예: void findById(Long id) 컴파일 시 파라미터 이름 "id"가 .class에 기록됨
+        //     → @PathVariable Long id 에서 @PathVariable("id") 처럼 이름을 명시하지 않아도 자동 매핑
+        //     이 옵션이 없으면 파라미터 이름이 arg0, arg1로 저장되어 이름 기반 바인딩 실패
         options.compilerArgs += '-parameters'
     }
 
     tasks.withType(Jar).configureEach {
+        // JAR 패키징 시 동일 경로의 파일이 중복되면 빌드 실패 (조기 감지)
+        // 예: 모듈 A와 모듈 B가 동일 패키지에 같은 이름의 클래스를 가진 경우,
+        //     또는 여러 의존성이 META-INF/ 아래 같은 파일명(LICENSE, NOTICE 등)을 포함하는 경우
+        //     FAIL로 설정하지 않으면 어느 파일이 최종 JAR에 포함될지 비결정적(non-deterministic)이 됨
         duplicatesStrategy = DuplicatesStrategy.FAIL
     }
 
     tasks.withType(BootJar).configureEach {
+        // 실행 가능 JAR(BootJar) 패키징 시에도 동일한 중복 파일 방지 정책 적용
+        // 예: app 모듈이 여러 impl 모듈을 조립할 때, 각 모듈의 리소스 파일
+        //     (application.yml, logback.xml 등)이 충돌하면 즉시 빌드 실패로 알려줌
         duplicatesStrategy = DuplicatesStrategy.FAIL
     }
 

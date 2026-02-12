@@ -1,13 +1,62 @@
 plugins {
+    // java-library: api/implementation 의존성 구분을 지원하는 라이브러리 모듈용 플러그인
+    // 예: api로 선언한 의존성은 이 모듈을 사용하는 소비자에게 전이됨,
+    //     implementation으로 선언하면 내부에서만 사용되고 소비자에게 노출되지 않음
     id "java-library"
 }
 
 dependencies {
+
+    // ────────────────────────────────
+    // 프로젝트 모듈
+    // ────────────────────────────────
+    // global: 공통 예외 처리, 공통 응답 DTO 등 프로젝트 전역 유틸리티 모듈
+    // 예: GlobalException, ApiResponse<T> 등 전역 클래스를 quiz-impl에서 참조
     implementation project(":global")
+    // aws-api: AWS 관련 인터페이스 (S3 파일 업로드 등에 사용)
+    // 예: 퀴즈 이미지 업로드 시 AwsService 인터페이스를 호출
     implementation project(":aws:aws-api")
+    // quiz-api: 퀴즈 관련 인터페이스·DTO 정의 모듈
+    // 예: QuizController 인터페이스, QuizRequest/QuizResponse DTO를 구현체에서 import
     implementation project(":quiz:quiz-api")
 
-    implementation "io.github.resilience4j:resilience4j-spring-boot3:2.3.0"
+    // ────────────────────────────────
+    // 스프링부트 Web & JPA & AOP
+    // ────────────────────────────────
+    // Spring MVC 기반 웹 애플리케이션 구성
+    // 예: @RestController로 퀴즈 CRUD API 엔드포인트 구현, @RequestBody로 JSON 파싱
+    implementation "org.springframework.boot:spring-boot-starter-web"
+    // Spring Data JPA: JPA 기반 리포지토리 자동 생성, 엔티티 매핑 지원
+    // 예: QuizRepository extends JpaRepository<Quiz, Long> 선언만으로
+    //     findById, save, delete 등 CRUD 메서드가 자동 구현됨
+    implementation "org.springframework.boot:spring-boot-starter-data-jpa"
+    // Spring AOP: @Aspect 기반 관점 지향 프로그래밍 지원
+    // 예: @Around("@annotation(RateLimited)")로 커스텀 어노테이션이 붙은 메서드에
+    //     실행 시간 측정, 접근 제한 등 횡단 관심사 로직을 적용
     implementation "org.springframework.boot:spring-boot-starter-aop"
+    // MySQL JDBC 드라이버: 런타임에 DB 연결 시 사용 (컴파일 시에는 불필요)
+    // 예: JPA가 내부적으로 이 드라이버를 통해 MySQL 서버와 TCP 커넥션을 맺음
+    runtimeOnly "com.mysql:mysql-connector-j"
+
+    // ────────────────────────────────
+    // 장애 대응 & HTTP 클라이언트
+    // ────────────────────────────────
+    // Resilience4j: Circuit Breaker, Retry, Rate Limiter 등 장애 격리 패턴 제공
+    // 예: @CircuitBreaker(name = "externalApi") → 외부 API 연속 실패 시 자동으로 호출을 차단하고
+    //     일정 시간 후 half-open 상태로 전환하여 복구 여부를 확인
+    implementation "io.github.resilience4j:resilience4j-spring-boot3:2.3.0"
+    // Apache HttpClient 5: 외부 API 호출용 HTTP 클라이언트
+    // 예: PoolingHttpClientConnectionManager로 커넥션 풀을 관리하고,
+    //     RequestConfig.custom().setConnectTimeout(Duration.ofSeconds(5))로 타임아웃 설정
     implementation "org.apache.httpcomponents.client5:httpclient5:5.3.1"
+
+    // ────────────────────────────────
+    // API 문서 (Swagger)
+    // ────────────────────────────────
+    // SpringDoc OpenAPI 코어: API 문서화 어노테이션 제공
+    // 예: @Operation(summary = "퀴즈 생성") → Swagger UI에 API 설명 표시
+    implementation "org.springdoc:springdoc-openapi:2.3.0"
+    // SpringDoc WebMVC UI: Swagger UI 웹 페이지를 자동 생성
+    // 예: 서버 기동 후 /swagger-ui/index.html 접속하면 API 목록·테스트 UI가 제공됨
+    implementation "org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.8"
 }
