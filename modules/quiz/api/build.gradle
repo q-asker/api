@@ -1,4 +1,7 @@
 plugins {
+    // java-library: api/implementation 의존성 구분을 지원하는 라이브러리 모듈용 플러그인
+    // 예: api로 선언한 의존성은 이 모듈을 사용하는 소비자에게 전이됨,
+    //     implementation으로 선언하면 내부에서만 사용되고 소비자에게 노출되지 않음
     id 'java-library'
 }
 
@@ -7,11 +10,17 @@ dependencies {
     // ────────────────────────────────
     // 프로젝트 모듈
     // ────────────────────────────────
+    // global: 공통 예외 처리, 공통 응답 DTO 등 프로젝트 전역 유틸리티 모듈
+    // 예: ApiResponse<T>를 퀴즈 API 응답 타입으로 사용
     implementation project(":global")
 
     // ────────────────────────────────
     // API 문서 (Swagger)
     // ────────────────────────────────
+    // SpringDoc OpenAPI 코어: API 문서화 어노테이션 제공
+    // 예: @Operation(summary = "퀴즈 생성") → Swagger UI에 API 설명 표시
     implementation "org.springdoc:springdoc-openapi:2.3.0"
+    // SpringDoc WebMVC UI: Swagger UI 웹 페이지를 자동 생성
+    // 예: 서버 기동 후 /swagger-ui/index.html 접속하면 API 목록·테스트 UI가 제공됨
     implementation "org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.8"
 }

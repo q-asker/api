@@ -1,4 +1,7 @@
 plugins {
+    // java-library: api/implementation 의존성 구분을 지원하는 라이브러리 모듈용 플러그인
+    // 예: api로 선언한 의존성은 이 모듈을 사용하는 소비자에게 전이됨,
+    //     implementation으로 선언하면 내부에서만 사용되고 소비자에게 노출되지 않음
     id 'java-library'
 }
 
@@ -7,30 +10,56 @@ dependencies {
     // ────────────────────────────────
     // 프로젝트 모듈
     // ────────────────────────────────
+    // global: 공통 예외 처리, 공통 응답 DTO 등 프로젝트 전역 유틸리티 모듈
+    // 예: GlobalException, ApiResponse<T> 등 전역 클래스를 auth-impl에서 참조
     implementation project(":global")
+    // auth-api: 인증 관련 인터페이스·DTO 정의 모듈
+    // 예: AuthController 인터페이스, LoginRequest/LoginResponse DTO를 구현체에서 import
     implementation project(":auth:auth-api")
 
     // ────────────────────────────────
     // 스프링부트 Web & JPA
     // ────────────────────────────────
+    // Spring MVC 기반 웹 애플리케이션 구성
+    // 예: @RestController로 인증 API 엔드포인트를 구현하고, @RequestBody로 JSON 요청을 파싱
     implementation "org.springframework.boot:spring-boot-starter-web"
+    // Spring Data JPA: JPA 기반 리포지토리 자동 생성, 엔티티 매핑 지원
+    // 예: public interface UserRepository extends JpaRepository<User, Long> 선언만으로
+    //     findById, save, delete 등 CRUD 메서드가 자동 구현됨
     implementation "org.springframework.boot:spring-boot-starter-data-jpa"
+    // MySQL JDBC 드라이버: 런타임에 DB 연결 시 사용 (컴파일 시에는 불필요)
+    // 예: JPA가 내부적으로 이 드라이버를 통해 MySQL 서버와 TCP 커넥션을 맺음
+    //     컴파일 시에는 JPA 인터페이스만 참조하므로 runtimeOnly로 충분
     runtimeOnly "com.mysql:mysql-connector-j"
 
     // ────────────────────────────────
     // 인증 & 보안
     // ────────────────────────────────
+    // Auth0 Java JWT: JWT 토큰 생성·파싱·검증 라이브러리
+    // 예: JWT.create().withSubject(userId).sign(algorithm)으로 토큰 발급,
+    //     JWT.require(algorithm).build().verify(token)으로 토큰 검증
     implementation "com.auth0:java-jwt:4.5.0"
+    // Spring OAuth2 Client: 소셜 로그인 OAuth2 인증 흐름 지원
+    // 예: Google/Kakao 로그인 시 authorization code → access token 교환,
+    //     사용자 프로필 조회까지의 흐름을 자동으로 처리
     implementation "org.springframework.boot:spring-boot-starter-oauth2-client"
 
     // ────────────────────────────────
     // API 문서 (Swagger)
     // ────────────────────────────────
+    // SpringDoc OpenAPI 코어: API 문서화 어노테이션 제공
+    // 예: @Operation(summary = "로그인") → Swagger UI에 API 설명 표시,
+    //     @Schema(description = "사용자 이메일") → DTO 필드 설명 표시
     implementation "org.springdoc:springdoc-openapi:2.3.0"
+    // SpringDoc WebMVC UI: Swagger UI 웹 페이지를 자동 생성
+    // 예: 서버 기동 후 /swagger-ui/index.html 접속하면 API 목록·테스트 UI가 제공됨
     implementation "org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.8"
 
     // ────────────────────────────────
     // 유틸리티
     // ────────────────────────────────
+    // Hashids: 숫자 ID를 짧은 고유 문자열로 인코딩/디코딩 (URL-safe ID 난독화)
+    // 예: hashids.encode(123) → "YDx" / hashids.decode("YDx") → [123]
+    //     DB의 auto-increment PK를 URL에 노출하지 않고 난독화된 문자열로 변환
     implementation "org.hashids:hashids:1.0.3"
 }
