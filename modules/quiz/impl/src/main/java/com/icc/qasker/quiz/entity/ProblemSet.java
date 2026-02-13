@@ -18,7 +18,6 @@ import lombok.Setter;
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
-@Setter
 public class ProblemSet extends CreatedAt {
 
 
@@ -27,6 +26,7 @@ public class ProblemSet extends CreatedAt {
     private Long id;
     private String userId;
 
+    @Setter
     @OneToMany(mappedBy = "problemSet", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Problem> problems;
 
