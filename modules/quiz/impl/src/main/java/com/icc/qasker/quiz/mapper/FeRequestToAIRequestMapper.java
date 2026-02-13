@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public final class FeRequestToAIRequestMapper {
+    // TODO: mapper interface를 이용한 각 mapper 빈 교체
 
     public GenerationRequestToAI toAIRequest(GenerationRequest fe) {
         return GenerationRequestToAI.builder()
