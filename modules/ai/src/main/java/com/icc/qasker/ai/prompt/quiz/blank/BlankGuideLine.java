@@ -1,4 +1,4 @@
-package com.icc.qasker.ai.prompt.blank;
+package com.icc.qasker.ai.prompt.quiz.blank;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;

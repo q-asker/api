@@ -3,6 +3,8 @@ package com.icc.qasker.ai.service;
 import com.google.genai.types.Content;
 import com.google.genai.types.FileData;
 import com.google.genai.types.Part;
+import com.icc.qasker.ai.prompt.quiz.common.QuizPromptStrategy;
+import com.icc.qasker.ai.prompt.quiz.system.SystemPrompt;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import java.time.Duration;
@@ -31,7 +33,7 @@ public class GeminiCacheService {
         this.cachedContentService = cachedContentService;
     }
 
-    public String createCache(String fileUri) {
+    public String createCache(String fileUri, QuizPromptStrategy strategy, String jsonSchema) {
         try {
             Content pdfContent = Content.builder()
                 .role("user")
@@ -45,8 +47,20 @@ public class GeminiCacheService {
                 )
                 .build();
 
+            String systemPrompt = SystemPrompt.generate(strategy, jsonSchema);
+            Content systemInstruction = Content.builder()
+                .parts(
+                    List.of(
+                        Part.builder()
+                            .text(systemPrompt)
+                            .build()
+                    )
+                )
+                .build();
+
             CachedContentRequest request = CachedContentRequest.builder()
                 .model(model)
+                .systemInstruction(systemInstruction)
                 .contents(List.of(pdfContent))
                 .ttl(DEFAULT_TTL)
                 .build();

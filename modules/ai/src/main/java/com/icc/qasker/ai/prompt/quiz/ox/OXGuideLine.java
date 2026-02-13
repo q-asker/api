@@ -1,4 +1,4 @@
-package com.icc.qasker.ai.prompt.ox;
+package com.icc.qasker.ai.prompt.quiz.ox;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;

@@ -1,4 +1,4 @@
-package com.icc.qasker.ai.prompt.mutiple;
+package com.icc.qasker.ai.prompt.quiz.mutiple;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;

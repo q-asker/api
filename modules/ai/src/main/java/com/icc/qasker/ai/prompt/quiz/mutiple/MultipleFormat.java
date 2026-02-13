@@ -1,10 +1,10 @@
-package com.icc.qasker.ai.prompt.blank;
+package com.icc.qasker.ai.prompt.quiz.mutiple;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
-public class BlankFormat {
+public class MultipleFormat {
 
     public static final String content = """
             ### title(빈칸 포함 전제+질문) 출력 구조
