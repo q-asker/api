@@ -10,7 +10,6 @@ import com.icc.qasker.quiz.dto.aiRequest.GenerationRequestToAI;
 import com.icc.qasker.quiz.dto.aiResponse.ErrorEvent;
 import com.icc.qasker.quiz.dto.aiResponse.ProblemSetGeneratedEvent;
 import com.icc.qasker.quiz.dto.aiResponse.StreamEvent;
-import com.icc.qasker.quiz.dto.feRequest.GenerationRequest;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import java.io.BufferedReader;
@@ -90,7 +89,7 @@ public class AIServerAdapter {
             });
     }
 
-    private void fallback(GenerationRequest request,
+    private void fallback(GenerationRequestToAI request,
         Consumer<ProblemSetGeneratedEvent> onLineReceived,
         Throwable t) {
         if (t instanceof CallNotPermittedException) {
