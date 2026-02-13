@@ -2,14 +2,16 @@ package com.icc.qasker.quiz.mapper;
 
 import com.icc.qasker.quiz.dto.aiRequest.GenerationRequestToAI;
 import com.icc.qasker.quiz.dto.feRequest.GenerationRequest;
-import lombok.AllArgsConstructor;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 @Component
-@AllArgsConstructor
-public class FeRequestToAIRequestMapper {
+@RequiredArgsConstructor(access = AccessLevel.PRIVATE)
+public final class FeRequestToAIRequestMapper {
+    // TODO: mapper interface를 이용한 각 mapper 빈 교체
 
-    public static GenerationRequestToAI toAIRequest(GenerationRequest fe) {
+    public GenerationRequestToAI toAIRequest(GenerationRequest fe) {
         return GenerationRequestToAI.builder()
             .uploadedUrl(fe.uploadedUrl())
             .quizCount(fe.quizCount())
