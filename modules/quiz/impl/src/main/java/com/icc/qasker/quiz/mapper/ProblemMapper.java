@@ -9,10 +9,17 @@ import com.icc.qasker.quiz.entity.ProblemId;
 import com.icc.qasker.quiz.entity.ProblemSet;
 import com.icc.qasker.quiz.entity.ReferencedPage;
 import java.util.List;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
 
+@Component
+@RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ProblemMapper {
 
-    public static Problem fromResponse(QuizGeneratedFromAI quizDto, ProblemSet problemSet) {
+    private final SelectionMapper selectionMapper;
+
+    public Problem fromResponse(QuizGeneratedFromAI quizDto, ProblemSet problemSet) {
         Problem problem = new Problem();
         ProblemId problemId = new ProblemId();
         problemId.setNumber(quizDto.getNumber());
@@ -24,7 +31,7 @@ public final class ProblemMapper {
         problem.setSelections(
             (quizDto.getSelections() == null ? List.<QuizGeneratedFromAI.SelectionsOfAI>of()
                 : quizDto.getSelections()).stream()
-                .map(selDto -> SelectionMapper.fromResponse(selDto, problem))
+                .map(selDto -> selectionMapper.fromResponse(selDto, problem))
                 .collect(toList())
         );
         problem.setExplanation(Explanation.of(quizDto.getExplanation(), problem));

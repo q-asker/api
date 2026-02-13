@@ -37,6 +37,8 @@ public class GenerationServiceImpl implements GenerationService {
 
     private final CircuitBreakerRegistry circuitBreakerRegistry;
     private final ProblemSetResponseMapper problemSetResponseMapper;
+    private final ProblemMapper problemMapper;
+    private final FeRequestToAIRequestMapper feRequestToAIRequestMapper;
     private final SlackNotifier slackNotifier;
     private final ProblemSetRepository problemSetRepository;
     private final HashUtil hashUtil;
@@ -74,7 +76,7 @@ public class GenerationServiceImpl implements GenerationService {
         Thread.ofVirtual().start(() -> {
             try {
                 aiServerAdapter.streamRequest(
-                    FeRequestToAIRequestMapper.toAIRequest(request),
+                    feRequestToAIRequestMapper.toAIRequest(request),
                     (quiz) -> {
                         if (cancelled.get()) {
                             return;
@@ -114,7 +116,7 @@ public class GenerationServiceImpl implements GenerationService {
             List<Problem> problems = new ArrayList<>();
             List<QuizForFe> quizForFeList = new ArrayList<>();
             for (QuizGeneratedFromAI quizGeneratedFromAI : quiz.getQuiz()) {
-                Problem problem = ProblemMapper.fromResponse(quizGeneratedFromAI, saveProblemSet);
+                Problem problem = problemMapper.fromResponse(quizGeneratedFromAI, saveProblemSet);
                 problems.add(problem);
                 quizForFeList.add(problemSetResponseMapper.fromEntity(problem));
             }
