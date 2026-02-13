@@ -3,6 +3,8 @@ package com.icc.qasker.ai.controller;
 import com.icc.qasker.ai.dto.ChatRequest;
 import com.icc.qasker.ai.dto.MyChatResponse;
 import com.icc.qasker.ai.service.ChatService;
+import com.icc.qasker.ai.service.FacadeService;
+import com.icc.qasker.ai.service.GeminiCacheService;
 import com.icc.qasker.ai.service.GeminiFileService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -22,6 +24,8 @@ public class AIController {
 
     private final ChatService chatService;
     private final GeminiFileService geminiFileService;
+    private final GeminiCacheService geminiCacheService;
+    private final FacadeService facadeService;
 
     @Operation(summary = "AI와 채팅한다")
     @PostMapping("/chat")
@@ -32,12 +36,12 @@ public class AIController {
         return ResponseEntity.ok(chatService.chat(request.prompt()));
     }
 
-    @Operation(summary = "제미나이 분석을 위한 파일을 업로드한다")
-    @PostMapping("/upload")
-    public ResponseEntity<?> uploadFile(
+    @Operation(summary = "PDF 파일을 업로드, 캐싱하고 여러번 질문한다")
+    @PostMapping("/test-cache")
+    public ResponseEntity<?> testCache(
         @RequestParam
         String fileUrl
     ) {
-        return ResponseEntity.ok(geminiFileService.uploadPdf(fileUrl));
+        return ResponseEntity.ok(facadeService.doBusinessLogic(fileUrl));
     }
 }

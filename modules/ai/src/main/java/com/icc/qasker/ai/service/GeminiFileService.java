@@ -76,7 +76,7 @@ public class GeminiFileService {
     public void deleteFile(String fileName) {
         try {
             restClient.delete()
-                .uri("/v1beta/{name}?key={key}", fileName, apiKey)
+                .uri("/v1beta/" + fileName + "?key={key}", apiKey)
                 .retrieve()
                 .toBodilessEntity();
 
@@ -125,14 +125,14 @@ public class GeminiFileService {
 
     public FileMetadata waitForProcessing(String fileName) throws InterruptedException {
         for (int attempt = 1; attempt <= MAX_POLL_ATTEMPTS; attempt++) {
-            GeminiFileUploadResponse response = getFile(fileName);
-            String state = response.file().state();
+            FileMetadata metadata = getFile(fileName);
+            String state = metadata.state();
 
             log.debug("파일 상태 폴링 [{}/{}]: name={}, state={}", attempt, MAX_POLL_ATTEMPTS, fileName,
                 state);
 
             if (STATE_ACTIVE.equals(state)) {
-                return response.file();
+                return metadata;
             }
             if (STATE_FAILED.equals(state)) {
                 log.error("Gemini 파일 처리 실패: name={}", fileName);
@@ -146,11 +146,11 @@ public class GeminiFileService {
         throw new CustomException(ExceptionMessage.AI_SERVER_TIMEOUT);
     }
 
-    private GeminiFileUploadResponse getFile(String fileName) {
+    private FileMetadata getFile(String fileName) {
         return restClient.get()
-            .uri("/v1beta/{name}?key={key}", fileName, apiKey)
+            .uri("/v1beta/" + fileName + "?key={key}", apiKey)
             .retrieve()
-            .body(GeminiFileUploadResponse.class);
+            .body(FileMetadata.class);
     }
 
     private String extractFileName(String url) {
