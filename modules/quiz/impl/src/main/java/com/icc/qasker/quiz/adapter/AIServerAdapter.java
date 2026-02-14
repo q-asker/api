@@ -1,14 +1,16 @@
 package com.icc.qasker.quiz.adapter;
 
 import com.icc.qasker.ai.QuizOrchestrationService;
+import com.icc.qasker.ai.dto.GenerationRequestToAI;
 import com.icc.qasker.global.error.ClientSideException;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
-import com.icc.qasker.quiz.dto.aiRequest.GenerationRequestToAI;
 import com.icc.qasker.quiz.dto.aiResponse.ProblemSetGeneratedEvent;
+import com.icc.qasker.quiz.dto.feRequest.enums.QuizType;
 import com.icc.qasker.quiz.mapper.AIProblemSetMapper;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import java.util.List;
 import java.util.function.Consumer;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,18 +26,23 @@ public class AIServerAdapter {
 
     @CircuitBreaker(name = "aiServer", fallbackMethod = "fallback")
     public void streamRequest(
-        GenerationRequestToAI request,
+        String uploadUrl,
+        QuizType quizType,
+        int quizCount,
+        List<Integer> pageNumbers,
         Consumer<ProblemSetGeneratedEvent> onLineReceived
     ) {
         quizOrchestrationService.generateQuiz(
-            request.uploadedUrl(),
-            request.quizType().name(),
-            request.quizCount(),
-            request.pageNumbers(),
-            (problemSet) -> {
-                ProblemSetGeneratedEvent event = AIProblemSetMapper.toEvent(problemSet);
-                onLineReceived.accept(event);
-            }
+            new GenerationRequestToAI(
+                uploadUrl,
+                quizType.name(),
+                quizCount,
+                pageNumbers,
+                (problemSet) -> {
+                    ProblemSetGeneratedEvent event = AIProblemSetMapper.toEvent(problemSet);
+                    onLineReceived.accept(event);
+                }
+            )
         );
     }
 

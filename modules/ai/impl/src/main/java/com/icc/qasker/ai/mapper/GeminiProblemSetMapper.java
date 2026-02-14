@@ -5,7 +5,6 @@ import com.icc.qasker.ai.dto.AIProblemSet;
 import com.icc.qasker.ai.dto.AISelection;
 import com.icc.qasker.ai.prompt.quiz.common.QuizType;
 import com.icc.qasker.ai.structure.GeminiProblem;
-import com.icc.qasker.ai.structure.GeminiProblemSet;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -25,7 +24,7 @@ public class GeminiProblemSetMapper {
      * @return 변환된 AIProblemSet
      */
     public static AIProblemSet toDto(
-        GeminiProblemSet source,
+        List<GeminiProblem> source,
         String strategyValue,
         List<Integer> referencedPages,
         AtomicInteger numberCounter
@@ -33,9 +32,9 @@ public class GeminiProblemSetMapper {
         QuizType quizType = QuizType.valueOf(strategyValue);
         boolean shouldShuffle = quizType == QuizType.MULTIPLE || quizType == QuizType.BLANK;
 
-        List<AIProblem> result = new ArrayList<>(source.quiz().size());
+        List<AIProblem> result = new ArrayList<>(source.size());
 
-        for (GeminiProblem problem : source.quiz()) {
+        for (GeminiProblem problem : source) {
             List<AISelection> selections = mapSelections(problem);
 
             if (shouldShuffle && !selections.isEmpty()) {

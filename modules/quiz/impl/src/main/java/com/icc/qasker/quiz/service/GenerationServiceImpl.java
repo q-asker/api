@@ -13,7 +13,6 @@ import com.icc.qasker.quiz.dto.feResponse.ProblemSetResponse;
 import com.icc.qasker.quiz.dto.feResponse.ProblemSetResponse.QuizForFe;
 import com.icc.qasker.quiz.entity.Problem;
 import com.icc.qasker.quiz.entity.ProblemSet;
-import com.icc.qasker.quiz.mapper.FeRequestToAIRequestMapper;
 import com.icc.qasker.quiz.mapper.ProblemMapper;
 import com.icc.qasker.quiz.mapper.ProblemSetResponseMapper;
 import com.icc.qasker.quiz.repository.ProblemRepository;
@@ -38,7 +37,6 @@ public class GenerationServiceImpl implements GenerationService {
     private final CircuitBreakerRegistry circuitBreakerRegistry;
     private final ProblemSetResponseMapper problemSetResponseMapper;
     private final ProblemMapper problemMapper;
-    private final FeRequestToAIRequestMapper feRequestToAIRequestMapper;
     private final SlackNotifier slackNotifier;
     private final ProblemSetRepository problemSetRepository;
     private final HashUtil hashUtil;
@@ -76,7 +74,10 @@ public class GenerationServiceImpl implements GenerationService {
         Thread.ofVirtual().start(() -> {
             try {
                 aiServerAdapter.streamRequest(
-                    feRequestToAIRequestMapper.toAIRequest(request),
+                    request.uploadedUrl(),
+                    request.quizType(),
+                    request.quizCount(),
+                    request.pageNumbers(),
                     (quiz) -> {
                         if (cancelled.get()) {
                             return;
