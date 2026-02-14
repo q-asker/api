@@ -53,11 +53,6 @@ modules/ai/src/main/java/com/icc/qasker/ai/
 
 ## 배경: Context Caching이란?
 
-### Python 서버와의 차이
-
-> Python 서버에는 캐싱 개념이 없었다. 매 청크마다 PDF base64를 요청에 포함시켜 **반복 전송**했다.
-> Gemini Context Caching은 서버 측에서 PDF 토큰을 캐싱하므로, **N개 병렬 요청이 모두 같은 캐시를 참조**하여 비용이 크게 절감된다.
-
 ### 캐싱 구조
 
 ```

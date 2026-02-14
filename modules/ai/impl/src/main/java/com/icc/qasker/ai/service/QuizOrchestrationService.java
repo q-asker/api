@@ -17,33 +17,27 @@ import org.springframework.stereotype.Service;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class FacadeService {
+public class QuizOrchestrationService {
 
     private final GeminiFileService geminiFileService;
     private final GeminiCacheService geminiCacheService;
     private final ChatModel chatModel;
 
-    /**
-     * PDF 업로드 → 캐시 생성(시스템 프롬프트 포함) → 유저 프롬프트 전송 → Structured Output으로 퀴즈 생성.
-     */
     public AIProblemSet generateQuiz(String fileUrl, QuizPromptStrategy strategy,
-        int quizCount, List<Integer> pageNumbers) {
+        int quizCount, List<Integer> referencePages) {
 
         FileMetadata metadata = geminiFileService.uploadPdf(fileUrl);
         log.info("업로드 완료: name={}, uri={}", metadata.name(), metadata.uri());
 
-        BeanOutputConverter<AIProblemSet> converter = new BeanOutputConverter<>(AIProblemSet.class);
-
+        var converter = new BeanOutputConverter<>(AIProblemSet.class);
         String jsonSchema = converter.getJsonSchema();
 
         String cacheName = null;
-
         try {
             cacheName = geminiCacheService.createCache(metadata.uri(), strategy, jsonSchema);
             log.info("캐시 생성 완료: cacheName={}", cacheName);
 
-            String userPrompt = UserPrompt.generate(pageNumbers, quizCount);
-
+            String userPrompt = UserPrompt.generate(referencePages, quizCount);
             ChatResponse response = chatModel.call(
                 new Prompt(userPrompt,
                     GoogleGenAiChatOptions.builder()

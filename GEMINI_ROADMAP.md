@@ -2,30 +2,9 @@
 
 ## Context
 
-현재 q-asker의 문제 생성 흐름은
-`GenerationController → GenerationServiceImpl → AIServerAdapter → 외부 Python AI 서버(FastAPI)`로 구성되어
-있다.
-
-**Python AI 서버가 실제로 하는 일**:
-
-1. `POST /generation` 수신 (uploadedUrl, quizCount, quizType, difficultyType, pageNumbers)
-2. PDF 다운로드 → PyMuPDF로 **요청된 페이지만 추출** → base64 인코딩
-3. `create_page_chunks()`로 페이지+문제수를 **N개 청크**로 분할
-4. 각 청크마다 퀴즈 타입별 **상세 프롬프트**(multiple/blank/OX) + JSON Schema 구성
-5. OpenAI Responses API (`gpt-4.1-mini`) 에 **병렬 요청** (asyncio.as_completed)
-6. 응답을 `ProblemSet` JSON으로 파싱 → **NDJSON 스트리밍** 반환
-
-이를 **Spring AI (`spring-ai-starter-model-google-genai`) + Gemini API**로 전환한다.
+**Spring AI (`spring-ai-starter-model-google-genai`) + Gemini API**로 퀴즈 생성 파이프라인을 구현한다.
 Spring AI의 `ChatModel`, `GoogleGenAiCachedContentService`를 활용하되,
 Spring AI가 지원하지 않는 **File Upload API**만 `RestClient`로 직접 구현하는 하이브리드 구조이다.
-
-**기존 Python 서버에서 포팅해야 할 핵심 로직**:
-
-- 청크 분할 (`create_chunks.py` → Java 포팅)
-- 퀴즈 타입별 프롬프트 템플릿 (`prompt/core/multiple.py`, `blank.py`, `ox.py`)
-- Structured Output (JSON Schema 강제)
-- 선택지 셔플 (MULTIPLE, BLANK 타입)
-- 결과 번호 재할당 (배치 완료 순서대로 1번부터)
 
 **기술 결정 — Spring AI 도입 근거**:
 
@@ -128,12 +107,6 @@ String text = response.getResult().getOutput().getText();
 - `modules/ai/util/PdfUtils.java` — `downloadToTemp(url)` → 임시 파일 Path 획득, `deleteTempFile(path)` →
   정리
 
-**참고 — Python 서버와의 차이**:
-
-> Python 서버는 PDF를 base64 인코딩하여 OpenAI Responses API에 `input_file`로 직접 전송했다.
-> Gemini에서는 File API에 먼저 업로드 → file URI 획득 → 이후 캐시/generateContent에서 참조하는 구조이다.
-> 따라서 Python의 `_extract_pdf_pages_base64()` (PyMuPDF로 페이지 추출) 로직은 **Gemini에서는 불필요**하다.
-
 **테스트**: 실제 PDF 업로드 → `ACTIVE` 상태 확인 → ChatModel에 fileUri 포함하여 "이 문서를 요약해줘" 호출
 
 **참고 링크**:
@@ -158,6 +131,14 @@ String text = response.getResult().getOutput().getText();
 - `ChatModel.call()` 시 `GoogleGenAiChatOptions.cachedContentName`으로 캐시 참조
 - TTL 설정과 만료 관리
 - **최소 토큰 제한**: 모델별 상이 (Gemini 2.5 Flash: 1,024 / Gemini 2.5 Pro: 4,096)
+- `GoogleGenAiCachedContentService` 빈 등록이 자동 구성에서 실패할 수 있으므로 `GeminiCacheConfig`로 보완
+
+**생성할 파일**:
+
+| 파일명 | 위치 (ai 모듈) | 역할 |
+|---|---|---|
+| `GeminiCacheService.java` | `service/` | 캐시 생성/삭제 서비스 |
+| `GeminiCacheConfig.java` | `config/` | `GoogleGenAiCachedContentService` 빈 등록 보완 |
 
 **캐시 생성 코드**:
 
@@ -208,11 +189,6 @@ ChatResponse response = chatModel.call(
 cacheService.delete(cacheName);
 ```
 
-**참고 — Python 서버와의 차이**:
-
-> Python 서버에는 캐싱 개념이 없었다. 매 청크마다 PDF base64를 요청에 포함시켜 반복 전송했다.
-> Gemini Context Caching은 서버 측에서 PDF 토큰을 캐싱하므로, **N개 병렬 요청이 모두 같은 캐시를 참조**하여 비용이 크게 절감된다.
-
 **테스트**: PDF 업로드 → 캐시 생성 → 캐시 참조하여 ChatModel 호출 → 같은 캐시로 2번째 질문 호출 (빠른지 확인)
 
 **참고 링크**:
@@ -229,23 +205,29 @@ cacheService.delete(cacheName);
 
 ## Step 4: 프롬프트 시스템 + Structured Output
 
-**목표**: Python 서버의 프롬프트 템플릿과 JSON 구조 강제를 Java로 포팅
+**목표**: 프롬프트 템플릿과 JSON 구조 강제를 구현
 
 **학습 포인트**:
 
 - Spring AI의 `BeanOutputConverter` — Java 클래스 → JSON Schema 자동 생성 + 응답 역직렬화
 - `GoogleGenAiChatOptions.responseMimeType("application/json")` 설정
-- `PromptTemplate` 또는 직접 문자열 조립으로 system message 구성
+- Strategy 패턴 + enum으로 타입별 프롬프트 매핑
+- 시스템 프롬프트(캐시에 포함)와 유저 프롬프트(호출마다 전송) 분리
 
 **Structured Output 코드**:
 
 ```java
 BeanOutputConverter<AIProblemSet> converter = new BeanOutputConverter<>(AIProblemSet.class);
+String jsonSchema = converter.getJsonSchema();
 
-String systemPrompt = PromptBuilder.build(quizType, difficultyType, quizCount, referencedPages);
+// 시스템 프롬프트는 캐시의 systemInstruction에 포함
+cacheName = geminiCacheService.createCache(metadata.uri(), strategy, jsonSchema);
+
+// 유저 프롬프트만 호출마다 전송
+String userPrompt = UserPrompt.generate(referencePages, quizCount);
 
 ChatResponse response = chatModel.call(
-    new Prompt(systemPrompt,
+    new Prompt(userPrompt,
         GoogleGenAiChatOptions.builder()
             .useCachedContent(true)
             .cachedContentName(cacheName)
@@ -256,41 +238,28 @@ ChatResponse response = chatModel.call(
 AIProblemSet result = converter.convert(response.getResult().getOutput().getText());
 ```
 
-**포팅할 Python 프롬프트 로직**:
-
-> Python 서버는 아래 구조로 프롬프트를 조립한다 (`generate_service.py:50-63`):
-> ```
-> system_message = """
->     당신은 대학 강의노트로부터 평가용 퀴즈를 생성하는 AI입니다.
->     ... 정확히 {chunk.quiz_count}개 생성하세요.
->     작성 규칙: 한국어, 개행 가독성, 강의노트 참조 금지
->     문제 생성 지침: {prompt_factory.get_quiz_generation_guide(dok_level, quiz_type)}
->     문항 형식: {prompt_factory.get_quiz_format(quiz_type)}
-> """
-> ```
->
-> 퀴즈 타입별 프롬프트 파일 (Java `String` 상수로 포팅):
-> - `prompt/core/multiple.py` — 객관식: [전제]+[질문] 구조, 선택지 4개, 해설 포맷
-> - `prompt/core/blank.py` — 빈칸: "_______" 포함 진술문, 선택지 4개
-> - `prompt/core/ox.py` — OX: 단일 진술문, O/X 선택지 2개
-
 **생성할 파일**:
+
 | 파일 | 위치 (ai 모듈) | 역할 |
 |---|---|---|
-| `PromptBuilder.java` | `util/` | quizType, difficulty, count, referencedPages 기반 system 프롬프트 조립 |
-| `QuizPromptTemplates.java` | `util/` | 퀴즈 타입별 프롬프트 상수 (multiple/blank/ox format + guidelines) |
+| `QuizPromptStrategy.java` | `prompt/quiz/common/` | 프롬프트 전략 인터페이스 (`getFormat()`, `getGuideLine()`) |
+| `QuizType.java` | `prompt/quiz/common/` | enum — Strategy 구현 (MULTIPLE, BLANK, OX) |
+| `SystemPrompt.java` | `prompt/quiz/system/` | 시스템 프롬프트 조립 — 캐시의 systemInstruction에 포함 |
+| `UserPrompt.java` | `prompt/quiz/user/` | 유저 프롬프트 조립 — 호출마다 전송 |
+| `MultipleFormat.java` | `prompt/quiz/mutiple/` | 객관식 출력 형식 |
+| `MultipleGuideLine.java` | `prompt/quiz/mutiple/` | 객관식 작성 지침 |
+| `BlankFormat.java` | `prompt/quiz/blank/` | 빈칸 출력 형식 |
+| `BlankGuideLine.java` | `prompt/quiz/blank/` | 빈칸 작성 지침 |
+| `OXFormat.java` | `prompt/quiz/ox/` | OX 출력 형식 |
+| `OXGuideLine.java` | `prompt/quiz/ox/` | OX 작성 지침 |
+| `AIProblemSet.java` | `dto/ai/` | Structured Output 루트 DTO |
+| `AIProblem.java` | `dto/ai/` | 개별 문제 DTO |
+| `AISelection.java` | `dto/ai/` | 선택지 DTO |
+| `ChatOrchestratorService.java` | `service/` | PDF 업로드 → 캐시 → 퀴즈 생성 파이프라인 통합 |
 
 **수정할 파일**:
 
-- `AIProblem.java` — `referencedPages: List<Integer>` 필드 추가 (Python `ProblemDTO.referencedPages`에
-  대응)
-
-**참고할 기존 DTO**:
-
-- `modules/ai/dto/AIProblem.java` — `@JsonPropertyDescription` 어노테이션 참고
-- `modules/quiz/api/dto/aiResponse/ProblemSetGeneratedEvent.java` — `referencedPages` 필드 참고
-- Python `app/dto/model/problem_set.py` — Pydantic 스키마 (동일 구조:
-  quiz → [{number, title, selections, explanation}])
+- `GeminiCacheService.java` — `createCache(fileUri, strategy, jsonSchema)` 시그니처로 변경, `systemInstruction` 추가
 
 **테스트**: 실제 PDF → 캐시 → "객관식 5문제 생성" 프롬프트 → AIProblemSet으로 역직렬화 성공 확인
 
@@ -300,70 +269,49 @@ AIProblemSet result = converter.convert(response.getResult().getOutput().getText
   BeanOutputConverter, MapOutputConverter, ListOutputConverter
 - [Gemini API — Structured Output (JSON)](https://ai.google.dev/gemini-api/docs/structured-output) —
   responseMimeType, responseSchema
-- Python 프롬프트 원본: `ai/app/prompt/core/multiple.py`, `blank.py`, `ox.py`
 
 ---
 
 ## Step 5: 청크 분할 + 병렬 배치 생성
 
-**목표**: Python 서버의 청크 분할 로직을 포팅하고, 병렬 Gemini 요청으로 문제 생성
-
-**포팅할 Python 청크 로직** (`create_chunks.py`):
-
-> ```python
-> def create_page_chunks(page_numbers, total_quiz_count, max_chunk_count):
->     # 1. quiz_count를 max_chunk_count개의 청크로 분배
->     # 2. page_numbers를 청크 수에 맞게 균등 분할
->     # 3. 페이지가 3개 미만인 청크는 앞뒤 1페이지씩 여유 확보
-> ```
->
-> 예시: quizCount=15, pageNumbers=[1..30], maxChunkCount=10
-> → 청크 10개, 각 1~2문제, 각 3페이지씩 담당
-
-**포팅할 Python 후처리 로직** (`generate_service.py:119-130`):
-
-> - 완료된 배치 순서대로 **번호 재할당** (number = 1부터 순차 증가)
-> - MULTIPLE, BLANK 타입은 **선택지 셔플** (`random.shuffle(selections)`)
-> - 선택지 4개 초과 시 해당 배치 폐기 (`len(first_selections) > 4 → return None`)
+**목표**: 청크 분할 로직을 구현하고, 병렬 Gemini 요청으로 문제 생성
 
 **학습 포인트**:
 
 - Java 21 virtual threads로 병렬 API 호출 (`ExecutorService` +
   `Executors.newVirtualThreadPerTaskExecutor()`)
-- `Consumer<AIProblemSet>` 콜백 패턴 (기존 `AIServerAdapter.streamRequest`의 Consumer 패턴과 동일)
+- `Consumer<AIProblemSet>` 콜백 패턴
 - 부분 실패 처리 (N개 중 일부 실패 시 나머지는 성공 처리)
 - **같은 `ChatModel` 인스턴스를 N개 스레드에서 동시 호출** (Spring AI의 thread-safety 확인)
 
 **생성할 파일**:
+
 | 파일 | 위치 (ai 모듈) | 역할 |
 |---|---|---|
-| `ChunkSplitter.java` | `util/` | `createPageChunks(pageNumbers, quizCount, maxChunkCount)` —
-Python `create_chunks.py` 포팅 |
+| `ChunkSplitter.java` | `util/` | `createPageChunks(pageNumbers, quizCount, maxChunkCount)` |
 | `ChunkInfo.java` | `dto/` | 청크 정보 (referencedPages, quizCount) |
 | `GeminiQuizOrchestrator.java` | `service/` | 전체 파이프라인 조율 |
 
 **파이프라인 흐름**:
 
 ```
-PdfUtils.downloadToTemp(url)
-  → GeminiFileService.uploadPdf(bytes)           [RestClient 직접 구현]
-  → GeminiFileService.waitForProcessing(name)     [RestClient 직접 구현]
-  → cacheService.create(CachedContentRequest)     [Spring AI]
+GeminiFileService.uploadPdf(fileUrl)              [RestClient 직접 구현]
+  → FileMetadata { name, uri }
+  → BeanOutputConverter.getJsonSchema()           [Spring AI]
+  → GeminiCacheService.createCache(uri, strategy, jsonSchema)  [Spring AI]
+    → SystemPrompt.generate(strategy, jsonSchema) → systemInstruction
+    → PDF + 시스템 프롬프트 + JSON Schema 캐시에 포함
   → ChunkSplitter.createPageChunks(...)
-  → [병렬] 각 청크마다:
-      PromptBuilder.build(quizType, difficultyType, chunk.quizCount, chunk.referencedPages)
-      → chatModel.call(prompt, GoogleGenAiChatOptions(cachedContentName))  [Spring AI]
-      → BeanOutputConverter → AIProblemSet
+  → [Virtual Thread Pool] 각 청크마다:
+      UserPrompt.generate(chunk.referencedPages, chunk.quizCount)
+      → chatModel.call(userPrompt, options { cacheName, "application/json" })
+      → BeanOutputConverter.convert() → AIProblemSet
+      → 검증 (선택지 4개 초과 → 폐기)
       → 선택지 셔플 (MULTIPLE/BLANK)
-      → 번호 재할당
+      → 번호 재할당 (AtomicInteger)
       → Consumer<AIProblemSet> 콜백 호출
-  → finally: cacheService.delete(cacheName) + pdfUtils.deleteTempFile(path)
+  → finally: cacheService.deleteCache(cacheName) + fileService.deleteFile(name)
 ```
-
-**참고할 기존 패턴**:
-
-- `modules/quiz/impl/adapter/AIServerAdapter.java:39` — `Consumer<ProblemSetGeneratedEvent>` 콜백 패턴
-- Python `app/util/create_chunks.py` — 청크 분할 원본 로직
 
 **테스트**: quizCount=15 → N개 콜백 수신, 문제 번호 1-15 순차 확인, 순차 실행 대비 속도 비교
 
@@ -371,45 +319,29 @@ PdfUtils.downloadToTemp(url)
 
 - [JEP 444 — Virtual Threads](https://openjdk.org/jeps/444) — Java 21 Virtual Threads 공식 스펙
 - [Executors.newVirtualThreadPerTaskExecutor() Javadoc](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/Executors.html#newVirtualThreadPerTaskExecutor())
-- Python 청크 분할 원본: `ai/app/util/create_chunks.py`
-- Python 병렬 생성 + 후처리 원본: `ai/app/service/generate_service.py:90-135`
 
 ---
 
 ## Step 6: Rate Limiter + 에러 처리 + Circuit Breaker
 
-**목표**: Python 서버의 청크 기반 Rate Limiter를 포팅하고, 운영 환경에 맞는 장애 대응 추가
+**목표**: 청크 기반 Rate Limiter를 구현하고, 운영 환경에 맞는 장애 대응 추가
 
 ### 6-1. Rate Limiter — Bucket4j 기반 청크 단위 토큰 버킷
 
-**포팅할 Python Rate Limiter** (`rate_limiter.py`):
+**핵심 특징**:
 
-> ```python
-> class LocalRateLimiter:
->     def __init__(self, window_seconds=60, limit=75):
->         self.requests = deque()      # 요청 타임스탬프 큐
->         self.lock = asyncio.Lock()   # 동시성 제어
->
->     async def check_rate(self, generate_count: int):
->         # 1. 윈도우 밖 오래된 타임스탬프 제거
->         # 2. 현재 윈도우 내 요청 수 + 새 청크 수 > limit → 429 거부
->         # 3. 허용 시 새 청크 수만큼 타임스탬프 추가
-> ```
->
-> **핵심 특징**:
-> - **요청(request) 단위가 아니라 청크(chunk) 단위**로 카운트 (quizCount=20 → 청크 10개 → 10 소모)
-> - AI API 호출 **전에** 사전 검증하여, 한도 초과 시 요청 자체를 거부
-> - 환경변수로 윈도우/한도 설정 (`RATE_LIMIT_WINDOW_SECONDS`, `RATE_LIMIT_MAX_REQUESTS`)
+- **요청(request) 단위가 아니라 청크(chunk) 단위**로 카운트 (quizCount=20 → 청크 10개 → 10 소모)
+- AI API 호출 **전에** 사전 검증하여, 한도 초과 시 요청 자체를 거부
 
 **Resilience4j `@RateLimiter`로 대체할 수 없는 이유**:
 
 > Resilience4j `@RateLimiter`는 **메서드 호출 1회 = 1 소모** 고정이다.
-> Python의 Rate Limiter는 **1회 호출에 N개 청크를 소모**하는 가변 비용 구조이다.
+> 퀴즈 생성은 **1회 호출에 N개 청크를 소모**하는 가변 비용 구조이다.
 > 따라서 `tryConsume(N)`을 지원하는 **Bucket4j**를 사용한다.
 
 **Bucket4j 선택 근거**:
 
-- `tryConsume(chunkCount)` — Python `check_rate(generate_count)`와 동일한 시맨틱
+- `tryConsume(chunkCount)` — 가변 비용 소모 지원
 - thread-safe 보장 (직접 구현 시 `synchronized` 관리 불필요)
 - 나중에 서버 다중화 시 `bucket4j-redis`로 분산 Rate Limit 확장 가능
 
@@ -452,6 +384,7 @@ public class ChunkRateLimiter {
 ```
 
 **생성할 파일**:
+
 | 파일 | 위치 (ai 모듈) | 역할 |
 |---|---|---|
 | `ChunkRateLimiter.java` | `service/` | Bucket4j 기반 청크 단위 Rate Limiter |
@@ -487,6 +420,7 @@ ChunkSplitter.createPageChunks(...)
   ```
 
 **에러 매핑**:
+
 | 에러 상황 | Spring AI 예외 | ExceptionMessage |
 |---|---|---|
 | 429 RESOURCE_EXHAUSTED | `TransientAiException` | `AI_SERVER_TO_MANY_REQUEST` |
@@ -497,16 +431,10 @@ ChunkSplitter.createPageChunks(...)
 | 응답 빈 텍스트 | 직접 체크 | `NULL_AI_RESPONSE` |
 | 청크 Rate Limit 초과 | `CustomException` | `AI_SERVER_TO_MANY_REQUEST` |
 
-**참고 — Python 서버의 에러 처리**:
-
-> Python 서버는 OpenAI `APITimeoutError` → 429 반환, 그 외 예외는 NDJSON `ErrorEvent`로 스트리밍했다.
-> Spring AI에서는 프레임워크가 HTTP 에러를 예외로 변환해주므로, 예외 타입별 분기로 처리한다.
-
 **참고할 기존 패턴**:
 
 - `modules/quiz/impl/adapter/AIServerAdapter.java` — CircuitBreaker + fallback 전체 패턴
 - `modules/global/error/ExceptionMessage.java` — AI 관련 에러 코드 목록
-- Python `app/util/rate_limiter.py` — 슬라이딩 윈도우 Rate Limiter 원본
 
 **테스트**:
 
@@ -524,13 +452,12 @@ ChunkSplitter.createPageChunks(...)
   파라미터
 - [Resilience4j — Spring Boot 3 통합](https://resilience4j.readme.io/docs/getting-started-3) — 어노테이션
   기반 설정
-- Python Rate Limiter 원본: `ai/app/util/rate_limiter.py`
 
 ---
 
 ## Step 7: 기존 시스템 통합
 
-**목표**: `GenerationServiceImpl`에서 `AIServerAdapter` 대신 `GeminiQuizOrchestrator` 호출
+**목표**: `GenerationServiceImpl`에서 `GeminiQuizOrchestrator` 호출하도록 연결
 
 **핵심 변경**:
 
@@ -540,21 +467,20 @@ ChunkSplitter.createPageChunks(...)
 
 **수정할 핵심 파일**:
 
-- `modules/quiz/impl/service/GenerationServiceImpl.java` — `AIServerAdapter` →
-  `GeminiQuizOrchestrator` 교체
+- `modules/quiz/impl/service/GenerationServiceImpl.java` — `GeminiQuizOrchestrator` 연결
 - `modules/quiz/impl/build.gradle` — `implementation project(":ai")` 추가
 
 **생성할 파일**:
+
 | 파일 | 위치 (quiz-impl) | 역할 |
 |---|---|---|
 | `AIProblemSetToEventMapper.java` | `mapper/` | AIProblemSet → ProblemSetGeneratedEvent 변환 |
 
 **매퍼 구현 참고**:
 
-> `AIProblemSet` (ai 모듈): `quiz: List<AIProblem>` (number, title, selections, explanation,
-> referencedPages)
+> `AIProblemSet` (ai 모듈): `quiz: List<AIProblem>` (number, title, selections, explanation)
 > `ProblemSetGeneratedEvent` (quiz-api 모듈): `quiz: List<QuizGeneratedFromAI>` (number, title,
-> selections, explanation, referencedPages)
+> selections, explanation)
 >
 > 구조가 거의 동일하므로 단순 필드 복사 매핑이다.
 
@@ -571,11 +497,11 @@ ChunkSplitter.createPageChunks(...)
 
 **제거 대상**:
 
-- `modules/quiz/impl/adapter/AIServerAdapter.java` — Python AI 서버 통신 어댑터
+- `modules/quiz/impl/adapter/AIServerAdapter.java` — AI 서버 통신 어댑터
 - `modules/quiz/impl/config/RestClientConfig.java` — AI 서버용 RestClient 빈 (Gemini File API용은 ai 모듈에
   별도 존재)
-- `modules/quiz/impl/mapper/FeRequestToAIRequestMapper.java` — FE 요청 → Python AI 요청 변환
-- `modules/quiz/api/dto/aiRequest/GenerationRequestToAI.java` — Python AI 서버 요청 DTO
+- `modules/quiz/impl/mapper/FeRequestToAIRequestMapper.java` — FE → AI 요청 변환
+- `modules/quiz/api/dto/aiRequest/GenerationRequestToAI.java` — AI 서버 요청 DTO
 - `modules/quiz/api/dto/aiResponse/StreamEvent.java`, `ErrorEvent.java`,
   `ProblemSetGeneratedEvent.java` — NDJSON 스트림 DTO (Gemini에서는 불필요)
 
@@ -603,39 +529,50 @@ ChunkSplitter.createPageChunks(...)
 
 ## 현재 코드 상태 요약
 
+> Step 1~4 구현 완료. Step 5 이후는 미구현.
+
 ### ai 모듈 (`modules/ai`) — 현재 존재하는 파일
 
-| 파일                      | 상태                                            |
-|-------------------------|-----------------------------------------------|
-| `dto/AIProblem.java`    | 존재 (referencedPages 필드 **미포함** → Step 4에서 추가) |
-| `dto/AIProblemSet.java` | 존재                                            |
-| `dto/AISelection.java`  | 존재                                            |
-| `util/PdfUtils.java`    | 존재 (downloadToTemp, deleteTempFile)           |
-| `build.gradle`          | 현재 `:global` 의존성만 있음 → Step 1에서 Spring AI 추가  |
+| 파일 | 상태 |
+|---|---|
+| `config/GeminiFileRestClientConfig.java` | 완료 (Step 2) |
+| `config/GeminiCacheConfig.java` | 완료 (Step 3) |
+| `dto/GeminiFileUploadResponse.java` | 완료 (Step 2) |
+| `dto/ai/AIProblemSet.java` | 완료 (Step 4) |
+| `dto/ai/AIProblem.java` | 완료 (Step 4) |
+| `dto/ai/AISelection.java` | 완료 (Step 4) |
+| `prompt/quiz/common/QuizPromptStrategy.java` | 완료 (Step 4) |
+| `prompt/quiz/common/QuizType.java` | 완료 (Step 4) |
+| `prompt/quiz/system/SystemPrompt.java` | 완료 (Step 4) |
+| `prompt/quiz/user/UserPrompt.java` | 완료 (Step 4) |
+| `prompt/quiz/mutiple/MultipleFormat.java` | 완료 (Step 4) |
+| `prompt/quiz/mutiple/MultipleGuideLine.java` | 완료 (Step 4) |
+| `prompt/quiz/blank/BlankFormat.java` | 완료 (Step 4) |
+| `prompt/quiz/blank/BlankGuideLine.java` | 완료 (Step 4) |
+| `prompt/quiz/ox/OXFormat.java` | 완료 (Step 4) |
+| `prompt/quiz/ox/OXGuideLine.java` | 완료 (Step 4) |
+| `service/GeminiFileService.java` | 완료 (Step 2) |
+| `service/GeminiCacheService.java` | 완료 (Step 3+4) |
+| `service/ChatOrchestratorService.java` | 완료 (Step 4 — 단일 호출 파이프라인) |
+| `util/PdfUtils.java` | 완료 (Step 2) |
+
+### Step 5 이후 생성 예정 파일
+
+| 파일 | 위치 (ai 모듈) | Step |
+|---|---|---|
+| `ChunkSplitter.java` | `util/` | 5 |
+| `ChunkInfo.java` | `dto/` | 5 |
+| `GeminiQuizOrchestrator.java` | `service/` | 5 |
+| `ChunkRateLimiter.java` | `service/` | 6 |
 
 ### quiz-impl 모듈 — 교체 대상 파일
 
-| 파일                                       | 역할                            | 처리              |
-|------------------------------------------|-------------------------------|-----------------|
-| `adapter/AIServerAdapter.java`           | Python AI 서버 NDJSON 스트림 클라이언트 | **제거** (Step 8) |
-| `config/RestClientConfig.java`           | AI 서버용 RestClient 빈 2개        | **제거** (Step 8) |
-| `mapper/FeRequestToAIRequestMapper.java` | FE → Python AI 요청 변환          | **제거** (Step 8) |
-| `service/GenerationServiceImpl.java`     | 핵심 서비스 로직                     | **수정** (Step 7) |
-
-### Python AI 서버 → Java 포팅 매핑
-
-| Python 파일                     | Java 대응                            | Step |
-|-------------------------------|------------------------------------|------|
-| `adapter/request_to_gpt.py`   | Spring AI `ChatModel.call()`       | 1    |
-| `util/create_chunks.py`       | `ChunkSplitter.java`               | 5    |
-| `prompt/prompt_factory.py`    | `PromptBuilder.java`               | 4    |
-| `prompt/core/multiple.py`     | `QuizPromptTemplates.java`         | 4    |
-| `prompt/core/blank.py`        | `QuizPromptTemplates.java`         | 4    |
-| `prompt/core/ox.py`           | `QuizPromptTemplates.java`         | 4    |
-| `dto/model/problem_set.py`    | `AIProblemSet.java` (이미 존재)        | —    |
-| `util/gpt_utils.py`           | Spring AI `BeanOutputConverter`    | 4    |
-| `util/rate_limiter.py`        | `ChunkRateLimiter.java` (Bucket4j) | 6    |
-| `service/generate_service.py` | `GeminiQuizOrchestrator.java`      | 5    |
+| 파일                                       | 역할                     | 처리              |
+|------------------------------------------|------------------------|-----------------|
+| `adapter/AIServerAdapter.java`           | AI 서버 NDJSON 스트림 클라이언트 | **제거** (Step 8) |
+| `config/RestClientConfig.java`           | AI 서버용 RestClient 빈 2개 | **제거** (Step 8) |
+| `mapper/FeRequestToAIRequestMapper.java` | FE → AI 요청 변환          | **제거** (Step 8) |
+| `service/GenerationServiceImpl.java`     | 핵심 서비스 로직              | **수정** (Step 7) |
 
 ### Spring AI가 대체하는 것 vs 직접 구현하는 것
 
@@ -645,8 +582,8 @@ ChunkSplitter.createPageChunks(...)
 | Context Caching CRUD        | **Spring AI** `GoogleGenAiCachedContentService`          | create/delete/list 내장                          |
 | Structured Output           | **Spring AI** `BeanOutputConverter` + `responseMimeType` | JSON Schema 자동 생성                              |
 | File Upload API             | **RestClient 직접 구현**                                     | Spring AI 미지원                                  |
-| 청크 분할                       | **직접 구현** (`ChunkSplitter`)                              | Python 포팅                                      |
-| 프롬프트 조립                     | **직접 구현** (`PromptBuilder`, `QuizPromptTemplates`)       | Python 포팅                                      |
+| 청크 분할                       | **직접 구현** (`ChunkSplitter`)                              |                                                |
+| 프롬프트 조립                     | **직접 구현** (`SystemPrompt`, `UserPrompt`, `QuizType`)     | Strategy 패턴 + 타입별 상수 클래스                       |
 | 파이프라인 오케스트레이션               | **직접 구현** (`GeminiQuizOrchestrator`)                     | 비즈니스 로직                                        |
 | Rate Limiter (청크 단위)        | **Bucket4j** (`ChunkRateLimiter`)                        | `tryConsume(N)` 가변 비용 소모 (Resilience4j로 대체 불가) |
 | Circuit Breaker             | **Resilience4j**                                         | 기존 패턴 재활용                                      |
@@ -697,9 +634,7 @@ ChunkSplitter.createPageChunks(...)
 
 ### 실무 감각
 
-- Python 서버 → Java 포팅 경험 (언어 간 로직 이전)
 - 기존 시스템에 새 구현을 비파괴적으로 교체하는 과정 (Step 7에서 끼워넣고, Step 8에서 정리)
-- 외부 서비스 의존 제거 (Python 서버 퇴역)
 - 프레임워크 미지원 기능의 하이브리드 해결 경험
 
 ---
@@ -711,7 +646,6 @@ ChunkSplitter.createPageChunks(...)
     - `POST /generation` with 실제 PDF URL → SSE 스트림 수신 → DB 확인
 3. **장애 테스트**: Step 6 완료 후 Circuit Breaker 동작 확인
 4. **성능 비교**: Step 5에서 순차 vs 병렬 소요 시간 측정
-5. **Python 서버 대비 동치 검증**: 동일 PDF + 동일 파라미터로 양쪽 서버 호출 → 응답 구조/품질 비교
 
 ---
 
@@ -719,10 +653,10 @@ ChunkSplitter.createPageChunks(...)
 
 > 아래 항목들은 이력서/포트폴리오의 프로젝트 경험 란에 각각 독립된 소주제로 작성할 수 있다.
 
-### 1. 외부 Python AI 서버 제거 — Java 네이티브 전환
+### 1. Spring AI + Gemini API 기반 퀴즈 생성 파이프라인
 
-> FastAPI + OpenAI에 의존하던 퀴즈 생성 파이프라인을 Spring AI + Gemini API 기반으로 재설계하여 Java 단일 서버로 통합했습니다. 기존 시스템의
-> Consumer 콜백 인터페이스를 유지한 채 내부 구현만 교체하는 비파괴적 전환을 수행하여, 무중단으로 Python 서버를 퇴역시켰습니다.
+> Spring AI + Gemini API 기반으로 퀴즈 생성 파이프라인을 설계하고 구현했습니다. 기존 시스템의
+> Consumer 콜백 인터페이스를 유지한 채 내부 구현만 교체하는 비파괴적 전환을 수행했습니다.
 
 ### 2. PDF Context Caching으로 LLM API 비용 절감
 

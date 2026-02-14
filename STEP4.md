@@ -1,6 +1,5 @@
 # Step 4: 프롬프트 시스템 + Structured Output
 
-> Python 서버의 프롬프트 템플릿과 JSON 구조 강제를 Java로 포팅한다.
 > LLM 응답을 `AIProblemSet` Java 객체로 자동 역직렬화하는 Structured Output 파이프라인을 구축한다.
 
 ---
@@ -107,8 +106,7 @@ LLM에게 "객관식 문제 5개 만들어줘"라고 하면 응답 형식이 매
 3. `responseMimeType: "application/json"` → Gemini API 레벨에서 JSON 응답 강제
 4. `BeanOutputConverter.convert(jsonText)` → JSON 문자열을 Java 객체로 자동 변환
 
-> Python 서버는 OpenAI의 `response_format: { type: "json_schema" }`로 구조를 강제했다.
-> Spring AI에서는 `BeanOutputConverter` + `responseMimeType`으로 동일한 효과를 달성한다.
+> Spring AI에서는 `BeanOutputConverter` + `responseMimeType`으로 JSON 응답 구조를 강제한다.
 
 ---
 
@@ -216,17 +214,6 @@ public record AIProblemSet(
 > Python 서버의 `prompt/core/multiple.py`, `blank.py`, `ox.py`에 대응.
 > Strategy 인터페이스 + enum으로 타입별 프롬프트를 매핑한다.
 
-### Python → Java 매핑
-
-| 역할            | Python                      | Java                                           |
-|---------------|-----------------------------|------------------------------------------------|
-| 타입별 생성 지침     | `prompt/core/multiple.py` 등 | `prompt/quiz/mutiple/MultipleGuideLine.java` 등 |
-| 타입별 출력 형식     | `prompt/core/multiple.py` 등 | `prompt/quiz/mutiple/MultipleFormat.java` 등    |
-| 프롬프트 전략 인터페이스 | (없음)                        | `QuizPromptStrategy` 인터페이스                     |
-| 타입 → 프롬프트 매핑  | `prompt_factory.py`의 분기     | `QuizType` enum (Strategy 구현)                  |
-| 시스템 프롬프트 조립   | `generate_service.py`       | `SystemPrompt.java` (캐시에 포함)                   |
-| 유저 프롬프트 조립    | `generate_service.py`       | `UserPrompt.java` (호출마다 전송)                    |
-
 ### 2-1. 타입별 프롬프트 상수 — `prompt/quiz` 패키지
 
 ```
@@ -326,7 +313,6 @@ Step 7 호출 측:
 
 ## 3단계: 프롬프트 조립 — `SystemPrompt` + `UserPrompt`
 
-> Python 서버의 `generate_service.py:50-63`에 대응.
 > **시스템 프롬프트**(캐시에 포함)와 **유저 프롬프트**(호출마다 전송)를 분리한다.
 
 ### 분리 구조
@@ -393,18 +379,19 @@ public class SystemPrompt {
             SECTION 1: OUTPUT FORMAT
             ========================================
             %s
-
+            
             ========================================
             SECTION 2: CONTENT GUIDELINES
             ========================================
             %s
-
+            
             ========================================
             SECTION 3: JSON RESPONSE SCHEMA
             ========================================
             아래 JSON Schema를 정확히 준수하여 응답하세요.
             %s
-            """.formatted(BASE_INSTRUCTION, strategy.getFormat(), strategy.getGuideLine(), jsonSchema);
+            """.formatted(BASE_INSTRUCTION, strategy.getFormat(), strategy.getGuideLine(),
+            jsonSchema);
     }
 }
 ```
@@ -486,11 +473,11 @@ public String createCache(String fileUri, QuizPromptStrategy strategy, String js
 
 ### Step 3 → Step 4 변경 사항
 
-| 항목                    | Step 3                        | Step 4                                                     |
-|-----------------------|-------------------------------|------------------------------------------------------------|
+| 항목                    | Step 3                        | Step 4                                                                        |
+|-----------------------|-------------------------------|-------------------------------------------------------------------------------|
 | **시그니처**              | `createCache(String fileUri)` | `createCache(String fileUri, QuizPromptStrategy strategy, String jsonSchema)` |
-| **systemInstruction** | 없음                            | `SystemPrompt.generate(strategy, jsonSchema)` 결과를 포함                        |
-| **캐시에 포함되는 내용**       | PDF 컨텐츠만                      | PDF 컨텐츠 + 시스템 프롬프트 + JSON Schema                                          |
+| **systemInstruction** | 없음                            | `SystemPrompt.generate(strategy, jsonSchema)` 결과를 포함                          |
+| **캐시에 포함되는 내용**       | PDF 컨텐츠만                      | PDF 컨텐츠 + 시스템 프롬프트 + JSON Schema                                              |
 
 ---
 
@@ -627,7 +614,7 @@ import com.icc.qasker.ai.dto.MyChatResponse;
 import com.icc.qasker.ai.dto.ai.AIProblemSet;
 import com.icc.qasker.ai.prompt.quiz.common.QuizType;
 import com.icc.qasker.ai.service.ChatService;
-import com.icc.qasker.ai.service.FacadeService;
+import com.icc.qasker.ai.service.QuizOrchestrationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
@@ -809,14 +796,14 @@ POST /v1beta/models/gemini-2.0-flash:generateContent?key={API_KEY} HTTP/1.1
 
 ### HTTP ↔ Java 매핑
 
-| HTTP / Gemini                            | Java (Spring AI)                                                                                       |
-|------------------------------------------|--------------------------------------------------------------------------------------------------------|
+| HTTP / Gemini                            | Java (Spring AI)                                                                                        |
+|------------------------------------------|---------------------------------------------------------------------------------------------------------|
 | `cachedContents.systemInstruction`       | `CachedContentRequest.builder().systemInstruction(...)` + `SystemPrompt.generate(strategy, jsonSchema)` |
-| systemInstruction 내 JSON Schema          | `BeanOutputConverter.getFormat()` → `SystemPrompt`의 SECTION 3에 포함                                     |
-| `contents[0].parts[0].text`              | `UserPrompt.generate(pageNumbers, quizCount)`                                                          |
+| systemInstruction 내 JSON Schema          | `BeanOutputConverter.getFormat()` → `SystemPrompt`의 SECTION 3에 포함                                       |
+| `contents[0].parts[0].text`              | `UserPrompt.generate(pageNumbers, quizCount)`                                                           |
 | `generationConfig.responseMimeType`      | `GoogleGenAiChatOptions.builder().responseMimeType("application/json")`                                 |
-| 응답 `candidates[0].content.parts[0].text` | `response.getResult().getOutput().getText()`                                                           |
-| JSON → Java 객체                           | `BeanOutputConverter.convert(jsonText)`                                                                |
+| 응답 `candidates[0].content.parts[0].text` | `response.getResult().getOutput().getText()`                                                            |
+| JSON → Java 객체                           | `BeanOutputConverter.convert(jsonText)`                                                                 |
 
 ---
 
@@ -903,4 +890,3 @@ finally:
 - [Gemini API — Context Caching](https://ai.google.dev/gemini-api/docs/caching)
 - [Jackson — Record Support](https://github.com/FasterXML/jackson-databind#jdk-record-support)
 - [Spring AI — Google GenAI Chat Options](https://docs.spring.io/spring-ai/reference/api/chat/google-genai-chat.html)
-- Python 프롬프트 원본: `ai/app/prompt/core/multiple.py`, `blank.py`, `ox.py`
