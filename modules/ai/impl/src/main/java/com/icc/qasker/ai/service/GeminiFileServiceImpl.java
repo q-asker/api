@@ -57,7 +57,7 @@ public class GeminiFileServiceImpl implements GeminiFileService {
 
             String fileName = response.file().name();
 
-            log.info("PDF 업로드 완료: name={}, state={]", fileName, response.file().state());
+            log.info("PDF 업로드 완료: name={}, state={}", fileName, response.file().state());
 
             FileMetadata metadata = waitForProcessing(fileName);
             log.info("파일 처리 완료: name={}, uri={}", metadata.name(), metadata.uri());
@@ -115,7 +115,7 @@ public class GeminiFileServiceImpl implements GeminiFileService {
 
     private GeminiFileUploadResponse uploadBytes(String uploadSessionUrl, Path pdfFile,
         long fileSize) {
-        return RestClient.create().post()
+        return restClient.post()
             .uri(URI.create(uploadSessionUrl))
             .header("X-Goog-Upload-Command", "upload, finalize")
             .header("X-Goog-Upload-Offset", "0")

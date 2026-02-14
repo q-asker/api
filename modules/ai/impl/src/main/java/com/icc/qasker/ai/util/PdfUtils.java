@@ -1,19 +1,25 @@
 package com.icc.qasker.ai.util;
 
+import com.icc.qasker.aws.S3ValidateService;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class PdfUtils {
 
+    private final S3ValidateService s3ValidateService;
+
     public Path downloadToTemp(String pdfUrl) throws IOException {
+        s3ValidateService.checkCloudFrontUrlWithThrowing(pdfUrl);
         Path tempFile = Files.createTempFile("gemini-upload-", ".pdf");
 
         log.debug("PDF 다운로드 시작: {} -> {}", pdfUrl, tempFile);

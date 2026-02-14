@@ -12,6 +12,7 @@ dependencies {
     // global: 공통 예외 처리, 공통 응답 DTO 등 프로젝트 전역 유틸리티 모듈
     // 예: AI 호출 실패 시 GlobalException을 던져 공통 에러 응답으로 변환
     implementation project(":global")
+    implementation project(":aws:aws-api")
     implementation project(":ai:ai-api")
 
     // ────────────────────────────────

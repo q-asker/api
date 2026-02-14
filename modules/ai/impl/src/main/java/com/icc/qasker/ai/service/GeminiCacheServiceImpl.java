@@ -72,7 +72,7 @@ public class GeminiCacheServiceImpl implements GeminiCacheService {
             String cacheName = cache.getName();
 
             log.info("캐시 생성 완료: name={}, model={}, ttl={}, expireTime={}",
-                cacheName, cache.getName(), cache.getTtl(), cache.getExpireTime());
+                cacheName, cache.getModel(), cache.getTtl(), cache.getExpireTime());
 
             return cacheName;
         } catch (Exception e) {

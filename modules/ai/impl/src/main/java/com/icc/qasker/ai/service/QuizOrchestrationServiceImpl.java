@@ -52,9 +52,11 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
         );
         String jsonSchema = converter.getJsonSchema();
 
-        String cacheName = geminiCacheService.createCache(metadata.uri(), request.strategyValue(),
-            jsonSchema);
+        String cacheName = null;
         try {
+            cacheName = geminiCacheService.createCache(metadata.uri(),
+                request.strategyValue(),
+                jsonSchema);
             log.info("캐시 생성 완료: cacheName={}", cacheName);
 
             List<ChunkInfo> chunks = ChunkSplitter.createPageChunks(
@@ -65,8 +67,8 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
             AtomicInteger numberCounter = new AtomicInteger(1);
 
             try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+                final String finalCacheName = cacheName;
                 List<CompletableFuture<Void>> futures = new ArrayList<>(chunks.size());
-
                 for (ChunkInfo chunk : chunks) {
                     CompletableFuture<Void> future = CompletableFuture.runAsync(
                         () -> {
@@ -82,7 +84,7 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
                                     new Prompt(userPrompt,
                                         GoogleGenAiChatOptions.builder()
                                             .useCachedContent(true)
-                                            .cachedContentName(cacheName)
+                                            .cachedContentName(finalCacheName)
                                             .responseMimeType("application/json")
                                             .build())
                                 );
@@ -128,7 +130,9 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
             }
             log.info("전체 병렬 생성 완료: 총 {}번까지 번호 할당됨", numberCounter.get() - 1);
         } finally {
-            geminiCacheService.deleteCache(cacheName);
+            if (cacheName != null) {
+                geminiCacheService.deleteCache(cacheName);
+            }
             geminiFileService.deleteFile(metadata.name());
         }
     }
