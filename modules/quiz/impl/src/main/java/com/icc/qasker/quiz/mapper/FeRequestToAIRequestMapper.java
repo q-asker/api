@@ -1,7 +1,7 @@
 package com.icc.qasker.quiz.mapper;
 
 import com.icc.qasker.quiz.dto.aiRequest.GenerationRequestToAI;
-import com.icc.qasker.quiz.dto.request.GenerationRequest;
+import com.icc.qasker.quiz.dto.feRequest.GenerationRequest;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
