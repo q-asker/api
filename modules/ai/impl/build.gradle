@@ -26,10 +26,7 @@ dependencies {
     // ────────────────────────────────
     // API 문서 (Swagger)
     // ────────────────────────────────
-    // SpringDoc OpenAPI 코어: API 문서화 어노테이션 제공
-    // 예: @Operation(summary = "파일 업로드") → Swagger UI에 API 설명 표시
-    implementation "org.springdoc:springdoc-openapi:2.3.0"
-    // SpringDoc WebMVC UI: Swagger UI 웹 페이지를 자동 생성
+    // SpringDoc OpenAPI: API 문서화 어노테이션(@Operation, @Schema) + Swagger UI 제공
     // 예: 서버 기동 후 /swagger-ui/index.html 접속하면 API 목록·테스트 UI가 제공됨
     implementation "org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.8"
 }
