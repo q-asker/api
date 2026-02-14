@@ -1,6 +1,6 @@
 package com.icc.qasker.quiz.controller;
 
-import com.icc.qasker.quiz.dto.ExplanationService;
+import com.icc.qasker.quiz.ExplanationService;
 import com.icc.qasker.quiz.dto.feResponse.ExplanationResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

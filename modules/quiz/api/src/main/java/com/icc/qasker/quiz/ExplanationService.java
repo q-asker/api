@@ -1,4 +1,4 @@
-package com.icc.qasker.quiz.dto;
+package com.icc.qasker.quiz;
 
 import com.icc.qasker.quiz.dto.feResponse.ExplanationResponse;
 

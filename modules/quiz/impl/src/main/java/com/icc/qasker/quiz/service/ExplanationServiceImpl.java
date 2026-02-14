@@ -3,7 +3,7 @@ package com.icc.qasker.quiz.service;
 import com.icc.qasker.global.component.HashUtil;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
-import com.icc.qasker.quiz.dto.ExplanationService;
+import com.icc.qasker.quiz.ExplanationService;
 import com.icc.qasker.quiz.dto.feResponse.ExplanationResponse;
 import com.icc.qasker.quiz.dto.feResponse.ResultResponse;
 import com.icc.qasker.quiz.entity.Problem;
