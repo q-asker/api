@@ -39,12 +39,13 @@ dependencies {
     // 유틸리티 구현 모듈: 범용 헬퍼 기능
     // 예: HealthCheckController 등이 이 모듈에 위치
     implementation project(':util:util-impl')
-    // 공통 모듈: 전역 예외 처리, 공통 응답 DTO
-    // 예: GlobalExceptionHandler, ApiResponse<T>, BaseEntity 등이 이 모듈에 위치
-    implementation project(':global')
     // AI 모듈: Google Gemini 기반 AI 기능
     // 예: AiService에서 ChatClient를 통해 Gemini API를 호출
     implementation project(':ai:ai-impl')
+    // 공통 모듈: 전역 예외 처리, 공통 응답 DTO
+    // 예: GlobalExceptionHandler, ApiResponse<T>, BaseEntity 등이 이 모듈에 위치
+    implementation project(':global')
+
 
     // ────────────────────────────────
     // 스프링부트 Web & JPA
