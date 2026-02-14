@@ -99,16 +99,22 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
                                     return;
                                 }
 
-                                GeminiProblem firstProblem = geminiResult.getFirst();
-                                if (firstProblem.selections() != null
-                                    && firstProblem.selections().size() > MAX_SELECTION_COUNT) {
-                                    log.warn("선택지 초과로 청크 폐기: {}개 선택지, pages={}",
-                                        firstProblem.selections().size(), chunk.referencedPages());
-                                    return;
+                                List<GeminiProblem> validatedResult = new ArrayList<>();
+
+                                for (GeminiProblem result : geminiResult) {
+                                    if (result.selections() != null
+                                        && result.selections().size() > MAX_SELECTION_COUNT) {
+                                        log.warn("선택지 초과로 청크 폐기: {}개 선택지, pages={}",
+                                            result.selections().size(),
+                                            chunk.referencedPages());
+                                        continue;
+                                    }
+                                    validatedResult.add(result);
                                 }
 
                                 AIProblemSet result = GeminiProblemSetMapper.toDto(
-                                    geminiResult, request.strategyValue(), chunk.referencedPages(),
+                                    validatedResult, request.strategyValue(),
+                                    chunk.referencedPages(),
                                     numberCounter
                                 );
 
