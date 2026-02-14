@@ -99,18 +99,18 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
                                     return;
                                 }
 
-                                List<GeminiProblem> validatedResult = new ArrayList<>();
-
-                                for (GeminiProblem result : geminiResult) {
-                                    if (result.selections() != null
-                                        && result.selections().size() > MAX_SELECTION_COUNT) {
-                                        log.warn("선택지 초과로 청크 폐기: {}개 선택지, pages={}",
-                                            result.selections().size(),
-                                            chunk.referencedPages());
-                                        continue;
-                                    }
-                                    validatedResult.add(result);
-                                }
+                                List<GeminiProblem> validatedResult = geminiResult.stream()
+                                    .filter(problem -> {
+                                        if (problem.selections() != null
+                                            && problem.selections().size() > MAX_SELECTION_COUNT) {
+                                            log.warn("선택지 초과로 청크 폐기: {}개 선택지, pages={}",
+                                                problem.selections().size(),
+                                                chunk.referencedPages());
+                                            return false;
+                                        }
+                                        return true;
+                                    })
+                                    .toList();
 
                                 AIProblemSet result = GeminiProblemSetMapper.toDto(
                                     validatedResult, request.strategyValue(),
