@@ -1,6 +1,7 @@
 package com.icc.qasker.quiz.adapter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.icc.qasker.ai.QuizOrchestrationService;
 import com.icc.qasker.quiz.dto.aiRequest.GenerationRequestToAI;
 import com.icc.qasker.quiz.dto.aiResponse.ProblemSetGeneratedEvent;
 import java.util.ArrayList;
@@ -19,8 +20,9 @@ public class MockAIServerAdapter extends AIServerAdapter {
 
     private final ObjectMapper objectMapper;
 
-    public MockAIServerAdapter(ObjectMapper objectMapper, RestClient aiStreamClient) {
-        super(objectMapper, aiStreamClient);
+    public MockAIServerAdapter(ObjectMapper objectMapper, RestClient aiStreamClient,
+        QuizOrchestrationService quizOrchestrationService) {
+        super(quizOrchestrationService);
         this.objectMapper = objectMapper;
     }
 

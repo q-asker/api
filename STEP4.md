@@ -614,7 +614,7 @@ import com.icc.qasker.ai.dto.MyChatResponse;
 import com.icc.qasker.ai.dto.ai.AIProblemSet;
 import com.icc.qasker.ai.prompt.quiz.common.QuizType;
 import com.icc.qasker.ai.service.ChatService;
-import com.icc.qasker.ai.service.QuizOrchestrationService;
+import com.icc.qasker.ai.QuizOrchestrationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;

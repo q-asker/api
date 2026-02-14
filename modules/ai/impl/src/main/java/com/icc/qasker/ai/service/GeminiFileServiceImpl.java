@@ -1,5 +1,6 @@
 package com.icc.qasker.ai.service;
 
+import com.icc.qasker.ai.GeminiFileService;
 import com.icc.qasker.ai.dto.GeminiFileUploadResponse;
 import com.icc.qasker.ai.dto.GeminiFileUploadResponse.FileMetadata;
 import com.icc.qasker.ai.util.PdfUtils;
@@ -20,7 +21,7 @@ import org.springframework.web.client.RestClient;
 
 @Slf4j
 @Service
-public class GeminiFileService {
+public class GeminiFileServiceImpl implements GeminiFileService {
 
     private static final int POLL_INTERVAL_MS = 1_000;
     private static final int MAX_POLL_ATTEMPTS = 30;
@@ -31,7 +32,7 @@ public class GeminiFileService {
     private final String apiKey;
     private final PdfUtils pdfUtils;
 
-    public GeminiFileService(
+    public GeminiFileServiceImpl(
         @Qualifier("geminiFileRestClient")
         RestClient restClient,
         GoogleGenAiConnectionProperties properties,
@@ -42,7 +43,7 @@ public class GeminiFileService {
         this.pdfUtils = pdfUtils;
     }
 
-
+    @Override
     public FileMetadata uploadPdf(String pdfUrl) {
         Path tempFile = null;
 
@@ -73,6 +74,7 @@ public class GeminiFileService {
         }
     }
 
+    @Override
     public void deleteFile(String fileName) {
         try {
             restClient.delete()
@@ -123,6 +125,7 @@ public class GeminiFileService {
             .body(GeminiFileUploadResponse.class);
     }
 
+    @Override
     public FileMetadata waitForProcessing(String fileName) throws InterruptedException {
         for (int attempt = 1; attempt <= MAX_POLL_ATTEMPTS; attempt++) {
             FileMetadata metadata = getFile(fileName);

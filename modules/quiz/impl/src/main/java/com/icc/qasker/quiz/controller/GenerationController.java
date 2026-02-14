@@ -2,7 +2,7 @@ package com.icc.qasker.quiz.controller;
 
 import com.icc.qasker.global.annotation.UserId;
 import com.icc.qasker.quiz.GenerationService;
-import com.icc.qasker.quiz.dto.feRequest.GenerationRequest;
+import com.icc.qasker.quiz.dto.request.GenerationRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;

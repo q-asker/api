@@ -44,7 +44,7 @@ dependencies {
     implementation project(':global')
     // AI 모듈: Google Gemini 기반 AI 기능
     // 예: AiService에서 ChatClient를 통해 Gemini API를 호출
-    implementation project(':ai')
+    implementation project(':ai:ai-impl')
 
     // ────────────────────────────────
     // 스프링부트 Web & JPA

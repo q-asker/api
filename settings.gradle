@@ -9,7 +9,6 @@ include ':app', ':global',
 
 project(':app').projectDir = file('app')
 project(':global').projectDir = file('modules/global')
-project(':ai').projectDir = file('modules/ai')
 
 project(':auth:auth-api').projectDir = file('modules/auth/api')
 project(':auth:auth-impl').projectDir = file('modules/auth/impl')

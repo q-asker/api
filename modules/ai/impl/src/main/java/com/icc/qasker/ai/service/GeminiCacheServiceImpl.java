@@ -3,7 +3,8 @@ package com.icc.qasker.ai.service;
 import com.google.genai.types.Content;
 import com.google.genai.types.FileData;
 import com.google.genai.types.Part;
-import com.icc.qasker.ai.prompt.quiz.common.QuizPromptStrategy;
+import com.icc.qasker.ai.GeminiCacheService;
+import com.icc.qasker.ai.prompt.quiz.common.QuizType;
 import com.icc.qasker.ai.prompt.quiz.system.SystemPrompt;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
@@ -18,14 +19,14 @@ import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
-public class GeminiCacheService {
+public class GeminiCacheServiceImpl implements GeminiCacheService {
 
     private static final Duration DEFAULT_TTL = Duration.ofMinutes(10);
 
     private final GoogleGenAiCachedContentService cachedContentService;
     private final String model;
 
-    public GeminiCacheService(
+    public GeminiCacheServiceImpl(
         GoogleGenAiChatProperties properties,
         GoogleGenAiCachedContentService cachedContentService
     ) {
@@ -33,7 +34,8 @@ public class GeminiCacheService {
         this.cachedContentService = cachedContentService;
     }
 
-    public String createCache(String fileUri, QuizPromptStrategy strategy, String jsonSchema) {
+    @Override
+    public String createCache(String fileUri, String strategyValue, String jsonSchema) {
         try {
             Content pdfContent = Content.builder()
                 .role("user")
@@ -47,6 +49,7 @@ public class GeminiCacheService {
                 )
                 .build();
 
+            QuizType strategy = QuizType.valueOf(strategyValue);
             String systemPrompt = SystemPrompt.generate(strategy, jsonSchema);
             Content systemInstruction = Content.builder()
                 .parts(
@@ -78,6 +81,7 @@ public class GeminiCacheService {
         }
     }
 
+    @Override
     public void deleteCache(String cacheName) {
         if (cacheName == null) {
             return;

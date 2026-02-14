@@ -78,49 +78,311 @@ Consumer<AIProblemSet>에 청크 완료 순서대로 콜백
 ## 완성 후 디렉토리 구조
 
 ```
-modules/ai/src/main/java/com/icc/qasker/ai/
-├── config/
-│   ├── GeminiCacheConfig.java          (기존 — Step 3)
-│   └── GeminiFileRestClientConfig.java (기존 — Step 2)
-├── controller/
-│   └── AIController.java               (수정 — 병렬 생성 테스트 엔드포인트 추가)
-├── dto/
-│   ├── ai/
-│   │   ├── AIProblemSet.java          (기존 — Step 4)
-│   │   ├── AIProblem.java             (기존 — Step 4)
-│   │   └── AISelection.java          (기존 — Step 4)
-│   ├── ChunkInfo.java                 ← NEW (청크 정보 record)
-│   ├── ChatRequest.java               (기존)
-│   ├── GeminiFileUploadResponse.java   (기존 — Step 2)
-│   └── MyChatResponse.java            (기존)
-├── prompt/
-│   └── quiz/
-│       ├── common/
-│       │   ├── QuizPromptStrategy.java (기존 — Step 4)
-│       │   └── QuizType.java          (기존 — Step 4)
-│       ├── system/
-│       │   └── SystemPrompt.java      (기존 — Step 4)
-│       ├── user/
-│       │   └── UserPrompt.java        (기존 — Step 4)
-│       ├── blank/
-│       │   ├── BlankFormat.java       (기존 — Step 4)
-│       │   └── BlankGuideLine.java    (기존 — Step 4)
-│       ├── mutiple/
-│       │   ├── MultipleFormat.java    (기존 — Step 4)
-│       │   └── MultipleGuideLine.java (기존 — Step 4)
-│       └── ox/
-│           ├── OXFormat.java          (기존 — Step 4)
-│           └── OXGuideLine.java       (기존 — Step 4)
-├── service/
-│   ├── ChatService.java               (기존)
-│   ├── FacadeService.java             (기존 — Step 4, Step 5에서는 수정하지 않음)
-│   ├── GeminiCacheService.java        (기존 — Step 3+4)
-│   ├── GeminiFileService.java         (기존 — Step 2)
-│   └── GeminiQuizOrchestrator.java    ← NEW (병렬 파이프라인 조율)
-└── util/
-    ├── PdfUtils.java                  (기존 — Step 2)
-    └── ChunkSplitter.java            ← NEW (Python create_chunks.py 포팅)
+modules/ai/
+├── api/src/main/java/com/icc/qasker/ai/
+│   ├── QuizOrchestrationService.java              (기존 — 인터페이스)
+│   ├── GeminiCacheService.java                    (기존 — 인터페이스)
+│   ├── GeminiFileService.java                     (기존 — 인터페이스)
+│   └── dto/
+│       ├── AIProblemSet.java                      ← NEW (순수 DTO)
+│       ├── AIProblem.java                         ← NEW (순수 DTO)
+│       ├── AISelection.java                       ← NEW (순수 DTO)
+│       ├── ChunkInfo.java                         ← NEW (청크 정보 record)
+│       └── GeminiFileUploadResponse.java          (기존 — Step 2)
+│
+└── impl/src/main/java/com/icc/qasker/ai/
+    ├── config/
+    │   ├── GeminiCacheConfig.java                 (기존 — Step 3)
+    │   └── GeminiFileRestClientConfig.java        (기존 — Step 2)
+    ├── controller/
+    │   └── AIController.java                      (수정 — 병렬 생성 테스트 엔드포인트)
+    ├── structure/
+    │   ├── GeminiProblemSet.java                   ← 기존 AIProblemSet 이름 변경
+    │   ├── GeminiProblem.java                      ← 기존 AIProblem 이름 변경
+    │   └── GeminiSelection.java                    ← 기존 AISelection 이름 변경
+    ├── prompt/
+    │   └── quiz/
+    │       ├── common/
+    │       │   ├── QuizPromptStrategy.java        (기존 — Step 4)
+    │       │   └── QuizType.java                  (기존 — Step 4)
+    │       ├── system/
+    │       │   └── SystemPrompt.java              (기존 — Step 4)
+    │       ├── user/
+    │       │   └── UserPrompt.java                (기존 — Step 4)
+    │       ├── blank/
+    │       │   ├── BlankFormat.java               (기존 — Step 4)
+    │       │   └── BlankGuideLine.java            (기존 — Step 4)
+    │       ├── mutiple/
+    │       │   ├── MultipleFormat.java            (기존 — Step 4)
+    │       │   └── MultipleGuideLine.java         (기존 — Step 4)
+    │       └── ox/
+    │           ├── OXFormat.java                  (기존 — Step 4)
+    │           └── OXGuideLine.java               (기존 — Step 4)
+    ├── mapper/
+    │   └── GeminiProblemSetMapper.java             ← NEW (structure → dto 변환)
+    ├── service/
+    │   ├── ChatService.java                       (기존)
+    │   ├── GeminiCacheServiceImpl.java            (기존 — Step 3+4)
+    │   ├── GeminiFileServiceImpl.java             (기존 — Step 2)
+    │   └── QuizOrchestrationServiceImpl.java      ← 수정 (병렬 파이프라인)
+    └── util/
+        ├── PdfUtils.java                          (기존 — Step 2)
+        └── ChunkSplitter.java                     ← NEW (Python create_chunks.py 포팅)
 ```
+
+---
+
+## 사전 작업: AI 응답 타입을 api 계약과 impl 내부 구조로 분리
+
+> `impl/structure/`의 Gemini 전용 record는 그대로 두고,
+> `api/dto/`에 순수 DTO를 새로 정의한다.
+
+### 현재 상태와 문제
+
+```
+modules/ai/impl/src/.../ai/structure/
+├── AIProblemSet.java      ← @JsonPropertyDescription 포함 (BeanOutputConverter용)
+├── AIProblem.java         ← 동일
+└── AISelection.java       ← 동일
+```
+
+이 record들에는 `@JsonPropertyDescription`이 붙어 있다.
+이 어노테이션은 Spring AI의 `BeanOutputConverter`가 Gemini에 보낼 **JSON Schema를 자동 생성**할 때 사용한다.
+
+```java
+// 현재 AIProblem.java — Gemini 전용 어노테이션
+@JsonPropertyDescription("문제 번호 (1부터 시작)")
+int number,
+@JsonPropertyDescription("선택지 목록")
+List<AISelection> selections,
+```
+
+이것은 **Gemini API 구현의 내부 디테일**이지, 모듈 간 계약이 아니다.
+
+한편 `QuizOrchestrationService` 인터페이스는 `ai-api` 모듈에 있고,
+콜백 시그니처가 `Consumer<AIProblemSet>`이므로 `AIProblemSet` 타입이 `ai-api`에 있어야 한다.
+
+```
+quiz-impl ──depends──▶ ai-api ◀──depends── ai-impl
+                          │
+                          └─ QuizOrchestrationService
+                               Consumer<AIProblemSet>  ← 이 타입이 ai-api에 필요
+
+quiz-impl ──✕──▶ ai-impl  (이 의존성은 없고, 있어서도 안 된다)
+```
+
+### 해결: 역할별로 타입을 분리한다
+
+| 위치                   | 타입                                                     | 역할                     | `@JsonPropertyDescription` |
+|----------------------|--------------------------------------------------------|------------------------|----------------------------|
+| `ai-api/dto/`        | `AIProblemSet`, `AIProblem`, `AISelection`             | 모듈 간 계약 (순수 DTO)       | 없음                         |
+| `ai-impl/structure/` | `GeminiProblemSet`, `GeminiProblem`, `GeminiSelection` | Gemini JSON Schema 생성용 | 있음                         |
+
+### api: 순수 DTO (모듈 간 계약)
+
+**경로**: `modules/ai/api/src/main/java/com/icc/qasker/ai/dto/`
+
+```java
+// 어노테이션 없는 순수 record — api 모듈에 추가 의존성 불필요
+package com.icc.qasker.ai.dto;
+
+public record AIProblemSet(List<AIProblem> quiz) {
+
+}
+
+public record AIProblem(int number, String title, List<AISelection> selections,
+                        String explanation) {
+
+}
+
+public record AISelection(String content, boolean correct) {
+
+}
+```
+
+### impl: Gemini 전용 structure (BeanOutputConverter용)
+
+**경로**: `modules/ai/impl/src/main/java/com/icc/qasker/ai/structure/` (기존 유지, 이름만 변경)
+
+```java
+// @JsonPropertyDescription 포함 — BeanOutputConverter가 JSON Schema 생성에 사용
+package com.icc.qasker.ai.structure;
+    
+public record GeminiProblemSet(
+    @JsonPropertyDescription("생성된 퀴즈 문제 목록")
+    List<GeminiProblem> quiz
+) {
+
+}
+
+public record GeminiProblem(
+    @JsonPropertyDescription("문제 번호 (1부터 시작)")
+    int number,
+    @JsonPropertyDescription("문제 본문")
+    String title,
+    @JsonPropertyDescription("선택지 목록")
+    List<GeminiSelection> selections,
+    @JsonPropertyDescription("정답 해설")
+    String explanation
+) {
+
+}
+
+public record GeminiSelection(
+    @JsonPropertyDescription("선택지 텍스트")
+    String content,
+    @JsonPropertyDescription("정답 여부 (정답이면 true, 오답이면 false)")
+    boolean correct
+) {
+
+}
+```
+
+### impl 내부에서 변환: `GeminiProblemSetMapper`
+
+**경로**: `modules/ai/impl/src/main/java/com/icc/qasker/ai/mapper/GeminiProblemSetMapper.java`
+
+변환 로직을 `mapper` 패키지로 분리한다.
+서비스에서는 `GeminiProblemSetMapper.toDto()`만 호출한다.
+
+```java
+package com.icc.qasker.ai.mapper;
+
+import com.icc.qasker.ai.dto.AIProblem;
+import com.icc.qasker.ai.dto.AIProblemSet;
+import com.icc.qasker.ai.dto.AISelection;
+import com.icc.qasker.ai.prompt.quiz.common.QuizType;
+import com.icc.qasker.ai.structure.GeminiProblem;
+import com.icc.qasker.ai.structure.GeminiProblemSet;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
+public class GeminiProblemSetMapper {
+
+    /**
+     * GeminiProblemSet → AIProblemSet 변환 + 선택지 셔플 + 번호 재할당.
+     *
+     * @param source        Gemini 응답 역직렬화 결과
+     * @param strategyValue 퀴즈 타입 문자열 (MULTIPLE, BLANK, OX)
+     * @param numberCounter 스레드 안전 번호 카운터
+     * @return 변환된 AIProblemSet
+     */
+    public static AIProblemSet toDto(
+        GeminiProblemSet source,
+        String strategyValue,
+        AtomicInteger numberCounter
+    ) {
+        QuizType quizType = QuizType.valueOf(strategyValue);
+        boolean shouldShuffle = quizType == QuizType.MULTIPLE || quizType == QuizType.BLANK;
+
+        List<AIProblem> result = new ArrayList<>(source.quiz().size());
+
+        for (GeminiProblem problem : source.quiz()) {
+            List<AISelection> selections = mapSelections(problem);
+
+            if (shouldShuffle && !selections.isEmpty()) {
+                selections = new ArrayList<>(selections);
+                Collections.shuffle(selections);
+            }
+
+            int number = numberCounter.getAndIncrement();
+            result.add(new AIProblem(number, problem.title(), selections, problem.explanation()));
+        }
+
+        return new AIProblemSet(result);
+    }
+
+    private static List<AISelection> mapSelections(GeminiProblem problem) {
+        if (problem.selections() == null) {
+            return List.of();
+        }
+        return problem.selections().stream()
+            .map(gs -> new AISelection(gs.content(), gs.correct()))
+            .toList();
+    }
+}
+```
+
+서비스에서의 호출:
+
+```java
+// QuizOrchestrationServiceImpl.processChunk() 내부
+GeminiProblemSet geminiResult = converter.convert(jsonText);
+
+AIProblemSet result = GeminiProblemSetMapper.toDto(
+    geminiResult, strategyValue, numberCounter
+);
+
+onChunkCompleted.accept(result);
+```
+
+### 분리 후 구조
+
+```
+modules/ai/api/src/.../ai/
+├── QuizOrchestrationService.java          (인터페이스)
+├── GeminiCacheService.java                (인터페이스)
+├── GeminiFileService.java                 (인터페이스)
+└── dto/
+    ├── AIProblemSet.java                  ← NEW (순수 DTO)
+    ├── AIProblem.java                     ← NEW (순수 DTO)
+    ├── AISelection.java                   ← NEW (순수 DTO)
+    ├── ChunkInfo.java                     (기존)
+    └── GeminiFileUploadResponse.java      (기존)
+```
+
+```
+modules/ai/impl/src/.../ai/
+├── mapper/
+│   └── GeminiProblemSetMapper.java        ← NEW (structure → dto 변환)
+├── service/
+│   ├── QuizOrchestrationServiceImpl.java  (Mapper 호출로 변환 위임)
+│   ├── GeminiCacheServiceImpl.java
+│   └── GeminiFileServiceImpl.java
+├── structure/
+│   ├── GeminiProblemSet.java              ← 기존 AIProblemSet 이름 변경
+│   ├── GeminiProblem.java                 ← 기존 AIProblem 이름 변경
+│   └── GeminiSelection.java              ← 기존 AISelection 이름 변경
+├── ...
+```
+
+### 왜 이렇게 분리하는가?
+
+```
+@JsonPropertyDescription가 붙은 record는:
+  → BeanOutputConverter가 Gemini에 보낼 JSON Schema를 만들 때만 쓰인다
+  → Gemini 구현의 내부 디테일이다
+  → ai-impl 안에 있어야 한다
+
+Consumer<AIProblemSet> 콜백으로 전달되는 record는:
+  → quiz-impl이 참조해야 한다
+  → 모듈 간 계약이다
+  → ai-api에 있어야 한다
+
+두 역할을 하나의 타입으로 합치면:
+  → api 모듈에 jackson-annotations 의존성을 추가해야 한다
+  → 순수 DTO에 Gemini 전용 어노테이션이 섞인다
+  → 역할이 불명확해진다
+```
+
+### 변경 사항 요약
+
+| 파일                                      | 작업                         | 비고                                  |
+|-----------------------------------------|----------------------------|-------------------------------------|
+| `api/dto/AIProblemSet.java`             | 신규 생성                      | 순수 record, 어노테이션 없음                 |
+| `api/dto/AIProblem.java`                | 신규 생성                      | 동일                                  |
+| `api/dto/AISelection.java`              | 신규 생성                      | 동일                                  |
+| `impl/structure/AIProblemSet.java`      | `GeminiProblemSet`으로 이름 변경 | `@JsonPropertyDescription` 유지       |
+| `impl/structure/AIProblem.java`         | `GeminiProblem`으로 이름 변경    | 동일                                  |
+| `impl/structure/AISelection.java`       | `GeminiSelection`으로 이름 변경  | 동일                                  |
+| `impl/mapper/GeminiProblemSetMapper.java` | 신규 생성                      | `GeminiProblemSet` → `AIProblemSet` 변환 + 셔플 + 번호 할당 |
+| `QuizOrchestrationServiceImpl.java`     | 변환 로직을 Mapper로 위임          | `GeminiProblemSetMapper.toDto()` 호출 |
+| `ai-api/build.gradle`                   | 변경 없음                      | 추가 의존성 불필요                          |
 
 ---
 
@@ -273,11 +535,11 @@ public class ChunkSplitter {
 
 ### 포인트 정리
 
-| 주제                                        | 설명                                                                  |
-|-------------------------------------------|---------------------------------------------------------------------|
-| **`distributeQuizCounts` 분리**             | record는 불변이므로 먼저 배열로 퀴즈 수를 계산한 뒤 ChunkInfo 생성  |
-| **`List.copyOf()`**                       | `subList()`은 원본의 view이므로 방어적 복사                                     |
-| **유틸리티 클래스**                              | 상태 없음 → `@Service` 불필요, `private` 생성자로 인스턴스화 방지                     |
+| 주제                            | 설명                                              |
+|-------------------------------|-------------------------------------------------|
+| **`distributeQuizCounts` 분리** | record는 불변이므로 먼저 배열로 퀴즈 수를 계산한 뒤 ChunkInfo 생성   |
+| **`List.copyOf()`**           | `subList()`은 원본의 view이므로 방어적 복사                 |
+| **유틸리티 클래스**                  | 상태 없음 → `@Service` 불필요, `private` 생성자로 인스턴스화 방지 |
 
 ### 알고리즘 예시
 
@@ -321,12 +583,13 @@ public class ChunkSplitter {
 
 ---
 
-## 3단계: `GeminiQuizOrchestrator.java` — 병렬 파이프라인 조율
+## 3단계: `QuizOrchestrationServiceImpl.java` — 병렬 파이프라인 조율
 
+> `QuizOrchestrationService` 인터페이스를 구현한다.
 > Step 2~4의 컴포넌트를 조합하고, Virtual Threads로 청크를 병렬 처리한다.
 > `Consumer<AIProblemSet>` 콜백으로 결과를 스트리밍한다.
 
-**경로**: `modules/ai/src/main/java/com/icc/qasker/ai/service/GeminiQuizOrchestrator.java`
+**경로**: `modules/ai/impl/src/main/java/com/icc/qasker/ai/service/QuizOrchestrationServiceImpl.java`
 
 ### 기존 Consumer 패턴 (quiz-impl의 AIServerAdapter)
 
@@ -348,25 +611,26 @@ doMainLogic(request, quiz, emitter, saveProblemSet);
 });
 ```
 
-> GeminiQuizOrchestrator도 **동일한 Consumer 패턴**을 사용한다.
-> Step 7에서 `AIServerAdapter` 대신 `GeminiQuizOrchestrator`를 호출하도록 교체한다.
+> QuizOrchestrationServiceImpl도 **동일한 Consumer 패턴**을 사용한다.
+> Step 7에서 `AIServerAdapter` 대신 `QuizOrchestrationServiceImpl`를 호출하도록 교체한다.
 
 ### 구현
 
 ```java
 package com.icc.qasker.ai.service;
 
+import com.icc.qasker.ai.GeminiCacheService;
+import com.icc.qasker.ai.GeminiFileService;
+import com.icc.qasker.ai.QuizOrchestrationService;
+import com.icc.qasker.ai.dto.AIProblemSet;
 import com.icc.qasker.ai.dto.ChunkInfo;
 import com.icc.qasker.ai.dto.GeminiFileUploadResponse.FileMetadata;
-import com.icc.qasker.ai.dto.ai.AIProblem;
-import com.icc.qasker.ai.dto.ai.AIProblemSet;
-import com.icc.qasker.ai.dto.ai.AISelection;
-import com.icc.qasker.ai.prompt.quiz.common.QuizPromptStrategy;
-import com.icc.qasker.ai.prompt.quiz.common.QuizType;
+import com.icc.qasker.ai.mapper.GeminiProblemSetMapper;
 import com.icc.qasker.ai.prompt.quiz.user.UserPrompt;
+import com.icc.qasker.ai.structure.GeminiProblem;
+import com.icc.qasker.ai.structure.GeminiProblemSet;
 import com.icc.qasker.ai.util.ChunkSplitter;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -385,7 +649,7 @@ import org.springframework.stereotype.Service;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class GeminiQuizOrchestrator {
+public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
 
     private static final int MAX_CHUNK_COUNT = 10;
     private static final int MAX_SELECTION_COUNT = 4;
@@ -394,50 +658,29 @@ public class GeminiQuizOrchestrator {
     private final GeminiCacheService geminiCacheService;
     private final ChatModel chatModel;
 
-    /**
-     * PDF에서 퀴즈를 병렬 생성하고, 청크 완료 시마다 Consumer 콜백을 호출한다.
-     *
-     * <p>파이프라인:
-     * <ol>
-     *   <li>PDF 업로드 + 처리 대기</li>
-     *   <li>캐시 생성 (시스템 프롬프트 + JSON Schema + PDF)</li>
-     *   <li>청크 분할</li>
-     *   <li>Virtual Thread 풀로 청크별 병렬 호출</li>
-     *   <li>완료된 청크마다 후처리 (검증 + 셔플 + 번호 재할당) → 콜백</li>
-     * </ol>
-     *
-     * @param fileUrl     PDF 파일 URL
-     * @param strategy    퀴즈 타입별 프롬프트 전략
-     * @param quizCount   총 생성할 문제 수
-     * @param pageNumbers 참조할 페이지 번호 목록
-     * @param onChunkCompleted 청크 완료 시 호출되는 콜백
-     */
-    public void generateQuizzes(
+    @Override
+    public void generateQuiz(
         String fileUrl,
-        QuizPromptStrategy strategy,
+        String strategyValue,
         int quizCount,
-        List<Integer> pageNumbers,
+        List<Integer> referencePages,
         Consumer<AIProblemSet> onChunkCompleted
     ) {
         FileMetadata metadata = geminiFileService.uploadPdf(fileUrl);
         log.info("업로드 완료: name={}, uri={}", metadata.name(), metadata.uri());
 
-        BeanOutputConverter<AIProblemSet> converter = new BeanOutputConverter<>(AIProblemSet.class);
+        var converter = new BeanOutputConverter<>(GeminiProblemSet.class);
         String jsonSchema = converter.getJsonSchema();
 
-        String cacheName = null;
-
+        String cacheName = geminiCacheService.createCache(metadata.uri(), strategyValue, jsonSchema);
         try {
-            cacheName = geminiCacheService.createCache(metadata.uri(), strategy, jsonSchema);
             log.info("캐시 생성 완료: cacheName={}", cacheName);
 
-            // ──── 청크 분할 ────
             List<ChunkInfo> chunks = ChunkSplitter.createPageChunks(
-                pageNumbers, quizCount, MAX_CHUNK_COUNT
+                referencePages, quizCount, MAX_CHUNK_COUNT
             );
             log.info("청크 분할 완료: {}개 청크", chunks.size());
 
-            // ──── 병렬 호출 ────
             AtomicInteger numberCounter = new AtomicInteger(1);
 
             try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
@@ -446,34 +689,28 @@ public class GeminiQuizOrchestrator {
                 for (ChunkInfo chunk : chunks) {
                     CompletableFuture<Void> future = CompletableFuture.runAsync(
                         () -> processChunk(
-                            chunk, cacheName, converter, strategy,
-                            numberCounter, onChunkCompleted
+                            chunk, cacheName, converter, strategyValue, numberCounter,
+                            onChunkCompleted
                         ),
                         executor
                     );
                     futures.add(future);
                 }
 
-                // 모든 청크 완료 대기 (부분 실패 허용)
                 CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).join();
             }
-
-            log.info("전체 병렬 생성 완료: 총 {}번까지 번호 할당됨",
-                numberCounter.get() - 1);
+            log.info("전체 병렬 생성 완료: 총 {}번까지 번호 할당됨", numberCounter.get() - 1);
         } finally {
             geminiCacheService.deleteCache(cacheName);
             geminiFileService.deleteFile(metadata.name());
         }
     }
 
-    /**
-     * 단일 청크를 처리한다: API 호출 → 검증 → 셔플 → 번호 재할당 → 콜백.
-     */
     private void processChunk(
         ChunkInfo chunk,
         String cacheName,
-        BeanOutputConverter<AIProblemSet> converter,
-        QuizPromptStrategy strategy,
+        BeanOutputConverter<GeminiProblemSet> converter,
+        String strategyValue,
         AtomicInteger numberCounter,
         Consumer<AIProblemSet> onChunkCompleted
     ) {
@@ -481,12 +718,10 @@ public class GeminiQuizOrchestrator {
             log.debug("청크 처리 시작: pages={}, quizCount={}",
                 chunk.referencedPages(), chunk.quizCount());
 
-            // ──── 1. 유저 프롬프트 조립 ────
             String userPrompt = UserPrompt.generate(
                 chunk.referencedPages(), chunk.quizCount()
             );
 
-            // ──── 2. ChatModel 호출 (캐시 참조) ────
             ChatResponse response = chatModel.call(
                 new Prompt(userPrompt,
                     GoogleGenAiChatOptions.builder()
@@ -499,16 +734,15 @@ public class GeminiQuizOrchestrator {
             String jsonText = response.getResult().getOutput().getText();
             log.debug("청크 응답 수신 (길이: {}자)", jsonText.length());
 
-            // ──── 3. JSON → AIProblemSet 역직렬화 ────
-            AIProblemSet problemSet = converter.convert(jsonText);
+            GeminiProblemSet geminiResult = converter.convert(jsonText);
 
-            if (problemSet == null || problemSet.quiz() == null || problemSet.quiz().isEmpty()) {
+            if (geminiResult == null || geminiResult.quiz() == null
+                || geminiResult.quiz().isEmpty()) {
                 log.warn("청크 결과 비어있음: pages={}", chunk.referencedPages());
                 return;
             }
 
-            // ──── 4. 선택지 4개 초과 검증 → 폐기 ────
-            AIProblem firstProblem = problemSet.quiz().getFirst();
+            GeminiProblem firstProblem = geminiResult.quiz().getFirst();
             if (firstProblem.selections() != null
                 && firstProblem.selections().size() > MAX_SELECTION_COUNT) {
                 log.warn("선택지 초과로 청크 폐기: {}개 선택지, pages={}",
@@ -516,53 +750,19 @@ public class GeminiQuizOrchestrator {
                 return;
             }
 
-            // ──── 5. 후처리 (셔플 + 번호 재할당) ────
-            List<AIProblem> processedQuiz = postProcess(
-                problemSet.quiz(), strategy, numberCounter
+            // ──── Mapper로 변환 위임 (structure → dto + 셔플 + 번호 할당) ────
+            AIProblemSet result = GeminiProblemSetMapper.toDto(
+                geminiResult, strategyValue, numberCounter
             );
 
-            AIProblemSet result = new AIProblemSet(processedQuiz);
-
-            // ──── 6. 콜백 호출 ────
             onChunkCompleted.accept(result);
 
             log.debug("청크 처리 완료: pages={}, 문제 {}개",
-                chunk.referencedPages(), processedQuiz.size());
+                chunk.referencedPages(), result.quiz().size());
         } catch (Exception e) {
             log.error("청크 처리 실패 (계속 진행): pages={}, error={}",
                 chunk.referencedPages(), e.getMessage());
-            // 부분 실패 허용 — 다른 청크는 계속 진행
         }
-    }
-
-    /**
-     * 후처리: MULTIPLE/BLANK 타입의 선택지 셔플 + 번호 순차 재할당.
-     */
-    private List<AIProblem> postProcess(
-        List<AIProblem> quiz,
-        QuizPromptStrategy strategy,
-        AtomicInteger numberCounter
-    ) {
-        boolean shouldShuffle = strategy == QuizType.MULTIPLE || strategy == QuizType.BLANK;
-
-        List<AIProblem> result = new ArrayList<>(quiz.size());
-
-        for (AIProblem problem : quiz) {
-            List<AISelection> selections = problem.selections();
-
-            // 선택지 셔플 (MULTIPLE, BLANK 타입만)
-            if (shouldShuffle && selections != null && !selections.isEmpty()) {
-                selections = new ArrayList<>(selections);
-                Collections.shuffle(selections);
-            }
-
-            // 번호 재할당 (AtomicInteger로 스레드 안전)
-            int number = numberCounter.getAndIncrement();
-
-            result.add(new AIProblem(number, problem.title(), selections, problem.explanation()));
-        }
-
-        return result;
     }
 }
 ```
@@ -577,7 +777,8 @@ public class GeminiQuizOrchestrator {
 | **`AtomicInteger` for 번호 재할당**              | 여러 Virtual Thread에서 동시 접근 → CAS 기반 thread-safe increment       |
 | **부분 실패 → `catch` + `return`**              | Python의 `try/except` + `continue` 패턴. 한 청크 실패해도 나머지 계속         |
 | **`MAX_CHUNK_COUNT = 10`**                  | Python 환경변수 `MAX_CHUNK_COUNT` 기본값과 동일                          |
-| **record 불변성 + 새 인스턴스**                     | `AIProblem`은 record(불변)이므로 셔플/번호 변경 시 새 인스턴스 생성                |
+| **record 불변성 + 새 인스턴스**                     | `GeminiProblem`은 record(불변)이므로 변환+셔플+번호 변경 시 새 `AIProblem` 인스턴스 생성 |
+| **`GeminiProblemSetMapper` 분리**              | 변환 로직을 `mapper` 패키지로 분리하여 서비스의 책임을 줄이고 테스트 용이성 확보           |
 
 ### Virtual Threads 사용 포인트
 
@@ -613,17 +814,17 @@ Spring AI의 ChatModel 구현체는 stateless하다.
 ```java
 package com.icc.qasker.ai.controller;
 
+import com.icc.qasker.ai.QuizOrchestrationService;
+import com.icc.qasker.ai.dto.AIProblem;
+import com.icc.qasker.ai.dto.AIProblemSet;
 import com.icc.qasker.ai.dto.ChatRequest;
 import com.icc.qasker.ai.dto.MyChatResponse;
-import com.icc.qasker.ai.dto.ai.AIProblemSet;
 import com.icc.qasker.ai.prompt.quiz.common.QuizType;
 import com.icc.qasker.ai.service.ChatService;
-import com.icc.qasker.ai.service.QuizOrchestrationService;
-import com.icc.qasker.ai.service.GeminiQuizOrchestrator;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import java.util.Collections;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -640,8 +841,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AIController {
 
     private final ChatService chatService;
-    private final FacadeService facadeService;
-    private final GeminiQuizOrchestrator geminiQuizOrchestrator;
+    private final QuizOrchestrationService quizOrchestrationService;
 
     @Operation(summary = "AI와 채팅한다")
     @PostMapping("/chat")
@@ -650,19 +850,6 @@ public class AIController {
         ChatRequest request
     ) {
         return ResponseEntity.ok(chatService.chat(request.prompt()));
-    }
-
-    @Operation(summary = "PDF로 퀴즈를 생성한다 (Structured Output 테스트)")
-    @PostMapping("/test-quiz")
-    public ResponseEntity<AIProblemSet> testQuiz(
-        @RequestParam String fileUrl,
-        @RequestParam QuizType quizType,
-        @RequestParam int quizCount,
-        @RequestParam List<Integer> pageNumbers
-    ) {
-        return ResponseEntity.ok(
-            facadeService.generateQuiz(fileUrl, quizType, quizCount, pageNumbers)
-        );
     }
 
     @Operation(summary = "PDF로 퀴즈를 병렬 생성한다 (Step 5 테스트)")
@@ -675,13 +862,13 @@ public class AIController {
     ) {
         List<AIProblemSet> collectedResults = Collections.synchronizedList(new ArrayList<>());
 
-        geminiQuizOrchestrator.generateQuizzes(
-            fileUrl, quizType, quizCount, pageNumbers,
+        quizOrchestrationService.generateQuiz(
+            fileUrl, quizType.name(), quizCount, pageNumbers,
             collectedResults::add
         );
 
         // 모든 청크 결과를 하나의 AIProblemSet으로 합침
-        List<com.icc.qasker.ai.dto.ai.AIProblem> allQuiz = collectedResults.stream()
+        List<AIProblem> allQuiz = collectedResults.stream()
             .flatMap(ps -> ps.quiz().stream())
             .toList();
 
@@ -737,18 +924,18 @@ pageNumbers=1,2,3,4,5"
 INFO  GeminiFileService          - PDF 업로드 완료: name=files/r1b5ugz, state=PROCESSING
 INFO  GeminiFileService          - 파일 처리 완료: name=files/r1b5ugz, uri=https://...
 INFO  GeminiCacheService         - 캐시 생성 완료: name=cachedContents/abc123, ...
-INFO  GeminiQuizOrchestrator     - 캐시 생성 완료: cacheName=cachedContents/abc123
-INFO  GeminiQuizOrchestrator     - 청크 분할 완료: 10개 청크
-DEBUG GeminiQuizOrchestrator     - 청크 처리 시작: pages=[1,2,3], quizCount=2
-DEBUG GeminiQuizOrchestrator     - 청크 처리 시작: pages=[4,5,6], quizCount=2
-DEBUG GeminiQuizOrchestrator     - 청크 처리 시작: pages=[7,8,9], quizCount=2
+INFO  QuizOrchestrationServiceImpl     - 캐시 생성 완료: cacheName=cachedContents/abc123
+INFO  QuizOrchestrationServiceImpl     - 청크 분할 완료: 10개 청크
+DEBUG QuizOrchestrationServiceImpl     - 청크 처리 시작: pages=[1,2,3], quizCount=2
+DEBUG QuizOrchestrationServiceImpl     - 청크 처리 시작: pages=[4,5,6], quizCount=2
+DEBUG QuizOrchestrationServiceImpl     - 청크 처리 시작: pages=[7,8,9], quizCount=2
   ...                             (10개 청크 병렬 시작)
-DEBUG GeminiQuizOrchestrator     - 청크 응답 수신 (길이: 856자)
-DEBUG GeminiQuizOrchestrator     - 청크 처리 완료: pages=[4,5,6], 문제 2개
-DEBUG GeminiQuizOrchestrator     - 청크 응답 수신 (길이: 912자)
-DEBUG GeminiQuizOrchestrator     - 청크 처리 완료: pages=[1,2,3], 문제 2개
+DEBUG QuizOrchestrationServiceImpl     - 청크 응답 수신 (길이: 856자)
+DEBUG QuizOrchestrationServiceImpl     - 청크 처리 완료: pages=[4,5,6], 문제 2개
+DEBUG QuizOrchestrationServiceImpl     - 청크 응답 수신 (길이: 912자)
+DEBUG QuizOrchestrationServiceImpl     - 청크 처리 완료: pages=[1,2,3], 문제 2개
   ...                             (완료 순서는 비결정적)
-INFO  GeminiQuizOrchestrator     - 전체 병렬 생성 완료: 총 15번까지 번호 할당됨
+INFO  QuizOrchestrationServiceImpl     - 전체 병렬 생성 완료: 총 15번까지 번호 할당됨
 INFO  GeminiCacheService         - 캐시 삭제 완료: name=cachedContents/abc123
 INFO  GeminiFileService          - Gemini 파일 삭제 완료: name=files/r1b5ugz
 ```
@@ -832,7 +1019,7 @@ POST /v1beta/models/gemini-2.0-flash:generateContent?key={API_KEY}
 ### Step 6: Rate Limiter + 에러 처리
 
 ```java
-// GeminiQuizOrchestrator에 추가될 내용:
+// QuizOrchestrationServiceImpl에 추가될 내용:
 
 // Rate Limiter — 청크 수만큼 소모
 rateLimiter.tryConsume(chunks.size());
@@ -844,9 +1031,9 @@ rateLimiter.tryConsume(chunks.size());
 ### Step 7: quiz-impl 연결
 
 ```java
-// GenerationServiceImpl에서 GeminiQuizOrchestrator 호출:
+// GenerationServiceImpl에서 QuizOrchestrationService 호출:
 
-geminiQuizOrchestrator.generateQuizzes(
+quizOrchestrationService.generateQuiz(
     fileUrl, quizType, quizCount, pageNumbers,
     (problemSet) -> { /* AIProblemSet → ProblemSetGeneratedEvent 변환 */ }
 );

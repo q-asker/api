@@ -5,11 +5,13 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Getter
-public class ProblemSetGeneratedEvent implements StreamEvent {
+@Setter
+public class ProblemSetGeneratedEvent {
 
     private List<QuizGeneratedFromAI> quiz;
 
     @Getter
+    @Setter
     public static class QuizGeneratedFromAI {
 
         private Integer number;

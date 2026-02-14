@@ -1,7 +1,7 @@
 package com.icc.qasker.quiz.controller;
 
 import com.icc.qasker.quiz.ProblemSetService;
-import com.icc.qasker.quiz.dto.feResponse.ProblemSetResponse;
+import com.icc.qasker.quiz.dto.response.ProblemSetResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;

@@ -16,6 +16,7 @@ dependencies {
     // aws-api: AWS 관련 인터페이스 (S3 파일 업로드 등에 사용)
     // 예: 퀴즈 이미지 업로드 시 AwsService 인터페이스를 호출
     implementation project(":aws:aws-api")
+    implementation project(":ai:ai-api")
     // quiz-api: 퀴즈 관련 인터페이스·DTO 정의 모듈
     // 예: QuizController 인터페이스, QuizRequest/QuizResponse DTO를 구현체에서 import
     implementation project(":quiz:quiz-api")

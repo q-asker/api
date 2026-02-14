@@ -1,8 +1,8 @@
-package com.icc.qasker.ai.dto.ai;
+package com.icc.qasker.ai.structure;
 
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 
-public record AISelection(
+public record GeminiSelection(
     @JsonPropertyDescription("선택지 텍스트")
     String content,
 
