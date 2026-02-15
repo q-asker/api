@@ -3,6 +3,7 @@ package com.icc.qasker.quiz.entity;
 import static jakarta.persistence.FetchType.LAZY;
 
 import com.icc.qasker.global.entity.CreatedAt;
+import com.icc.qasker.quiz.dto.airesponse.ProblemSetGeneratedEvent.QuizGeneratedFromAI.SelectionsOfAI;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -11,6 +12,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinColumns;
 import jakarta.persistence.ManyToOne;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -18,8 +20,8 @@ import lombok.NoArgsConstructor;
 
 @Entity
 @Getter
-@NoArgsConstructor
-@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
 public class Selection extends CreatedAt {
 
@@ -38,4 +40,12 @@ public class Selection extends CreatedAt {
     })
     private Problem problem;
 
+    // 이하 헬퍼 함수
+    public static Selection of(SelectionsOfAI dto, Problem problem) {
+        return Selection.builder()
+            .content(dto.getContent())
+            .correct(dto.isCorrect())
+            .problem(problem)
+            .build();
+    }
 }

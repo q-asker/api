@@ -1,9 +1,9 @@
 package com.icc.qasker.quiz.mapper;
 
 import com.icc.qasker.global.component.HashUtil;
-import com.icc.qasker.quiz.dto.feResponse.ProblemSetResponse;
-import com.icc.qasker.quiz.dto.feResponse.ProblemSetResponse.QuizForFe;
-import com.icc.qasker.quiz.dto.feResponse.ProblemSetResponse.QuizForFe.SelectionsForFE;
+import com.icc.qasker.quiz.dto.feresponse.ProblemSetResponse;
+import com.icc.qasker.quiz.dto.feresponse.ProblemSetResponse.QuizForFe;
+import com.icc.qasker.quiz.dto.feresponse.ProblemSetResponse.QuizForFe.SelectionForFE;
 import com.icc.qasker.quiz.entity.Problem;
 import com.icc.qasker.quiz.entity.ProblemSet;
 import com.icc.qasker.quiz.entity.Selection;
@@ -20,11 +20,11 @@ public final class ProblemSetResponseMapper {
     private final HashUtil hashUtil;
 
     public QuizForFe fromEntity(Problem problem) {
-        List<SelectionsForFE> selections = IntStream
+        List<SelectionForFE> selections = IntStream
             .range(0, problem.getSelections().size())
             .mapToObj(i -> {
                 Selection selection = problem.getSelections().get(i);
-                return new SelectionsForFE(
+                return new SelectionForFE(
                     i + 1,
                     selection.getContent(),
                     selection.isCorrect()
@@ -42,13 +42,18 @@ public final class ProblemSetResponseMapper {
     }
 
     public ProblemSetResponse fromEntity(ProblemSet problemSet) {
-        List<QuizForFe> quizzes = problemSet.getProblems().stream()
+        List<QuizForFe> quizzes = problemSet
+            .getProblems()
+            .stream()
             .map(this::fromEntity)
             .toList();
 
         return new ProblemSetResponse(
+            problemSet.getSessionId(),
             hashUtil.encode(problemSet.getId()),
-            quizzes.size(),
+            problemSet.getGenerationStatus(),
+            problemSet.getQuizType(),
+            problemSet.getTotalQuizCount(),
             quizzes
         );
     }

@@ -1,16 +1,20 @@
-package com.icc.qasker.quiz.dto.feRequest;
+package com.icc.qasker.quiz.dto.ferequest;
 
-import com.icc.qasker.quiz.dto.feRequest.enums.DifficultyType;
-import com.icc.qasker.quiz.dto.feRequest.enums.QuizType;
+import com.icc.qasker.quiz.dto.ferequest.enums.DifficultyType;
+import com.icc.qasker.quiz.dto.ferequest.enums.QuizType;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.util.List;
+import org.hibernate.validator.constraints.UUID;
 
 public record GenerationRequest(
 
+    @NotNull(message = "sessionId가 null입니다.")
+    @UUID(message = "sessionId가 유효한 UUID 형식이 아닙니다.")
+    String sessionId,
     @NotBlank(message = "url이 존재하지 않습니다.")
     String uploadedUrl,
     @Min(value = 5, message = "quizCount는 5이상입니다.")
@@ -27,7 +31,6 @@ public record GenerationRequest(
         @Min(value = 1, message = "배열 요소는 1 이상이어야 합니다.")
             Integer
         > pageNumbers
-
 ) {
 
 };

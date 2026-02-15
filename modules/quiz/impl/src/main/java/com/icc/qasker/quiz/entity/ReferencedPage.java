@@ -9,12 +9,17 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinColumns;
 import jakarta.persistence.ManyToOne;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
-import lombok.Setter;
+import lombok.NoArgsConstructor;
 
-@Setter
-@Getter
 @Entity
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@Builder
 public class ReferencedPage extends CreatedAt {
 
     @Id
@@ -25,15 +30,16 @@ public class ReferencedPage extends CreatedAt {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumns({
-        @JoinColumn(name = "problem_set_id", referencedColumnName = "problem_set_id"),
-        @JoinColumn(name = "number", referencedColumnName = "number")
+            @JoinColumn(name = "problem_set_id", referencedColumnName = "problem_set_id"),
+            @JoinColumn(name = "number", referencedColumnName = "number")
     })
     private Problem problem;
 
+    // 이하 헬퍼 함수
     public static ReferencedPage of(int pageNumber, Problem problem) {
-        ReferencedPage page = new ReferencedPage();
-        page.setPageNumber(pageNumber);
-        page.setProblem(problem);
-        return page;
+        return ReferencedPage.builder()
+                .pageNumber(pageNumber)
+                .problem(problem)
+                .build();
     }
 }

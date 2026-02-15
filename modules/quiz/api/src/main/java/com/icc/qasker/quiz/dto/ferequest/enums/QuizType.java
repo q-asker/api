@@ -1,4 +1,4 @@
-package com.icc.qasker.quiz.dto.feRequest.enums;
+package com.icc.qasker.quiz.dto.ferequest.enums;
 
 public enum QuizType {
     MULTIPLE,

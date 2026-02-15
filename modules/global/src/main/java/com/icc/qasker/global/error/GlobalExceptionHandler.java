@@ -2,10 +2,12 @@ package com.icc.qasker.global.error;
 
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.catalina.connector.ClientAbortException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @Slf4j
@@ -45,6 +47,9 @@ public class GlobalExceptionHandler {
                     ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR.getMessage()));
     }
 
+    @ExceptionHandler({AsyncRequestNotUsableException.class, ClientAbortException.class})
+    public void handleSseException() {
+    }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<CustomErrorResponse> handleCustomException(

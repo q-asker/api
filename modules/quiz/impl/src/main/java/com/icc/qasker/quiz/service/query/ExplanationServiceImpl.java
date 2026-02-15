@@ -1,11 +1,11 @@
-package com.icc.qasker.quiz.service;
+package com.icc.qasker.quiz.service.query;
 
 import com.icc.qasker.global.component.HashUtil;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.quiz.ExplanationService;
-import com.icc.qasker.quiz.dto.feResponse.ExplanationResponse;
-import com.icc.qasker.quiz.dto.feResponse.ResultResponse;
+import com.icc.qasker.quiz.dto.feresponse.ExplanationResponse;
+import com.icc.qasker.quiz.dto.feresponse.ResultResponse;
 import com.icc.qasker.quiz.entity.Problem;
 import com.icc.qasker.quiz.entity.ReferencedPage;
 import com.icc.qasker.quiz.repository.ProblemRepository;
@@ -17,13 +17,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class ExplanationServiceImpl implements ExplanationService {
 
     private final HashUtil hashUtil;
     private final ProblemRepository problemRepository;
 
     @Override
-    @Transactional(readOnly = true)
     public ExplanationResponse getExplanationByProblemSetId(String problemSetId) {
         long id = hashUtil.decode(problemSetId);
         List<Problem> problems = problemRepository.findByIdProblemSetId(id);

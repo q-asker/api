@@ -2,8 +2,8 @@ package com.icc.qasker.quiz.adapter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.icc.qasker.ai.QuizOrchestrationService;
-import com.icc.qasker.quiz.dto.aiResponse.ProblemSetGeneratedEvent;
-import com.icc.qasker.quiz.dto.feRequest.enums.QuizType;
+import com.icc.qasker.quiz.dto.airesponse.ProblemSetGeneratedEvent;
+import com.icc.qasker.quiz.dto.ferequest.enums.QuizType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
