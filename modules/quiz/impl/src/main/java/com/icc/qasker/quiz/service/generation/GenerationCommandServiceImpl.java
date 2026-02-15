@@ -4,6 +4,7 @@ import static com.icc.qasker.quiz.GenerationStatus.COMPLETED;
 import static com.icc.qasker.quiz.GenerationStatus.FAILED;
 import static com.icc.qasker.quiz.GenerationStatus.GENERATING;
 
+import com.icc.qasker.ai.dto.GenerationRequestToAI;
 import com.icc.qasker.global.component.HashUtil;
 import com.icc.qasker.global.component.SlackNotifier;
 import com.icc.qasker.global.error.CustomException;
@@ -14,7 +15,6 @@ import com.icc.qasker.quiz.QuizCommandService;
 import com.icc.qasker.quiz.QuizQueryService;
 import com.icc.qasker.quiz.SseNotificationService;
 import com.icc.qasker.quiz.adapter.AIServerAdapter;
-import com.icc.qasker.quiz.dto.airequest.GenerationRequestToAI;
 import com.icc.qasker.quiz.dto.airesponse.ProblemSetGeneratedEvent;
 import com.icc.qasker.quiz.dto.ferequest.GenerationRequest;
 import com.icc.qasker.quiz.dto.ferequest.enums.QuizType;
@@ -44,8 +44,6 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
     // 유틸
     private final HashUtil hashUtil;
     private final SlackNotifier slackNotifier;
-    // 매퍼
-    private final FeRequestToAIRequestMapper feRequestToAIRequestMapper;
 
     @Override
     public void triggerGeneration(
@@ -79,7 +77,7 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
             .start(() -> processAsyncGeneration(
                 request.sessionId(),
                 problemSetId,
-                feRequestToAIRequestMapper.toAIRequest(request)));
+                FeRequestToAIRequestMapper.toAIRequest(request)));
     }
 
     private void processAsyncGeneration(
@@ -90,7 +88,10 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
         AtomicInteger atomicGeneratedCount = new AtomicInteger(0);
         try {
             aiServerAdapter.streamRequest(
-                request,
+                request.fileUrl(),
+                QuizType.valueOf(request.strategyValue()),
+                request.quizCount(),
+                request.referencePages(),
                 (ProblemSetGeneratedEvent problemSet) -> {
                     if (problemSet.getQuiz() == null || problemSet.getQuiz().isEmpty()) {
                         log.warn("빈 배치 수신, 건너뜀: sessionId={}", sessionId);
@@ -109,6 +110,7 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
                         QuizViewToQuizForFeMapper::toQuizForFe).toList();
 
                     atomicGeneratedCount.addAndGet(quizViews.size());
+
                     notificationService.sendCreatedMessageWithId(
                         sessionId,
                         String.valueOf(quizViews.getLast().getNumber()),
@@ -116,7 +118,7 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
                             sessionId,
                             hashUtil.encode(problemSetId),
                             GENERATING,
-                            request.quizType(),
+                            QuizType.valueOf(request.strategyValue()),
                             request.quizCount(),
                             quizForFeList));
                 });
@@ -135,13 +137,13 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
             finalizeSuccess(
                 sessionId,
                 problemSetId,
-                request.quizType(),
+                QuizType.valueOf(request.strategyValue()),
                 generatedCount);
         } else {
             finalizePartialSuccess(
                 sessionId,
                 problemSetId,
-                request.quizType(),
+                QuizType.valueOf(request.strategyValue()),
                 generatedCount,
                 request.quizCount());
         }

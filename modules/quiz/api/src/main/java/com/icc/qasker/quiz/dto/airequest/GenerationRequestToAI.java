@@ -1,8 +1,7 @@
-package com.icc.qasker.quiz.dto.aiRequest;
+package com.icc.qasker.quiz.dto.airequest;
 
 import com.icc.qasker.quiz.dto.ferequest.enums.DifficultyType;
 import com.icc.qasker.quiz.dto.ferequest.enums.QuizType;
-import com.icc.qasker.quiz.dto.feRequest.enums.QuizType;
 import java.util.List;
 import lombok.Builder;
 
