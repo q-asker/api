@@ -39,12 +39,13 @@ dependencies {
     // 유틸리티 구현 모듈: 범용 헬퍼 기능
     // 예: HealthCheckController 등이 이 모듈에 위치
     implementation project(':util:util-impl')
+    // AI 모듈: Google Gemini 기반 AI 기능
+    // 예: AiService에서 ChatClient를 통해 Gemini API를 호출
+    implementation project(':ai:ai-impl')
     // 공통 모듈: 전역 예외 처리, 공통 응답 DTO
     // 예: GlobalExceptionHandler, ApiResponse<T>, BaseEntity 등이 이 모듈에 위치
     implementation project(':global')
-    // AI 모듈: Google Gemini 기반 AI 기능
-    // 예: AiService에서 ChatClient를 통해 Gemini API를 호출
-//    implementation project(':ai')
+
 
     // ────────────────────────────────
     // 스프링부트 Web & JPA
@@ -55,6 +56,7 @@ dependencies {
     // Spring Data JPA: JPA 기반 리포지토리 자동 생성, 엔티티 매핑 지원
     // 예: spring.jpa.hibernate.ddl-auto=validate 설정으로 엔티티와 DB 스키마 일치 여부를 검증
     implementation "org.springframework.boot:spring-boot-starter-data-jpa"
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
     // Configuration Processor: @ConfigurationProperties 클래스의 메타데이터를 자동 생성
     // 예: @ConfigurationProperties(prefix = "app.jwt")로 선언하면
     //     IDE에서 application.yml의 app.jwt.* 속성을 자동완성·타입 검증 가능
