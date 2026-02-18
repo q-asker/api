@@ -1,6 +1,7 @@
 package com.icc.qasker.auth.service;
 
 import com.icc.qasker.auth.dto.request.PostCreateRequest;
+import com.icc.qasker.auth.dto.request.PostUpdateRequest;
 import com.icc.qasker.auth.dto.response.PostResponse;
 import com.icc.qasker.auth.entity.Board;
 import com.icc.qasker.auth.entity.User;
@@ -31,16 +32,29 @@ public class BoardService {
 
     @Transactional
     public void createPost(PostCreateRequest request) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || authentication.getPrincipal() == null) {
-            throw new CustomException(ExceptionMessage.UNAUTHORIZED);
-        }
-        User user = userRepository.findById(((User) authentication.getPrincipal()).getUserId())
-            .orElseThrow(() -> new CustomException(ExceptionMessage.USER_NOT_FOUND));
-
+        User user = getUser();
         Board board = Board.builder().title(request.title()).content(request.content()).user(user)
             .build();
         boardRepository.save(board);
     }
 
+    @Transactional
+    public void updatePost(PostUpdateRequest request) {
+        User user = getUser();
+        Board board = boardRepository.findById(request.boardId())
+            .orElseThrow(() -> new CustomException(ExceptionMessage.POST_NOT_FOUND));
+        if (user.getUserId().equals(board.getUser().getUserId())) {
+            throw new CustomException(ExceptionMessage.NOT_ENOUGH_ACCESS);
+        }
+        board.update(request.title(), request.content());
+    }
+
+    private User getUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || authentication.getPrincipal() == null) {
+            throw new CustomException(ExceptionMessage.UNAUTHORIZED);
+        }
+        return userRepository.findById(((User) authentication.getPrincipal()).getUserId())
+            .orElseThrow(() -> new CustomException(ExceptionMessage.USER_NOT_FOUND));
+    }
 }

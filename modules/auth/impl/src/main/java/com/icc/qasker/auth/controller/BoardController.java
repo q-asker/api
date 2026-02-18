@@ -1,6 +1,7 @@
 package com.icc.qasker.auth.controller;
 
 import com.icc.qasker.auth.dto.request.PostCreateRequest;
+import com.icc.qasker.auth.dto.request.PostUpdateRequest;
 import com.icc.qasker.auth.dto.response.PostResponse;
 import com.icc.qasker.auth.service.BoardService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -36,6 +37,13 @@ public class BoardController {
     @PostMapping
     public ResponseEntity<?> createPost(@RequestBody PostCreateRequest createRequest) {
         boardService.createPost(createRequest);
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(summary = "게시글을 수정한다")
+    @PostMapping
+    public ResponseEntity<?> updatePost(@RequestBody PostUpdateRequest updateRequest) {
+        boardService.updatePost(updateRequest);
         return ResponseEntity.ok().build();
     }
 
