@@ -1,5 +1,6 @@
 package com.icc.qasker.auth.controller;
 
+import com.icc.qasker.auth.dto.request.PostCreateRequest;
 import com.icc.qasker.auth.dto.response.PostResponse;
 import com.icc.qasker.auth.service.BoardService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -10,6 +11,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -21,7 +24,7 @@ public class BoardController {
 
     private final BoardService boardService;
 
-    @Operation(summary = "게시글을 가져온다")
+    @Operation(summary = "게시글 명단을 가져온다")
     @GetMapping
     public ResponseEntity<Page<PostResponse>> getPosts(
         @PageableDefault(page = 0, size = 20) Pageable pageable
@@ -29,5 +32,11 @@ public class BoardController {
         return ResponseEntity.ok(boardService.getPosts(pageable));
     }
 
+    @Operation(summary = "게시글 작성을 요청한다")
+    @PostMapping
+    public ResponseEntity<?> createPost(@RequestBody PostCreateRequest createRequest) {
+        boardService.createPost(createRequest);
+        return ResponseEntity.ok().build();
+    }
 
 }
