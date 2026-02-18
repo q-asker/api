@@ -13,7 +13,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -47,7 +47,7 @@ public class Board extends CreatedAt {
     private BoardStatus status;
 
     @LastModifiedDate
-    private LocalDateTime updateAt;
+    private Instant updateAt;
 
     @Builder
     public Board(User user, String title, String content) {
@@ -65,5 +65,9 @@ public class Board extends CreatedAt {
 
     public void changeStatus(BoardStatus status) {
         this.status = status;
+    }
+
+    public void updateViewCount() {
+        this.viewCount++;
     }
 }

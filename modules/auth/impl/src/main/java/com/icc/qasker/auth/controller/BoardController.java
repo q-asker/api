@@ -1,8 +1,8 @@
 package com.icc.qasker.auth.controller;
 
-import com.icc.qasker.auth.dto.request.PostCreateRequest;
-import com.icc.qasker.auth.dto.request.PostUpdateRequest;
+import com.icc.qasker.auth.dto.request.PostRequest;
 import com.icc.qasker.auth.dto.response.PostResponse;
+import com.icc.qasker.auth.dto.response.SinglePostResponse;
 import com.icc.qasker.auth.service.BoardService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -12,6 +12,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -33,18 +34,24 @@ public class BoardController {
         return ResponseEntity.ok(boardService.getPosts(pageable));
     }
 
+    @Operation(summary = "단일 게시글 내용을 가져온다")
+    @GetMapping("/{boardId}")
+    public ResponseEntity<SinglePostResponse> getPost(@PathVariable Long boardId) {
+        return ResponseEntity.ok(boardService.getPost(boardId));
+    }
+
     @Operation(summary = "게시글 작성을 요청한다")
     @PostMapping
-    public ResponseEntity<?> createPost(@RequestBody PostCreateRequest createRequest) {
-        boardService.createPost(createRequest);
+    public ResponseEntity<?> createPost(@RequestBody PostRequest request) {
+        boardService.createPost(request);
         return ResponseEntity.ok().build();
     }
 
     @Operation(summary = "게시글을 수정한다")
-    @PostMapping
-    public ResponseEntity<?> updatePost(@RequestBody PostUpdateRequest updateRequest) {
-        boardService.updatePost(updateRequest);
+    @PostMapping("/{boardId}")
+    public ResponseEntity<?> updatePost(@PathVariable Long boardId,
+        @RequestBody PostRequest request) {
+        boardService.updatePost(boardId, request);
         return ResponseEntity.ok().build();
     }
-
 }
