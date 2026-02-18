@@ -21,7 +21,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
         registry.addMapping("/**")
             .allowedOrigins(qAskerProperties.getFrontendDevUrl(),
                 qAskerProperties.getFrontendDeployUrl())
-            .allowedMethods("GET", "POST", "PUT", "DELETE")
+            .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
             .allowCredentials(true)
             .maxAge(3600);
     }

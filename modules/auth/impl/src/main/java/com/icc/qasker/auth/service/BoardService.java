@@ -23,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class BoardService {
 
     private final BoardRepository boardRepository;
@@ -81,6 +82,9 @@ public class BoardService {
         if (authentication == null || authentication.getPrincipal() == null) {
             throw new CustomException(ExceptionMessage.UNAUTHORIZED);
         }
+        System.out.println("authentication.getPrincipal()" + authentication.getPrincipal());
+        System.out.println(
+            "authentication.getPrincipal().toString()" + authentication.getPrincipal().toString());
         return userRepository.findById(((User) authentication.getPrincipal()).getUserId())
             .orElseThrow(() -> new CustomException(ExceptionMessage.USER_NOT_FOUND));
     }

@@ -1,5 +1,7 @@
 package com.icc.qasker.auth.config;
 
+import static org.springframework.security.config.Customizer.withDefaults;
+
 import com.icc.qasker.auth.config.security.filter.JwtTokenAuthenticationFilter;
 import com.icc.qasker.auth.config.security.handler.OAuth2LoginSuccessHandler;
 import com.icc.qasker.auth.config.security.service.PrincipalOAuth2UserService;
@@ -39,6 +41,7 @@ public class SecurityConfig {
     public SecurityFilterChain apiFilterChain(HttpSecurity http,
         AuthenticationManager authenticationManager, JwtProperties jwtProperties) throws Exception {
         http
+            .cors(withDefaults())
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(
                 session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -57,8 +60,9 @@ public class SecurityConfig {
                     jwtProperties),
                 UsernamePasswordAuthenticationFilter.class)
             .authorizeHttpRequests(auth -> auth
+                .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers("/admin/**").hasRole("ADMIN")
-                .requestMatchers("/statistics/**", "/test").authenticated()
+                .requestMatchers("/statistics/**", "/test", "/board/create").authenticated()
                 .anyRequest().permitAll()
             )
             .oauth2Login(oauth -> oauth

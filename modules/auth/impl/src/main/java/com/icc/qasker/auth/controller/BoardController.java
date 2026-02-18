@@ -1,6 +1,7 @@
 package com.icc.qasker.auth.controller;
 
 import com.icc.qasker.auth.dto.request.PostRequest;
+import com.icc.qasker.auth.dto.response.PostPageResponse;
 import com.icc.qasker.auth.dto.response.PostResponse;
 import com.icc.qasker.auth.dto.response.SinglePostResponse;
 import com.icc.qasker.auth.service.BoardService;
@@ -28,10 +29,9 @@ public class BoardController {
 
     @Operation(summary = "게시글 명단을 가져온다")
     @GetMapping
-    public ResponseEntity<Page<PostResponse>> getPosts(
-        @PageableDefault(page = 0, size = 20) Pageable pageable
-    ) {
-        return ResponseEntity.ok(boardService.getPosts(pageable));
+    public ResponseEntity<PostPageResponse> getPosts(@PageableDefault Pageable pageable) {
+        Page<PostResponse> page = boardService.getPosts(pageable);
+        return ResponseEntity.ok(PostPageResponse.from(page));
     }
 
     @Operation(summary = "단일 게시글 내용을 가져온다")
@@ -41,7 +41,7 @@ public class BoardController {
     }
 
     @Operation(summary = "게시글 작성을 요청한다")
-    @PostMapping
+    @PostMapping("/create")
     public ResponseEntity<?> createPost(@RequestBody PostRequest request) {
         boardService.createPost(request);
         return ResponseEntity.ok().build();
