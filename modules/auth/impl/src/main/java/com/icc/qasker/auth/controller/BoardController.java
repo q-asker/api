@@ -48,7 +48,7 @@ public class BoardController {
     }
 
     @Operation(summary = "게시글을 수정한다")
-    @PostMapping("/{boardId}")
+    @PostMapping("/update/{boardId}")
     public ResponseEntity<?> updatePost(@PathVariable Long boardId,
         @RequestBody PostRequest request) {
         boardService.updatePost(boardId, request);

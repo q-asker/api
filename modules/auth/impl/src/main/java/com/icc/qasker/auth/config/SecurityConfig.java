@@ -1,5 +1,6 @@
 package com.icc.qasker.auth.config;
 
+import static org.springframework.http.HttpMethod.OPTIONS;
 import static org.springframework.security.config.Customizer.withDefaults;
 
 import com.icc.qasker.auth.config.security.filter.JwtTokenAuthenticationFilter;
@@ -60,9 +61,10 @@ public class SecurityConfig {
                     jwtProperties),
                 UsernamePasswordAuthenticationFilter.class)
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
+                .requestMatchers(OPTIONS, "/**").permitAll()
                 .requestMatchers("/admin/**").hasRole("ADMIN")
-                .requestMatchers("/statistics/**", "/test", "/board/create").authenticated()
+                .requestMatchers("/statistics/**", "/test", "/board/create", "/board/update/**")
+                .authenticated()
                 .anyRequest().permitAll()
             )
             .oauth2Login(oauth -> oauth

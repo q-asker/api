@@ -44,7 +44,7 @@ public class RefreshTokenUtil {
             .orElseThrow(() -> new CustomException(ExceptionMessage.UNAUTHORIZED));
 
         if (refreshToken.isExpired(Instant.now())) {
-            throw new CustomException(ExceptionMessage.UNAUTHORIZED);
+            throw new CustomException(ExceptionMessage.LOGIN_REQUIRED);
         }
 
         String newRtPlain = TokenUtils.randomUrlSafe(64);
