@@ -1,6 +1,7 @@
 package com.icc.qasker.auth.entity;
 
 import com.icc.qasker.global.entity.CreatedAt;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -12,8 +13,11 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -48,6 +52,9 @@ public class Board extends CreatedAt {
 
     @LastModifiedDate
     private Instant updateAt;
+
+    @OneToMany(mappedBy = "board", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    private List<Reply> replies = new ArrayList<>();
 
     @Builder
     public Board(User user, String title, String content) {

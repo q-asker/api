@@ -14,6 +14,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -59,6 +60,15 @@ public class BoardController {
         @RequestBody PostRequest request,
         @AuthenticationPrincipal User user) {
         boardService.updatePost(boardId, request, user);
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(summary = "게시글을 삭제한다")
+    @DeleteMapping("/delete/{boardId}")
+    public ResponseEntity<?> deletePost(
+        @PathVariable Long boardId,
+        @AuthenticationPrincipal User user) {
+        boardService.deletePost(boardId, user);
         return ResponseEntity.ok().build();
     }
 }

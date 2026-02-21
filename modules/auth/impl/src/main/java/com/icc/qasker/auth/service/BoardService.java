@@ -93,4 +93,13 @@ public class BoardService {
         }
         board.update(request.title(), request.content());
     }
+
+    @Transactional
+    public void deletePost(Long boardId, User user) {
+        if (user == null) {
+            throw new CustomException(ExceptionMessage.UNAUTHORIZED);
+        }
+        replyRepository.deleteByBoardBoardId(boardId);
+        boardRepository.deleteById(boardId);
+    }
 }
