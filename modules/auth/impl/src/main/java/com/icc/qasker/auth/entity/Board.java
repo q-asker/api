@@ -73,8 +73,4 @@ public class Board extends CreatedAt {
     public void changeStatus(BoardStatus status) {
         this.status = status;
     }
-
-    public void updateViewCount() {
-        this.viewCount++;
-    }
 }
