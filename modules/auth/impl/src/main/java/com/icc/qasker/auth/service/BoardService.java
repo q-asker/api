@@ -4,6 +4,7 @@ import com.icc.qasker.auth.dto.request.PostRequest;
 import com.icc.qasker.auth.dto.response.PostResponse;
 import com.icc.qasker.auth.dto.response.SinglePostResponse;
 import com.icc.qasker.auth.entity.Board;
+import com.icc.qasker.auth.entity.BoardStatus;
 import com.icc.qasker.auth.entity.Reply;
 import com.icc.qasker.auth.entity.User;
 import com.icc.qasker.auth.mapper.PostResponseMapper;
@@ -88,6 +89,10 @@ public class BoardService {
 
         Board board = boardRepository.findById(boardId)
             .orElseThrow(() -> new CustomException(ExceptionMessage.POST_NOT_FOUND));
+        
+        if (board.getStatus() == BoardStatus.ANSWERED) {
+            throw new CustomException(ExceptionMessage.NOT_ALLOWED_DELETE);
+        }
 
         if (!user.getUserId().equals(board.getUser().getUserId())) {
             throw new CustomException(ExceptionMessage.NOT_ENOUGH_ACCESS);
@@ -100,7 +105,11 @@ public class BoardService {
         if (user == null) {
             throw new CustomException(ExceptionMessage.UNAUTHORIZED);
         }
-        replyRepository.deleteByBoardBoardId(boardId);
-        boardRepository.deleteById(boardId);
+        Board board = boardRepository.findById(boardId)
+            .orElseThrow(() -> new CustomException(ExceptionMessage.POST_NOT_FOUND));
+        if (board.getStatus() == BoardStatus.ANSWERED) {
+            throw new CustomException(ExceptionMessage.NOT_ALLOWED_DELETE);
+        }
+        board.changeStatus(BoardStatus.DELETED);
     }
 }
