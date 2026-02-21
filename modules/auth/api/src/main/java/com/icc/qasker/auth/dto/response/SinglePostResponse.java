@@ -5,6 +5,6 @@ import java.util.List;
 
 public record SinglePostResponse(Long boardId, String username, String title, String content,
                                  Long viewCount, String status, Instant createAt,
-                                 List<String> replies) {
+                                 List<String> replies, boolean isWriter) {
 
 }

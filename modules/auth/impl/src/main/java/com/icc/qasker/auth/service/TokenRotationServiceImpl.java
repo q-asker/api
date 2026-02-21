@@ -45,7 +45,7 @@ public class TokenRotationServiceImpl implements TokenRotationService {
 
     private void setRefreshToken(HttpServletResponse response, String newRtPlain) {
         response.setHeader(HttpHeaders.SET_COOKIE,
-            CookieUtil.buildCookies(newRtPlain, jwtProperties.getAccessExpirationTime())
+            CookieUtil.buildCookies(newRtPlain, jwtProperties.getRefreshExpirationTime())
                 .toString());
     }
 }

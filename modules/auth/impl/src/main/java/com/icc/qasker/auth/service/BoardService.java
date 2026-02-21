@@ -16,8 +16,6 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,56 +34,63 @@ public class BoardService {
     }
 
     @Transactional
-    public SinglePostResponse getPost(Long boardId) {
+    public SinglePostResponse getPost(Long boardId, User requestUser) {
         Board board = boardRepository.findById(boardId)
             .orElseThrow(() -> new CustomException(ExceptionMessage.POST_NOT_FOUND));
-
+        User writeUser = board.getUser();
         board.updateViewCount();
 
         List<String> replies = replyRepository.findByBoard(board).stream()
             .map(Reply::getContent)
             .toList();
 
+        boolean isWriter = false;
+        if (requestUser != null) {
+            isWriter = requestUser.getUserId().equals(writeUser.getUserId());
+        }
+
         return new SinglePostResponse(
             board.getBoardId(),
-            board.getUser().getNickname(),
+            writeUser.getNickname(),
             board.getTitle(),
             board.getContent(),
             board.getViewCount(),
             board.getStatus().name(),
             board.getCreatedAt(),
-            replies
+            replies,
+            isWriter
         );
     }
 
     @Transactional
-    public void createPost(PostRequest request) {
-        User user = getUser();
-        Board board = Board.builder().title(request.title()).content(request.content()).user(user)
+    public void createPost(PostRequest request, User user) {
+        if (user == null) {
+            throw new CustomException(ExceptionMessage.UNAUTHORIZED);
+        }
+
+        User originUser = userRepository.findById(user.getUserId())
+            .orElseThrow(() -> new CustomException(ExceptionMessage.USER_NOT_FOUND));
+
+        Board board = Board.builder()
+            .title(request.title())
+            .content(request.content())
+            .user(originUser)
             .build();
         boardRepository.save(board);
     }
 
     @Transactional
-    public void updatePost(Long boardId, PostRequest request) {
-        User user = getUser();
+    public void updatePost(Long boardId, PostRequest request, User user) {
+        if (user == null) {
+            throw new CustomException(ExceptionMessage.UNAUTHORIZED);
+        }
+
         Board board = boardRepository.findById(boardId)
             .orElseThrow(() -> new CustomException(ExceptionMessage.POST_NOT_FOUND));
-        if (user.getUserId().equals(board.getUser().getUserId())) {
+
+        if (!user.getUserId().equals(board.getUser().getUserId())) {
             throw new CustomException(ExceptionMessage.NOT_ENOUGH_ACCESS);
         }
         board.update(request.title(), request.content());
-    }
-
-    private User getUser() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || authentication.getPrincipal() == null) {
-            throw new CustomException(ExceptionMessage.UNAUTHORIZED);
-        }
-        System.out.println("authentication.getPrincipal()" + authentication.getPrincipal());
-        System.out.println(
-            "authentication.getPrincipal().toString()" + authentication.getPrincipal().toString());
-        return userRepository.findById(((User) authentication.getPrincipal()).getUserId())
-            .orElseThrow(() -> new CustomException(ExceptionMessage.USER_NOT_FOUND));
     }
 }

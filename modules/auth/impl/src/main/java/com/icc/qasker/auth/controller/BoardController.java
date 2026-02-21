@@ -4,6 +4,7 @@ import com.icc.qasker.auth.dto.request.PostRequest;
 import com.icc.qasker.auth.dto.response.PostPageResponse;
 import com.icc.qasker.auth.dto.response.PostResponse;
 import com.icc.qasker.auth.dto.response.SinglePostResponse;
+import com.icc.qasker.auth.entity.User;
 import com.icc.qasker.auth.service.BoardService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -12,6 +13,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -36,22 +38,27 @@ public class BoardController {
 
     @Operation(summary = "단일 게시글 내용을 가져온다")
     @GetMapping("/{boardId}")
-    public ResponseEntity<SinglePostResponse> getPost(@PathVariable Long boardId) {
-        return ResponseEntity.ok(boardService.getPost(boardId));
+    public ResponseEntity<SinglePostResponse> getPost(@PathVariable Long boardId,
+        @AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(boardService.getPost(boardId, user));
     }
 
     @Operation(summary = "게시글 작성을 요청한다")
     @PostMapping("/create")
-    public ResponseEntity<?> createPost(@RequestBody PostRequest request) {
-        boardService.createPost(request);
+    public ResponseEntity<?> createPost(
+        @RequestBody PostRequest request,
+        @AuthenticationPrincipal User user) {
+        boardService.createPost(request, user);
         return ResponseEntity.ok().build();
     }
 
     @Operation(summary = "게시글을 수정한다")
     @PostMapping("/update/{boardId}")
-    public ResponseEntity<?> updatePost(@PathVariable Long boardId,
-        @RequestBody PostRequest request) {
-        boardService.updatePost(boardId, request);
+    public ResponseEntity<?> updatePost(
+        @PathVariable Long boardId,
+        @RequestBody PostRequest request,
+        @AuthenticationPrincipal User user) {
+        boardService.updatePost(boardId, request, user);
         return ResponseEntity.ok().build();
     }
 }
