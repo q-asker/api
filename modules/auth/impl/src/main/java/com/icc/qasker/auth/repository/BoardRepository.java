@@ -15,7 +15,7 @@ public interface BoardRepository extends JpaRepository<Board, Long> {
     @EntityGraph(attributePaths = {"user"})
     Page<Board> findAll(Pageable pageable);
 
-    @Query("SELECT b FROM Board b JOIN FETCH b.user LEFT JOIN FETCH b.replies WHERE b.boardId = :boardId")
+    @Query("SELECT DISTINCT b FROM Board b JOIN FETCH b.user LEFT JOIN FETCH b.replies WHERE b.boardId = :boardId")
     Optional<Board> findByIdWithUserAndReplies(@Param("boardId") Long boardId);
 
     @Modifying

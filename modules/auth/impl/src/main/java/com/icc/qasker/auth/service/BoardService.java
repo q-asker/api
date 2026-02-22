@@ -34,11 +34,9 @@ public class BoardService {
 
     @Transactional
     public SinglePostResponse getPost(Long boardId, User requestUser) {
-        boardRepository.incrementViewCount(boardId);
-
         Board board = boardRepository.findByIdWithUserAndReplies(boardId)
             .orElseThrow(() -> new CustomException(ExceptionMessage.POST_NOT_FOUND));
-
+        boardRepository.incrementViewCount(boardId);
         User writeUser = board.getUser();
 
         List<String> replies = board.getReplies().stream()

@@ -47,7 +47,7 @@ public class Board extends CreatedAt {
     @Column(nullable = false)
     private String content;
 
-    private Long viewCount = 0L;
+    private Long viewCount;
 
     @Enumerated(EnumType.STRING)
     private BoardStatus status;
