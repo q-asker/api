@@ -9,7 +9,6 @@ import com.icc.qasker.auth.entity.Reply;
 import com.icc.qasker.auth.entity.User;
 import com.icc.qasker.auth.mapper.PostResponseMapper;
 import com.icc.qasker.auth.repository.BoardRepository;
-import com.icc.qasker.auth.repository.ReplyRepository;
 import com.icc.qasker.auth.repository.UserRepository;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
@@ -27,7 +26,6 @@ public class BoardService {
 
     private final BoardRepository boardRepository;
     private final UserRepository userRepository;
-    private final ReplyRepository replyRepository;
     private final PostResponseMapper postResponseMapper;
 
     public Page<PostResponse> getPosts(Pageable pageable) {
@@ -38,11 +36,12 @@ public class BoardService {
     public SinglePostResponse getPost(Long boardId, User requestUser) {
         boardRepository.incrementViewCount(boardId);
 
-        Board board = boardRepository.findById(boardId)
+        Board board = boardRepository.findByIdWithUserAndReplies(boardId)
             .orElseThrow(() -> new CustomException(ExceptionMessage.POST_NOT_FOUND));
+
         User writeUser = board.getUser();
 
-        List<String> replies = replyRepository.findByBoard(board).stream()
+        List<String> replies = board.getReplies().stream()
             .map(Reply::getContent)
             .toList();
 
@@ -89,7 +88,7 @@ public class BoardService {
 
         Board board = boardRepository.findById(boardId)
             .orElseThrow(() -> new CustomException(ExceptionMessage.POST_NOT_FOUND));
-        
+
         if (board.getStatus() == BoardStatus.ANSWERED) {
             throw new CustomException(ExceptionMessage.NOT_ALLOWED_DELETE);
         }

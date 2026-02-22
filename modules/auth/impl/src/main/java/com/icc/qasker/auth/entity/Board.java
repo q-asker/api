@@ -55,7 +55,7 @@ public class Board extends CreatedAt {
     @LastModifiedDate
     private Instant updateAt;
 
-    @OneToMany(mappedBy = "board", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    @OneToMany(mappedBy = "board", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Reply> replies = new ArrayList<>();
 
     @Builder
