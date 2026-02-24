@@ -1,10 +1,8 @@
 package com.icc.qasker.quiz.entity;
 
 import static jakarta.persistence.FetchType.LAZY;
-import static java.util.stream.Collectors.toList;
 
 import com.icc.qasker.global.entity.CreatedAt;
-import com.icc.qasker.quiz.dto.aiResponse.ProblemSetGeneratedEvent.QuizGeneratedFromAI;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.EmbeddedId;
@@ -43,28 +41,4 @@ public class Problem extends CreatedAt {
     @OneToMany(mappedBy = "problem", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ReferencedPage> referencedPages = new ArrayList<>();
 
-    public static Problem of(QuizGeneratedFromAI quizDto, ProblemSet problemSet) {
-        Problem problem = new Problem();
-        ProblemId problemId = new ProblemId();
-        problemId.setNumber(quizDto.getNumber());
-        problem.setId(problemId);
-        problem.setTitle(quizDto.getTitle());
-
-        problem.setProblemSet(problemSet);
-
-        problem.setSelections(
-            quizDto.getSelections().stream()
-                .map(selDto -> Selection.of(selDto, problem))
-                .collect(toList())
-        );
-        problem.setExplanation(Explanation.of(quizDto.getExplanation(), problem));
-
-        problem.setReferencedPages(
-            quizDto.getReferencedPages().stream()
-                .map(page -> ReferencedPage.of(page, problem))
-                .collect(toList())
-        );
-
-        return problem;
-    }
 }

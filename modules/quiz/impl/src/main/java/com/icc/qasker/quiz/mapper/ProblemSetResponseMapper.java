@@ -9,11 +9,12 @@ import com.icc.qasker.quiz.entity.ProblemSet;
 import com.icc.qasker.quiz.entity.Selection;
 import java.util.List;
 import java.util.stream.IntStream;
-import lombok.AllArgsConstructor;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 @Component
-@AllArgsConstructor
+@RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ProblemSetResponseMapper {
 
     private final HashUtil hashUtil;
