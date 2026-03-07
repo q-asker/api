@@ -37,6 +37,9 @@ out/
 .vscode/
 .DS_Store
 
+### Claude Code ###
+.mcp.json
+
 ### Custom ###
 **/src/main/resources/application-**
 .env
