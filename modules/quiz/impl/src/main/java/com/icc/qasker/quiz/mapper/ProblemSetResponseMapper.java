@@ -17,39 +17,24 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ProblemSetResponseMapper {
 
-    private final HashUtil hashUtil;
+  private final HashUtil hashUtil;
 
-    public QuizForFe fromEntity(Problem problem) {
-        List<SelectionsForFE> selections = IntStream
-            .range(0, problem.getSelections().size())
-            .mapToObj(i -> {
-                Selection selection = problem.getSelections().get(i);
-                return new SelectionsForFE(
-                    i + 1,
-                    selection.getContent(),
-                    selection.isCorrect()
-                );
-            })
+  public QuizForFe fromEntity(Problem problem) {
+    List<SelectionsForFE> selections =
+        IntStream.range(0, problem.getSelections().size())
+            .mapToObj(
+                i -> {
+                  Selection selection = problem.getSelections().get(i);
+                  return new SelectionsForFE(i + 1, selection.getContent(), selection.isCorrect());
+                })
             .toList();
 
-        return new QuizForFe(
-            problem.getId().getNumber(),
-            problem.getTitle(),
-            0,
-            false,
-            selections
-        );
-    }
+    return new QuizForFe(problem.getId().getNumber(), problem.getTitle(), 0, false, selections);
+  }
 
-    public ProblemSetResponse fromEntity(ProblemSet problemSet) {
-        List<QuizForFe> quizzes = problemSet.getProblems().stream()
-            .map(this::fromEntity)
-            .toList();
+  public ProblemSetResponse fromEntity(ProblemSet problemSet) {
+    List<QuizForFe> quizzes = problemSet.getProblems().stream().map(this::fromEntity).toList();
 
-        return new ProblemSetResponse(
-            hashUtil.encode(problemSet.getId()),
-            quizzes.size(),
-            quizzes
-        );
-    }
+    return new ProblemSetResponse(hashUtil.encode(problemSet.getId()), quizzes.size(), quizzes);
+  }
 }

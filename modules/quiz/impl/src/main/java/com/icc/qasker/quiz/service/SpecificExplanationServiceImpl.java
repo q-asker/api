@@ -25,54 +25,58 @@ import org.springframework.web.client.RestClient;
 @Slf4j
 public class SpecificExplanationServiceImpl implements SpecificExplanationService {
 
-    private final HashUtil hashUtil;
-    private final RestClient aiRestClient;
-    private final ProblemRepository problemRepository;
+  private final HashUtil hashUtil;
+  private final RestClient aiRestClient;
+  private final ProblemRepository problemRepository;
 
-    public SpecificExplanationServiceImpl(
-        @Qualifier("aiRestClient") RestClient aiRestClient,
-        ProblemRepository problemRepository,
-        HashUtil hashUtil
-    ) {
-        this.aiRestClient = aiRestClient;
-        this.problemRepository = problemRepository;
-        this.hashUtil = hashUtil;
-    }
+  public SpecificExplanationServiceImpl(
+      @Qualifier("aiRestClient") RestClient aiRestClient,
+      ProblemRepository problemRepository,
+      HashUtil hashUtil) {
+    this.aiRestClient = aiRestClient;
+    this.problemRepository = problemRepository;
+    this.hashUtil = hashUtil;
+  }
 
-    @Override
-    @Transactional(readOnly = true)
-    public SpecificExplanationResponse getSpecificExplanation(String encodedProblemSetId,
-        int number) {
-        Long problemSetId = hashUtil.decode(encodedProblemSetId);
-        Problem problem = problemRepository.findByIdProblemSetIdAndIdNumber(problemSetId, number)
+  @Override
+  @Transactional(readOnly = true)
+  public SpecificExplanationResponse getSpecificExplanation(
+      String encodedProblemSetId, int number) {
+    Long problemSetId = hashUtil.decode(encodedProblemSetId);
+    Problem problem =
+        problemRepository
+            .findByIdProblemSetIdAndIdNumber(problemSetId, number)
             .orElseThrow(() -> new CustomException(ExceptionMessage.PROBLEM_SET_NOT_FOUND));
-        SpecificExplanationRequestToAI aiRequest = new SpecificExplanationRequestToAI(
+    SpecificExplanationRequestToAI aiRequest =
+        new SpecificExplanationRequestToAI(
             problem.getTitle(),
-            problem.getSelections().stream().map(selection -> {
-                SelectionsOfAI selectionOfAI = new SelectionsOfAI();
-                selectionOfAI.setContent(selection.getContent());
-                selectionOfAI.setCorrect(selection.isCorrect());
-                return selectionOfAI;
-            }).toList()
-        );
-        String aiExplanationRaw = Objects.requireNonNull(
-            aiRestClient.post()
+            problem.getSelections().stream()
+                .map(
+                    selection -> {
+                      SelectionsOfAI selectionOfAI = new SelectionsOfAI();
+                      selectionOfAI.setContent(selection.getContent());
+                      selectionOfAI.setCorrect(selection.isCorrect());
+                      return selectionOfAI;
+                    })
+                .toList());
+    String aiExplanationRaw =
+        Objects.requireNonNull(
+            aiRestClient
+                .post()
                 .uri("/specific-explanation")
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .body(aiRequest)
                 .retrieve()
-                .body(String.class)
-        );
-        String explanationText;
-        try {
-            ObjectMapper objectMapper = new ObjectMapper();
-            JsonNode node = objectMapper.readTree(aiExplanationRaw);
-            explanationText = node.get("specific_explanation").asText();
-        } catch (JsonProcessingException e) {
-            log.warn("AI 응답 파싱 실패: 원문 그대로 반환", e);
-            explanationText = aiExplanationRaw;
-        }
-        return new SpecificExplanationResponse(explanationText);
+                .body(String.class));
+    String explanationText;
+    try {
+      ObjectMapper objectMapper = new ObjectMapper();
+      JsonNode node = objectMapper.readTree(aiExplanationRaw);
+      explanationText = node.get("specific_explanation").asText();
+    } catch (JsonProcessingException e) {
+      log.warn("AI 응답 파싱 실패: 원문 그대로 반환", e);
+      explanationText = aiExplanationRaw;
     }
+    return new SpecificExplanationResponse(explanationText);
+  }
 }
-

@@ -16,24 +16,22 @@ import org.springframework.transaction.annotation.Transactional;
 @AllArgsConstructor
 public class ProblemSetServiceImpl implements ProblemSetService {
 
-    private final ProblemSetResponseMapper problemSetResponseMapper;
-    private final ProblemSetRepository problemSetRepository;
-    private final HashUtil hashUtil;
+  private final ProblemSetResponseMapper problemSetResponseMapper;
+  private final ProblemSetRepository problemSetRepository;
+  private final HashUtil hashUtil;
 
-    @Override
-    @Transactional(readOnly = true)
-    public ProblemSetResponse getProblemSet(String problemSetId) {
+  @Override
+  @Transactional(readOnly = true)
+  public ProblemSetResponse getProblemSet(String problemSetId) {
 
-        long id = hashUtil.decode(problemSetId);
-        ProblemSet problemSet = getProblemSetEntity(id);
-        return problemSetResponseMapper.fromEntity(problemSet);
-    }
+    long id = hashUtil.decode(problemSetId);
+    ProblemSet problemSet = getProblemSetEntity(id);
+    return problemSetResponseMapper.fromEntity(problemSet);
+  }
 
-    private ProblemSet getProblemSetEntity(long id) {
-        return problemSetRepository.findById(id)
-            .orElseThrow(
-                () -> new CustomException(ExceptionMessage.PROBLEM_SET_NOT_FOUND)
-            );
-    }
+  private ProblemSet getProblemSetEntity(long id) {
+    return problemSetRepository
+        .findById(id)
+        .orElseThrow(() -> new CustomException(ExceptionMessage.PROBLEM_SET_NOT_FOUND));
+  }
 }
-

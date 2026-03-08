@@ -4,9 +4,9 @@ import com.icc.qasker.ai.dto.GeminiFileUploadResponse.FileMetadata;
 
 public interface GeminiFileService {
 
-    FileMetadata uploadPdf(String pdfUrl);
+  FileMetadata uploadPdf(String pdfUrl);
 
-    void deleteFile(String fileName);
+  void deleteFile(String fileName);
 
-    FileMetadata waitForProcessing(String fileName) throws InterruptedException;
+  FileMetadata waitForProcessing(String fileName) throws InterruptedException;
 }

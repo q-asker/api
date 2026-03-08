@@ -16,6 +16,6 @@ import lombok.Setter;
 @Setter
 public class ProblemId implements Serializable {
 
-    private Long problemSetId;
-    private int number;
+  private Long problemSetId;
+  private int number;
 }

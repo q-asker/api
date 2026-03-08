@@ -12,10 +12,10 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public enum QuizType implements QuizPromptStrategy {
-    MULTIPLE(MultipleGuideLine.content, MultipleFormat.content),
-    BLANK(BlankGuideLine.content, BlankFormat.content),
-    OX(OXGuideLine.content, OXFormat.content);
+  MULTIPLE(MultipleGuideLine.content, MultipleFormat.content),
+  BLANK(BlankGuideLine.content, BlankFormat.content),
+  OX(OXGuideLine.content, OXFormat.content);
 
-    private final String guideLine;
-    private final String format;
+  private final String guideLine;
+  private final String format;
 }

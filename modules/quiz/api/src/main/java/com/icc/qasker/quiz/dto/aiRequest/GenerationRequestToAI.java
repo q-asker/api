@@ -6,10 +6,5 @@ import lombok.Builder;
 
 @Builder
 public record GenerationRequestToAI(
-    String uploadedUrl,
-    int quizCount,
-    QuizType quizType,
-    List<Integer> pageNumbers
-) {
-
-};
+    String uploadedUrl, int quizCount, QuizType quizType, List<Integer> pageNumbers) {}
+;

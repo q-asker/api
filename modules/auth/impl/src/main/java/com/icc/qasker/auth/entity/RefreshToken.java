@@ -12,23 +12,22 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class RefreshToken extends CreatedAt {
 
-    @Id
-    private String userId;
-    private String rtHash;
-    private Instant expiresAt;
+  @Id private String userId;
+  private String rtHash;
+  private Instant expiresAt;
 
-    public RefreshToken(String userId, String rtHash, Instant expiresAt) {
-        this.userId = userId;
-        this.rtHash = rtHash;
-        this.expiresAt = expiresAt;
-    }
+  public RefreshToken(String userId, String rtHash, Instant expiresAt) {
+    this.userId = userId;
+    this.rtHash = rtHash;
+    this.expiresAt = expiresAt;
+  }
 
-    public void rotate(String newRtHash, Instant newExpiresAt) {
-        this.rtHash = newRtHash;
-        this.expiresAt = newExpiresAt;
-    }
+  public void rotate(String newRtHash, Instant newExpiresAt) {
+    this.rtHash = newRtHash;
+    this.expiresAt = newExpiresAt;
+  }
 
-    public boolean isExpired(Instant now) {
-        return expiresAt != null && expiresAt.isBefore(now);
-    }
+  public boolean isExpired(Instant now) {
+    return expiresAt != null && expiresAt.isBefore(now);
+  }
 }

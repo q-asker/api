@@ -19,32 +19,28 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class ExplanationServiceImpl implements ExplanationService {
 
-    private final HashUtil hashUtil;
-    private final ProblemRepository problemRepository;
+  private final HashUtil hashUtil;
+  private final ProblemRepository problemRepository;
 
-    @Override
-    @Transactional(readOnly = true)
-    public ExplanationResponse getExplanationByProblemSetId(String problemSetId) {
-        long id = hashUtil.decode(problemSetId);
-        List<Problem> problems = problemRepository.findByIdProblemSetId(id);
-        if (problems.isEmpty()) {
-            throw new CustomException(ExceptionMessage.PROBLEM_NOT_FOUND);
-        }
-
-        List<ResultResponse> results = new ArrayList<>();
-        for (Problem problem : problems) {
-            String explanation = (problem.getExplanation() != null)
-                ? problem.getExplanation().getContent()
-                : "해설 없음";
-            List<Integer> pages = problem.getReferencedPages()
-                .stream()
-                .map(ReferencedPage::getPageNumber)
-                .toList();
-
-            results.add(new ResultResponse(problem.getId().getNumber(), explanation, pages));
-        }
-
-        return new ExplanationResponse(results);
+  @Override
+  @Transactional(readOnly = true)
+  public ExplanationResponse getExplanationByProblemSetId(String problemSetId) {
+    long id = hashUtil.decode(problemSetId);
+    List<Problem> problems = problemRepository.findByIdProblemSetId(id);
+    if (problems.isEmpty()) {
+      throw new CustomException(ExceptionMessage.PROBLEM_NOT_FOUND);
     }
-}
 
+    List<ResultResponse> results = new ArrayList<>();
+    for (Problem problem : problems) {
+      String explanation =
+          (problem.getExplanation() != null) ? problem.getExplanation().getContent() : "해설 없음";
+      List<Integer> pages =
+          problem.getReferencedPages().stream().map(ReferencedPage::getPageNumber).toList();
+
+      results.add(new ResultResponse(problem.getId().getNumber(), explanation, pages));
+    }
+
+    return new ExplanationResponse(results);
+  }
+}

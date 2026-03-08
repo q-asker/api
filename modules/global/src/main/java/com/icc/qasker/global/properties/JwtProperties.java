@@ -9,7 +9,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "spring.security.jwt")
 public class JwtProperties {
 
-    private String secret;
-    private long accessExpirationTime;
-    private long refreshExpirationTime;
+  private String secret;
+  private long accessExpirationTime;
+  private long refreshExpirationTime;
 }

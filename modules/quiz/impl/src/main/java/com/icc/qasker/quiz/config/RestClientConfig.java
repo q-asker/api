@@ -22,47 +22,47 @@ import org.springframework.web.client.RestClient;
 @AllArgsConstructor
 public class RestClientConfig {
 
-    private final QAskerProperties qAskerProperties;
+  private final QAskerProperties qAskerProperties;
 
-    @Primary
-    @Bean("aiStreamClient")
-    public RestClient aiGenerationClient(QAskerProperties qAskerProperties) {
-        // 1. 소켓 레벨 타임아웃 설정 (데이터 패킷 간 최대 유휴 시간)
-        SocketConfig socketConfig = SocketConfig.custom()
-            .setSoTimeout(Timeout.ofSeconds(50))
-            .build();
+  @Primary
+  @Bean("aiStreamClient")
+  public RestClient aiGenerationClient(QAskerProperties qAskerProperties) {
+    // 1. 소켓 레벨 타임아웃 설정 (데이터 패킷 간 최대 유휴 시간)
+    SocketConfig socketConfig = SocketConfig.custom().setSoTimeout(Timeout.ofSeconds(50)).build();
 
-        PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
-        connectionManager.setDefaultSocketConfig(socketConfig);
+    PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
+    connectionManager.setDefaultSocketConfig(socketConfig);
 
-        // 1. Apache HttpClient 5 설정
-        RequestConfig requestConfig = RequestConfig.custom()
+    // 1. Apache HttpClient 5 설정
+    RequestConfig requestConfig =
+        RequestConfig.custom()
             .setResponseTimeout(Timeout.ofSeconds(50))
             .setConnectTimeout(Timeout.ofSeconds(3))
             .build();
 
-        CloseableHttpClient httpClient = HttpClients.custom()
+    CloseableHttpClient httpClient =
+        HttpClients.custom()
             .setConnectionManager(connectionManager)
             .setDefaultRequestConfig(requestConfig)
             .build();
 
-        // 2. RestClient 빌드
-        return RestClient.builder()
-            .baseUrl(qAskerProperties.getAiServerUrl())
-            .requestFactory(new HttpComponentsClientHttpRequestFactory(httpClient))
-            .build();
-    }
+    // 2. RestClient 빌드
+    return RestClient.builder()
+        .baseUrl(qAskerProperties.getAiServerUrl())
+        .requestFactory(new HttpComponentsClientHttpRequestFactory(httpClient))
+        .build();
+  }
 
-    @Bean("aiRestClient")
-    public RestClient aiRestClient() {
-        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(Duration.ofSeconds(5));
-        factory.setReadTimeout(Duration.ofSeconds(40));
+  @Bean("aiRestClient")
+  public RestClient aiRestClient() {
+    SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+    factory.setConnectTimeout(Duration.ofSeconds(5));
+    factory.setReadTimeout(Duration.ofSeconds(40));
 
-        return RestClient.builder()
-            .baseUrl(qAskerProperties.getAiServerUrl())
-            .requestFactory(factory)
-            .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-            .build();
-    }
+    return RestClient.builder()
+        .baseUrl(qAskerProperties.getAiServerUrl())
+        .requestFactory(factory)
+        .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+        .build();
+  }
 }

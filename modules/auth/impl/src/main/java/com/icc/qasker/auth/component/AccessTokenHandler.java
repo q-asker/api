@@ -14,18 +14,22 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class AccessTokenHandler {
 
-    private final JwtProperties jwtProperties;
-    private final UserRepository userRepository;
+  private final JwtProperties jwtProperties;
+  private final UserRepository userRepository;
 
-    public String validateAndGenerate(String userId) {
-        return userRepository.findById(userId)
-            .map(user -> JWT.create()
-                .withSubject(user.getUserId())
-                .withClaim("userId", user.getUserId())
-                .withClaim("nickname", user.getNickname())
-                .withExpiresAt(
-                    new Date(System.currentTimeMillis() + jwtProperties.getAccessExpirationTime()))
-                .sign(Algorithm.HMAC512(jwtProperties.getSecret())))
-            .orElseThrow(() -> new CustomException(ExceptionMessage.USER_NOT_FOUND));
-    }
+  public String validateAndGenerate(String userId) {
+    return userRepository
+        .findById(userId)
+        .map(
+            user ->
+                JWT.create()
+                    .withSubject(user.getUserId())
+                    .withClaim("userId", user.getUserId())
+                    .withClaim("nickname", user.getNickname())
+                    .withExpiresAt(
+                        new Date(
+                            System.currentTimeMillis() + jwtProperties.getAccessExpirationTime()))
+                    .sign(Algorithm.HMAC512(jwtProperties.getSecret())))
+        .orElseThrow(() -> new CustomException(ExceptionMessage.USER_NOT_FOUND));
+  }
 }

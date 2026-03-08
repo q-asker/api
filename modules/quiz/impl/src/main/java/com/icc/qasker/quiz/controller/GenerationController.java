@@ -20,15 +20,12 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 @RequestMapping("/generation")
 public class GenerationController {
 
-    private final GenerationService generationService;
+  private final GenerationService generationService;
 
-    @Operation(summary = "문제를 생성한다")
-    @PostMapping(produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter postProblemSetId(
-        @UserId
-        String userId,
-        @Valid @RequestBody
-        GenerationRequest generationRequest) {
-        return generationService.processGenerationRequest(generationRequest, userId);
-    }
+  @Operation(summary = "문제를 생성한다")
+  @PostMapping(produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+  public SseEmitter postProblemSetId(
+      @UserId String userId, @Valid @RequestBody GenerationRequest generationRequest) {
+    return generationService.processGenerationRequest(generationRequest, userId);
+  }
 }

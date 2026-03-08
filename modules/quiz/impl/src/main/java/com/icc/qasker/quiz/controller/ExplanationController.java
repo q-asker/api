@@ -17,12 +17,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/explanation")
 public class ExplanationController {
 
-    private final ExplanationService explanationService;
+  private final ExplanationService explanationService;
 
-    @Operation(summary = "설명을 가져온다")
-    @GetMapping("/{id}")
-    public ResponseEntity<ExplanationResponse> getExplanation(
-        @PathVariable("id") String problemSetId) {
-        return ResponseEntity.ok(explanationService.getExplanationByProblemSetId(problemSetId));
-    }
+  @Operation(summary = "설명을 가져온다")
+  @GetMapping("/{id}")
+  public ResponseEntity<ExplanationResponse> getExplanation(
+      @PathVariable("id") String problemSetId) {
+    return ResponseEntity.ok(explanationService.getExplanationByProblemSetId(problemSetId));
+  }
 }

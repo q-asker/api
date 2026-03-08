@@ -1,0 +1,11 @@
+#!/bin/sh
+# JIRA 티켓 접두사 자동 추가
+BRANCH_NAME=$(git symbolic-ref --short HEAD 2>/dev/null)
+TICKET=$(echo "$BRANCH_NAME" | grep -oE '[A-Z]+-[0-9]+' | head -1)
+
+if [ -n "$TICKET" ]; then
+  COMMIT_MSG=$(cat "$1")
+  if ! echo "$COMMIT_MSG" | grep -qE "^\[$TICKET\]"; then
+    echo "[$TICKET] $COMMIT_MSG" > "$1"
+  fi
+fi

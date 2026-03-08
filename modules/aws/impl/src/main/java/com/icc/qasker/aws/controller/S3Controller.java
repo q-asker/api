@@ -22,23 +22,17 @@ import org.springframework.web.bind.annotation.RestController;
 @AllArgsConstructor
 public class S3Controller {
 
-    public final S3Service s3Service;
+  public final S3Service s3Service;
 
-    @Operation(summary = "파일이 존재하는지 확인한다")
-    @GetMapping("/check-file-exist")
-    public ResponseEntity<FileExistStatusResponse> checkFileExist(
-        @RequestParam("url") String url
-    ) {
-        return ResponseEntity.ok(s3Service.checkFileExistence(url));
-    }
+  @Operation(summary = "파일이 존재하는지 확인한다")
+  @GetMapping("/check-file-exist")
+  public ResponseEntity<FileExistStatusResponse> checkFileExist(@RequestParam("url") String url) {
+    return ResponseEntity.ok(s3Service.checkFileExistence(url));
+  }
 
-    @Operation(summary = "프리사인드 URL을 얻는다")
-    @PostMapping("/request-presign")
-    public ResponseEntity<PresignResponse> upload(
-        @Valid
-        @RequestBody
-        PresignRequest presignRequest
-    ) {
-        return ResponseEntity.ok(s3Service.requestPresign(presignRequest));
-    }
+  @Operation(summary = "프리사인드 URL을 얻는다")
+  @PostMapping("/request-presign")
+  public ResponseEntity<PresignResponse> upload(@Valid @RequestBody PresignRequest presignRequest) {
+    return ResponseEntity.ok(s3Service.requestPresign(presignRequest));
+  }
 }

@@ -13,23 +13,23 @@ import org.springframework.security.oauth2.core.user.OAuth2User;
 @AllArgsConstructor
 public class UserPrincipal implements OAuth2User {
 
-    private User user;
-    private Map<String, Object> attributes;
+  private User user;
+  private Map<String, Object> attributes;
 
-    @Override
-    public String getName() {
-        return user.getUserId();
-    }
+  @Override
+  public String getName() {
+    return user.getUserId();
+  }
 
-    @Override
-    public Map<String, Object> getAttributes() {
-        return attributes;
-    }
+  @Override
+  public Map<String, Object> getAttributes() {
+    return attributes;
+  }
 
-    @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        Collection<GrantedAuthority> collect = new ArrayList<GrantedAuthority>();
-        collect.add(() -> user.getRole());
-        return collect;
-    }
+  @Override
+  public Collection<? extends GrantedAuthority> getAuthorities() {
+    Collection<GrantedAuthority> collect = new ArrayList<GrantedAuthority>();
+    collect.add(() -> user.getRole());
+    return collect;
+  }
 }

@@ -17,32 +17,30 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ProblemMapper {
 
-    private final SelectionMapper selectionMapper;
+  private final SelectionMapper selectionMapper;
 
-    public Problem fromResponse(QuizGeneratedFromAI quizDto, ProblemSet problemSet) {
-        Problem problem = new Problem();
-        ProblemId problemId = new ProblemId();
-        problemId.setNumber(quizDto.getNumber());
-        problem.setId(problemId);
-        problem.setTitle(quizDto.getTitle());
+  public Problem fromResponse(QuizGeneratedFromAI quizDto, ProblemSet problemSet) {
+    Problem problem = new Problem();
+    ProblemId problemId = new ProblemId();
+    problemId.setNumber(quizDto.getNumber());
+    problem.setId(problemId);
+    problem.setTitle(quizDto.getTitle());
 
-        problem.setProblemSet(problemSet);
+    problem.setProblemSet(problemSet);
 
-        problem.setSelections(
-            (quizDto.getSelections() == null ? List.<QuizGeneratedFromAI.SelectionsOfAI>of()
-                : quizDto.getSelections()).stream()
+    problem.setSelections(
+        (quizDto.getSelections() == null
+                ? List.<QuizGeneratedFromAI.SelectionsOfAI>of()
+                : quizDto.getSelections())
+            .stream()
                 .map(selDto -> selectionMapper.fromResponse(selDto, problem))
-                .collect(toList())
-        );
-        problem.setExplanation(Explanation.of(quizDto.getExplanation(), problem));
+                .collect(toList()));
+    problem.setExplanation(Explanation.of(quizDto.getExplanation(), problem));
 
-        problem.setReferencedPages(
-            (quizDto.getReferencedPages() == null ? List.<Integer>of()
-                : quizDto.getReferencedPages()).stream()
-                .map(page -> ReferencedPage.of(page, problem))
-                .collect(toList())
-        );
+    problem.setReferencedPages(
+        (quizDto.getReferencedPages() == null ? List.<Integer>of() : quizDto.getReferencedPages())
+            .stream().map(page -> ReferencedPage.of(page, problem)).collect(toList()));
 
-        return problem;
-    }
+    return problem;
+  }
 }

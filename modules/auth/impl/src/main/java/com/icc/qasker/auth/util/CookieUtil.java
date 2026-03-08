@@ -12,30 +12,28 @@ import org.springframework.stereotype.Component;
 @AllArgsConstructor
 public class CookieUtil {
 
+  public static ResponseCookie buildCookies(String value, long expireTime) {
+    return ResponseCookie.from("refresh_token", value)
+        .httpOnly(true)
+        .secure(true)
+        .path("/")
+        .maxAge(expireTime)
+        .build();
+  }
 
-    public static ResponseCookie buildCookies(String value, long expireTime) {
-        return ResponseCookie.from("refresh_token", value)
-            .httpOnly(true)
-            .secure(true)
-            .path("/")
-            .maxAge(expireTime)
-            .build();
+  public static Optional<Cookie> getCookie(HttpServletRequest request, String name) {
+    if (request.getCookies() == null) {
+      return Optional.empty();
     }
+    return Arrays.stream(request.getCookies()).filter(c -> name.equals(c.getName())).findFirst();
+  }
 
-    public static Optional<Cookie> getCookie(HttpServletRequest request, String name) {
-        if (request.getCookies() == null) {
-            return Optional.empty();
-        }
-        return Arrays.stream(request.getCookies()).filter(c -> name.equals(c.getName()))
-            .findFirst();
-    }
-
-    public static ResponseCookie deleteRefreshCookie() {
-        return ResponseCookie.from("refresh_token", "")
-            .httpOnly(true)
-            .secure(true)
-            .path("/")
-            .maxAge(0)
-            .build();
-    }
+  public static ResponseCookie deleteRefreshCookie() {
+    return ResponseCookie.from("refresh_token", "")
+        .httpOnly(true)
+        .secure(true)
+        .path("/")
+        .maxAge(0)
+        .build();
+  }
 }

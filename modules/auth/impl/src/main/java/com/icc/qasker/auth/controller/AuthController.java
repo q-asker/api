@@ -20,26 +20,27 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/auth")
 public class AuthController {
 
-    private final TokenRotationService tokenRotationService;
-    private final LogoutService logoutService;
+  private final TokenRotationService tokenRotationService;
+  private final LogoutService logoutService;
 
-    @GetMapping("/test")
-    public ResponseEntity<?> test() {
-        System.out.println("test 성공");
-        return ResponseEntity.ok().build();
-    }
+  @GetMapping("/test")
+  public ResponseEntity<?> test() {
+    System.out.println("test 성공");
+    return ResponseEntity.ok().build();
+  }
 
-    @PostMapping("/refresh")
-    public ResponseEntity<RotateTokenResponse> refresh(HttpServletRequest request,
-        HttpServletResponse response) {
-        var rtCookie = CookieUtil.getCookie(request, "refresh_token")
+  @PostMapping("/refresh")
+  public ResponseEntity<RotateTokenResponse> refresh(
+      HttpServletRequest request, HttpServletResponse response) {
+    var rtCookie =
+        CookieUtil.getCookie(request, "refresh_token")
             .orElseThrow(() -> new CustomException(ExceptionMessage.UNAUTHORIZED));
-        return ResponseEntity.ok(tokenRotationService.rotateTokens(rtCookie.getValue(), response));
-    }
+    return ResponseEntity.ok(tokenRotationService.rotateTokens(rtCookie.getValue(), response));
+  }
 
-    @PostMapping("/logout")
-    public ResponseEntity<?> logout(HttpServletRequest request, HttpServletResponse response) {
-        logoutService.logout(request, response);
-        return ResponseEntity.ok().build();
-    }
+  @PostMapping("/logout")
+  public ResponseEntity<?> logout(HttpServletRequest request, HttpServletResponse response) {
+    logoutService.logout(request, response);
+    return ResponseEntity.ok().build();
+  }
 }

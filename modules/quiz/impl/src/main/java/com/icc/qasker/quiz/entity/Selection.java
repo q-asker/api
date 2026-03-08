@@ -23,19 +23,20 @@ import lombok.NoArgsConstructor;
 @Builder
 public class Selection extends CreatedAt {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    @Column(columnDefinition = "TEXT")
-    private String content;
-    @Column(nullable = false)
-    private boolean correct;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    @ManyToOne(fetch = LAZY)
-    @JoinColumns({
-        @JoinColumn(name = "problem_set_id", referencedColumnName = "problem_set_id"),
-        @JoinColumn(name = "number", referencedColumnName = "number")
-    })
-    private Problem problem;
+  @Column(columnDefinition = "TEXT")
+  private String content;
 
+  @Column(nullable = false)
+  private boolean correct;
+
+  @ManyToOne(fetch = LAZY)
+  @JoinColumns({
+    @JoinColumn(name = "problem_set_id", referencedColumnName = "problem_set_id"),
+    @JoinColumn(name = "number", referencedColumnName = "number")
+  })
+  private Problem problem;
 }

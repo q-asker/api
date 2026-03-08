@@ -17,34 +17,38 @@ import org.springframework.web.method.support.ModelAndViewContainer;
 @Component
 public class UserIdArgumentResolver implements HandlerMethodArgumentResolver {
 
-    @Override
-    public boolean supportsParameter(MethodParameter parameter) {
-        return parameter.hasParameterAnnotation(UserId.class)
-            && parameter.getParameterType().equals(String.class);
+  @Override
+  public boolean supportsParameter(MethodParameter parameter) {
+    return parameter.hasParameterAnnotation(UserId.class)
+        && parameter.getParameterType().equals(String.class);
+  }
+
+  @Override
+  public @Nullable Object resolveArgument(
+      MethodParameter parameter,
+      @Nullable ModelAndViewContainer mavContainer,
+      NativeWebRequest webRequest,
+      @Nullable WebDataBinderFactory binderFactory) {
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+    if (authentication == null
+        || !authentication.isAuthenticated()
+        || authentication instanceof AnonymousAuthenticationToken) {
+      return null;
     }
 
-    @Override
-    public @Nullable Object resolveArgument(MethodParameter parameter,
-        @Nullable ModelAndViewContainer mavContainer, NativeWebRequest webRequest,
-        @Nullable WebDataBinderFactory binderFactory) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-        if (authentication == null || !authentication.isAuthenticated()
-            || authentication instanceof AnonymousAuthenticationToken) {
-            return null;
-        }
-
-        Object principal = authentication.getPrincipal();
-        if (principal instanceof User user) {
-            return user.getUserId();
-        }
-        if (principal instanceof UserPrincipal userPrincipal) {
-            return userPrincipal.getUser().getUserId();
-        }
-        if (principal instanceof String userId && !userId.isBlank()
-            && !"anonymousUser".equalsIgnoreCase(userId)) {
-            return userId;
-        }
-        return null;
+    Object principal = authentication.getPrincipal();
+    if (principal instanceof User user) {
+      return user.getUserId();
     }
+    if (principal instanceof UserPrincipal userPrincipal) {
+      return userPrincipal.getUser().getUserId();
+    }
+    if (principal instanceof String userId
+        && !userId.isBlank()
+        && !"anonymousUser".equalsIgnoreCase(userId)) {
+      return userId;
+    }
+    return null;
+  }
 }

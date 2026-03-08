@@ -25,62 +25,67 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @AllArgsConstructor
 public class SecurityConfig {
 
-    private final UserRepository userRepository;
-    private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
-    private final PrincipalOAuth2UserService principalOauth2UserService;
+  private final UserRepository userRepository;
+  private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
+  private final PrincipalOAuth2UserService principalOauth2UserService;
 
-    @Bean
-    public AuthenticationManager authenticationManager(
-        AuthenticationConfiguration authenticationConfiguration) throws Exception {
-        return authenticationConfiguration.getAuthenticationManager();
-    }
+  @Bean
+  public AuthenticationManager authenticationManager(
+      AuthenticationConfiguration authenticationConfiguration) throws Exception {
+    return authenticationConfiguration.getAuthenticationManager();
+  }
 
-    @Bean
-    public SecurityFilterChain apiFilterChain(HttpSecurity http,
-        AuthenticationManager authenticationManager, JwtProperties jwtProperties) throws Exception {
-        http
-            .csrf(AbstractHttpConfigurer::disable)
-            .sessionManagement(
-                session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .formLogin(AbstractHttpConfigurer::disable)
-            .httpBasic(AbstractHttpConfigurer::disable)
-            .exceptionHandling(ex -> ex
-                .authenticationEntryPoint((request, response, authException) -> {
-                    createUnauthorizedResponse(response);
-                })
-                .accessDeniedHandler((request, response, accessDeniedException) -> {
-                    createForbiddenResponse(response);
-                })
-            )
-            .addFilterBefore(
-                new JwtTokenAuthenticationFilter(authenticationManager, userRepository,
-                    jwtProperties),
-                UsernamePasswordAuthenticationFilter.class)
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/admin/**").hasRole("ADMIN")
-                .requestMatchers("/statistics/**", "/test").authenticated()
-                .anyRequest().permitAll()
-            )
-            .oauth2Login(oauth -> oauth
-                .userInfoEndpoint(user -> user.userService(principalOauth2UserService))
-                .successHandler(oAuth2LoginSuccessHandler)
-            );
-        return http.build();
-    }
+  @Bean
+  public SecurityFilterChain apiFilterChain(
+      HttpSecurity http, AuthenticationManager authenticationManager, JwtProperties jwtProperties)
+      throws Exception {
+    http.csrf(AbstractHttpConfigurer::disable)
+        .sessionManagement(
+            session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        .formLogin(AbstractHttpConfigurer::disable)
+        .httpBasic(AbstractHttpConfigurer::disable)
+        .exceptionHandling(
+            ex ->
+                ex.authenticationEntryPoint(
+                        (request, response, authException) -> {
+                          createUnauthorizedResponse(response);
+                        })
+                    .accessDeniedHandler(
+                        (request, response, accessDeniedException) -> {
+                          createForbiddenResponse(response);
+                        }))
+        .addFilterBefore(
+            new JwtTokenAuthenticationFilter(authenticationManager, userRepository, jwtProperties),
+            UsernamePasswordAuthenticationFilter.class)
+        .authorizeHttpRequests(
+            auth ->
+                auth.requestMatchers("/admin/**")
+                    .hasRole("ADMIN")
+                    .requestMatchers("/statistics/**", "/test")
+                    .authenticated()
+                    .anyRequest()
+                    .permitAll())
+        .oauth2Login(
+            oauth ->
+                oauth
+                    .userInfoEndpoint(user -> user.userService(principalOauth2UserService))
+                    .successHandler(oAuth2LoginSuccessHandler));
+    return http.build();
+  }
 
-    public void createUnauthorizedResponse(HttpServletResponse response) throws IOException {
-        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-        response.setContentType("application/json;charset=UTF-8");
-        response.getWriter().write(
-            "{\"message\": \"" + ExceptionMessage.UNAUTHORIZED.getMessage() + "\"}"
-        );
-    }
+  public void createUnauthorizedResponse(HttpServletResponse response) throws IOException {
+    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+    response.setContentType("application/json;charset=UTF-8");
+    response
+        .getWriter()
+        .write("{\"message\": \"" + ExceptionMessage.UNAUTHORIZED.getMessage() + "\"}");
+  }
 
-    public void createForbiddenResponse(HttpServletResponse response) throws IOException {
-        response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-        response.setContentType("application/json;charset=UTF-8");
-        response.getWriter().write(
-            "{\"message\": \"" + ExceptionMessage.NOT_ENOUGH_ACCESS.getMessage() + "\"}"
-        );
-    }
+  public void createForbiddenResponse(HttpServletResponse response) throws IOException {
+    response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+    response.setContentType("application/json;charset=UTF-8");
+    response
+        .getWriter()
+        .write("{\"message\": \"" + ExceptionMessage.NOT_ENOUGH_ACCESS.getMessage() + "\"}");
+  }
 }

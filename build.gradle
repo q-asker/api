@@ -8,6 +8,10 @@ plugins {
     //     bootJar, bootRun 등 부트 전용 태스크가 생성됨
     //     루트에 apply true로 두면 라이브러리 모듈에도 bootJar가 생겨 불필요한 실행 JAR이 만들어짐
     id "org.springframework.boot" version "3.5.8" apply false
+    // Spotless: 코드 포맷팅 자동화 플러그인
+    // 예: ./gradlew spotlessApply → 전체 소스 코드를 Google Java Format으로 자동 정렬
+    //     ./gradlew spotlessCheck → CI에서 포맷 위반 여부를 검증
+    id "com.diffplug.spotless" version "7.0.4" apply false
 }
 
 // 프로젝트 그룹 ID (Maven 좌표에서 groupId 역할)
@@ -22,6 +26,22 @@ subprojects {
     // 예: compileJava, test, jar 등의 태스크가 자동 생성되고,
     //     src/main/java, src/main/resources 디렉토리 구조를 인식함
     apply plugin: 'java'
+    // Spotless 포맷팅 플러그인을 전 서브모듈에 적용
+    apply plugin: 'com.diffplug.spotless'
+
+    spotless {
+
+        java {
+            // Google Java Format: Google 코딩 스타일에 맞춰 자동 포맷팅
+            googleJavaFormat()
+            // import 순서 제거 후 Google 스타일로 재정렬
+            removeUnusedImports()
+            // 파일 끝에 개행 추가
+            endWithNewline()
+            // 줄 끝 공백 제거
+            trimTrailingWhitespace()
+        }
+    }
 
     java {
         toolchain {

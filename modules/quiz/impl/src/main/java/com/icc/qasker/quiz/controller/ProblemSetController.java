@@ -17,12 +17,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/problem-set")
 public class ProblemSetController {
 
-    private final ProblemSetService problemSetService;
+  private final ProblemSetService problemSetService;
 
-    @Operation(summary = "문제세트를 가져온다")
-    @GetMapping("/{id}")
-    public ResponseEntity<ProblemSetResponse> getProblemSet(
-        @PathVariable("id") String problemSetId) {
-        return ResponseEntity.ok(problemSetService.getProblemSet(problemSetId));
-    }
+  @Operation(summary = "문제세트를 가져온다")
+  @GetMapping("/{id}")
+  public ResponseEntity<ProblemSetResponse> getProblemSet(@PathVariable("id") String problemSetId) {
+    return ResponseEntity.ok(problemSetService.getProblemSet(problemSetId));
+  }
 }

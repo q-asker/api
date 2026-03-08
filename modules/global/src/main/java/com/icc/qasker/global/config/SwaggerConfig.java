@@ -9,9 +9,8 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class SwaggerConfig {
 
-    @Bean
-    public OpenAPI openAPI() {
-        return new OpenAPI().components(new Components())
-            .info(new Info().title("q-asker API 문서"));
-    }
+  @Bean
+  public OpenAPI openAPI() {
+    return new OpenAPI().components(new Components()).info(new Info().title("q-asker API 문서"));
+  }
 }

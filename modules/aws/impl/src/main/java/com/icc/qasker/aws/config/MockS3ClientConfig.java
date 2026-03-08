@@ -13,34 +13,34 @@ import software.amazon.awssdk.services.s3.model.PutObjectResponse;
 @Profile("stress-test")
 public class MockS3ClientConfig {
 
-    @Bean
-    @Primary
-    public S3Client mockS3Client() {
-        // 익명 클래스로 S3Client의 동작을 가로챔
-        return new S3Client() {
-            @Override
-            public String serviceName() {
-                return "s3";
-            }
+  @Bean
+  @Primary
+  public S3Client mockS3Client() {
+    // 익명 클래스로 S3Client의 동작을 가로챔
+    return new S3Client() {
+      @Override
+      public String serviceName() {
+        return "s3";
+      }
 
-            @Override
-            public void close() {
-                // Do nothing
-            }
+      @Override
+      public void close() {
+        // Do nothing
+      }
 
-            @Override
-            public PutObjectResponse putObject(PutObjectRequest putObjectRequest,
-                RequestBody requestBody) {
-                System.out.println("Mock S3 Upload: " + putObjectRequest.key());
+      @Override
+      public PutObjectResponse putObject(
+          PutObjectRequest putObjectRequest, RequestBody requestBody) {
+        System.out.println("Mock S3 Upload: " + putObjectRequest.key());
 
-                try {
-                    Thread.sleep(2000);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
+        try {
+          Thread.sleep(2000);
+        } catch (InterruptedException e) {
+          throw new RuntimeException(e);
+        }
 
-                return PutObjectResponse.builder().build();
-            }
-        };
-    }
+        return PutObjectResponse.builder().build();
+      }
+    };
+  }
 }

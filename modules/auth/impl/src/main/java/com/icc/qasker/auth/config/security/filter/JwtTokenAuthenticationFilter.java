@@ -1,6 +1,5 @@
 package com.icc.qasker.auth.config.security.filter;
 
-
 import static com.auth0.jwt.JWT.require;
 
 import com.auth0.jwt.algorithms.Algorithm;
@@ -23,62 +22,63 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 
-
 public class JwtTokenAuthenticationFilter extends BasicAuthenticationFilter {
 
-    private static final String BEARER_PREFIX = "Bearer ";
-    private final JwtProperties jwtProperties;
-    private final UserRepository userRepository;
+  private static final String BEARER_PREFIX = "Bearer ";
+  private final JwtProperties jwtProperties;
+  private final UserRepository userRepository;
 
-    public JwtTokenAuthenticationFilter(AuthenticationManager authManager,
-        UserRepository userRepository, JwtProperties jwtProperties) {
-        super(authManager);
-        this.jwtProperties = jwtProperties;
-        this.userRepository = userRepository;
+  public JwtTokenAuthenticationFilter(
+      AuthenticationManager authManager,
+      UserRepository userRepository,
+      JwtProperties jwtProperties) {
+    super(authManager);
+    this.jwtProperties = jwtProperties;
+    this.userRepository = userRepository;
+  }
+
+  @Override
+  protected void doFilterInternal(
+      HttpServletRequest request, HttpServletResponse response, FilterChain chain)
+      throws IOException, ServletException {
+
+    String authorizationHeader = request.getHeader("Authorization");
+    if (authorizationHeader == null || !authorizationHeader.startsWith(BEARER_PREFIX)) {
+      chain.doFilter(request, response);
+      return;
     }
+    String accessToken = authorizationHeader.substring(BEARER_PREFIX.length());
+    try {
+      var decoded =
+          require(Algorithm.HMAC512(jwtProperties.getSecret())).build().verify(accessToken);
 
-    @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
-        FilterChain chain) throws IOException, ServletException {
+      String userId = decoded.getClaim("userId").asString();
+      if (userId == null || userId.isBlank()) {
+        chain.doFilter(request, response);
+        return;
+      }
 
-        String authorizationHeader = request.getHeader("Authorization");
-        if (authorizationHeader == null || !authorizationHeader.startsWith(BEARER_PREFIX)) {
-            chain.doFilter(request, response);
-            return;
-        }
-        String accessToken = authorizationHeader.substring(BEARER_PREFIX.length());
-        try {
-            var decoded = require(Algorithm.HMAC512(jwtProperties.getSecret())).build()
-                .verify(accessToken);
+      Authentication existing = SecurityContextHolder.getContext().getAuthentication();
+      if (existing != null && existing.isAuthenticated()) {
+        chain.doFilter(request, response);
+        return;
+      }
 
-            String userId = decoded.getClaim("userId").asString();
-            if (userId == null || userId.isBlank()) {
-                chain.doFilter(request, response);
-                return;
-            }
+      User user = userRepository.findById(userId).orElse(null);
+      if (user == null) {
+        chain.doFilter(request, response);
+        return;
+      }
+      String role = Objects.toString(user.getRole(), "ROLE_USER");
+      var authorities = List.of(new SimpleGrantedAuthority(role));
 
-            Authentication existing = SecurityContextHolder.getContext().getAuthentication();
-            if (existing != null && existing.isAuthenticated()) {
-                chain.doFilter(request, response);
-                return;
-            }
-
-            User user = userRepository.findById(userId).orElse(null);
-            if (user == null) {
-                chain.doFilter(request, response);
-                return;
-            }
-            String role = Objects.toString(user.getRole(), "ROLE_USER");
-            var authorities = List.of(new SimpleGrantedAuthority(role));
-
-            UsernamePasswordAuthenticationToken authentication =
-                new UsernamePasswordAuthenticationToken(user, null,
-                    authorities);
-            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-            SecurityContextHolder.getContext().setAuthentication(authentication);
-            chain.doFilter(request, response);
-        } catch (TokenExpiredException ex) {
-            chain.doFilter(request, response);
-        }
+      UsernamePasswordAuthenticationToken authentication =
+          new UsernamePasswordAuthenticationToken(user, null, authorities);
+      authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+      SecurityContextHolder.getContext().setAuthentication(authentication);
+      chain.doFilter(request, response);
+    } catch (TokenExpiredException ex) {
+      chain.doFilter(request, response);
     }
+  }
 }

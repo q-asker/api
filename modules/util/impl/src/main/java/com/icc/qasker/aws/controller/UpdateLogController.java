@@ -19,18 +19,17 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/updateLog")
 public class UpdateLogController {
 
-    private final UpdateLogService updateService;
+  private final UpdateLogService updateService;
 
-    @Operation(summary = "변경사항 업데이트를 가져온다")
-    @GetMapping
-    public ResponseEntity<UpdateLogResponse> getUpdateLog() {
-        return ResponseEntity.ok(updateService.getUpdateLog());
-    }
+  @Operation(summary = "변경사항 업데이트를 가져온다")
+  @GetMapping
+  public ResponseEntity<UpdateLogResponse> getUpdateLog() {
+    return ResponseEntity.ok(updateService.getUpdateLog());
+  }
 
-    @Operation(summary = "변경사항 업데이트를 보낸다")
-    @PostMapping
-    public ResponseEntity<UpdateLogResponse> createUpdateLog(
-        @RequestBody UpdateLogRequest request) {
-        return ResponseEntity.ok(updateService.createUpdateLog(request));
-    }
+  @Operation(summary = "변경사항 업데이트를 보낸다")
+  @PostMapping
+  public ResponseEntity<UpdateLogResponse> createUpdateLog(@RequestBody UpdateLogRequest request) {
+    return ResponseEntity.ok(updateService.createUpdateLog(request));
+  }
 }

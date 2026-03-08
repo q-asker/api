@@ -8,10 +8,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ProblemRepository extends JpaRepository<Problem, ProblemId> {
 
-    List<Problem> findByIdProblemSetId(Long problemSetId);
+  List<Problem> findByIdProblemSetId(Long problemSetId);
 
-    Optional<Problem> findByIdProblemSetIdAndIdNumber(Long problemSetId, int number);
+  Optional<Problem> findByIdProblemSetIdAndIdNumber(Long problemSetId, int number);
 
-    long countByIdProblemSetId(Long id);
+  long countByIdProblemSetId(Long id);
 }
-

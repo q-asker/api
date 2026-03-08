@@ -9,16 +9,16 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class HelloController {
 
-    @Value("${spring.profiles.active:default}")
-    private String activeProfile;
+  @Value("${spring.profiles.active:default}")
+  private String activeProfile;
 
-    @GetMapping("/status")
-    public Map<String, Object> status() {
-        Map<String, Object> response = new HashMap<>();
+  @GetMapping("/status")
+  public Map<String, Object> status() {
+    Map<String, Object> response = new HashMap<>();
 
-        response.put("profile", activeProfile);
-        response.put("status", "UP");
+    response.put("profile", activeProfile);
+    response.put("status", "UP");
 
-        return response;
-    }
+    return response;
+  }
 }

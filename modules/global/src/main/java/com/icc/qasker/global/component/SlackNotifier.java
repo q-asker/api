@@ -14,35 +14,37 @@ import org.springframework.web.client.RestClient.Builder;
 @RequiredArgsConstructor
 public class SlackNotifier {
 
-    private final Builder restClientBuilder;
-    private final SlackProperties slackProperties;
+  private final Builder restClientBuilder;
+  private final SlackProperties slackProperties;
 
-    @Async
-    public void asyncNotifyText(String text) {
-        boolean enabled = slackProperties.isEnabled();
-        String webhookUrl = slackProperties.getWebhookUrlNotify();
-        if (!enabled || webhookUrl == null || webhookUrl.isBlank()) {
-            return;
-        }
-
-        Map<String, Object> payload = Map.of(
-            "text", text,
-            "username", slackProperties.getUsernameNotify(),
-            slackProperties.getIconNotify().startsWith("http")
-                ? "icon_url" : "icon_emoji",
-            slackProperties.getIconNotify()
-        );
-
-        try {
-            restClientBuilder.build()
-                .post()
-                .uri(webhookUrl)
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(payload)
-                .retrieve()
-                .toBodilessEntity();
-        } catch (Exception e) {
-            log.warn("Slack 알림 실패: {}", e.toString());
-        }
+  @Async
+  public void asyncNotifyText(String text) {
+    boolean enabled = slackProperties.isEnabled();
+    String webhookUrl = slackProperties.getWebhookUrlNotify();
+    if (!enabled || webhookUrl == null || webhookUrl.isBlank()) {
+      return;
     }
+
+    Map<String, Object> payload =
+        Map.of(
+            "text",
+            text,
+            "username",
+            slackProperties.getUsernameNotify(),
+            slackProperties.getIconNotify().startsWith("http") ? "icon_url" : "icon_emoji",
+            slackProperties.getIconNotify());
+
+    try {
+      restClientBuilder
+          .build()
+          .post()
+          .uri(webhookUrl)
+          .contentType(MediaType.APPLICATION_JSON)
+          .body(payload)
+          .retrieve()
+          .toBodilessEntity();
+    } catch (Exception e) {
+      log.warn("Slack 알림 실패: {}", e.toString());
+    }
+  }
 }
