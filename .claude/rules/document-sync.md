@@ -9,7 +9,7 @@
 | 문서                                  | 진실의 원천                                |
 | ------------------------------------- | ------------------------------------------ |
 | `CLAUDE.md`                           | 기술 스택, 명령어, 아키텍처, 디렉토리 구조 |
-| `.claude/rules/coding-conventions.md` | 코딩 컨벤션, 구현 방식 선택                |
+| `.claude/rules/coding-conventions.md` | 코딩 컨벤션, 모듈 구조 규칙                |
 | `.claude/rules/constraints.md`        | 금지 사항, 주의 사항                       |
 | `.claude/rules/task-workflow.md`      | 작업 실행 규칙, 우선순위                   |
 | `.claude/rules/agent-delegation.md`   | 에이전트 위임 규칙                         |
@@ -24,19 +24,22 @@
 
 ## 변경 → 문서 갱신 트리거
 
-| 코드 변경                       | 갱신할 문서                        | 전용 에이전트          |
-| ------------------------------- | ---------------------------------- | ---------------------- |
-| `package.json` 패키지 추가/삭제 | `CLAUDE.md` (기술 스택)            | —                      |
-| `package.json` scripts 변경     | `CLAUDE.md` (명령어)               | —                      |
-| `src/app/` 라우트 추가/삭제     | `CLAUDE.md` (라우팅 구조)          | —                      |
-| `.env.*` 환경 변수 추가         | `CLAUDE.md` (환경 변수)            | —                      |
-| 디렉토리 구조 변경              | `CLAUDE.md` (아키텍처)             | —                      |
-| Task 완료                       | 활성 `docs/roadmaps/ROADMAP_v*.md` | `development-planner`  |
-| 새 Task 추가                    | 활성 `docs/roadmaps/ROADMAP_v*.md` | `development-planner`  |
-| UI 컴포넌트 생성/수정           | —                                  | `ui-markup-specialist` |
-| 코드 구현 완료                  | —                                  | `code-reviewer`        |
-| PRD 작성/변경                   | `docs/PRD.md`                      | `prd-generator`        |
-| Git 커밋                        | —                                  | `/commit` 스킬         |
+| 코드 변경                           | 갱신할 문서                        | 전용 에이전트         |
+| ----------------------------------- | ---------------------------------- | --------------------- |
+| `**/build.gradle` 의존성 추가/삭제  | `CLAUDE.md` (기술 스택)            | —                     |
+| `settings.gradle` 모듈 추가/삭제    | `CLAUDE.md` (아키텍처)             | —                     |
+| `modules/*/` 디렉토리 생성/삭제     | `CLAUDE.md` (아키텍처)             | —                     |
+| `**/application*.yml` 속성 추가     | `CLAUDE.md` (환경 변수/개발 도구)  | —                     |
+| `.env*` 변수 추가/삭제              | `CLAUDE.md` (환경 변수)            | —                     |
+| `docker-compose*.yml` 서비스 변경   | `CLAUDE.md` (개발 도구)            | —                     |
+| `.github/workflows/*` 변경          | `CLAUDE.md` (개발 도구)            | —                     |
+| `build.gradle` (루트) 플러그인/버전 | `CLAUDE.md` (기술 스택/개발 도구)  | —                     |
+| `**/*Controller.java` 엔드포인트    | `CLAUDE.md` (API 엔드포인트)       | —                     |
+| Task 완료                           | 활성 `docs/roadmaps/ROADMAP_v*.md` | `development-planner` |
+| 새 Task 추가                        | 활성 `docs/roadmaps/ROADMAP_v*.md` | `development-planner` |
+| 코드 구현 완료                      | —                                  | `code-reviewer`       |
+| PRD 작성/변경                       | `docs/PRD.md`                      | `prd-generator`       |
+| Git 커밋                            | —                                  | `/commit` 스킬        |
 
 ## CLAUDE.md 유지 규칙
 
@@ -47,7 +50,7 @@
 | 아키텍처, 라우팅 구조 변경           | `아키텍처`          |
 | 환경 변수 추가/변경                  | `환경 변수`         |
 | 개발 도구 및 설정 변경               | `개발 도구 및 설정` |
-| 디렉토리 구조 변경                   | `디렉토리 구조`     |
+| 디렉토리 구조 변경                   | `아키텍처`          |
 
 ## 준수 원칙
 

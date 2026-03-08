@@ -5,8 +5,8 @@ INPUT=$(cat)
 CWD=$(echo "$INPUT" | jq -r '.cwd // "unknown"')
 
 # 환경변수 미설정 시 프로젝트 .env 파일에서 로드
-if [ -z "$SLACK_WEBHOOK_URL" ] && [ -f "$CWD/.env" ]; then
-  SLACK_WEBHOOK_URL=$(grep -E '^SLACK_WEBHOOK_URL=' "$CWD/.env" | cut -d'=' -f2-)
+if [ -z "$SLACK_WEBHOOK_URL" ] && [ -f "$CWD/.claude/.env" ]; then
+  SLACK_WEBHOOK_URL=$(grep -E '^SLACK_WEBHOOK_URL=' "$CWD/.claude/.env" | cut -d'=' -f2-)
 fi
 [ -z "$SLACK_WEBHOOK_URL" ] && exit 0
 

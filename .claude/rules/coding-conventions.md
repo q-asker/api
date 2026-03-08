@@ -1,46 +1,43 @@
 # 코딩 컨벤션
 
-## 일반 규칙
+## 네이밍
 
-- 변수명/함수명: 영어 (camelCase)
-- 컴포넌트명: PascalCase
-- 상수: SCREAMING_SNAKE_CASE
-- 파일명: kebab-case (컴포넌트 파일 포함)
+- 클래스명: PascalCase (`QuizService`, `QuizResponseDto`)
+- 메서드/변수: camelCase (`findById`, `quizTitle`)
+- 상수: SCREAMING_SNAKE_CASE (`MAX_RETRY_COUNT`)
+- 패키지: 소문자 (`com.icc.qasker.quiz`)
+- 파일명: 클래스명과 동일 (Java 필수 규칙)
 - 코드 주석: 한국어
-- 경로 alias: `#` 접두사 (Node.js subpath imports, `package.json`의 `imports` 필드)
 
-## 컴포넌트 규칙
+## 클래스 구조
 
-- 함수형 컴포넌트만 사용 (arrow function)
-- Props 타입은 interface로 정의, 파일 상단에 배치
-- default export 사용
-- 각 feature/page/widget은 `index.tsx`(UI) + `index.ts`(re-export) 패턴
-- shadcn/ui 컴포넌트는 `components/ui/`에 위치, 직접 수정 금지
+- 하나의 파일에 하나의 public 클래스
+- 필드 → 생성자 → public 메서드 → private 메서드 순서
+- Lombok `@RequiredArgsConstructor`로 생성자 주입 (필드 주입 `@Autowired` 금지)
+- DTO는 `record` 또는 Lombok `@Getter` + `@Builder` 사용
 
-## 스타일링 규칙
+## 모듈 구조 규칙
 
-- Tailwind CSS 유틸리티 클래스 사용
-- `cn()` 함수로 조건부 클래스 병합
-- 인라인 스타일(`style` 속성) 사용 금지
-
-## 상태 관리
-
-- Zustand store: feature 단위로 분리 (`model/` 디렉토리)
-- 커스텀 훅으로 비즈니스 로직 캡슐화 (`use*.ts`)
+- `api` 모듈: 인터페이스, DTO, 예외 정의만 포함 (구현체 금지)
+- `impl` 모듈: 서비스 구현체, 리포지토리, 설정 클래스
+- `global` 모듈: 전역 예외 처리, 공통 응답 DTO, BaseEntity
+- 모듈 간 의존 방향: `impl` → `api` (역방향 금지)
 
 ## Import 순서
 
-1. React/외부 라이브러리
-2. 내부 모듈 (`#` alias)
-3. 상대경로
-4. 타입 import (`type` 키워드 사용)
+1. `java.*` / `javax.*` (표준 라이브러리)
+2. `org.*` / `com.*` (서드파티)
+3. `com.icc.qasker.*` (프로젝트 내부)
+4. `static` import
 
-## 구현 방식 선택
+## API 컨벤션
 
-- UI 컴포넌트: shadcn/ui에 해당 컴포넌트가 있으면 반드시 사용한다
-- i18n: 모든 사용자 노출 텍스트는 `useTranslation` 훅의 `t()` 함수 사용
-- API 통신: `#shared/api`의 Axios 인스턴스 사용
-- 토스트: `#shared/toast`의 CustomToast 사용
-- 비동기: async/await 사용 (Promise chain 금지)
+- REST API 경로: kebab-case (`/api/v1/quiz-sets`)
+- 응답은 공통 응답 DTO로 래핑
+- 예외는 `global` 모듈의 `GlobalExceptionHandler`에서 처리
 
-> 금지 사항은 `constraints.md` 참조.
+## 기타
+
+- 비동기: async/await 패턴 불가 → `@Async` + `CompletableFuture` 사용
+- 환경 변수: `application*.yml`에서 `@Value` 또는 `@ConfigurationProperties`로 주입
+- 로깅: `@Slf4j` (Lombok) 사용
