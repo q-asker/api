@@ -11,12 +11,11 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public final class SelectionMapper {
 
-    public Selection fromResponse(SelectionsOfAI dto, Problem problem) {
-        return Selection.builder()
-            .content(dto.getContent())
-            .correct(dto.isCorrect())
-            .problem(problem)
-            .build();
-    }
-
+  public Selection fromResponse(SelectionsOfAI dto, Problem problem) {
+    return Selection.builder()
+        .content(dto.getContent())
+        .correct(dto.isCorrect())
+        .problem(problem)
+        .build();
+  }
 }

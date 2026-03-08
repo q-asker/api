@@ -6,21 +6,22 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class OXFormat {
 
-    public static final String content = """
+  public static final String content =
+      """
         ### title(단일 진술문) 출력 구조
         #### 출력 구조(형태만 준수)
         {단일 진술문 1문장}
-        
+
         ---
-        
+
         ### selections(content 값) 출력 구조
         #### 포함 정보(구조만 준수)
         - correct 분포: true 1개 + false 1개
         - content 표기: "O", "X" 두 값으로만 구성
         - correct=true는 "O" 또는 "X" 중 하나가 될 수 있음(고정 금지)
-        
+
         ---
-        
+
         ### explanation(해설) 출력 구조
         #### 출력 구조
         [정답] 선택지 내용: {O 또는 X}

@@ -12,6 +12,5 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 @EntityListeners(AuditingEntityListener.class)
 public abstract class CreatedAt {
 
-    @CreatedDate
-    private Instant createdAt;
+  @CreatedDate private Instant createdAt;
 }

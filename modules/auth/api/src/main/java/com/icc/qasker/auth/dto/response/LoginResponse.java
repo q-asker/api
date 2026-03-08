@@ -7,5 +7,5 @@ import lombok.Getter;
 @Getter
 public class LoginResponse {
 
-    private String nickname;
+  private String nickname;
 }

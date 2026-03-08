@@ -8,7 +8,7 @@ import lombok.Getter;
 @AllArgsConstructor
 public class ResultResponse {
 
-    private int number;
-    private String explanation;
-    private List<Integer> referencedPages;
+  private int number;
+  private String explanation;
+  private List<Integer> referencedPages;
 }

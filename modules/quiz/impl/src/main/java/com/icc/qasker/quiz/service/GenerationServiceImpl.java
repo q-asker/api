@@ -34,164 +34,140 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 @AllArgsConstructor
 public class GenerationServiceImpl implements GenerationService {
 
-    private final CircuitBreakerRegistry circuitBreakerRegistry;
-    private final ProblemSetResponseMapper problemSetResponseMapper;
-    private final ProblemMapper problemMapper;
-    private final SlackNotifier slackNotifier;
-    private final ProblemSetRepository problemSetRepository;
-    private final HashUtil hashUtil;
-    private final ProblemRepository problemRepository;
-    private final AIServerAdapter aiServerAdapter;
+  private final CircuitBreakerRegistry circuitBreakerRegistry;
+  private final ProblemSetResponseMapper problemSetResponseMapper;
+  private final ProblemMapper problemMapper;
+  private final SlackNotifier slackNotifier;
+  private final ProblemSetRepository problemSetRepository;
+  private final HashUtil hashUtil;
+  private final ProblemRepository problemRepository;
+  private final AIServerAdapter aiServerAdapter;
 
-    @Override
-    public SseEmitter processGenerationRequest(
-        GenerationRequest request, String userId) {
-        SseEmitter emitter = new SseEmitter(110 * 1000L);
+  @Override
+  public SseEmitter processGenerationRequest(GenerationRequest request, String userId) {
+    SseEmitter emitter = new SseEmitter(110 * 1000L);
 
-        CircuitBreaker circuitBreaker = circuitBreakerRegistry.circuitBreaker("aiServer");
-        if (circuitBreaker.getState() == State.OPEN) {
-            sendErrorAndComplete(emitter,
-                new CustomException(ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR));
-            return emitter;
-        }
+    CircuitBreaker circuitBreaker = circuitBreakerRegistry.circuitBreaker("aiServer");
+    if (circuitBreaker.getState() == State.OPEN) {
+      sendErrorAndComplete(
+          emitter, new CustomException(ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR));
+      return emitter;
+    }
 
-        ProblemSet saveProblemSet = null;
-        try {
-            ProblemSet problemSet = ProblemSet.builder().userId(userId).build();
-            saveProblemSet = problemSetRepository.save(problemSet);
-        } catch (Exception e) {
-            log.error("초기 저장 실패: {}", e.getMessage());
-            sendErrorAndComplete(emitter, e);
-            return emitter;
-        }
+    ProblemSet saveProblemSet = null;
+    try {
+      ProblemSet problemSet = ProblemSet.builder().userId(userId).build();
+      saveProblemSet = problemSetRepository.save(problemSet);
+    } catch (Exception e) {
+      log.error("초기 저장 실패: {}", e.getMessage());
+      sendErrorAndComplete(emitter, e);
+      return emitter;
+    }
 
-        final AtomicBoolean cancelled = new AtomicBoolean(false);
-        emitter.onTimeout(() -> cancelled.set(true));
-        emitter.onCompletion(() -> cancelled.set(true));
-        emitter.onError(e -> cancelled.set(true));
+    final AtomicBoolean cancelled = new AtomicBoolean(false);
+    emitter.onTimeout(() -> cancelled.set(true));
+    emitter.onCompletion(() -> cancelled.set(true));
+    emitter.onError(e -> cancelled.set(true));
 
-        ProblemSet finalSaveProblemSet = saveProblemSet;
-        Thread.ofVirtual().start(() -> {
-            try {
+    ProblemSet finalSaveProblemSet = saveProblemSet;
+    Thread.ofVirtual()
+        .start(
+            () -> {
+              try {
                 aiServerAdapter.streamRequest(
                     request.uploadedUrl(),
                     request.quizType(),
                     request.quizCount(),
                     request.pageNumbers(),
                     (quiz) -> {
-                        if (cancelled.get()) {
-                            return;
-                        }
-                        doMainLogic(request, quiz, emitter, finalSaveProblemSet);
-                    }
-                );
+                      if (cancelled.get()) {
+                        return;
+                      }
+                      doMainLogic(request, quiz, emitter, finalSaveProblemSet);
+                    });
 
                 Long problemSetId = finalSaveProblemSet.getId();
-                long generatedCount = problemRepository.countByIdProblemSetId(
-                    finalSaveProblemSet.getId());
+                long generatedCount =
+                    problemRepository.countByIdProblemSetId(finalSaveProblemSet.getId());
                 if (generatedCount == 0) {
-                    throw new CustomException(ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR);
+                  throw new CustomException(ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR);
                 }
                 if (generatedCount == request.quizCount()) {
-                    finalizeSuccess(request, problemSetId, emitter);
+                  finalizeSuccess(request, problemSetId, emitter);
                 } else {
-                    finalizePartialSuccess(
-                        request,
-                        generatedCount,
-                        problemSetId,
-                        emitter
-                    );
+                  finalizePartialSuccess(request, generatedCount, problemSetId, emitter);
                 }
-            } catch (Exception e) {
+              } catch (Exception e) {
                 finalizeError(request, finalSaveProblemSet.getId(), emitter, e);
-            }
-        });
-        return emitter;
-    }
+              }
+            });
+    return emitter;
+  }
 
-    private void doMainLogic(GenerationRequest request, ProblemSetGeneratedEvent quiz,
-        SseEmitter emitter,
-        ProblemSet saveProblemSet) {
-        try {
-            String encodedId = hashUtil.encode(saveProblemSet.getId());
-            List<Problem> problems = new ArrayList<>();
-            List<QuizForFe> quizForFeList = new ArrayList<>();
-            for (QuizGeneratedFromAI quizGeneratedFromAI : quiz.getQuiz()) {
-                Problem problem = problemMapper.fromResponse(quizGeneratedFromAI, saveProblemSet);
-                problems.add(problem);
-                quizForFeList.add(problemSetResponseMapper.fromEntity(problem));
-            }
-            problemRepository.saveAll(problems);
-            emitter.send(
-                new ProblemSetResponse(
-                    encodedId,
-                    request.quizCount(),
-                    quizForFeList
-                ));
-        } catch (IOException ignored) {
-        }
+  private void doMainLogic(
+      GenerationRequest request,
+      ProblemSetGeneratedEvent quiz,
+      SseEmitter emitter,
+      ProblemSet saveProblemSet) {
+    try {
+      String encodedId = hashUtil.encode(saveProblemSet.getId());
+      List<Problem> problems = new ArrayList<>();
+      List<QuizForFe> quizForFeList = new ArrayList<>();
+      for (QuizGeneratedFromAI quizGeneratedFromAI : quiz.getQuiz()) {
+        Problem problem = problemMapper.fromResponse(quizGeneratedFromAI, saveProblemSet);
+        problems.add(problem);
+        quizForFeList.add(problemSetResponseMapper.fromEntity(problem));
+      }
+      problemRepository.saveAll(problems);
+      emitter.send(new ProblemSetResponse(encodedId, request.quizCount(), quizForFeList));
+    } catch (IOException ignored) {
     }
+  }
 
-    private void finalizeSuccess(
-        GenerationRequest request,
-        Long problemSetId,
-        SseEmitter emitter
-    ) {
-        emitter.complete();
-        slackNotifier.asyncNotifyText("""
+  private void finalizeSuccess(GenerationRequest request, Long problemSetId, SseEmitter emitter) {
+    emitter.complete();
+    slackNotifier.asyncNotifyText(
+        """
             ✅ [퀴즈 생성 완료 알림]
             ProblemSetId: %s
             퀴즈 타입: %s
             문제 수: %d
-            """.formatted(
-            hashUtil.encode(problemSetId),
-            request.quizType(),
-            request.quizCount()
-        ));
-    }
+            """
+            .formatted(hashUtil.encode(problemSetId), request.quizType(), request.quizCount()));
+  }
 
-    private void finalizePartialSuccess(
-        GenerationRequest request,
-        long generatedCount,
-        Long problemSetId,
-        SseEmitter emitter
-    ) {
-        emitter.complete();
-        slackNotifier.asyncNotifyText("""
+  private void finalizePartialSuccess(
+      GenerationRequest request, long generatedCount, Long problemSetId, SseEmitter emitter) {
+    emitter.complete();
+    slackNotifier.asyncNotifyText(
+        """
             ⚠️ [퀴즈 생성 부분 완료]
             ProblemSetId: %s
             생성된 문제 수: %d개 중 %d개
-            """.formatted(
-            hashUtil.encode(problemSetId),
-            request.quizCount(),
-            generatedCount
-        ));
-    }
+            """
+            .formatted(hashUtil.encode(problemSetId), request.quizCount(), generatedCount));
+  }
 
-    private void finalizeError(
-        GenerationRequest request,
-        Long problemSetId,
-        SseEmitter emitter,
-        Exception e
-    ) {
-        sendErrorAndComplete(emitter, e);
-        // 보상 트랜잭션 수행
-        // 영속성 컨텍스트 추가 -> 삭제 비용
-        // problemSetRepository.delete(problemSet);
-        problemSetRepository.deleteById(problemSetId);
-        slackNotifier.asyncNotifyText("""
+  private void finalizeError(
+      GenerationRequest request, Long problemSetId, SseEmitter emitter, Exception e) {
+    sendErrorAndComplete(emitter, e);
+    // 보상 트랜잭션 수행
+    // 영속성 컨텍스트 추가 -> 삭제 비용
+    // problemSetRepository.delete(problemSet);
+    problemSetRepository.deleteById(problemSetId);
+    slackNotifier.asyncNotifyText(
+        """
             ❌ [퀴즈 생성 실패]
             사유: %s
-            """.formatted(
-            e.getMessage()
-        ));
-    }
+            """
+            .formatted(e.getMessage()));
+  }
 
-    private void sendErrorAndComplete(SseEmitter emitter, Exception e) {
-        try {
-            emitter.send(SseEmitter.event().name("error").data(e.getMessage()));
-            emitter.complete();
-        } catch (IOException ignored) {
-        }
+  private void sendErrorAndComplete(SseEmitter emitter, Exception e) {
+    try {
+      emitter.send(SseEmitter.event().name("error").data(e.getMessage()));
+      emitter.complete();
+    } catch (IOException ignored) {
     }
+  }
 }

@@ -8,5 +8,5 @@ import lombok.Getter;
 @AllArgsConstructor
 public class ExplanationResponse {
 
-    private List<ResultResponse> results;
+  private List<ResultResponse> results;
 }

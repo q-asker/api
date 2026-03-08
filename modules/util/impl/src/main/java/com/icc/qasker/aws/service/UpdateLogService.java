@@ -1,6 +1,5 @@
 package com.icc.qasker.aws.service;
 
-
 import com.icc.qasker.aws.dto.request.UpdateLogRequest;
 import com.icc.qasker.aws.dto.response.UpdateLogResponse;
 import com.icc.qasker.aws.entity.UpdateLog;
@@ -16,23 +15,18 @@ import org.springframework.transaction.annotation.Transactional;
 @AllArgsConstructor
 public class UpdateLogService {
 
-    private final UpdateLogRepository updateLogRepository;
+  private final UpdateLogRepository updateLogRepository;
 
-    @Cacheable(value = "recentUpdateLog", key = "'root'")
-    @Transactional(readOnly = true)
-    public UpdateLogResponse getUpdateLog() {
-        return UpdateLogResponseMapper.fromEntity(
-            updateLogRepository.findTop3ByOrderByCreatedAtDesc());
-    }
+  @Cacheable(value = "recentUpdateLog", key = "'root'")
+  @Transactional(readOnly = true)
+  public UpdateLogResponse getUpdateLog() {
+    return UpdateLogResponseMapper.fromEntity(updateLogRepository.findTop3ByOrderByCreatedAtDesc());
+  }
 
-    @Transactional
-    @CachePut(value = "recentUpdateLog", key = "'root'")
-    public UpdateLogResponse createUpdateLog(
-        UpdateLogRequest request) {
-        updateLogRepository.save(UpdateLog.builder()
-            .updateText(request.updateText())
-            .build());
-        return UpdateLogResponseMapper.fromEntity(
-            updateLogRepository.findTop3ByOrderByCreatedAtDesc());
-    }
+  @Transactional
+  @CachePut(value = "recentUpdateLog", key = "'root'")
+  public UpdateLogResponse createUpdateLog(UpdateLogRequest request) {
+    updateLogRepository.save(UpdateLog.builder().updateText(request.updateText()).build());
+    return UpdateLogResponseMapper.fromEntity(updateLogRepository.findTop3ByOrderByCreatedAtDesc());
+  }
 }

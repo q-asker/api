@@ -17,23 +17,23 @@ import lombok.Setter;
 @Entity
 public class ReferencedPage extends CreatedAt {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    private int pageNumber;
+  private int pageNumber;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumns({
-        @JoinColumn(name = "problem_set_id", referencedColumnName = "problem_set_id"),
-        @JoinColumn(name = "number", referencedColumnName = "number")
-    })
-    private Problem problem;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumns({
+    @JoinColumn(name = "problem_set_id", referencedColumnName = "problem_set_id"),
+    @JoinColumn(name = "number", referencedColumnName = "number")
+  })
+  private Problem problem;
 
-    public static ReferencedPage of(int pageNumber, Problem problem) {
-        ReferencedPage page = new ReferencedPage();
-        page.setPageNumber(pageNumber);
-        page.setProblem(problem);
-        return page;
-    }
+  public static ReferencedPage of(int pageNumber, Problem problem) {
+    ReferencedPage page = new ReferencedPage();
+    page.setPageNumber(pageNumber);
+    page.setProblem(problem);
+    return page;
+  }
 }

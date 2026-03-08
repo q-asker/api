@@ -20,18 +20,18 @@ import lombok.Setter;
 @AllArgsConstructor
 public class ProblemSet extends CreatedAt {
 
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    private String userId;
+  private String userId;
 
-    @Setter
-    @OneToMany(mappedBy = "problemSet", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Problem> problems;
+  @Setter
+  @OneToMany(mappedBy = "problemSet", cascade = CascadeType.ALL, orphanRemoval = true)
+  private List<Problem> problems;
 
-    @Builder
-    public ProblemSet(String userId) {
-        this.userId = userId;
-    }
+  @Builder
+  public ProblemSet(String userId) {
+    this.userId = userId;
+  }
 }

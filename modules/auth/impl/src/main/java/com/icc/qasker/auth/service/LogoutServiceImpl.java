@@ -13,15 +13,14 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class LogoutServiceImpl implements LogoutService {
 
-    private final RefreshTokenUtil refreshTokenUtil;
+  private final RefreshTokenUtil refreshTokenUtil;
 
-    @Override
-    public void logout(HttpServletRequest request, HttpServletResponse response) {
-        var rtCookie = CookieUtil.getCookie(request, "refresh_token").orElse(null);
-        if (rtCookie != null) {
-            refreshTokenUtil.revoke(rtCookie.getValue());
-        }
-        response.addHeader(HttpHeaders.SET_COOKIE, CookieUtil.deleteRefreshCookie().toString());
+  @Override
+  public void logout(HttpServletRequest request, HttpServletResponse response) {
+    var rtCookie = CookieUtil.getCookie(request, "refresh_token").orElse(null);
+    if (rtCookie != null) {
+      refreshTokenUtil.revoke(rtCookie.getValue());
     }
+    response.addHeader(HttpHeaders.SET_COOKIE, CookieUtil.deleteRefreshCookie().toString());
+  }
 }
-

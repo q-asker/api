@@ -11,7 +11,5 @@ public record AwsS3Properties(
     long maxFileSize,
     int signatureDuration,
     int maxFileNameLength,
-    String allowedExtensions
-) {
-
-};
+    String allowedExtensions) {}
+;

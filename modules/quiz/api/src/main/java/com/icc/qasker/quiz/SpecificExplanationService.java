@@ -4,6 +4,5 @@ import com.icc.qasker.quiz.dto.feResponse.SpecificExplanationResponse;
 
 public interface SpecificExplanationService {
 
-    SpecificExplanationResponse getSpecificExplanation(String encodedProblemSetId, int number);
+  SpecificExplanationResponse getSpecificExplanation(String encodedProblemSetId, int number);
 }
-

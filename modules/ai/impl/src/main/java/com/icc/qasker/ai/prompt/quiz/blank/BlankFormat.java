@@ -6,21 +6,22 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class BlankFormat {
 
-    public static final String content = """
+  public static final String content =
+      """
             ### title(빈칸 포함 전제+질문) 출력 구조
             #### 출력 구조(형태만 준수)
             {빈칸 포함 전제(문장 안에 "_______" 1개 포함)}
-        
+
             ---
-        
+
             ### selections(content 값) 출력 구조
             #### 포함 정보(구조만 준수)
             - selections: 선택지 4개로 구성
             - 각 선택지 필드: content(string), correct(boolean)
             - correct 분포: true 1개 + false 3개
-        
+
             ---
-        
+
             ### explanation(해설) 출력 구조
             #### 출력 구조
             [정답] 선택지 내용: {정답 선택지 내용}

@@ -13,21 +13,22 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @AllArgsConstructor
 public class WebMvcConfig implements WebMvcConfigurer {
 
-    private final UserIdArgumentResolver userIdArgumentResolver;
-    private final QAskerProperties qAskerProperties;
+  private final UserIdArgumentResolver userIdArgumentResolver;
+  private final QAskerProperties qAskerProperties;
 
-    @Override
-    public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/**")
-            .allowedOrigins(qAskerProperties.getFrontendDevUrl(),
-                qAskerProperties.getFrontendDeployUrl())
-            .allowedMethods("GET", "POST", "PUT", "DELETE")
-            .allowCredentials(true)
-            .maxAge(3600);
-    }
+  @Override
+  public void addCorsMappings(CorsRegistry registry) {
+    registry
+        .addMapping("/**")
+        .allowedOrigins(
+            qAskerProperties.getFrontendDevUrl(), qAskerProperties.getFrontendDeployUrl())
+        .allowedMethods("GET", "POST", "PUT", "DELETE")
+        .allowCredentials(true)
+        .maxAge(3600);
+  }
 
-    @Override
-    public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
-        resolvers.add(userIdArgumentResolver);
-    }
+  @Override
+  public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
+    resolvers.add(userIdArgumentResolver);
+  }
 }

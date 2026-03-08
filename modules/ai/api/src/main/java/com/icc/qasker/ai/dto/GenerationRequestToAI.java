@@ -8,7 +8,4 @@ public record GenerationRequestToAI(
     String strategyValue,
     int quizCount,
     List<Integer> referencePages,
-    Consumer<AIProblemSet> onChunkCompleted
-) {
-
-}
+    Consumer<AIProblemSet> onChunkCompleted) {}

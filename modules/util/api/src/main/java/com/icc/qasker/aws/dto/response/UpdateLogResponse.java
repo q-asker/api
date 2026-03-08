@@ -5,7 +5,5 @@ import java.util.List;
 
 public record UpdateLogResponse(List<UpdateLog> updateLogs) {
 
-    public record UpdateLog(Instant dateTime, String updateText) {
-
-    }
+  public record UpdateLog(Instant dateTime, String updateText) {}
 }

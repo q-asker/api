@@ -22,23 +22,22 @@ import lombok.Setter;
 @Setter
 public class Problem extends CreatedAt {
 
-    @EmbeddedId
-    private ProblemId id;
-    @Column(columnDefinition = "TEXT")
-    private String title;
+  @EmbeddedId private ProblemId id;
 
-    @ManyToOne(fetch = LAZY)
-    @MapsId("problemSetId")
-    @JoinColumn(name = "problem_set_id")
-    private ProblemSet problemSet;
+  @Column(columnDefinition = "TEXT")
+  private String title;
 
-    @OneToMany(mappedBy = "problem", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Selection> selections;
+  @ManyToOne(fetch = LAZY)
+  @MapsId("problemSetId")
+  @JoinColumn(name = "problem_set_id")
+  private ProblemSet problemSet;
 
-    @OneToOne(mappedBy = "problem", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Explanation explanation;
+  @OneToMany(mappedBy = "problem", cascade = CascadeType.ALL, orphanRemoval = true)
+  private List<Selection> selections;
 
-    @OneToMany(mappedBy = "problem", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<ReferencedPage> referencedPages = new ArrayList<>();
+  @OneToOne(mappedBy = "problem", cascade = CascadeType.ALL, orphanRemoval = true)
+  private Explanation explanation;
 
+  @OneToMany(mappedBy = "problem", cascade = CascadeType.ALL, orphanRemoval = true)
+  private List<ReferencedPage> referencedPages = new ArrayList<>();
 }

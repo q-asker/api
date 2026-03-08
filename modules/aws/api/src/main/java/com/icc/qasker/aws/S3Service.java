@@ -6,8 +6,7 @@ import com.icc.qasker.aws.dto.PresignResponse;
 
 public interface S3Service {
 
-    PresignResponse requestPresign(PresignRequest presignRequest);
+  PresignResponse requestPresign(PresignRequest presignRequest);
 
-    FileExistStatusResponse checkFileExistence(String originalFileName);
+  FileExistStatusResponse checkFileExistence(String originalFileName);
 }
-

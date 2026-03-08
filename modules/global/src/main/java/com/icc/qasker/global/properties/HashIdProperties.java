@@ -9,6 +9,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties("q-asker.hashid")
 public class HashIdProperties {
 
-    private final String salt;
-    private final int minLength;
+  private final String salt;
+  private final int minLength;
 }

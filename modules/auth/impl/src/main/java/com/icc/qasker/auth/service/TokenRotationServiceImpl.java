@@ -15,38 +15,37 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class TokenRotationServiceImpl implements TokenRotationService {
 
-    private final JwtProperties jwtProperties;
-    private final RefreshTokenUtil refreshTokenUtil;
-    private final AccessTokenHandler accessTokenHandler;
+  private final JwtProperties jwtProperties;
+  private final RefreshTokenUtil refreshTokenUtil;
+  private final AccessTokenHandler accessTokenHandler;
 
-    @Override
-    public void issueRefreshToken(String userId, HttpServletResponse response) {
-        String newRtPlain = refreshTokenUtil.issue(userId);
-        setRefreshToken(response, newRtPlain);
-    }
+  @Override
+  public void issueRefreshToken(String userId, HttpServletResponse response) {
+    String newRtPlain = refreshTokenUtil.issue(userId);
+    setRefreshToken(response, newRtPlain);
+  }
 
-    @Override
-    public RotateTokenResponse issueTokens(String userId, HttpServletResponse response) {
-        String newRtPlain = refreshTokenUtil.issue(userId);
-        String newAt = accessTokenHandler.validateAndGenerate(userId);
+  @Override
+  public RotateTokenResponse issueTokens(String userId, HttpServletResponse response) {
+    String newRtPlain = refreshTokenUtil.issue(userId);
+    String newAt = accessTokenHandler.validateAndGenerate(userId);
 
-        setRefreshToken(response, newRtPlain);
-        return new RotateTokenResponse(newAt);
-    }
+    setRefreshToken(response, newRtPlain);
+    return new RotateTokenResponse(newAt);
+  }
 
-    @Override
-    public RotateTokenResponse rotateTokens(String refreshToken, HttpServletResponse response) {
-        var newRtCookie = refreshTokenUtil.validateAndRotate(refreshToken);
-        String newAt = accessTokenHandler.validateAndGenerate(newRtCookie.userId());
+  @Override
+  public RotateTokenResponse rotateTokens(String refreshToken, HttpServletResponse response) {
+    var newRtCookie = refreshTokenUtil.validateAndRotate(refreshToken);
+    String newAt = accessTokenHandler.validateAndGenerate(newRtCookie.userId());
 
-        setRefreshToken(response, newRtCookie.newRtPlain());
-        return new RotateTokenResponse(newAt);
-    }
+    setRefreshToken(response, newRtCookie.newRtPlain());
+    return new RotateTokenResponse(newAt);
+  }
 
-    private void setRefreshToken(HttpServletResponse response, String newRtPlain) {
-        response.setHeader(HttpHeaders.SET_COOKIE,
-            CookieUtil.buildCookies(newRtPlain, jwtProperties.getAccessExpirationTime())
-                .toString());
-    }
+  private void setRefreshToken(HttpServletResponse response, String newRtPlain) {
+    response.setHeader(
+        HttpHeaders.SET_COOKIE,
+        CookieUtil.buildCookies(newRtPlain, jwtProperties.getAccessExpirationTime()).toString());
+  }
 }
-
