@@ -7,6 +7,7 @@ allowed-tools:
     "Bash(git commit:*)",
     "Bash(git diff:*)",
     "Bash(git log:*)",
+    "Bash(git push:*)",
     "Read",
     "Edit",
   ]
@@ -29,6 +30,7 @@ allowed-tools:
 3. 필요시 분할 제안
 4. **문서 동기화 체크** (아래 규칙 참조)
 5. 이모지 컨벤셔널 포맷으로 커밋 생성
+6. **커밋 완료 후 push 여부를 사용자에게 확인** → 승인 시 `git push` 실행
 
 ## 문서 동기화 체크 (Step 4)
 
