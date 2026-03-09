@@ -8,26 +8,27 @@
 
 ## 프로젝트 개요
 
-Q-Asker는 AI 기반 퀴즈 생성·출제·채점 플랫폼의 백엔드 API 서버이다. Spring Boot 멀티모듈 구조로 퀴즈 CRUD, 소셜 로그인, 파일 업로드, AI 퀴즈 생성 기능을 제공한다.
+Q-Asker는 AI 기반 퀴즈 생성·출제·채점 플랫폼의 백엔드 API 서버이다. Spring Boot 멀티모듈 구조로 퀴즈 CRUD, 소셜 로그인, 파일 업로드, AI 퀴즈 생성
+기능을 제공한다.
 
 ## 기술 스택
 
-| 분류       | 기술                                  | 버전            |
-| ---------- | ------------------------------------- | --------------- |
-| 언어       | Java                                  | 21              |
-| 프레임워크 | Spring Boot                           | 3.5.8           |
-| AI         | Spring AI + Google Gemini             | 1.1.2           |
-| ORM        | Spring Data JPA + Hibernate           | (BOM 관리)      |
-| DB         | MySQL                                 | latest (Docker) |
-| 인증       | Auth0 Java JWT + Spring OAuth2 Client | 4.5.0           |
-| AWS        | AWS SDK (S3)                          | 2.27.24         |
+| 분류     | 기술                                    | 버전              |
+|--------|---------------------------------------|-----------------|
+| 언어     | Java                                  | 21              |
+| 프레임워크  | Spring Boot                           | 3.5.8           |
+| AI     | Spring AI + Google Gemini             | 1.1.2           |
+| ORM    | Spring Data JPA + Hibernate           | (BOM 관리)        |
+| DB     | MySQL                                 | latest (Docker) |
+| 인증     | Auth0 Java JWT + Spring OAuth2 Client | 4.5.0           |
+| AWS    | AWS SDK (S3)                          | 2.27.24         |
 | 장애 대응  | Resilience4j                          | 2.3.0           |
-| API 문서   | SpringDoc OpenAPI (Swagger UI)        | 2.8.8           |
+| API 문서 | SpringDoc OpenAPI (Swagger UI)        | 2.8.8           |
 | 모니터링   | Scouter APM                           | -               |
-| 로깅       | SLF4J + Logback + Slack Appender      | 1.6.1           |
-| 빌드       | Gradle                                | 8.14.3          |
-| 컨테이너   | Jib (Docker 이미지 빌드)              | 3.4.0           |
-| 포맷터     | Spotless + Google Java Format         | 7.0.4           |
+| 로깅     | SLF4J + Logback + Slack Appender      | 1.6.1           |
+| 빌드     | Gradle                                | 8.14.3          |
+| 컨테이너   | Jib (Docker 이미지 빌드)                   | 3.4.0           |
+| 포맷터    | Spotless + Google Java Format         | 7.0.4           |
 | 유틸리티   | Lombok, Hashids, Janino               | -               |
 
 ## 명령어 (Scripts)
@@ -104,12 +105,12 @@ api → (의존 없음 또는 global만)
 
 ### .env (Docker Compose용 — Git 미추적)
 
-| 키                    | 설명                 |
-| --------------------- | -------------------- |
-| `MYSQL_ROOT_PASSWORD` | MySQL root 비밀번호  |
-| `MYSQL_DATABASE`      | MySQL 데이터베이스명 |
-| `MYSQL_USER`          | MySQL 사용자명       |
-| `MYSQL_PASSWORD`      | MySQL 비밀번호       |
+| 키                     | 설명              |
+|-----------------------|-----------------|
+| `MYSQL_ROOT_PASSWORD` | MySQL root 비밀번호 |
+| `MYSQL_DATABASE`      | MySQL 데이터베이스명   |
+| `MYSQL_USER`          | MySQL 사용자명      |
+| `MYSQL_PASSWORD`      | MySQL 비밀번호      |
 
 ### application-local.yml / application-prod.yml (Git 미추적)
 
@@ -117,27 +118,13 @@ api → (의존 없음 또는 global만)
 
 ## 개발 도구 및 설정
 
-| 도구                 | 설명                                                          |
-| -------------------- | ------------------------------------------------------------- |
-| Gradle 8.14.3        | 빌드 도구 (Wrapper 사용)                                      |
-| JDK 21               | Gradle toolchain으로 자동 관리                                |
-| Docker Compose       | 로컬 MySQL + Scouter 컨테이너                                 |
-| Jib 3.4.0            | Dockerfile 없는 Docker 이미지 빌드                            |
-| Scouter APM          | 성능 모니터링 (로컬 + 운영)                                   |
-| GitHub Actions       | CI/CD (ci, auto-version-bump, prod_deploy)                    |
-| SpringDoc Swagger UI | `/swagger-ui/index.html`에서 API 테스트                       |
+| 도구                   | 설명                                                |
+|----------------------|---------------------------------------------------|
+| Gradle 8.14.3        | 빌드 도구 (Wrapper 사용)                                |
+| JDK 21               | Gradle toolchain으로 자동 관리                          |
+| Docker Compose       | 로컬 MySQL + Scouter 컨테이너                           |
+| Jib 3.4.0            | Dockerfile 없는 Docker 이미지 빌드                       |
+| Scouter APM          | 성능 모니터링 (로컬 + 운영)                                 |
+| GitHub Actions       | CI/CD (ci, auto-version-bump, prod_deploy)        |
+| SpringDoc Swagger UI | `/swagger-ui/index.html`에서 API 테스트                |
 | Spotless 7.0.4       | Google Java Format 자동 포맷팅 (PostToolUse 훅으로 자동 실행) |
-
-## CLAUDE.md 유지 규칙
-
-이 파일은 프로젝트의 Single Source of Truth이다.
-아래 변경 발생 시 CLAUDE.md를 반드시 함께 갱신한다.
-
-| 변경 사항                       | 갱신 대상 섹션    |
-| ------------------------------- | ----------------- |
-| 명령어(scripts) 추가/변경/삭제  | 명령어 (Scripts)  |
-| 기술 스택/주요 패키지 추가/변경 | 기술 스택         |
-| 아키텍처, 라우팅 구조 변경      | 아키텍처          |
-| 환경 변수 추가/변경             | 환경 변수         |
-| 개발 도구 및 설정 변경          | 개발 도구 및 설정 |
-| 디렉토리 구조/컨벤션 변경       | 아키텍처          |

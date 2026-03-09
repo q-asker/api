@@ -1,31 +1,28 @@
 # 에이전트 위임 규칙
 
-작업 유형에 따라 반드시 해당 전용 에이전트(Task tool의 subagent_type)를 사용해야 합니다.
+## 사용 가능한 에이전트
 
-| 작업 유형         | 전용 에이전트               | 비고               |
-|---------------|-----------------------|------------------|
-| 코드 구현 후 리뷰    | `code-reviewer`       | 구현 완료 후 자동 실행 권장 |
-| PRD 작성        | `prd-generator`       | 새 기능 요구사항 정리 시   |
-| ROADMAP.md 갱신 | `development-planner` | Task 완료/추가 시     |
-| 코드베이스 탐색      | `Explore`             | 3회 이상 검색이 필요한 탐색 |
-| 구현 계획 수립      | `Plan`                | 아키텍처 결정이 필요한 작업  |
-| Git 커밋        | `/commit` 스킬 사용       | Skill tool로 호출   |
+| 에이전트 | 위치 | 용도 |
+|---|---|---|
+| `code-reviewer` | `.claude/agents/dev/` | 코드 구현 완료 후 품질 리뷰 |
+| `development-planner` | `.claude/agents/dev/` | ROADMAP 생성/갱신, Task 관리 |
+| `prd-generator` | `.claude/agents/docs/` | PRD 생성/갱신 |
 
 ## 사용 가능한 스킬
 
-| 스킬               | 설명                          |
-|------------------|-----------------------------|
-| `/commit`        | 이모지 + 컨벤셔널 커밋 메시지 생성        |
-| `/validate`      | 퀴즈 메타프롬프트 검증 (듀얼 에이전트 토론)   |
-| `/plan-feature`  | 새 기능/대규모 작업 계획 수립           |
-| `/init`          | 프로젝트 초기화 (원스톱)              |
-| `/init-rules`    | Rules 파일 초기화                |
-| `history-logger` | Notion CLAUDE_LOGS에 히스토리 기록 |
-| `cs-logger`      | Notion에 CS 개념 기록            |
-| `simplify`       | 변경 코드 리뷰 및 간소화              |
+| 스킬 | 트리거 조건 |
+|---|---|
+| `/commit` | Git 커밋 생성 시 |
+| `/pr` | PR 작성 시 |
+| `/plan-feature` | 새 기능/대규모 작업 계획 시 |
+| `/sync-claude` | .claude/ 디렉토리 동기화 시 |
+| `/init` | 프로젝트 초기화 시 |
+| `/docs:sync` | 문서 동기화 시 |
+| `/history-logger` | 대화 히스토리 Notion 기록 시 |
+| `/cs-logger` | CS 개념 Notion 기록 시 |
 
-## 에이전트 사용 원칙
+## 위임 원칙
 
-- 독립적인 작업은 **병렬로** 여러 에이전트를 동시 실행한다
-- 코드 구현이 완료되면 `code-reviewer`를 실행하여 품질을 검증한다
-- 단순 파일 읽기/검색은 에이전트 없이 Glob, Grep, Read 도구를 직접 사용한다
+- 스킬이 존재하는 작업은 반드시 해당 스킬을 사용한다
+- 스킬 없이 처리 가능한 작업은 직접 수행한다
+- 스킬 실행 실패 시 사용자에게 알리고 대안을 제시한다
