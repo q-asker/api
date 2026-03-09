@@ -39,6 +39,7 @@ out/
 
 ### Claude Code ###
 .mcp.json
+shrimp_data/
 
 ### Custom ###
 **/src/main/resources/application-**
