@@ -10,14 +10,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class FeRequestToAIRequestMapper {
 
-    public static GenerationRequestToAI toAIRequest(
-        GenerationRequest fe, Consumer<AIProblemSet> consumer) {
-        return new GenerationRequestToAI(
-            fe.uploadedUrl(),
-            fe.quizType().name(),
-            fe.quizCount(),
-            fe.pageNumbers(),
-            consumer
-        );
-    }
+  public static GenerationRequestToAI toAIRequest(
+      GenerationRequest fe, Consumer<AIProblemSet> consumer) {
+    return new GenerationRequestToAI(
+        fe.uploadedUrl(), fe.quizType().name(), fe.quizCount(), fe.pageNumbers(), consumer);
+  }
 }

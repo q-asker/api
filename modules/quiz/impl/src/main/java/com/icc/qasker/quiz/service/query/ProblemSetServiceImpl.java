@@ -18,23 +18,21 @@ import org.springframework.util.Assert;
 @Transactional(readOnly = true)
 public class ProblemSetServiceImpl implements ProblemSetService {
 
-    private final ProblemSetResponseMapper problemSetResponseMapper;
-    private final ProblemSetRepository problemSetRepository;
-    private final HashUtil hashUtil;
+  private final ProblemSetResponseMapper problemSetResponseMapper;
+  private final ProblemSetRepository problemSetRepository;
+  private final HashUtil hashUtil;
 
-    @Override
-    public ProblemSetResponse getProblemSet(String problemSetId) {
-        Assert.hasText(problemSetId, "problemSetId must not be blank");
-        long id = hashUtil.decode(problemSetId);
-        ProblemSet problemSet = getProblemSetEntity(id);
-        return problemSetResponseMapper.fromEntity(problemSet);
-    }
+  @Override
+  public ProblemSetResponse getProblemSet(String problemSetId) {
+    Assert.hasText(problemSetId, "problemSetId must not be blank");
+    long id = hashUtil.decode(problemSetId);
+    ProblemSet problemSet = getProblemSetEntity(id);
+    return problemSetResponseMapper.fromEntity(problemSet);
+  }
 
-    private ProblemSet getProblemSetEntity(long id) {
-        return problemSetRepository.findById(id)
-            .orElseThrow(
-                () -> new CustomException(ExceptionMessage.PROBLEM_SET_NOT_FOUND)
-            );
-    }
+  private ProblemSet getProblemSetEntity(long id) {
+    return problemSetRepository
+        .findById(id)
+        .orElseThrow(() -> new CustomException(ExceptionMessage.PROBLEM_SET_NOT_FOUND));
+  }
 }
-

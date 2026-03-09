@@ -1,6 +1,5 @@
 package com.icc.qasker.quiz.controller;
 
-
 import com.icc.qasker.global.annotation.UserId;
 import com.icc.qasker.quiz.GenerationCommandService;
 import com.icc.qasker.quiz.GenerationQueryService;
@@ -28,28 +27,23 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 @RequestMapping("/generation")
 public class GenerationController {
 
-    private final GenerationCommandService generationCommandService;
-    private final GenerationQueryService generationQueryService;
+  private final GenerationCommandService generationCommandService;
+  private final GenerationQueryService generationQueryService;
 
-    @Operation(summary = "제공받은 세션키로 문제 전송을 위한 emitter를 생성한다")
-    @GetMapping(value = "/{sessionId}/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter subscribeToGeneration(
-        @PathVariable @UUID
-        String sessionId,
-        @RequestHeader(value = "Last-Event-ID", required = false, defaultValue = "")
-        String lastEventId
-    ) {
-        return generationQueryService.subscribe(sessionId, lastEventId);
-    }
+  @Operation(summary = "제공받은 세션키로 문제 전송을 위한 emitter를 생성한다")
+  @GetMapping(value = "/{sessionId}/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+  public SseEmitter subscribeToGeneration(
+      @PathVariable @UUID String sessionId,
+      @RequestHeader(value = "Last-Event-ID", required = false, defaultValue = "")
+          String lastEventId) {
+    return generationQueryService.subscribe(sessionId, lastEventId);
+  }
 
-    @Operation(summary = "세션에 문제를 전송한다")
-    @PostMapping
-    @ResponseStatus(HttpStatus.ACCEPTED)
-    public void generateQuiz(
-        @UserId
-        String userId,
-        @Valid @RequestBody
-        GenerationRequest generationRequest) {
-        generationCommandService.triggerGeneration(userId, generationRequest);
-    }
+  @Operation(summary = "세션에 문제를 전송한다")
+  @PostMapping
+  @ResponseStatus(HttpStatus.ACCEPTED)
+  public void generateQuiz(
+      @UserId String userId, @Valid @RequestBody GenerationRequest generationRequest) {
+    generationCommandService.triggerGeneration(userId, generationRequest);
+  }
 }

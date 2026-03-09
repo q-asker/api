@@ -28,35 +28,36 @@ import lombok.NoArgsConstructor;
 @Builder
 public class ProblemSet extends CreatedAt {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    private String userId;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    @OneToMany(mappedBy = "problemSet", cascade = CascadeType.ALL, orphanRemoval = true)
-    @Builder.Default
-    private List<Problem> problems = new ArrayList<>();
+  private String userId;
 
-    @Enumerated(EnumType.STRING)
-    @Builder.Default
-    @Column(nullable = false)
-    private GenerationStatus generationStatus = GenerationStatus.GENERATING;
+  @OneToMany(mappedBy = "problemSet", cascade = CascadeType.ALL, orphanRemoval = true)
+  @Builder.Default
+  private List<Problem> problems = new ArrayList<>();
 
-    @Enumerated(EnumType.STRING)
-    private QuizType quizType;
+  @Enumerated(EnumType.STRING)
+  @Builder.Default
+  @Column(nullable = false)
+  private GenerationStatus generationStatus = GenerationStatus.GENERATING;
 
-    @PositiveOrZero
-    @Column(nullable = false)
-    private Integer totalQuizCount;
+  @Enumerated(EnumType.STRING)
+  private QuizType quizType;
 
-    @Column(unique = true, nullable = false)
-    private String sessionId;
+  @PositiveOrZero
+  @Column(nullable = false)
+  private Integer totalQuizCount;
 
-    // 이하 헬퍼 함수
-    public void updateStatus(GenerationStatus status) {
-        if (status == null) {
-            throw new IllegalArgumentException("ProblemSet status must not be null");
-        }
-        this.generationStatus = status;
+  @Column(unique = true, nullable = false)
+  private String sessionId;
+
+  // 이하 헬퍼 함수
+  public void updateStatus(GenerationStatus status) {
+    if (status == null) {
+      throw new IllegalArgumentException("ProblemSet status must not be null");
     }
+    this.generationStatus = status;
+  }
 }

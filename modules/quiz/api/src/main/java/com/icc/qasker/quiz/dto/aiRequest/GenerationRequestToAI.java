@@ -11,7 +11,5 @@ public record GenerationRequestToAI(
     int quizCount,
     QuizType quizType,
     DifficultyType difficultyType,
-    List<Integer> pageNumbers
-) {
-
-};
+    List<Integer> pageNumbers) {}
+;

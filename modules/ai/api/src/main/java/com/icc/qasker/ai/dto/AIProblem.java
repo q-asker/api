@@ -7,7 +7,4 @@ public record AIProblem(
     String content,
     String explanation,
     List<AISelection> selections,
-    List<Integer> referencedPages
-) {
-
-}
+    List<Integer> referencedPages) {}

@@ -9,9 +9,9 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public enum QuizType implements QuizPromptStrategy {
-    MULTIPLE(MultipleGuideLine.content),
-    BLANK(BlankGuideLine.content),
-    OX(OXGuideLine.content);
+  MULTIPLE(MultipleGuideLine.content),
+  BLANK(BlankGuideLine.content),
+  OX(OXGuideLine.content);
 
-    private final String guideLine;
+  private final String guideLine;
 }

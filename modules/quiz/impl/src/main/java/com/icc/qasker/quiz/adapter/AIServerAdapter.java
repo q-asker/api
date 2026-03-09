@@ -21,46 +21,44 @@ import org.springframework.web.client.ResourceAccessException;
 @AllArgsConstructor
 public class AIServerAdapter {
 
-    private final QuizOrchestrationService quizOrchestrationService;
+  private final QuizOrchestrationService quizOrchestrationService;
 
-    @CircuitBreaker(name = "aiServer", fallbackMethod = "fallback")
-    public void streamRequest(
-        String fileUrl,
-        String strategyValue,
-        int quizCount,
-        List<Integer> referencedPages,
-        Consumer<ProblemSetGeneratedEvent> onLineReceived
-    ) {
-        quizOrchestrationService.generateQuiz(
-            new GenerationRequestToAI(
-                fileUrl,
-                strategyValue,
-                quizCount,
-                referencedPages,
-                (problemSet) -> {
-                    ProblemSetGeneratedEvent event = AIProblemSetMapper.toEvent(problemSet);
-                    onLineReceived.accept(event);
-                }
-            )
-        );
-    }
+  @CircuitBreaker(name = "aiServer", fallbackMethod = "fallback")
+  public void streamRequest(
+      String fileUrl,
+      String strategyValue,
+      int quizCount,
+      List<Integer> referencedPages,
+      Consumer<ProblemSetGeneratedEvent> onLineReceived) {
+    quizOrchestrationService.generateQuiz(
+        new GenerationRequestToAI(
+            fileUrl,
+            strategyValue,
+            quizCount,
+            referencedPages,
+            (problemSet) -> {
+              ProblemSetGeneratedEvent event = AIProblemSetMapper.toEvent(problemSet);
+              onLineReceived.accept(event);
+            }));
+  }
 
-    private void fallback(GenerationRequestToAI request,
-        Consumer<ProblemSetGeneratedEvent> onLineReceived,
-        Throwable t) {
-        if (t instanceof CallNotPermittedException) {
-            log.error("⛔ [CircuitBreaker] AI 서버 요청 차단됨 (Circuit Open): {}", t.getMessage());
-            throw new CustomException(ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR);
-        }
-        if (t instanceof ResourceAccessException e) {
-            log.error("⏳ AI 서버 연결 시간 초과/실패: {}", t.getMessage());
-            throw new CustomException(ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR);
-        }
-        if (t instanceof ClientSideException e) {
-            log.error("⏳ 사용자 오류 발생: {}", t.getMessage());
-            return;
-        }
-        log.error("⚠ AI Server Unknown Error: {}", t.getMessage());
-        throw new CustomException(ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR);
+  private void fallback(
+      GenerationRequestToAI request,
+      Consumer<ProblemSetGeneratedEvent> onLineReceived,
+      Throwable t) {
+    if (t instanceof CallNotPermittedException) {
+      log.error("⛔ [CircuitBreaker] AI 서버 요청 차단됨 (Circuit Open): {}", t.getMessage());
+      throw new CustomException(ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR);
     }
+    if (t instanceof ResourceAccessException e) {
+      log.error("⏳ AI 서버 연결 시간 초과/실패: {}", t.getMessage());
+      throw new CustomException(ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR);
+    }
+    if (t instanceof ClientSideException e) {
+      log.error("⏳ 사용자 오류 발생: {}", t.getMessage());
+      return;
+    }
+    log.error("⚠ AI Server Unknown Error: {}", t.getMessage());
+    throw new CustomException(ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR);
+  }
 }

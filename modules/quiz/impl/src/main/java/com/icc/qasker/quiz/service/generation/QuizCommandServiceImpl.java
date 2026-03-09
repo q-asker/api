@@ -23,47 +23,46 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class QuizCommandServiceImpl implements QuizCommandService {
 
-    private final ProblemSetRepository problemSetRepository;
-    private final ProblemRepository problemRepository;
-    private final ProblemMapper problemMapper;
+  private final ProblemSetRepository problemSetRepository;
+  private final ProblemRepository problemRepository;
+  private final ProblemMapper problemMapper;
 
-    @Override
-    public Long initProblemSet(String userId, String sessionId, Integer totalQuizCount,
-        QuizType quizType) {
-        ProblemSet problemSet = ProblemSet
-            .builder()
+  @Override
+  public Long initProblemSet(
+      String userId, String sessionId, Integer totalQuizCount, QuizType quizType) {
+    ProblemSet problemSet =
+        ProblemSet.builder()
             .sessionId(sessionId)
             .userId(userId)
             .totalQuizCount(totalQuizCount)
             .quizType(quizType)
             .build();
-        ProblemSet saved = problemSetRepository.save(problemSet);
-        return saved.getId();
-    }
+    ProblemSet saved = problemSetRepository.save(problemSet);
+    return saved.getId();
+  }
 
-    @Override
-    public void updateStatus(Long problemSetId, GenerationStatus status) {
-        ProblemSet problemSet = problemSetRepository.findById(problemSetId)
+  @Override
+  public void updateStatus(Long problemSetId, GenerationStatus status) {
+    ProblemSet problemSet =
+        problemSetRepository
+            .findById(problemSetId)
             .orElseThrow(() -> new CustomException(ExceptionMessage.PROBLEM_SET_NOT_FOUND));
-        problemSet.updateStatus(status);
-    }
+    problemSet.updateStatus(status);
+  }
 
-    @Override
-    public List<Integer> saveBatch(
-        List<QuizGeneratedFromAI> generatedProblems,
-        Long problemSetId
-    ) {
-        ProblemSet problemSet = problemSetRepository.findById(problemSetId)
+  @Override
+  public List<Integer> saveBatch(List<QuizGeneratedFromAI> generatedProblems, Long problemSetId) {
+    ProblemSet problemSet =
+        problemSetRepository
+            .findById(problemSetId)
             .orElseThrow(() -> new CustomException(ExceptionMessage.PROBLEM_SET_NOT_FOUND));
 
-        List<Problem> problems = generatedProblems.stream()
+    List<Problem> problems =
+        generatedProblems.stream()
             .map(quiz -> problemMapper.fromResponse(quiz, problemSet))
             .toList();
 
-        List<Problem> savedProblems = problemRepository.saveAll(problems);
-        return savedProblems
-            .stream()
-            .map(problem -> problem.getId().getNumber())
-            .toList();
-    }
+    List<Problem> savedProblems = problemRepository.saveAll(problems);
+    return savedProblems.stream().map(problem -> problem.getId().getNumber()).toList();
+  }
 }

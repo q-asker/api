@@ -10,18 +10,18 @@ import org.springframework.data.repository.query.Param;
 
 public interface ProblemRepository extends JpaRepository<Problem, ProblemId> {
 
-    @Query("""
+  @Query(
+      """
         SELECT p
         FROM Problem p
         WHERE p.id.number > :number
         AND p.id.problemSetId = :problemSetId
         ORDER BY p.id.number ASC
         """)
-    List<Problem> findRemainingProblems(
-        @Param("problemSetId") Long problemSetId,
-        @Param("number") Integer number);
+  List<Problem> findRemainingProblems(
+      @Param("problemSetId") Long problemSetId, @Param("number") Integer number);
 
-    List<Problem> findByIdProblemSetId(Long problemSetId);
+  List<Problem> findByIdProblemSetId(Long problemSetId);
 
-    List<Problem> findByIdInOrderByIdNumberAsc(Collection<ProblemId> id);
+  List<Problem> findByIdInOrderByIdNumberAsc(Collection<ProblemId> id);
 }

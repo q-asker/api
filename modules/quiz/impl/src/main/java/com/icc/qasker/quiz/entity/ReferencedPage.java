@@ -22,24 +22,21 @@ import lombok.NoArgsConstructor;
 @Builder
 public class ReferencedPage extends CreatedAt {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    private int pageNumber;
+  private int pageNumber;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumns({
-            @JoinColumn(name = "problem_set_id", referencedColumnName = "problem_set_id"),
-            @JoinColumn(name = "number", referencedColumnName = "number")
-    })
-    private Problem problem;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumns({
+    @JoinColumn(name = "problem_set_id", referencedColumnName = "problem_set_id"),
+    @JoinColumn(name = "number", referencedColumnName = "number")
+  })
+  private Problem problem;
 
-    // 이하 헬퍼 함수
-    public static ReferencedPage of(int pageNumber, Problem problem) {
-        return ReferencedPage.builder()
-                .pageNumber(pageNumber)
-                .problem(problem)
-                .build();
-    }
+  // 이하 헬퍼 함수
+  public static ReferencedPage of(int pageNumber, Problem problem) {
+    return ReferencedPage.builder().pageNumber(pageNumber).problem(problem).build();
+  }
 }

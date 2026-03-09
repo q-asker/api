@@ -12,32 +12,32 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class ProblemSetResponse {
 
-    private String sessionId;
-    private String problemSetId;
-    private GenerationStatus generationStatus;
-    private QuizType quizType;
-    private Integer totalCount;
-    private List<QuizForFe> quiz;
+  private String sessionId;
+  private String problemSetId;
+  private GenerationStatus generationStatus;
+  private QuizType quizType;
+  private Integer totalCount;
+  private List<QuizForFe> quiz;
+
+  @Getter
+  @NoArgsConstructor
+  @AllArgsConstructor
+  public static class QuizForFe {
+
+    private int number;
+    private String title;
+    private int userAnswer;
+    private boolean check;
+    private List<SelectionForFE> selections;
 
     @Getter
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class QuizForFe {
+    public static class SelectionForFE {
 
-        private int number;
-        private String title;
-        private int userAnswer;
-        private boolean check;
-        private List<SelectionForFE> selections;
-
-        @Getter
-        @NoArgsConstructor
-        @AllArgsConstructor
-        public static class SelectionForFE {
-
-            private int id;
-            private String content;
-            private boolean correct;
-        }
+      private int id;
+      private String content;
+      private boolean correct;
     }
+  }
 }

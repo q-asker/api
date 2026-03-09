@@ -7,9 +7,9 @@ import java.util.Optional;
 
 public interface QuizQueryService {
 
-    List<QuizView> getQuizViews(long problemSetId, List<Integer> numbers);
+  List<QuizView> getQuizViews(long problemSetId, List<Integer> numbers);
 
-    Optional<GenerationStatus> getGenerationStatusBySessionId(String sessionId);
+  Optional<GenerationStatus> getGenerationStatusBySessionId(String sessionId);
 
-    ProblemSetResponse getMissedProblems(String sessionId, int lastQuizNumber);
+  ProblemSetResponse getMissedProblems(String sessionId, int lastQuizNumber);
 }

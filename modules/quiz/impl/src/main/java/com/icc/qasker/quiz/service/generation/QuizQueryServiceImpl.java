@@ -27,57 +27,52 @@ import org.springframework.util.Assert;
 @Transactional(readOnly = true)
 public class QuizQueryServiceImpl implements QuizQueryService {
 
-    private final HashUtil hashUtil;
-    private final ProblemSetRepository problemSetRepository;
-    private final ProblemRepository problemRepository;
-    private final ProblemSetResponseMapper problemSetResponseMapper;
+  private final HashUtil hashUtil;
+  private final ProblemSetRepository problemSetRepository;
+  private final ProblemRepository problemRepository;
+  private final ProblemSetResponseMapper problemSetResponseMapper;
 
-
-    @Override
-    public List<QuizView> getQuizViews(long problemSetId, List<Integer> numbers) {
-        List<ProblemId> problemIds = numbers.stream().map(
-            number -> {
-                return ProblemId.builder()
-                    .problemSetId(problemSetId)
-                    .number(number)
-                    .build();
-            }
-        ).toList();
-
-        List<Problem> problems = problemRepository.findByIdInOrderByIdNumberAsc(
-            problemIds);
-
-        return problems.stream()
-            .map(ProblemToQuizViewMapper::toQuizView)
+  @Override
+  public List<QuizView> getQuizViews(long problemSetId, List<Integer> numbers) {
+    List<ProblemId> problemIds =
+        numbers.stream()
+            .map(
+                number -> {
+                  return ProblemId.builder().problemSetId(problemSetId).number(number).build();
+                })
             .toList();
-    }
 
-    @Override
-    public Optional<GenerationStatus> getGenerationStatusBySessionId(String sessionId) {
-        return problemSetRepository
-            .findGenerationStatusBySessionId(sessionId);
-    }
+    List<Problem> problems = problemRepository.findByIdInOrderByIdNumberAsc(problemIds);
 
-    @Override
-    public ProblemSetResponse getMissedProblems(String sessionId, int lastQuizNumber) {
-        Assert.hasText(sessionId, "sessionId must not be null");
-        ProblemSet problemSet = problemSetRepository
+    return problems.stream().map(ProblemToQuizViewMapper::toQuizView).toList();
+  }
+
+  @Override
+  public Optional<GenerationStatus> getGenerationStatusBySessionId(String sessionId) {
+    return problemSetRepository.findGenerationStatusBySessionId(sessionId);
+  }
+
+  @Override
+  public ProblemSetResponse getMissedProblems(String sessionId, int lastQuizNumber) {
+    Assert.hasText(sessionId, "sessionId must not be null");
+    ProblemSet problemSet =
+        problemSetRepository
             .findFirstBySessionIdOrderByCreatedAtDesc(sessionId)
             .orElseThrow(() -> new CustomException(ExceptionMessage.PROBLEM_SET_NOT_FOUND));
 
-        Long problemSetId = problemSet.getId();
+    Long problemSetId = problemSet.getId();
 
-        List<QuizForFe> quizForFeList = problemRepository
-            .findRemainingProblems(problemSetId, lastQuizNumber)
-            .stream()
-            .map(problemSetResponseMapper::fromEntity).toList();
+    List<QuizForFe> quizForFeList =
+        problemRepository.findRemainingProblems(problemSetId, lastQuizNumber).stream()
+            .map(problemSetResponseMapper::fromEntity)
+            .toList();
 
-        return new ProblemSetResponse(
-            sessionId,
-            hashUtil.encode(problemSetId),
-            problemSet.getGenerationStatus(),
-            problemSet.getQuizType(),
-            problemSet.getTotalQuizCount(),
-            quizForFeList);
-    }
+    return new ProblemSetResponse(
+        sessionId,
+        hashUtil.encode(problemSetId),
+        problemSet.getGenerationStatus(),
+        problemSet.getQuizType(),
+        problemSet.getTotalQuizCount(),
+        quizForFeList);
+  }
 }

@@ -23,29 +23,26 @@ import lombok.NoArgsConstructor;
 @Builder
 public class Explanation extends CreatedAt {
 
-    private static final int MAX_CONTENT_LENGTH = 20000;
+  private static final int MAX_CONTENT_LENGTH = 20000;
 
-    @EmbeddedId
-    private ProblemId id;
-    @Column(columnDefinition = "TEXT")
-    private String content;
+  @EmbeddedId private ProblemId id;
 
-    @OneToOne(fetch = LAZY)
-    @MapsId
-    @JoinColumns({
-        @JoinColumn(name = "problem_set_id", referencedColumnName = "problem_set_id"),
-        @JoinColumn(name = "number", referencedColumnName = "number")
-    })
-    private Problem problem;
+  @Column(columnDefinition = "TEXT")
+  private String content;
 
-    // 이하 헬퍼 함수
-    public static Explanation of(String content, Problem problem) {
-        if (content != null && content.length() > MAX_CONTENT_LENGTH) {
-            content = content.substring(0, MAX_CONTENT_LENGTH);
-        }
-        return Explanation.builder()
-            .content(content)
-            .problem(problem)
-            .build();
+  @OneToOne(fetch = LAZY)
+  @MapsId
+  @JoinColumns({
+    @JoinColumn(name = "problem_set_id", referencedColumnName = "problem_set_id"),
+    @JoinColumn(name = "number", referencedColumnName = "number")
+  })
+  private Problem problem;
+
+  // 이하 헬퍼 함수
+  public static Explanation of(String content, Problem problem) {
+    if (content != null && content.length() > MAX_CONTENT_LENGTH) {
+      content = content.substring(0, MAX_CONTENT_LENGTH);
     }
+    return Explanation.builder().content(content).problem(problem).build();
+  }
 }

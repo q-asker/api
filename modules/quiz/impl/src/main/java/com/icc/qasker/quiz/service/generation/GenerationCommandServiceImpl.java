@@ -36,213 +36,181 @@ import org.springframework.stereotype.Service;
 @AllArgsConstructor
 public class GenerationCommandServiceImpl implements GenerationCommandService {
 
-    // 핵심
-    private final AIServerAdapter aiServerAdapter;
-    private final SseNotificationService notificationService;
-    private final QuizCommandService quizCommandService;
-    private final QuizQueryService quizQueryService;
-    // 유틸
-    private final HashUtil hashUtil;
-    private final SlackNotifier slackNotifier;
+  // 핵심
+  private final AIServerAdapter aiServerAdapter;
+  private final SseNotificationService notificationService;
+  private final QuizCommandService quizCommandService;
+  private final QuizQueryService quizQueryService;
+  // 유틸
+  private final HashUtil hashUtil;
+  private final SlackNotifier slackNotifier;
 
-    @Override
-    public void triggerGeneration(
-        String userId,
-        GenerationRequest request) {
-        // TOC
-        Optional<GenerationStatus> status = quizQueryService.getGenerationStatusBySessionId(
-            request.sessionId());
-        if (status.isPresent()) {
-            log.info("중복 요청 발생: sessionId: {}", request.sessionId());
-            throw new CustomException(ExceptionMessage.AI_DUPLICATED_GENERATION);
-        }
+  @Override
+  public void triggerGeneration(String userId, GenerationRequest request) {
+    // TOC
+    Optional<GenerationStatus> status =
+        quizQueryService.getGenerationStatusBySessionId(request.sessionId());
+    if (status.isPresent()) {
+      log.info("중복 요청 발생: sessionId: {}", request.sessionId());
+      throw new CustomException(ExceptionMessage.AI_DUPLICATED_GENERATION);
+    }
 
-        // TOU
-        Long problemSetId;
-        try {
-            problemSetId = quizCommandService.initProblemSet(
-                userId,
-                request.sessionId(),
-                request.quizCount(),
-                request.quizType());
-        } catch (DataIntegrityViolationException e) {
-            log.info("제약 조건 위반: sessionId={}", request.sessionId(), e);
-            throw new CustomException(ExceptionMessage.AI_DUPLICATED_GENERATION);
-        }
+    // TOU
+    Long problemSetId;
+    try {
+      problemSetId =
+          quizCommandService.initProblemSet(
+              userId, request.sessionId(), request.quizCount(), request.quizType());
+    } catch (DataIntegrityViolationException e) {
+      log.info("제약 조건 위반: sessionId={}", request.sessionId(), e);
+      throw new CustomException(ExceptionMessage.AI_DUPLICATED_GENERATION);
+    }
 
-        Thread.ofVirtual()
-            .uncaughtExceptionHandler((t, e) -> {
-                log.error("가상 스레드 미처리 예외 발생: sessionId={}", request.sessionId(), e);
+    Thread.ofVirtual()
+        .uncaughtExceptionHandler(
+            (t, e) -> {
+              log.error("가상 스레드 미처리 예외 발생: sessionId={}", request.sessionId(), e);
             })
-            .start(() -> processAsyncGeneration(
-                request.sessionId(),
-                problemSetId,
-                request));
+        .start(() -> processAsyncGeneration(request.sessionId(), problemSetId, request));
+  }
+
+  private void processAsyncGeneration(
+      String sessionId, Long problemSetId, GenerationRequest request) {
+
+    AtomicInteger atomicGeneratedCount = new AtomicInteger(0);
+    try {
+      aiServerAdapter.streamRequest(
+          request.uploadedUrl(),
+          request.quizType().name(),
+          request.quizCount(),
+          request.pageNumbers(),
+          (ProblemSetGeneratedEvent problemSet) -> {
+            if (problemSet.getQuiz() == null || problemSet.getQuiz().isEmpty()) {
+              log.warn("빈 배치 수신, 건너뜀: sessionId={}", sessionId);
+              return;
+            }
+            shuffleSelectionsIfNeeded(problemSet, request.quizType());
+            mergeExplanation(problemSet);
+            List<Integer> savedNumbers =
+                quizCommandService.saveBatch(problemSet.getQuiz(), problemSetId);
+
+            List<QuizView> quizViews = quizQueryService.getQuizViews(problemSetId, savedNumbers);
+            if (quizViews.isEmpty()) {
+              return;
+            }
+
+            List<QuizForFe> quizForFeList =
+                quizViews.stream().map(QuizViewToQuizForFeMapper::toQuizForFe).toList();
+
+            atomicGeneratedCount.addAndGet(quizViews.size());
+
+            notificationService.sendCreatedMessageWithId(
+                sessionId,
+                String.valueOf(quizViews.getLast().getNumber()),
+                new ProblemSetResponse(
+                    sessionId,
+                    hashUtil.encode(problemSetId),
+                    GENERATING,
+                    QuizType.valueOf(request.quizType().name()),
+                    request.quizCount(),
+                    quizForFeList));
+          });
+    } catch (Exception e) {
+      log.error("생성 중 오류 발생: sessionId={}", sessionId, e);
+      finalizeError(sessionId, problemSetId, ExceptionMessage.AI_GENERATION_FAILED.getMessage());
+      return;
     }
 
-    private void processAsyncGeneration(
-        String sessionId,
-        Long problemSetId,
-        GenerationRequest request) {
-
-        AtomicInteger atomicGeneratedCount = new AtomicInteger(0);
-        try {
-            aiServerAdapter.streamRequest(
-                request.uploadedUrl(),
-                request.quizType().name(),
-                request.quizCount(),
-                request.pageNumbers(),
-                (ProblemSetGeneratedEvent problemSet) -> {
-                    if (problemSet.getQuiz() == null || problemSet.getQuiz().isEmpty()) {
-                        log.warn("빈 배치 수신, 건너뜀: sessionId={}", sessionId);
-                        return;
-                    }
-                    shuffleSelectionsIfNeeded(problemSet, request.quizType());
-                    mergeExplanation(problemSet);
-                    List<Integer> savedNumbers = quizCommandService.saveBatch(problemSet.getQuiz(),
-                        problemSetId);
-
-                    List<QuizView> quizViews = quizQueryService.getQuizViews(problemSetId,
-                        savedNumbers);
-                    if (quizViews.isEmpty()) {
-                        return;
-                    }
-
-                    List<QuizForFe> quizForFeList = quizViews.stream().map(
-                        QuizViewToQuizForFeMapper::toQuizForFe).toList();
-
-                    atomicGeneratedCount.addAndGet(quizViews.size());
-
-                    notificationService.sendCreatedMessageWithId(
-                        sessionId,
-                        String.valueOf(quizViews.getLast().getNumber()),
-                        new ProblemSetResponse(
-                            sessionId,
-                            hashUtil.encode(problemSetId),
-                            GENERATING,
-                            QuizType.valueOf(request.quizType().name()),
-                            request.quizCount(),
-                            quizForFeList));
-                });
-        } catch (Exception e) {
-            log.error("생성 중 오류 발생: sessionId={}", sessionId, e);
-            finalizeError(sessionId, problemSetId,
-                ExceptionMessage.AI_GENERATION_FAILED.getMessage());
-            return;
-        }
-
-        int generatedCount = atomicGeneratedCount.get();
-        if (generatedCount == 0) {
-            finalizeError(sessionId, problemSetId,
-                ExceptionMessage.AI_GENERATION_FAILED.getMessage());
-        } else if (generatedCount == request.quizCount()) {
-            finalizeSuccess(
-                sessionId,
-                problemSetId,
-                request.quizType(),
-                generatedCount);
-        } else {
-            finalizePartialSuccess(
-                sessionId,
-                problemSetId,
-                request.quizType(),
-                generatedCount,
-                request.quizCount());
-        }
+    int generatedCount = atomicGeneratedCount.get();
+    if (generatedCount == 0) {
+      finalizeError(sessionId, problemSetId, ExceptionMessage.AI_GENERATION_FAILED.getMessage());
+    } else if (generatedCount == request.quizCount()) {
+      finalizeSuccess(sessionId, problemSetId, request.quizType(), generatedCount);
+    } else {
+      finalizePartialSuccess(
+          sessionId, problemSetId, request.quizType(), generatedCount, request.quizCount());
     }
+  }
 
-    private void finalizeSuccess(
-        String sessionId,
-        Long problemSetId,
-        QuizType quizType,
-        long generatedCount) {
-        quizCommandService.updateStatus(problemSetId, COMPLETED);
-        notificationService.sendComplete(sessionId);
-        slackNotifier.asyncNotifyText("""
+  private void finalizeSuccess(
+      String sessionId, Long problemSetId, QuizType quizType, long generatedCount) {
+    quizCommandService.updateStatus(problemSetId, COMPLETED);
+    notificationService.sendComplete(sessionId);
+    slackNotifier.asyncNotifyText(
+        """
             ✅ [퀴즈 생성 완료 알림]
             ProblemSetId: %s
             퀴즈 타입: %s
             문제 수: %d
-            """.formatted(
-            hashUtil.encode(problemSetId),
-            quizType,
-            generatedCount));
-    }
+            """
+            .formatted(hashUtil.encode(problemSetId), quizType, generatedCount));
+  }
 
-    private void finalizePartialSuccess(
-        String sessionId,
-        Long problemSetId,
-        QuizType quizType,
-        long generatedCount,
-        long quizCount) {
-        quizCommandService.updateStatus(problemSetId, COMPLETED);
-        notificationService.sendComplete(sessionId);
-        slackNotifier.asyncNotifyText("""
+  private void finalizePartialSuccess(
+      String sessionId, Long problemSetId, QuizType quizType, long generatedCount, long quizCount) {
+    quizCommandService.updateStatus(problemSetId, COMPLETED);
+    notificationService.sendComplete(sessionId);
+    slackNotifier.asyncNotifyText(
+        """
             ⚠️ [퀴즈 생성 부분 완료]
             ProblemSetId: %s
             퀴즈 타입: %s
             생성된 문제 수: %d개 / 총 문제 수: %d개
-            """.formatted(
-            hashUtil.encode(problemSetId),
-            quizType,
-            generatedCount,
-            quizCount));
-    }
+            """
+            .formatted(hashUtil.encode(problemSetId), quizType, generatedCount, quizCount));
+  }
 
-    private void finalizeError(
-        String sessionId,
-        Long problemSetId,
-        String errorMessage) {
-        quizCommandService.updateStatus(problemSetId, FAILED);
-        notificationService.sendFinishWithError(sessionId, errorMessage);
-        slackNotifier.asyncNotifyText("""
+  private void finalizeError(String sessionId, Long problemSetId, String errorMessage) {
+    quizCommandService.updateStatus(problemSetId, FAILED);
+    notificationService.sendFinishWithError(sessionId, errorMessage);
+    slackNotifier.asyncNotifyText(
+        """
             ❌ [퀴즈 생성 실패]
             ProblemSetId: %s
             원인: %s
-            """.formatted(
-            hashUtil.encode(problemSetId),
-            errorMessage));
-    }
+            """
+            .formatted(hashUtil.encode(problemSetId), errorMessage));
+  }
 
-    private void mergeExplanation(ProblemSetGeneratedEvent problemSet) {
-        for (var quiz : problemSet.getQuiz()) {
-            var selections = quiz.getSelections();
-            if (selections == null || selections.isEmpty()) {
-                continue;
-            }
+  private void mergeExplanation(ProblemSetGeneratedEvent problemSet) {
+    for (var quiz : problemSet.getQuiz()) {
+      var selections = quiz.getSelections();
+      if (selections == null || selections.isEmpty()) {
+        continue;
+      }
 
-            StringBuilder sb = new StringBuilder(quiz.getExplanation()).append("\n");
+      StringBuilder sb = new StringBuilder(quiz.getExplanation()).append("\n");
 
-            // 정답 해설 먼저
-            for (var selection : selections) {
-                if (selection.isCorrect() && selection.getExplanation() != null) {
-                    sb.append(selection.getExplanation());
-                    break;
-                }
-            }
-
-            // 나머지 선택지 해설을 정렬 순서대로 나열
-            for (var selection : selections) {
-                if (!selection.isCorrect() && selection.getExplanation() != null) {
-                    sb.append("\n").append(selection.getExplanation());
-                }
-            }
-
-            quiz.setExplanation(sb.toString());
+      // 정답 해설 먼저
+      for (var selection : selections) {
+        if (selection.isCorrect() && selection.getExplanation() != null) {
+          sb.append(selection.getExplanation());
+          break;
         }
-    }
+      }
 
-    private void shuffleSelectionsIfNeeded(ProblemSetGeneratedEvent problemSet, QuizType quizType) {
-        if (quizType != QuizType.MULTIPLE && quizType != QuizType.BLANK) {
-            return;
+      // 나머지 선택지 해설을 정렬 순서대로 나열
+      for (var selection : selections) {
+        if (!selection.isCorrect() && selection.getExplanation() != null) {
+          sb.append("\n").append(selection.getExplanation());
         }
-        for (var quiz : problemSet.getQuiz()) {
-            if (quiz.getSelections() != null && !quiz.getSelections().isEmpty()) {
-                List<ProblemSetGeneratedEvent.QuizGeneratedFromAI.SelectionsOfAI> shuffled =
-                    new ArrayList<>(quiz.getSelections());
-                Collections.shuffle(shuffled);
-                quiz.setSelections(shuffled);
-            }
-        }
+      }
+
+      quiz.setExplanation(sb.toString());
     }
+  }
+
+  private void shuffleSelectionsIfNeeded(ProblemSetGeneratedEvent problemSet, QuizType quizType) {
+    if (quizType != QuizType.MULTIPLE && quizType != QuizType.BLANK) {
+      return;
+    }
+    for (var quiz : problemSet.getQuiz()) {
+      if (quiz.getSelections() != null && !quiz.getSelections().isEmpty()) {
+        List<ProblemSetGeneratedEvent.QuizGeneratedFromAI.SelectionsOfAI> shuffled =
+            new ArrayList<>(quiz.getSelections());
+        Collections.shuffle(shuffled);
+        quiz.setSelections(shuffled);
+      }
+    }
+  }
 }

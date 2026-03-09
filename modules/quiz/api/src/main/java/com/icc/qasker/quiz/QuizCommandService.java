@@ -6,10 +6,9 @@ import java.util.List;
 
 public interface QuizCommandService {
 
-    Long initProblemSet(String userId, String sessionId, Integer totalQuizCount,
-        QuizType quizType);
+  Long initProblemSet(String userId, String sessionId, Integer totalQuizCount, QuizType quizType);
 
-    void updateStatus(Long problemSetId, GenerationStatus status);
+  void updateStatus(Long problemSetId, GenerationStatus status);
 
-    List<Integer> saveBatch(List<QuizGeneratedFromAI> generatedProblems, Long problemSetId);
+  List<Integer> saveBatch(List<QuizGeneratedFromAI> generatedProblems, Long problemSetId);
 }

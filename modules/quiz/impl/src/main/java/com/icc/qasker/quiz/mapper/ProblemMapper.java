@@ -19,30 +19,33 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ProblemMapper {
 
-    private final SelectionMapper selectionMapper;
+  private final SelectionMapper selectionMapper;
 
-    public Problem fromResponse(QuizGeneratedFromAI quizDto, ProblemSet problemSet) {
-        Problem problem = Problem.builder()
+  public Problem fromResponse(QuizGeneratedFromAI quizDto, ProblemSet problemSet) {
+    Problem problem =
+        Problem.builder()
             .id(ProblemId.builder().number(quizDto.getNumber()).build())
             .title(quizDto.getTitle())
             .problemSet(problemSet)
             .build();
 
-        List<Selection> selections = quizDto.getSelections() == null
+    List<Selection> selections =
+        quizDto.getSelections() == null
             ? new ArrayList<>()
             : quizDto.getSelections().stream()
                 .map(selDto -> selectionMapper.fromResponse(selDto, problem))
                 .collect(toList());
 
-        Explanation explanation = Explanation.of(quizDto.getExplanation(), problem);
+    Explanation explanation = Explanation.of(quizDto.getExplanation(), problem);
 
-        List<ReferencedPage> referencedPages = quizDto.getReferencedPages() == null
+    List<ReferencedPage> referencedPages =
+        quizDto.getReferencedPages() == null
             ? new ArrayList<>()
             : quizDto.getReferencedPages().stream()
                 .map(page -> ReferencedPage.of(page, problem))
                 .collect(toList());
 
-        problem.bindChildren(selections, explanation, referencedPages);
-        return problem;
-    }
+    problem.bindChildren(selections, explanation, referencedPages);
+    return problem;
+  }
 }

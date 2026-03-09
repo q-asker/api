@@ -20,42 +20,41 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 @AllArgsConstructor
 public class GenerationQueryServiceImpl implements GenerationQueryService {
 
-    // 핵심
-    private final SseNotificationService notificationService;
-    private final QuizQueryService quizQueryService;
+  // 핵심
+  private final SseNotificationService notificationService;
+  private final QuizQueryService quizQueryService;
 
-    @Override
-    public SseEmitter subscribe(String sessionId, String lastEventId) {
-        // DB 통신 실패할 수 있으므로 먼저
-        Optional<GenerationStatus> statusOptional = quizQueryService.getGenerationStatusBySessionId(
-            sessionId);
+  @Override
+  public SseEmitter subscribe(String sessionId, String lastEventId) {
+    // DB 통신 실패할 수 있으므로 먼저
+    Optional<GenerationStatus> statusOptional =
+        quizQueryService.getGenerationStatusBySessionId(sessionId);
 
-        SseEmitter emitter = notificationService.createSseEmitter(sessionId);
+    SseEmitter emitter = notificationService.createSseEmitter(sessionId);
 
-        statusOptional.ifPresent(status -> {
-            switch (status) {
-                case FAILED -> notificationService.sendFinishWithError(sessionId,
-                    ExceptionMessage.AI_GENERATION_FAILED.getMessage());
+    statusOptional.ifPresent(
+        status -> {
+          switch (status) {
+            case FAILED ->
+                notificationService.sendFinishWithError(
+                    sessionId, ExceptionMessage.AI_GENERATION_FAILED.getMessage());
 
-                case GENERATING, COMPLETED -> {
-                    int lastEventNumber = NumberUtils.toInt(lastEventId, 0);
-                    ProblemSetResponse ps = quizQueryService.getMissedProblems(
-                        sessionId,
-                        lastEventNumber);
+            case GENERATING, COMPLETED -> {
+              int lastEventNumber = NumberUtils.toInt(lastEventId, 0);
+              ProblemSetResponse ps =
+                  quizQueryService.getMissedProblems(sessionId, lastEventNumber);
 
-                    notificationService.sendCreatedMessageWithId(
-                        sessionId,
-                        String.valueOf(lastEventNumber + ps.getQuiz().size()),
-                        ps);
+              notificationService.sendCreatedMessageWithId(
+                  sessionId, String.valueOf(lastEventNumber + ps.getQuiz().size()), ps);
 
-                    // COMPLETE 상태일 경우 완료 메시지 전송
-                    if (status == COMPLETED) {
-                        notificationService.sendComplete(sessionId);
-                    }
-                }
+              // COMPLETE 상태일 경우 완료 메시지 전송
+              if (status == COMPLETED) {
+                notificationService.sendComplete(sessionId);
+              }
             }
+          }
         });
 
-        return emitter;
-    }
+    return emitter;
+  }
 }

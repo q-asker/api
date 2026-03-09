@@ -32,114 +32,116 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
 
-    private static final int MAX_CHUNK_COUNT = 10;
-    private static final int MAX_SELECTION_COUNT = 4;
+  private static final int MAX_CHUNK_COUNT = 10;
+  private static final int MAX_SELECTION_COUNT = 4;
 
-    private final GeminiFileService geminiFileService;
-    private final GeminiCacheService geminiCacheService;
-    private final ChatModel chatModel;
+  private final GeminiFileService geminiFileService;
+  private final GeminiCacheService geminiCacheService;
+  private final ChatModel chatModel;
 
-    @Override
-    public void generateQuiz(
-        GenerationRequestToAI request
-    ) {
-        FileMetadata metadata = geminiFileService.uploadPdf(request.fileUrl());
-        log.info("업로드 완료: name={}, uri={}", metadata.name(), metadata.uri());
+  @Override
+  public void generateQuiz(GenerationRequestToAI request) {
+    FileMetadata metadata = geminiFileService.uploadPdf(request.fileUrl());
+    log.info("업로드 완료: name={}, uri={}", metadata.name(), metadata.uri());
 
-        var converter = new BeanOutputConverter<>(
-            new ParameterizedTypeReference<List<GeminiProblem>>() {
-            }
-        );
-        String jsonSchema = converter.getJsonSchema();
+    var converter =
+        new BeanOutputConverter<>(new ParameterizedTypeReference<List<GeminiProblem>>() {});
+    String jsonSchema = converter.getJsonSchema();
 
-        String cacheName = null;
-        try {
-            cacheName = geminiCacheService.createCache(metadata.uri(),
-                request.strategyValue(),
-                jsonSchema);
-            log.info("캐시 생성 완료: cacheName={}", cacheName);
+    String cacheName = null;
+    try {
+      cacheName =
+          geminiCacheService.createCache(metadata.uri(), request.strategyValue(), jsonSchema);
+      log.info("캐시 생성 완료: cacheName={}", cacheName);
 
-            List<ChunkInfo> chunks = ChunkSplitter.createPageChunks(
-                request.referencePages(), request.quizCount(), MAX_CHUNK_COUNT
-            );
-            log.info("청크 분할 완료: {}개 청크", chunks.size());
+      List<ChunkInfo> chunks =
+          ChunkSplitter.createPageChunks(
+              request.referencePages(), request.quizCount(), MAX_CHUNK_COUNT);
+      log.info("청크 분할 완료: {}개 청크", chunks.size());
 
-            AtomicInteger numberCounter = new AtomicInteger(1);
+      AtomicInteger numberCounter = new AtomicInteger(1);
 
-            try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
-                final String finalCacheName = cacheName;
-                List<CompletableFuture<Void>> futures = new ArrayList<>(chunks.size());
-                for (ChunkInfo chunk : chunks) {
-                    CompletableFuture<Void> future = CompletableFuture.runAsync(
-                        () -> {
-                            try {
-                                log.debug("청크 처리 시작: pages={}, quizCount={}",
-                                    chunk.referencedPages(), chunk.quizCount());
+      try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+        final String finalCacheName = cacheName;
+        List<CompletableFuture<Void>> futures = new ArrayList<>(chunks.size());
+        for (ChunkInfo chunk : chunks) {
+          CompletableFuture<Void> future =
+              CompletableFuture.runAsync(
+                  () -> {
+                    try {
+                      log.debug(
+                          "청크 처리 시작: pages={}, quizCount={}",
+                          chunk.referencedPages(),
+                          chunk.quizCount());
 
-                                String userPrompt = UserPrompt.generate(
-                                    chunk.referencedPages(), chunk.quizCount()
-                                );
+                      String userPrompt =
+                          UserPrompt.generate(chunk.referencedPages(), chunk.quizCount());
 
-                                ChatResponse response = chatModel.call(
-                                    new Prompt(userPrompt,
-                                        GoogleGenAiChatOptions.builder()
-                                            .useCachedContent(true)
-                                            .cachedContentName(finalCacheName)
-                                            .responseMimeType("application/json")
-                                            .build())
-                                );
+                      ChatResponse response =
+                          chatModel.call(
+                              new Prompt(
+                                  userPrompt,
+                                  GoogleGenAiChatOptions.builder()
+                                      .useCachedContent(true)
+                                      .cachedContentName(finalCacheName)
+                                      .responseMimeType("application/json")
+                                      .build()));
 
-                                String jsonText = response.getResult().getOutput().getText();
-                                log.debug("청크 응답 수신 (길이: {}자)", jsonText.length());
+                      String jsonText = response.getResult().getOutput().getText();
+                      log.debug("청크 응답 수신 (길이: {}자)", jsonText.length());
 
-                                List<GeminiProblem> geminiResult = converter.convert(jsonText);
+                      List<GeminiProblem> geminiResult = converter.convert(jsonText);
 
-                                if (geminiResult == null || geminiResult.isEmpty()) {
-                                    log.warn("청크 결과 비어있음: pages={}", chunk.referencedPages());
-                                    return;
-                                }
+                      if (geminiResult == null || geminiResult.isEmpty()) {
+                        log.warn("청크 결과 비어있음: pages={}", chunk.referencedPages());
+                        return;
+                      }
 
-                                List<GeminiProblem> validatedResult = geminiResult.stream()
-                                    .filter(problem -> {
-                                        if (problem.selections() != null
-                                            && problem.selections().size() > MAX_SELECTION_COUNT) {
-                                            log.warn("선택지 초과로 청크 폐기: {}개 선택지, pages={}",
-                                                problem.selections().size(),
-                                                chunk.referencedPages());
-                                            return false;
-                                        }
-                                        return true;
-                                    })
-                                    .toList();
+                      List<GeminiProblem> validatedResult =
+                          geminiResult.stream()
+                              .filter(
+                                  problem -> {
+                                    if (problem.selections() != null
+                                        && problem.selections().size() > MAX_SELECTION_COUNT) {
+                                      log.warn(
+                                          "선택지 초과로 청크 폐기: {}개 선택지, pages={}",
+                                          problem.selections().size(),
+                                          chunk.referencedPages());
+                                      return false;
+                                    }
+                                    return true;
+                                  })
+                              .toList();
 
-                                AIProblemSet result = GeminiProblemSetMapper.toDto(
-                                    validatedResult,
-                                    chunk.referencedPages(),
-                                    numberCounter
-                                );
+                      AIProblemSet result =
+                          GeminiProblemSetMapper.toDto(
+                              validatedResult, chunk.referencedPages(), numberCounter);
 
-                                request.consumer().accept(result);
+                      request.consumer().accept(result);
 
-                                log.debug("청크 처리 완료: pages={}, 문제 {}개",
-                                    chunk.referencedPages(), result.quiz().size());
-                            } catch (Exception e) {
-                                log.error("청크 처리 실패 (계속 진행): pages={}, error={}",
-                                    chunk.referencedPages(), e.getMessage());
-                            }
-                        },
-                        executor
-                    );
-                    futures.add(future);
-                }
-
-                CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).join();
-            }
-            log.info("전체 병렬 생성 완료: 총 {}번까지 번호 할당됨", numberCounter.get() - 1);
-        } finally {
-            if (cacheName != null) {
-                geminiCacheService.deleteCache(cacheName);
-            }
-            geminiFileService.deleteFile(metadata.name());
+                      log.debug(
+                          "청크 처리 완료: pages={}, 문제 {}개",
+                          chunk.referencedPages(),
+                          result.quiz().size());
+                    } catch (Exception e) {
+                      log.error(
+                          "청크 처리 실패 (계속 진행): pages={}, error={}",
+                          chunk.referencedPages(),
+                          e.getMessage());
+                    }
+                  },
+                  executor);
+          futures.add(future);
         }
+
+        CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).join();
+      }
+      log.info("전체 병렬 생성 완료: 총 {}번까지 번호 할당됨", numberCounter.get() - 1);
+    } finally {
+      if (cacheName != null) {
+        geminiCacheService.deleteCache(cacheName);
+      }
+      geminiFileService.deleteFile(metadata.name());
     }
+  }
 }
