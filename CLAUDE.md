@@ -84,7 +84,7 @@ q-asker/
 ├── build.gradle                  # 루트 빌드 설정 (BOM, 공통 의존성)
 ├── settings.gradle               # 모듈 등록
 ├── docker-compose.yml            # MySQL + Scouter 로컬 환경
-└── .github/workflows/            # CI/CD (auto-version-bump, prod_deploy)
+└── .github/workflows/            # CI/CD (ci, auto-version-bump, prod_deploy)
 ```
 
 ### 모듈 의존 방향
@@ -124,7 +124,7 @@ api → (의존 없음 또는 global만)
 | Docker Compose       | 로컬 MySQL + Scouter 컨테이너                                 |
 | Jib 3.4.0            | Dockerfile 없는 Docker 이미지 빌드                            |
 | Scouter APM          | 성능 모니터링 (로컬 + 운영)                                   |
-| GitHub Actions       | CI/CD (auto-version-bump, prod_deploy)                        |
+| GitHub Actions       | CI/CD (ci, auto-version-bump, prod_deploy)                    |
 | SpringDoc Swagger UI | `/swagger-ui/index.html`에서 API 테스트                       |
 | Spotless 7.0.4       | Google Java Format 자동 포맷팅 (PostToolUse 훅으로 자동 실행) |
 
