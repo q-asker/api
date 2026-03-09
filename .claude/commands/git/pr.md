@@ -1,3 +1,7 @@
+---
+description: "변경사항별 대화 → 체크리스트 수집 → PR 본문 초안 → 피드백 반복으로 PR을 함께 완성하는 커맨드"
+---
+
 # /pr — PR 작성 스킬
 
 사용자와 대화하며 함께 PR을 완성하는 스킬. AI가 전적으로 작성하는 것이 아니라, 변경사항을 하나하나 짚어가며 사용자가 의도와 맥락을 설명하도록 유도한다.
@@ -10,23 +14,35 @@
 
 ### 0단계: 사전 분석
 
-아래 명령어를 **병렬로** 실행하여 정보를 수집한다:
+아래 작업을 **병렬로** 실행하여 정보를 수집한다:
+
+**Git 정보 수집 (Bash):**
 
 ```bash
 git branch --show-current
 git log develop..HEAD --oneline
 git diff develop...HEAD --stat
 git diff develop...HEAD
-gh pr list --head $(git branch --show-current) --state open --json number,title,body,url
 ```
+
+**기존 PR 감지 (GitHub MCP):**
+
+`mcp__github__list_pull_requests`로 현재 브랜치의 열린 PR을 조회한다:
+
+- `owner`: 리포지토리 소유자
+- `repo`: 리포지토리 이름
+- `head`: `{owner}:{현재브랜치명}`
+- `state`: `open`
+
+> owner/repo는 `git remote get-url origin`에서 추출한다.
 
 수집한 정보를 바탕으로 변경 내용을 파악한다.
 
-**기존 PR 감지:** `gh pr list` 결과가 있으면 기존 PR이 존재하는 것이다.
+**기존 PR이 존재하는 경우:**
 
 - 사용자에게 알린다: `"이 브랜치에 이미 PR #N이 있습니다. 기존 내용을 참고해서 재작성할게요."`
-- 기존 PR의 본문(body)을 참고 자료로 활용한다 — 1~2단계 대화 시 기존 설명을 기반으로 질문한다
-- 5단계에서 `gh pr create` 대신 `gh pr edit`를 사용한다
+- `mcp__github__get_pull_request`로 기존 PR의 상세 본문(body)을 가져와 참고 자료로 활용한다 — 1~2단계 대화 시 기존 설명을 기반으로 질문한다
+- 5단계에서 `mcp__github__create_pull_request` 대신 `mcp__github__update_issue`를 사용한다
 - **미디어 자산 보존:** 기존 PR 본문에서 링크(`[text](url)`)와 이미지(`![alt](url)`, `<img>` 태그)를 모두 추출하여 별도로 보관한다
 
 ### 1단계: 변경사항별 대화 (핵심)
@@ -87,21 +103,24 @@ gh pr list --head $(git branch --show-current) --state open --json number,title,
 
 **새 PR인 경우:**
 
-```bash
-gh pr create --base develop --title "PR 제목" --body "$(cat <<'EOF'
-PR 본문 내용
-EOF
-)"
-```
+`mcp__github__create_pull_request`를 사용한다:
+
+- `owner`: 리포지토리 소유자
+- `repo`: 리포지토리 이름
+- `title`: PR 제목
+- `head`: 현재 브랜치명
+- `base`: `develop`
+- `body`: PR 본문 내용
 
 **기존 PR이 있는 경우:**
 
-```bash
-gh pr edit <PR번호> --title "PR 제목" --body "$(cat <<'EOF'
-PR 본문 내용
-EOF
-)"
-```
+`mcp__github__update_issue`를 사용한다 (PR은 Issue의 superset이므로 동일 도구로 수정 가능):
+
+- `owner`: 리포지토리 소유자
+- `repo`: 리포지토리 이름
+- `issue_number`: PR 번호
+- `title`: PR 제목
+- `body`: PR 본문 내용
 
 - PR URL을 반환하고 완료한다
 - 인라인 코멘트가 필요한 경우 사용자에게 안내한다

@@ -1,3 +1,8 @@
+---
+description: "코드 변경 시 CLAUDE.md·PRD·ROADMAP 갱신 트리거 테이블, 섹션별 갱신 대상 매핑, 전용 에이전트 위임 규칙"
+globs: "*"
+---
+
 # 문서 연동 규칙
 
 코드 변경 시 아래 테이블에 따라 관련 문서를 **반드시 함께 갱신**해야 합니다.
@@ -6,14 +11,12 @@
 
 ### 자동 로드 (매 세션 보장)
 
-| 문서                                  | 진실의 원천                                |
-| ------------------------------------- | ------------------------------------------ |
-| `CLAUDE.md`                           | 기술 스택, 명령어, 아키텍처, 디렉토리 구조 |
-| `.claude/rules/coding-conventions.md` | 코딩 컨벤션, 모듈 구조 규칙                |
-| `.claude/rules/constraints.md`        | 금지 사항, 주의 사항                       |
-| `.claude/rules/task-workflow.md`      | 작업 실행 규칙, 우선순위                   |
-| `.claude/rules/agent-delegation.md`   | 에이전트 위임 규칙                         |
-| `.claude/rules/document-sync.md`      | 문서 연동/갱신 트리거 (이 파일)            |
+| 문서                             | 진실의 원천                                         |
+| -------------------------------- | --------------------------------------------------- |
+| `CLAUDE.md`                      | 기술 스택, 명령어, 아키텍처, 디렉토리 구조          |
+| `.claude/rules/code-rules.md`    | 코딩 컨벤션, 모듈 의존성 규칙, 네이밍, 제약 사항    |
+| `.claude/rules/workflow.md`      | 세션 가드, 작업 모드, 에이전트/스킬 위임, 작업 원칙 |
+| `.claude/rules/document-sync.md` | 문서 연동/갱신 트리거 (이 파일)                     |
 
 ### 필요 시 읽기 (명시적 Read 필요)
 
@@ -24,22 +27,19 @@
 
 ## 변경 → 문서 갱신 트리거
 
-| 코드 변경                           | 갱신할 문서                        | 전용 에이전트         |
-| ----------------------------------- | ---------------------------------- | --------------------- |
-| `**/build.gradle` 의존성 추가/삭제  | `CLAUDE.md` (기술 스택)            | —                     |
-| `settings.gradle` 모듈 추가/삭제    | `CLAUDE.md` (아키텍처)             | —                     |
-| `modules/*/` 디렉토리 생성/삭제     | `CLAUDE.md` (아키텍처)             | —                     |
-| `**/application*.yml` 속성 추가     | `CLAUDE.md` (환경 변수/개발 도구)  | —                     |
-| `.env*` 변수 추가/삭제              | `CLAUDE.md` (환경 변수)            | —                     |
-| `docker-compose*.yml` 서비스 변경   | `CLAUDE.md` (개발 도구)            | —                     |
-| `.github/workflows/*` 변경          | `CLAUDE.md` (개발 도구)            | —                     |
-| `build.gradle` (루트) 플러그인/버전 | `CLAUDE.md` (기술 스택/개발 도구)  | —                     |
-| `**/*Controller.java` 엔드포인트    | `CLAUDE.md` (API 엔드포인트)       | —                     |
-| Task 완료                           | 활성 `docs/roadmaps/ROADMAP_v*.md` | `development-planner` |
-| 새 Task 추가                        | 활성 `docs/roadmaps/ROADMAP_v*.md` | `development-planner` |
-| 코드 구현 완료                      | —                                  | `code-reviewer`       |
-| PRD 작성/변경                       | `docs/PRD.md`                      | `prd-generator`       |
-| Git 커밋                            | —                                  | `/commit` 스킬        |
+| 코드 변경                             | 갱신할 문서                        | 전용 에이전트         |
+| ------------------------------------- | ---------------------------------- | --------------------- |
+| `build.gradle` 의존성 추가/삭제       | `CLAUDE.md` (기술 스택)            | —                     |
+| `settings.gradle` 모듈 추가/삭제      | `CLAUDE.md` (아키텍처)             | —                     |
+| 모듈 디렉토리 구조 변경               | `CLAUDE.md` (아키텍처)             | —                     |
+| `.env*` 변수 추가/삭제                | `CLAUDE.md` (환경 변수)            | —                     |
+| `.github/workflows/*` 변경            | `CLAUDE.md` (개발 도구)            | —                     |
+| `docker-compose.yml` 변경             | `CLAUDE.md` (환경 변수/아키텍처)   | —                     |
+| `application*.yml` 설정 변경          | `CLAUDE.md` (환경 변수)            | —                     |
+| Task 완료                             | 활성 `docs/roadmaps/ROADMAP_v*.md` | `development-planner` |
+| 새 Task 추가                          | 활성 `docs/roadmaps/ROADMAP_v*.md` | `development-planner` |
+| PRD 작성/변경                         | `docs/PRD.md`                      | `prd-generator`       |
+| Git 커밋                              | —                                  | `/commit` 스킬        |
 
 ## CLAUDE.md 유지 규칙
 
@@ -47,16 +47,10 @@
 | ------------------------------------ | ------------------- |
 | 명령어(scripts) 추가/변경/삭제       | `명령어 (Scripts)`  |
 | 기술 스택 또는 주요 패키지 추가/변경 | `기술 스택`         |
-| 아키텍처, 라우팅 구조 변경           | `아키텍처`          |
+| 아키텍처, 모듈 구조 변경             | `아키텍처`          |
 | 환경 변수 추가/변경                  | `환경 변수`         |
 | 개발 도구 및 설정 변경               | `개발 도구 및 설정` |
 | 디렉토리 구조 변경                   | `아키텍처`          |
-
-## 선택 섹션 (해당 시에만)
-
-- **환경 변수** — .env 파일이 있으면 키 목록 (값은 제외). 없으면 생략
-- **라우팅 구조** — 웹 앱이면 라우트 테이블. 아니면 생략
-- **데이터 플로우** — 복잡한 데이터 흐름이 있을 때만
 
 ## 준수 원칙
 

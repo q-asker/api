@@ -1,130 +1,107 @@
-# CLAUDE.md
-
-<!-- TODO: docs/PRD.md 생성 후 활성화 -->
-<!-- > 제품 요구사항은 docs/PRD.md 참조. -->
-
-<!-- TODO: docs/roadmaps/ 생성 후 활성화 -->
-<!-- > 로드맵은 docs/roadmaps/ROADMAP_v*.md 참조. -->
+# Q-Asker API
 
 ## 프로젝트 개요
 
-Q-Asker는 AI 기반 퀴즈 생성·출제·채점 플랫폼의 백엔드 API 서버이다. Spring Boot 멀티모듈 구조로 퀴즈 CRUD, 소셜 로그인, 파일 업로드, AI 퀴즈 생성
-기능을 제공한다.
+퀴즈 출제·풀이 서비스의 백엔드 API. Spring Boot 기반 멀티모듈 구조로, 인증·퀴즈·AI·AWS 연동 등 도메인별 모듈을 분리하여 관리한다.
 
 ## 기술 스택
 
-| 분류     | 기술                                    | 버전              |
-|--------|---------------------------------------|-----------------|
-| 언어     | Java                                  | 21              |
-| 프레임워크  | Spring Boot                           | 3.5.8           |
-| AI     | Spring AI + Google Gemini             | 1.1.2           |
-| ORM    | Spring Data JPA + Hibernate           | (BOM 관리)        |
-| DB     | MySQL                                 | latest (Docker) |
-| 인증     | Auth0 Java JWT + Spring OAuth2 Client | 4.5.0           |
-| AWS    | AWS SDK (S3)                          | 2.27.24         |
-| 장애 대응  | Resilience4j                          | 2.3.0           |
-| API 문서 | SpringDoc OpenAPI (Swagger UI)        | 2.8.8           |
-| 모니터링   | Scouter APM                           | -               |
-| 로깅     | SLF4J + Logback + Slack Appender      | 1.6.1           |
-| 빌드     | Gradle                                | 8.14.3          |
-| 컨테이너   | Jib (Docker 이미지 빌드)                   | 3.4.0           |
-| 포맷터    | Spotless + Google Java Format         | 7.0.4           |
-| 유틸리티   | Lombok, Hashids, Janino               | -               |
+- **언어**: Java 21 (Amazon Corretto)
+- **프레임워크**: Spring Boot 3.5.8
+- **빌드 도구**: Gradle (멀티모듈)
+- **ORM**: Spring Data JPA
+- **DB**: MySQL
+- **AI**: Spring AI 1.1.2 (Google Gemini)
+- **AWS**: AWS SDK 2.27.24 (S3)
+- **인증**: 자체 JWT (auth 모듈)
+- **코드 생성**: Lombok
+- **검증**: Bean Validation
+- **모니터링**: Spring Actuator, Scouter APM
+- **컨테이너**: Jib (Docker 이미지 빌드)
 
 ## 명령어 (Scripts)
 
-```bash
-# 빌드
-./gradlew build                    # 전체 빌드 (컴파일 + 테스트)
-./gradlew clean build              # 클린 빌드
-
-# 실행
-./gradlew :app:bootRun             # 로컬 실행
-
-# 테스트
-./gradlew test                     # 전체 테스트 실행
-./gradlew :quiz:quiz-impl:test     # 특정 모듈 테스트
-
-# Docker
-docker-compose up -d               # MySQL + Scouter 컨테이너 실행
-docker-compose down                # 컨테이너 중지
-
-# 포맷팅
-./gradlew spotlessApply             # 코드 자동 포맷팅 (Google Java Format)
-./gradlew spotlessCheck             # 포맷 위반 검증 (CI용)
-
-# Jib (Docker 이미지 빌드 — CI/CD에서 사용)
-./gradlew jib -PDOCKER_ID=... -PDOCKER_PASSWORD=... -PDOCKER_IMAGE_NAME=... -PJVM_HEAP_SIZE=... -PSCOUTER_IP=... -PSCOUTER_PORT=... -PSCOUTER_OBJ_NAME=...
-```
+| 명령어                     | 설명                      |
+| -------------------------- | ------------------------- |
+| `./gradlew build`          | 전체 프로젝트 빌드        |
+| `./gradlew :app:bootRun`   | 애플리케이션 로컬 실행    |
+| `./gradlew :app:bootJar`   | 실행 가능 JAR 생성        |
+| `./gradlew spotlessApply`  | 전체 소스 코드 포맷팅     |
+| `./gradlew spotlessCheck`  | 포맷 위반 여부 검증       |
+| `./gradlew test`           | 전체 테스트 실행          |
+| `./gradlew jib`            | Docker 이미지 빌드·푸시   |
+| `./gradlew jibDockerBuild` | 로컬 Docker 이미지 빌드   |
+| `docker-compose up -d`     | MySQL + Scouter 로컬 실행 |
 
 ## 아키텍처
 
-### 멀티모듈 구조
+### 멀티모듈 구조 (api/impl 분리)
 
 ```
-q-asker/
-├── app/                          # 부트스트랩 모듈 (Spring Boot 메인 클래스)
-│   └── src/main/resources/       # application.yml, application-local.yml, application-prod.yml
+q-asker/api/
+├── app/                          # 실행 모듈 (Spring Boot Application)
+│   └── src/main/java/com/icc/qasker/
 ├── modules/
 │   ├── global/                   # 전역 예외 처리, 공통 응답 DTO, BaseEntity
 │   ├── auth/
-│   │   ├── api/                  # 인증 인터페이스, DTO, 예외
-│   │   └── impl/                 # JWT 발급·검증, OAuth2 소셜 로그인 구현
-│   ├── aws/
-│   │   ├── api/                  # AWS 인터페이스, DTO
-│   │   └── impl/                 # S3 파일 업로드·다운로드 구현
+│   │   ├── api/                  # 인증 인터페이스 (JWT, OAuth2)
+│   │   └── impl/                 # 인증 구현체
 │   ├── quiz/
-│   │   ├── api/                  # 퀴즈 인터페이스, DTO, 예외
-│   │   └── impl/                 # 퀴즈 CRUD, 출제·채점 로직 구현
+│   │   ├── api/                  # 퀴즈 인터페이스 (CRUD, 출제·채점)
+│   │   └── impl/                 # 퀴즈 구현체
 │   ├── ai/
-│   │   ├── api/                  # AI 인터페이스, DTO
-│   │   └── impl/                 # Spring AI + Gemini 기반 퀴즈 생성
+│   │   ├── api/                  # AI 인터페이스 (Gemini 연동)
+│   │   └── impl/                 # AI 구현체
+│   ├── aws/
+│   │   ├── api/                  # AWS 인터페이스 (S3)
+│   │   └── impl/                 # AWS 구현체
 │   └── util/
-│       ├── api/                  # 유틸 인터페이스
-│       └── impl/                 # 헬스체크 등 범용 기능
-├── build.gradle                  # 루트 빌드 설정 (BOM, 공통 의존성)
-├── settings.gradle               # 모듈 등록
+│       ├── api/                  # 유틸리티 인터페이스
+│       └── impl/                 # 유틸리티 구현체 (HealthCheck 등)
+├── build.gradle                  # 루트 빌드 설정 (BOM, Spotless, 공통 의존성)
+├── settings.gradle               # 모듈 정의
 ├── docker-compose.yml            # MySQL + Scouter 로컬 환경
-└── .github/workflows/            # CI/CD (ci, auto-version-bump, prod_deploy)
+├── .githooks/                    # Git 훅 (prepare-commit-msg, pre-commit, pre-push)
+└── .github/workflows/            # CI/CD (ci.yml, prod_deploy.yml, auto-version-bump.yml)
 ```
 
-### 모듈 의존 방향
+### 모듈 의존성 방향
 
-```
-app → 모든 impl 모듈 + global
-impl → 자신의 api + global + 다른 모듈의 api (다른 impl 직접 의존 금지)
-api → (의존 없음 또는 global만)
-```
+`app` → `*-impl` → `*-api` → `global`
 
-### 패키지 구조
-
-- 베이스 패키지: `com.icc.qasker`
-- 모듈별: `com.icc.qasker.{도메인}` (예: `com.icc.qasker.quiz`, `com.icc.qasker.auth`)
-
-## 환경 변수
-
-### .env (Docker Compose용 — Git 미추적)
-
-| 키                     | 설명              |
-|-----------------------|-----------------|
-| `MYSQL_ROOT_PASSWORD` | MySQL root 비밀번호 |
-| `MYSQL_DATABASE`      | MySQL 데이터베이스명   |
-| `MYSQL_USER`          | MySQL 사용자명      |
-| `MYSQL_PASSWORD`      | MySQL 비밀번호      |
-
-### application-local.yml / application-prod.yml (Git 미추적)
-
-프로필별 DB 연결 정보, JWT 시크릿, AWS 자격증명, AI API 키 등을 관리한다.
+- **app**: 모든 impl 모듈을 조립하여 실행 가능한 애플리케이션 구성
+- **impl**: 비즈니스 로직 구현, 자신의 api 모듈에만 의존
+- **api**: 인터페이스·DTO 정의, global에만 의존
+- **global**: 공통 유틸리티, 외부 모듈에 의존하지 않음
 
 ## 개발 도구 및 설정
 
-| 도구                   | 설명                                                |
-|----------------------|---------------------------------------------------|
-| Gradle 8.14.3        | 빌드 도구 (Wrapper 사용)                                |
-| JDK 21               | Gradle toolchain으로 자동 관리                          |
-| Docker Compose       | 로컬 MySQL + Scouter 컨테이너                           |
-| Jib 3.4.0            | Dockerfile 없는 Docker 이미지 빌드                       |
-| Scouter APM          | 성능 모니터링 (로컬 + 운영)                                 |
-| GitHub Actions       | CI/CD (ci, auto-version-bump, prod_deploy)        |
-| SpringDoc Swagger UI | `/swagger-ui/index.html`에서 API 테스트                |
-| Spotless 7.0.4       | Google Java Format 자동 포맷팅 (PostToolUse 훅으로 자동 실행) |
+- **패키지 매니저**: Gradle Wrapper
+- **JDK**: Java 21 (toolchain으로 자동 다운로드)
+- **포맷터**: Spotless (Google Java Format)
+  - 적용: `./gradlew spotlessApply`
+  - 검증: `./gradlew spotlessCheck`
+- **EditorConfig**: 2-space indent (Java), 4-space indent (Gradle)
+- **Git Hooks**: `.githooks/` 디렉토리 사용 (`git config core.hooksPath .githooks`)
+  - `prepare-commit-msg`: 브랜치에서 JIRA 티켓 감지 → 커밋 접두사 자동 추가
+  - `pre-commit`: `spotlessCheck` → 포맷 위반 시 커밋 차단
+  - `pre-push`: `spotlessCheck` → 포맷 위반 시 푸시 차단
+- **CI/CD**: GitHub Actions (`ci.yml`, `prod_deploy.yml`, `auto-version-bump.yml`)
+- **코드 리뷰**: CodeRabbit (`.coderabbit.yaml`)
+
+## 환경 변수
+
+Docker Compose용 (`.env`):
+
+- `MYSQL_ROOT_PASSWORD` — MySQL root 비밀번호
+- `MYSQL_DATABASE` — 데이터베이스 이름
+- `MYSQL_USER` — MySQL 사용자
+- `MYSQL_PASSWORD` — MySQL 비밀번호
+
+Gradle 프로퍼티 (배포 시):
+
+- `DOCKER_ID` — Docker Hub 사용자 ID
+- `DOCKER_PASSWORD` — Docker Hub 비밀번호
+- `DOCKER_IMAGE_NAME` — Docker 이미지 이름
+- `JVM_HEAP_SIZE` — JVM 힙 메모리 크기
+- `SCOUTER_IP` / `SCOUTER_PORT` / `SCOUTER_OBJ_NAME` — Scouter APM 설정
