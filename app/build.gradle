@@ -80,15 +80,15 @@ jib {
     to {
         // 푸시할 Docker 이미지 이름: {DOCKER_ID}/{DOCKER_IMAGE_NAME}
         // 예: DOCKER_ID=myuser, DOCKER_IMAGE_NAME=qasker → myuser/qasker
-        image = "${project.property("DOCKER_ID")}/${project.property("DOCKER_IMAGE_NAME")}"
+        image = "${project.findProperty("DOCKER_ID")}/${project.findProperty("DOCKER_IMAGE_NAME")}"
         // latest 태그 + 프로젝트 버전 태그를 동시에 푸시
         // 예: ["latest", "1.7.0"] → myuser/qasker:latest, myuser/qasker:1.7.0 두 태그 생성
         tags = ["latest", rootProject.version.toString()]
         auth {
             // Docker Hub 인증 정보 (gradle.properties 또는 -P 옵션으로 전달)
             // 예: -PDOCKER_ID=myuser -PDOCKER_PASSWORD=secret 으로 빌드 시 전달
-            username = project.property("DOCKER_ID")
-            password = project.property("DOCKER_PASSWORD")
+            username = project.findProperty("DOCKER_ID")
+            password = project.findProperty("DOCKER_PASSWORD")
         }
     }
     extraDirectories {
@@ -102,62 +102,65 @@ jib {
         }
     }
     container {
-        // JVM 힙 메모리 크기 설정 (-Xms: 초기 힙, -Xmx: 최대 힙)
-        // 예: JVM_HEAP_SIZE=512m → -Xms512m -Xmx512m, 초기 힙과 최대 힙을 동일하게 설정하여
-        //     GC로 인한 힙 리사이징 오버헤드를 방지
-        def jvmHeapSize = project.property("JVM_HEAP_SIZE")
-        jvmFlags = ["-Xms${jvmHeapSize}", "-Xmx${jvmHeapSize}"]
+        // Jib 배포 시에만 JVM/Scouter 설정 수행 (CI 빌드 시에는 건너뜀)
+        if (project.hasProperty("DOCKER_ID")) {
+            // JVM 힙 메모리 크기 설정 (-Xms: 초기 힙, -Xmx: 최대 힙)
+            // 예: JVM_HEAP_SIZE=512m → -Xms512m -Xmx512m, 초기 힙과 최대 힙을 동일하게 설정하여
+            //     GC로 인한 힙 리사이징 오버헤드를 방지
+            def jvmHeapSize = project.findProperty("JVM_HEAP_SIZE")
+            jvmFlags = ["-Xms${jvmHeapSize}", "-Xmx${jvmHeapSize}"]
 
-        // Scouter APM 에이전트 JAR 존재 여부 검증
-        // 예: app/scouter/agent.java/scouter.agent.jar 파일이 없으면 빌드가 즉시 실패하여
-        //     에이전트 누락된 채로 배포되는 상황을 방지
-        def scouterJar = project.file("./scouter/agent.java/scouter.agent.jar")
-        if (!scouterJar.exists()) {
-            throw new GradleException("Scouter agent file not found: ${scouterJar.absolutePath}")
-        }
-
-        // Scouter 연동에 필요한 필수 프로퍼티 검증
-        // 예: ./gradlew jib -PSCOUTER_IP=10.0.0.1 -PSCOUTER_PORT=6100 -PSCOUTER_OBJ_NAME=qasker-api
-        //     하나라도 누락하면 빌드 실패 → 모니터링 설정 없이 배포되는 실수 방지
-        def requiredProps = ["SCOUTER_IP", "SCOUTER_PORT", "SCOUTER_OBJ_NAME"]
-        requiredProps.each { prop ->
-            if (!project.hasProperty(prop)) {
-                throw new GradleException("[빌드 실패] ${prop} 프로퍼티가 누락되었습니다. (-P${prop}=값 필요)")
+            // Scouter APM 에이전트 JAR 존재 여부 검증
+            // 예: app/scouter/agent.java/scouter.agent.jar 파일이 없으면 빌드가 즉시 실패하여
+            //     에이전트 누락된 채로 배포되는 상황을 방지
+            def scouterJar = project.file("./scouter/agent.java/scouter.agent.jar")
+            if (!scouterJar.exists()) {
+                throw new GradleException("Scouter agent file not found: ${scouterJar.absolutePath}")
             }
+
+            // Scouter 연동에 필요한 필수 프로퍼티 검증
+            // 예: ./gradlew jib -PSCOUTER_IP=10.0.0.1 -PSCOUTER_PORT=6100 -PSCOUTER_OBJ_NAME=qasker-api
+            //     하나라도 누락하면 빌드 실패 → 모니터링 설정 없이 배포되는 실수 방지
+            def requiredProps = ["SCOUTER_IP", "SCOUTER_PORT", "SCOUTER_OBJ_NAME"]
+            requiredProps.each { prop ->
+                if (!project.hasProperty(prop)) {
+                    throw new GradleException("[빌드 실패] ${prop} 프로퍼티가 누락되었습니다. (-P${prop}=값 필요)")
+                }
+            }
+
+            // Scouter APM 서버 연결 설정값 할당
+            def collectorIp = project.findProperty("SCOUTER_IP")
+            def objName = project.findProperty("SCOUTER_OBJ_NAME")
+            def collectorPort = project.findProperty("SCOUTER_PORT")
+
+            jvmFlags = jvmFlags + [
+                    // Scouter Java 에이전트를 JVM에 어태치하여 성능 모니터링 활성화
+                    // 예: -javaagent로 로드되면 바이트코드 인스트루멘테이션으로 메서드 실행 시간,
+                    //     SQL 쿼리, HTTP 요청 등을 자동 수집
+                    "-javaagent:/app/scouter/agent.java/scouter.agent.jar",
+
+                    // Java 16+ 모듈 시스템에서 Scouter가 내부 API에 접근할 수 있도록 허용
+                    // 예: Scouter가 java.lang.Thread, java.util.HashMap 등의 내부 필드에 리플렉션으로
+                    //     접근하여 스레드 상태·객체 수를 모니터링 (이 옵션 없으면 InaccessibleObjectException 발생)
+                    "--add-opens=java.base/java.lang=ALL-UNNAMED",
+                    "--add-opens=java.base/java.util=ALL-UNNAMED",
+
+                    // Scouter Collector 서버 IP·포트 설정
+                    // 예: SCOUTER_IP=10.0.0.1, SCOUTER_PORT=6100이면
+                    //     UDP 6100으로 성능 데이터 전송, TCP 6100으로 제어 명령 수신
+                    "-Dnet_collector_ip=${collectorIp}",
+                    "-Dnet_collector_udp_port=${collectorPort}",
+                    "-Dnet_collector_tcp_port=${collectorPort}",
+
+                    // 보안: 원격 클라이언트에서 HeapDump, Method Patch 등 제어 기능 비활성화
+                    // 예: Scouter Client UI에서 "Heap Dump" 버튼 클릭 시 실행되지 않음
+                    //     운영 환경에서 의도치 않은 힙 덤프로 인한 서비스 지연 방지
+                    "-Denable_mgr_agent=false",
+
+                    // Scouter UI에 표시될 애플리케이션 식별 이름
+                    // 예: SCOUTER_OBJ_NAME=qasker-api → Scouter Client 화면에서 "qasker-api"로 표시
+                    "-Dobj_name=${objName}"
+            ]
         }
-
-        // Scouter APM 서버 연결 설정값 할당
-        def collectorIp = project.property("SCOUTER_IP")
-        def objName = project.property("SCOUTER_OBJ_NAME")
-        def collectorPort = project.property("SCOUTER_PORT")
-
-        jvmFlags = jvmFlags + [
-                // Scouter Java 에이전트를 JVM에 어태치하여 성능 모니터링 활성화
-                // 예: -javaagent로 로드되면 바이트코드 인스트루멘테이션으로 메서드 실행 시간,
-                //     SQL 쿼리, HTTP 요청 등을 자동 수집
-                "-javaagent:/app/scouter/agent.java/scouter.agent.jar",
-
-                // Java 16+ 모듈 시스템에서 Scouter가 내부 API에 접근할 수 있도록 허용
-                // 예: Scouter가 java.lang.Thread, java.util.HashMap 등의 내부 필드에 리플렉션으로
-                //     접근하여 스레드 상태·객체 수를 모니터링 (이 옵션 없으면 InaccessibleObjectException 발생)
-                "--add-opens=java.base/java.lang=ALL-UNNAMED",
-                "--add-opens=java.base/java.util=ALL-UNNAMED",
-
-                // Scouter Collector 서버 IP·포트 설정
-                // 예: SCOUTER_IP=10.0.0.1, SCOUTER_PORT=6100이면
-                //     UDP 6100으로 성능 데이터 전송, TCP 6100으로 제어 명령 수신
-                "-Dnet_collector_ip=${collectorIp}",
-                "-Dnet_collector_udp_port=${collectorPort}",
-                "-Dnet_collector_tcp_port=${collectorPort}",
-
-                // 보안: 원격 클라이언트에서 HeapDump, Method Patch 등 제어 기능 비활성화
-                // 예: Scouter Client UI에서 "Heap Dump" 버튼 클릭 시 실행되지 않음
-                //     운영 환경에서 의도치 않은 힙 덤프로 인한 서비스 지연 방지
-                "-Denable_mgr_agent=false",
-
-                // Scouter UI에 표시될 애플리케이션 식별 이름
-                // 예: SCOUTER_OBJ_NAME=qasker-api → Scouter Client 화면에서 "qasker-api"로 표시
-                "-Dobj_name=${objName}"
-        ]
     }
 }
