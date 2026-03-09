@@ -26,8 +26,8 @@ jobs:
       - name: JDK 21 설정
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
-          java-version: '21'
+          distribution: "temurin"
+          java-version: "21"
 
       - name: Gradle 설정
         uses: gradle/actions/setup-gradle@v4
@@ -52,20 +52,20 @@ jobs:
           # DOCKER_ID 추출, 마스킹, 환경 변수 등록
           DOCKER_ID_VALUE=$(echo "${{ secrets.GRADLE_PROPERTIES }}" | grep '^DOCKER_ID=' | cut -d'=' -f2-)
           echo "DOCKER_ID=$DOCKER_ID_VALUE" >> $GITHUB_ENV
-          
+
           # DOCKER_IMAGE_NAME 추출, 마스킹, 환경 변수 등록
           DOCKER_IMAGE_NAME_VALUE=$(echo "${{ secrets.GRADLE_PROPERTIES }}" | grep '^DOCKER_IMAGE_NAME=' | cut -d'=' -f2-)
           echo "DOCKER_IMAGE_NAME=$DOCKER_IMAGE_NAME_VALUE" >> $GITHUB_ENV
-          
+
           # DOCKER_PASSWORD 추출, 마스킹, 환경 변수 등록
           DOCKER_PASSWORD_VALUE=$(echo "${{ secrets.GRADLE_PROPERTIES }}" | grep '^DOCKER_PASSWORD=' | cut -d'=' -f2-)
           echo "::add-mask::$DOCKER_PASSWORD_VALUE"
           echo "DOCKER_PASSWORD=$DOCKER_PASSWORD_VALUE" >> $GITHUB_ENV
-          
+
           # DOCKER_CONTAINER_NAME 생성, 등록
           DOCKER_CONTAINER_NAME_VALUE="${DOCKER_ID_VALUE}-${DOCKER_IMAGE_NAME_VALUE}"
           echo "DOCKER_CONTAINER_NAME=$DOCKER_CONTAINER_NAME_VALUE" >> $GITHUB_ENV
-          
+
           # SLACK_WEBHOOK_URL 추출, 마스킹, 환경 변수 등록
           SLACK_WEBHOOK_URL_VALUE=$(echo "${{ secrets.GRADLE_PROPERTIES }}" | grep '^SLACK_WEBHOOK_URL=' | cut -d'=' -f2-)
           echo "SLACK_WEBHOOK_URL=$SLACK_WEBHOOK_URL_VALUE" >> $GITHUB_ENV
@@ -84,7 +84,7 @@ jobs:
           fi
 
           echo "Extracted Version: $VERSION"
-          
+
           # 도커 이미지 변수 참조 가능하게 함
           echo "DOCKER_IMAGE_NAME=${{ env.DOCKER_ID }}/${{ env.DOCKER_IMAGE_NAME }}:$VERSION" >> $GITHUB_ENV
 
@@ -108,15 +108,15 @@ jobs:
           script: |
             # 1. 배포 폴더로 이동 (SCP로 전송된 위치)
             cd /home/${{ env.EC2_USER }}/deploy
-            
+
             # 2. .env 파일 생성 (docker-compose.yml에서 사용)
             echo "DOCKER_IMAGE=${{ env.DOCKER_IMAGE_NAME }}" > .env
             echo "BLUE_PORT=${{ env.BLUE_PORT }}" >> .env
             echo "GREEN_PORT=${{ env.GREEN_PORT }}" >> .env
-            
+
             # 3. Docker 로그인
             echo "${{ env.DOCKER_PASSWORD }}" | docker login -u "${{ env.DOCKER_ID }}" --password-stdin
-            
+
             # 4. deploy.sh 실행 (기존의 docker run 대신 사용)
             chmod +x deploy.sh
             export SLACK_WEBHOOK_URL="${{ env.SLACK_WEBHOOK_URL }}"
