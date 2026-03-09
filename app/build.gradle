@@ -70,6 +70,8 @@ springBoot {
     buildInfo()
 }
 
+// Jib 설정: DOCKER_ID 프로퍼티가 있을 때만 배포 관련 설정을 수행한다
+// CI 빌드(./gradlew build)에서는 DOCKER_ID가 없으므로 평가 시점 오류를 방지한다
 jib {
     from {
         // 베이스 이미지: Amazon Corretto JDK 21 (AWS 최적화 OpenJDK 배포판)
@@ -77,37 +79,36 @@ jib {
         //     Alpine 기반보다 용량은 크지만 glibc 호환성과 AWS 환경 최적화 이점
         image = "amazoncorretto:21"
     }
-    to {
-        // 푸시할 Docker 이미지 이름: {DOCKER_ID}/{DOCKER_IMAGE_NAME}
-        // 예: DOCKER_ID=myuser, DOCKER_IMAGE_NAME=qasker → myuser/qasker
-        image = "${project.findProperty("DOCKER_ID")}/${project.findProperty("DOCKER_IMAGE_NAME")}"
-        // latest 태그 + 프로젝트 버전 태그를 동시에 푸시
-        // 예: ["latest", "1.7.0"] → myuser/qasker:latest, myuser/qasker:1.7.0 두 태그 생성
-        tags = ["latest", rootProject.version.toString()]
-        auth {
-            // Docker Hub 인증 정보 (gradle.properties 또는 -P 옵션으로 전달)
-            // 예: -PDOCKER_ID=myuser -PDOCKER_PASSWORD=secret 으로 빌드 시 전달
-            username = project.findProperty("DOCKER_ID")
-            password = project.findProperty("DOCKER_PASSWORD")
-        }
-    }
-    extraDirectories {
-        paths {
-            path {
-                // 로컬 ./scouter 디렉토리를 컨테이너의 /app/scouter 경로에 복사
-                // 예: app/scouter/agent.java/scouter.agent.jar → 컨테이너 /app/scouter/agent.java/scouter.agent.jar
-                setFrom(file("./scouter").toPath())
-                into = "/app/scouter"
+    if (project.hasProperty("DOCKER_ID")) {
+        to {
+            // 푸시할 Docker 이미지 이름: {DOCKER_ID}/{DOCKER_IMAGE_NAME}
+            // 예: DOCKER_ID=myuser, DOCKER_IMAGE_NAME=qasker → myuser/qasker
+            image = "${project.property("DOCKER_ID")}/${project.property("DOCKER_IMAGE_NAME")}"
+            // latest 태그 + 프로젝트 버전 태그를 동시에 푸시
+            // 예: ["latest", "1.7.0"] → myuser/qasker:latest, myuser/qasker:1.7.0 두 태그 생성
+            tags = ["latest", rootProject.version.toString()]
+            auth {
+                // Docker Hub 인증 정보 (gradle.properties 또는 -P 옵션으로 전달)
+                // 예: -PDOCKER_ID=myuser -PDOCKER_PASSWORD=secret 으로 빌드 시 전달
+                username = project.property("DOCKER_ID")
+                password = project.property("DOCKER_PASSWORD")
             }
         }
-    }
-    container {
-        // Jib 배포 시에만 JVM/Scouter 설정 수행 (CI 빌드 시에는 건너뜀)
-        if (project.hasProperty("DOCKER_ID")) {
+        extraDirectories {
+            paths {
+                path {
+                    // 로컬 ./scouter 디렉토리를 컨테이너의 /app/scouter 경로에 복사
+                    // 예: app/scouter/agent.java/scouter.agent.jar → 컨테이너 /app/scouter/agent.java/scouter.agent.jar
+                    setFrom(file("./scouter").toPath())
+                    into = "/app/scouter"
+                }
+            }
+        }
+        container {
             // JVM 힙 메모리 크기 설정 (-Xms: 초기 힙, -Xmx: 최대 힙)
             // 예: JVM_HEAP_SIZE=512m → -Xms512m -Xmx512m, 초기 힙과 최대 힙을 동일하게 설정하여
             //     GC로 인한 힙 리사이징 오버헤드를 방지
-            def jvmHeapSize = project.findProperty("JVM_HEAP_SIZE")
+            def jvmHeapSize = project.property("JVM_HEAP_SIZE")
             jvmFlags = ["-Xms${jvmHeapSize}", "-Xmx${jvmHeapSize}"]
 
             // Scouter APM 에이전트 JAR 존재 여부 검증
@@ -129,9 +130,9 @@ jib {
             }
 
             // Scouter APM 서버 연결 설정값 할당
-            def collectorIp = project.findProperty("SCOUTER_IP")
-            def objName = project.findProperty("SCOUTER_OBJ_NAME")
-            def collectorPort = project.findProperty("SCOUTER_PORT")
+            def collectorIp = project.property("SCOUTER_IP")
+            def objName = project.property("SCOUTER_OBJ_NAME")
+            def collectorPort = project.property("SCOUTER_PORT")
 
             jvmFlags = jvmFlags + [
                     // Scouter Java 에이전트를 JVM에 어태치하여 성능 모니터링 활성화
