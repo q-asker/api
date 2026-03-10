@@ -15,7 +15,7 @@ dependencies {
     implementation project(":global")
     // util-api: 유틸리티 관련 인터페이스·DTO 정의 모듈
     // 예: UtilController 인터페이스, 응답 DTO를 구현체에서 import
-    implementation project(":util:util-api")
+    implementation project(":util-api")
 
     // ────────────────────────────────
     // 스프링부트 Web & JPA

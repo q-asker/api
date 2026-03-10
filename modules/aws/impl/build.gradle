@@ -15,7 +15,7 @@ dependencies {
     implementation project(":global")
     // aws-api: AWS 관련 인터페이스·DTO 정의 모듈
     // 예: AwsController 인터페이스, PresignedUrlResponse DTO를 구현체에서 import
-    implementation project(":aws:aws-api")
+    implementation project(":aws-api")
 
     // ────────────────────────────────
     // AWS SDK
