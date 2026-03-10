@@ -41,9 +41,9 @@ public class RefreshTokenUtil {
     String oldRtHash = TokenUtils.sha256Hex(oldRtPlain);
 
     RefreshToken refreshToken =
-      refreshTokenRepository
-        .findByRtHash(oldRtHash)
-        .orElseThrow(() -> new CustomException(ExceptionMessage.LOGIN_REQUIRED));
+        refreshTokenRepository
+            .findByRtHash(oldRtHash)
+            .orElseThrow(() -> new CustomException(ExceptionMessage.LOGIN_REQUIRED));
 
     if (refreshToken.isExpired(Instant.now())) {
       throw new CustomException(ExceptionMessage.UNAUTHORIZED);
@@ -67,9 +67,7 @@ public class RefreshTokenUtil {
     return Instant.now().plusSeconds(jwtProperties.getRefreshExpirationTime());
   }
 
-  public record RotateResult(String userId, String newRtPlain) {
-
-  }
+  public record RotateResult(String userId, String newRtPlain) {}
 
   public static class TokenUtils {
 

@@ -48,8 +48,7 @@ public class Board extends CreatedAt {
   @Enumerated(EnumType.STRING)
   private BoardStatus status;
 
-  @LastModifiedDate
-  private Instant updatedAt;
+  @LastModifiedDate private Instant updatedAt;
 
   @OneToMany(mappedBy = "board", cascade = CascadeType.ALL, orphanRemoval = true)
   private List<Reply> replies = new ArrayList<>();

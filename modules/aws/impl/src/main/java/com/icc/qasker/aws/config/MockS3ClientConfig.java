@@ -30,7 +30,7 @@ public class MockS3ClientConfig {
 
       @Override
       public PutObjectResponse putObject(
-        PutObjectRequest putObjectRequest, RequestBody requestBody) {
+          PutObjectRequest putObjectRequest, RequestBody requestBody) {
         System.out.println("Mock S3 Upload: " + putObjectRequest.key());
 
         try {

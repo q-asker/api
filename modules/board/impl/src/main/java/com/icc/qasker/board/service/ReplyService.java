@@ -24,9 +24,9 @@ public class ReplyService {
       throw new CustomException(ExceptionMessage.UNAUTHORIZED);
     }
     Board board =
-      boardRepository
-        .findById(boardId)
-        .orElseThrow(() -> new CustomException(ExceptionMessage.POST_NOT_FOUND));
+        boardRepository
+            .findById(boardId)
+            .orElseThrow(() -> new CustomException(ExceptionMessage.POST_NOT_FOUND));
     board.changeStatus(BoardStatus.ANSWERED);
     Reply reply = Reply.builder().board(board).adminId(userId).content(content).build();
     replyRepository.save(reply);

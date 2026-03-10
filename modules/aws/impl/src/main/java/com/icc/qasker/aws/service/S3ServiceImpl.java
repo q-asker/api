@@ -43,7 +43,7 @@ public class S3ServiceImpl implements S3Service {
 
     try {
       s3Client.headObject(
-        HeadObjectRequest.builder().bucket(awsS3Properties.bucketName()).key(key).build());
+          HeadObjectRequest.builder().bucket(awsS3Properties.bucketName()).key(key).build());
 
       return new FileExistStatusResponse(Status.EXIST);
     } catch (NoSuchKeyException e) {
@@ -80,16 +80,16 @@ public class S3ServiceImpl implements S3Service {
     metadata.put("original-filename", UriUtils.encode(originalFileName, StandardCharsets.UTF_8));
 
     PutObjectPresignRequest presignRequest =
-      PutObjectPresignRequest.builder()
-        .signatureDuration(Duration.ofSeconds(awsS3Properties.signatureDuration()))
-        .putObjectRequest(
-          r ->
-            r.bucket(awsS3Properties.bucketName())
-              .key(uploadKey)
-              .contentType(req.contentType())
-              .contentLength(fileSize)
-              .metadata(metadata))
-        .build();
+        PutObjectPresignRequest.builder()
+            .signatureDuration(Duration.ofSeconds(awsS3Properties.signatureDuration()))
+            .putObjectRequest(
+                r ->
+                    r.bucket(awsS3Properties.bucketName())
+                        .key(uploadKey)
+                        .contentType(req.contentType())
+                        .contentLength(fileSize)
+                        .metadata(metadata))
+            .build();
 
     String uploadUrl = s3Presigner.presignPutObject(presignRequest).url().toString();
     String finalUrl = awsCloudFrontProperties.baseUrl() + "/" + changeExtensionToPdf(uuidFileName);

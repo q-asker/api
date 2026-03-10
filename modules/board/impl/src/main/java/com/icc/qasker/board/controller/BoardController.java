@@ -43,7 +43,7 @@ public class BoardController {
   @Operation(summary = "단일 게시글 내용을 가져온다")
   @GetMapping("/{boardId}")
   public ResponseEntity<PostDetailResponse> getPost(
-    @PathVariable Long boardId, @UserId String userId) {
+      @PathVariable Long boardId, @UserId String userId) {
     return ResponseEntity.ok(boardService.getPost(boardId, userId));
   }
 
@@ -57,7 +57,7 @@ public class BoardController {
   @Operation(summary = "게시글을 수정한다")
   @PutMapping("/{boardId}")
   public ResponseEntity<?> updatePost(
-    @PathVariable Long boardId, @RequestBody PostRequest request, @UserId String userId) {
+      @PathVariable Long boardId, @RequestBody PostRequest request, @UserId String userId) {
     boardService.updatePost(boardId, request, userId);
     return ResponseEntity.ok().build();
   }
@@ -72,7 +72,7 @@ public class BoardController {
   @Operation(summary = "댓글을 단다")
   @PostMapping("/{boardId}/replies")
   public ResponseEntity<?> reply(
-    @RequestBody ReplyRequest replyRequest, @PathVariable Long boardId, @UserId String userId) {
+      @RequestBody ReplyRequest replyRequest, @PathVariable Long boardId, @UserId String userId) {
     replyService.reply(boardId, userId, replyRequest.content());
     return ResponseEntity.ok().build();
   }
