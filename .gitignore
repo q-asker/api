@@ -39,6 +39,8 @@ out/
 
 ### Claude Code ###
 .mcp.json
+shrimp_data/
+docs
 
 ### Custom ###
 **/src/main/resources/application-**
@@ -47,3 +49,10 @@ app/gradle.properties
 app/newrelic/newrelic.yml
 **/heapdump
 monitor_downtime.sh
+
+# Claude Code
+CLAUDE.md
+.mcp.json
+.claude
+shrimp_data
+docs

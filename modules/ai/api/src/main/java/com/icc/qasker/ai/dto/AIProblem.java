@@ -4,7 +4,7 @@ import java.util.List;
 
 public record AIProblem(
     int number,
-    String title,
-    List<AISelection> selections,
+    String content,
     String explanation,
+    List<AISelection> selections,
     List<Integer> referencedPages) {}

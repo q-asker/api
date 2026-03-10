@@ -2,7 +2,7 @@ name: Auto Bump Version on PR
 
 on:
   pull_request:
-    types: [ opened, edited, synchronize ] # PR이 열리거나 제목이 수정될 때 동작
+    types: [opened, edited, synchronize] # PR이 열리거나 제목이 수정될 때 동작
     branches:
       - main # main 브랜치를 대상으로 하는 PR만
 
@@ -33,7 +33,7 @@ jobs:
         run: |
           TITLE="${{ github.event.pull_request.title }}"
           echo "Checking PR Title: $TITLE"
-          
+
           # 정규식: v1.2.3 또는 release/v1.2.3 등에서 숫자.숫자.숫자 추출
           if [[ $TITLE =~ ([0-9]+\.[0-9]+\.[0-9]+) ]]; then
             NEW_VERSION="${BASH_REMATCH[1]}"
@@ -51,7 +51,7 @@ jobs:
           # build.gradle 파일에서 version = "..." 패턴을 찾아 새 버전으로 교체
           # sed 개선: 큰따옴표, 작은따옴표, 공백 유연성 확보 (version= '1.0.0' 등)
           sed -i -E "s/version ?= ?[\"'][0-9]+\.[0-9]+\.[0-9]+[\"']/version = \"$NEW_VERSION\"/" build.gradle
-          
+
           # 변경 내용 확인 (로그용)
           grep "version =" build.gradle
 

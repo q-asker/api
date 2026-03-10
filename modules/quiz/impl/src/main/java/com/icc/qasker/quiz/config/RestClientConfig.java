@@ -3,10 +3,12 @@ package com.icc.qasker.quiz.config;
 import com.icc.qasker.global.properties.QAskerProperties;
 import java.time.Duration;
 import lombok.AllArgsConstructor;
+import org.apache.hc.client5.http.config.ConnectionConfig;
 import org.apache.hc.client5.http.config.RequestConfig;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
 import org.apache.hc.core5.http.io.SocketConfig;
 import org.apache.hc.core5.util.Timeout;
 import org.springframework.context.annotation.Bean;
@@ -30,15 +32,22 @@ public class RestClientConfig {
     // 1. 소켓 레벨 타임아웃 설정 (데이터 패킷 간 최대 유휴 시간)
     SocketConfig socketConfig = SocketConfig.custom().setSoTimeout(Timeout.ofSeconds(50)).build();
 
-    PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
-    connectionManager.setDefaultSocketConfig(socketConfig);
-
-    // 1. Apache HttpClient 5 설정
-    RequestConfig requestConfig =
-        RequestConfig.custom()
-            .setResponseTimeout(Timeout.ofSeconds(50))
+    ConnectionConfig connectionConfig =
+        ConnectionConfig.custom()
             .setConnectTimeout(Timeout.ofSeconds(3))
+            .setValidateAfterInactivity(Timeout.ofSeconds(5))
             .build();
+
+    PoolingHttpClientConnectionManager connectionManager =
+        PoolingHttpClientConnectionManagerBuilder.create()
+            .setDefaultSocketConfig(socketConfig)
+            .setDefaultConnectionConfig(connectionConfig)
+            .setMaxConnTotal(100)
+            .setMaxConnPerRoute(100)
+            .build();
+
+    RequestConfig requestConfig =
+        RequestConfig.custom().setResponseTimeout(Timeout.ofSeconds(50)).build();
 
     CloseableHttpClient httpClient =
         HttpClients.custom()

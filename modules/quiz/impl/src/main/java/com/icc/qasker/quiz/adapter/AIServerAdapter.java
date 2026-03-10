@@ -5,8 +5,7 @@ import com.icc.qasker.ai.dto.GenerationRequestToAI;
 import com.icc.qasker.global.error.ClientSideException;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
-import com.icc.qasker.quiz.dto.aiResponse.ProblemSetGeneratedEvent;
-import com.icc.qasker.quiz.dto.feRequest.enums.QuizType;
+import com.icc.qasker.quiz.dto.airesponse.ProblemSetGeneratedEvent;
 import com.icc.qasker.quiz.mapper.AIProblemSetMapper;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
@@ -26,17 +25,17 @@ public class AIServerAdapter {
 
   @CircuitBreaker(name = "aiServer", fallbackMethod = "fallback")
   public void streamRequest(
-      String uploadUrl,
-      QuizType quizType,
+      String fileUrl,
+      String strategyValue,
       int quizCount,
-      List<Integer> pageNumbers,
+      List<Integer> referencedPages,
       Consumer<ProblemSetGeneratedEvent> onLineReceived) {
     quizOrchestrationService.generateQuiz(
         new GenerationRequestToAI(
-            uploadUrl,
-            quizType.name(),
+            fileUrl,
+            strategyValue,
             quizCount,
-            pageNumbers,
+            referencedPages,
             (problemSet) -> {
               ProblemSetGeneratedEvent event = AIProblemSetMapper.toEvent(problemSet);
               onLineReceived.accept(event);

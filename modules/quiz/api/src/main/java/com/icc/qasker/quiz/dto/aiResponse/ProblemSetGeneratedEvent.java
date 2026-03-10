@@ -1,4 +1,4 @@
-package com.icc.qasker.quiz.dto.aiResponse;
+package com.icc.qasker.quiz.dto.airesponse;
 
 import java.util.List;
 import lombok.Getter;
@@ -25,6 +25,7 @@ public class ProblemSetGeneratedEvent {
     public static class SelectionsOfAI {
 
       private String content;
+      private String explanation;
       private boolean correct;
     }
   }

@@ -1,6 +1,6 @@
 package com.icc.qasker.quiz.mapper;
 
-import com.icc.qasker.quiz.dto.aiResponse.ProblemSetGeneratedEvent.QuizGeneratedFromAI.SelectionsOfAI;
+import com.icc.qasker.quiz.dto.airesponse.ProblemSetGeneratedEvent.QuizGeneratedFromAI.SelectionsOfAI;
 import com.icc.qasker.quiz.entity.Problem;
 import com.icc.qasker.quiz.entity.Selection;
 import lombok.AccessLevel;

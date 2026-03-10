@@ -115,12 +115,9 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
 
                       AIProblemSet result =
                           GeminiProblemSetMapper.toDto(
-                              validatedResult,
-                              request.strategyValue(),
-                              chunk.referencedPages(),
-                              numberCounter);
+                              validatedResult, chunk.referencedPages(), numberCounter);
 
-                      request.onChunkCompleted().accept(result);
+                      request.consumer().accept(result);
 
                       log.debug(
                           "청크 처리 완료: pages={}, 문제 {}개",

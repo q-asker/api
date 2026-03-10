@@ -2,8 +2,7 @@ package com.icc.qasker.quiz.adapter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.icc.qasker.ai.QuizOrchestrationService;
-import com.icc.qasker.quiz.dto.aiResponse.ProblemSetGeneratedEvent;
-import com.icc.qasker.quiz.dto.feRequest.enums.QuizType;
+import com.icc.qasker.quiz.dto.airesponse.ProblemSetGeneratedEvent;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -30,12 +29,13 @@ public class MockAIServerAdapter extends AIServerAdapter {
 
   @Override
   public void streamRequest(
-      String uploadUrl,
-      QuizType quizType,
+      String fileUrl,
+      String strategyValue,
       int quizCount,
-      List<Integer> pageNumbers,
+      List<Integer> referencedPages,
       Consumer<ProblemSetGeneratedEvent> onLineReceived) {
-    List<Integer> pages = (pageNumbers == null || pageNumbers.isEmpty()) ? List.of(1) : pageNumbers;
+    List<Integer> pages =
+        (referencedPages == null || referencedPages.isEmpty()) ? List.of(1) : referencedPages;
 
     List<Map<String, Object>> quiz = new ArrayList<>();
     for (int i = 1; i <= quizCount / 3; i++) {
@@ -43,7 +43,7 @@ public class MockAIServerAdapter extends AIServerAdapter {
           Map.of(
               "number",
               i,
-              "title",
+              "content",
               "Mock question " + i,
               "selections",
               List.of(
@@ -67,8 +67,7 @@ public class MockAIServerAdapter extends AIServerAdapter {
       Thread.currentThread().interrupt();
       return;
     }
-    pageNumbers = pageNumbers;
-    pages = (pageNumbers == null || pageNumbers.isEmpty()) ? List.of(1) : pageNumbers;
+    pages = (referencedPages == null || referencedPages.isEmpty()) ? List.of(1) : referencedPages;
 
     quiz = new ArrayList<>();
     for (int i = quizCount / 3 + 1; i <= 2 * (quizCount / 3); i++) {
@@ -76,7 +75,7 @@ public class MockAIServerAdapter extends AIServerAdapter {
           Map.of(
               "number",
               i,
-              "title",
+              "content",
               "Mock question " + i,
               "selections",
               List.of(
@@ -101,8 +100,7 @@ public class MockAIServerAdapter extends AIServerAdapter {
       Thread.currentThread().interrupt();
       return;
     }
-    pageNumbers = pageNumbers;
-    pages = (pageNumbers == null || pageNumbers.isEmpty()) ? List.of(1) : pageNumbers;
+    pages = (referencedPages == null || referencedPages.isEmpty()) ? List.of(1) : referencedPages;
 
     quiz = new ArrayList<>();
     for (int i = 2 * (quizCount / 3) + 1; i <= quizCount; i++) {
@@ -110,7 +108,7 @@ public class MockAIServerAdapter extends AIServerAdapter {
           Map.of(
               "number",
               i,
-              "title",
+              "content",
               "Mock question " + i,
               "selections",
               List.of(
