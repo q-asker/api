@@ -24,8 +24,5 @@ jobs:
       - name: Gradle 설정
         uses: gradle/actions/setup-gradle@v4
 
-      - name: 포맷 검증 (Spotless)
-        run: ./gradlew spotlessCheck
-
-      - name: 빌드 & 테스트
-        run: ./gradlew build --build-cache --parallel
+      - name: 포맷 검증 & 빌드 & 테스트
+        run: ./gradlew spotlessCheck build --build-cache --parallel
