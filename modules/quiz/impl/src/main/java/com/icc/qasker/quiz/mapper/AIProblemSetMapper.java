@@ -15,7 +15,7 @@ public final class AIProblemSetMapper {
 
   public static ProblemSetGeneratedEvent toEvent(AIProblemSet source) {
     List<QuizGeneratedFromAI> quizList =
-        source.quiz().stream().map(AIProblemSetMapper::toQuizGeneratedFromAI).toList();
+      source.quiz().stream().map(AIProblemSetMapper::toQuizGeneratedFromAI).toList();
 
     ProblemSetGeneratedEvent event = new ProblemSetGeneratedEvent();
     event.setQuiz(quizList);
@@ -29,9 +29,9 @@ public final class AIProblemSetMapper {
     quiz.setExplanation(problem.explanation());
     quiz.setReferencedPages(problem.referencedPages());
     quiz.setSelections(
-        problem.selections() == null
-            ? List.of()
-            : problem.selections().stream().map(AIProblemSetMapper::toSelectionsOfAI).toList());
+      problem.selections() == null
+        ? List.of()
+        : problem.selections().stream().map(AIProblemSetMapper::toSelectionsOfAI).toList());
     return quiz;
   }
 
@@ -40,6 +40,7 @@ public final class AIProblemSetMapper {
     sel.setContent(selection.content());
     sel.setExplanation(selection.explanation());
     sel.setCorrect(selection.correct());
+    // 안녕세상아
     return sel;
   }
 }
