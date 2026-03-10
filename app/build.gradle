@@ -80,15 +80,15 @@ jib {
     to {
         // 푸시할 Docker 이미지 이름: {DOCKER_ID}/{DOCKER_IMAGE_NAME}
         // 예: DOCKER_ID=myuser, DOCKER_IMAGE_NAME=qasker → myuser/qasker
-        image = "${project.property("DOCKER_ID")}/${project.property("DOCKER_IMAGE_NAME")}"
+        image = "${project.findProperty("DOCKER_ID") ?: ''}/${project.findProperty("DOCKER_IMAGE_NAME") ?: ''}"
         // latest 태그 + 프로젝트 버전 태그를 동시에 푸시
         // 예: ["latest", "1.7.0"] → myuser/qasker:latest, myuser/qasker:1.7.0 두 태그 생성
         tags = ["latest", rootProject.version.toString()]
         auth {
             // Docker Hub 인증 정보 (gradle.properties 또는 -P 옵션으로 전달)
             // 예: -PDOCKER_ID=myuser -PDOCKER_PASSWORD=secret 으로 빌드 시 전달
-            username = project.property("DOCKER_ID")
-            password = project.property("DOCKER_PASSWORD")
+            username = project.findProperty("DOCKER_ID") ?: ''
+            password = project.findProperty("DOCKER_PASSWORD") ?: ''
         }
     }
     extraDirectories {
