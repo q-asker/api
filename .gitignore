@@ -37,11 +37,6 @@ out/
 .vscode/
 .DS_Store
 
-### Claude Code ###
-.mcp.json
-shrimp_data/
-docs
-
 ### Custom ###
 **/src/main/resources/application-**
 .env
