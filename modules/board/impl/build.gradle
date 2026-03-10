@@ -13,8 +13,8 @@ dependencies {
     // global: 공통 예외 처리, 공통 응답 DTO 등 프로젝트 전역 유틸리티 모듈
     // 예: GlobalException, ApiResponse<T> 등 전역 클래스를 auth-impl에서 참조
     implementation project(":global")
-    implementation project(":board:board-api")
-    implementation project(":auth:auth-api")
+    implementation project(":board-api")
+    implementation project(":auth-api")
 
     // ────────────────────────────────
     // 스프링부트 Web & JPA
