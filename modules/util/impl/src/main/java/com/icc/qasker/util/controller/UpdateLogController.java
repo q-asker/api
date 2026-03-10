@@ -1,8 +1,8 @@
-package com.icc.qasker.aws.controller;
+package com.icc.qasker.util.controller;
 
-import com.icc.qasker.aws.dto.request.UpdateLogRequest;
-import com.icc.qasker.aws.dto.response.UpdateLogResponse;
-import com.icc.qasker.aws.service.UpdateLogService;
+import com.icc.qasker.util.dto.request.UpdateLogRequest;
+import com.icc.qasker.util.dto.response.UpdateLogResponse;
+import com.icc.qasker.util.service.UpdateLogService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;

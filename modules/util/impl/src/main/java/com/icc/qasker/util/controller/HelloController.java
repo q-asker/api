@@ -1,4 +1,4 @@
-package com.icc.qasker.aws.controller;
+package com.icc.qasker.util.controller;
 
 import java.util.HashMap;
 import java.util.Map;

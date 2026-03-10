@@ -1,4 +1,4 @@
-package com.icc.qasker.aws.entity;
+package com.icc.qasker.util.entity;
 
 import com.icc.qasker.global.entity.CreatedAt;
 import jakarta.persistence.Column;

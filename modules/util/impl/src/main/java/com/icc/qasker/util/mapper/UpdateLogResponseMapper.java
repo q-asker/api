@@ -1,7 +1,7 @@
-package com.icc.qasker.aws.mapper;
+package com.icc.qasker.util.mapper;
 
-import com.icc.qasker.aws.dto.response.UpdateLogResponse;
-import com.icc.qasker.aws.entity.UpdateLog;
+import com.icc.qasker.util.dto.response.UpdateLogResponse;
+import com.icc.qasker.util.entity.UpdateLog;
 import java.util.List;
 
 public final class UpdateLogResponseMapper {

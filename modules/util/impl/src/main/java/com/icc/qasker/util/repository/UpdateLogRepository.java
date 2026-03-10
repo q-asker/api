@@ -1,6 +1,6 @@
-package com.icc.qasker.aws.repository;
+package com.icc.qasker.util.repository;
 
-import com.icc.qasker.aws.entity.UpdateLog;
+import com.icc.qasker.util.entity.UpdateLog;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 

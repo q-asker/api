@@ -1,4 +1,4 @@
-package com.icc.qasker.auth.resolver;
+package com.icc.qasker.auth.util;
 
 import com.icc.qasker.auth.entity.User;
 import com.icc.qasker.auth.principal.UserPrincipal;

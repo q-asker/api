@@ -29,6 +29,7 @@ dependencies {
     // MySQL JDBC 드라이버: 런타임에 DB 연결 시 사용 (컴파일 시에는 불필요)
     // 예: JPA가 내부적으로 이 드라이버를 통해 MySQL 서버와 TCP 커넥션을 맺음
     runtimeOnly "com.mysql:mysql-connector-j"
+    
 
     // ────────────────────────────────
     // API 문서 (Swagger)

@@ -1,4 +1,4 @@
-package com.icc.qasker.aws.dto.response;
+package com.icc.qasker.util.dto.response;
 
 import java.time.Instant;
 import java.util.List;

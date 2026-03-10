@@ -1,3 +1,3 @@
-package com.icc.qasker.aws.dto.request;
+package com.icc.qasker.util.dto.request;
 
 public record UpdateLogRequest(String updateText) {}

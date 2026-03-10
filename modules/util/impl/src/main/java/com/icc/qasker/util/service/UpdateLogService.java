@@ -1,10 +1,10 @@
-package com.icc.qasker.aws.service;
+package com.icc.qasker.util.service;
 
-import com.icc.qasker.aws.dto.request.UpdateLogRequest;
-import com.icc.qasker.aws.dto.response.UpdateLogResponse;
-import com.icc.qasker.aws.entity.UpdateLog;
-import com.icc.qasker.aws.mapper.UpdateLogResponseMapper;
-import com.icc.qasker.aws.repository.UpdateLogRepository;
+import com.icc.qasker.util.dto.request.UpdateLogRequest;
+import com.icc.qasker.util.dto.response.UpdateLogResponse;
+import com.icc.qasker.util.entity.UpdateLog;
+import com.icc.qasker.util.mapper.UpdateLogResponseMapper;
+import com.icc.qasker.util.repository.UpdateLogRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
