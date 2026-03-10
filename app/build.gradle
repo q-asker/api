@@ -29,19 +29,19 @@ dependencies {
     // ────────────────────────────────
     // 인증 구현 모듈: JWT 발급·검증, OAuth2 소셜 로그인 처리
     // 예: AuthServiceImpl, JwtTokenProvider 등이 이 모듈에 위치
-    implementation project(':auth:auth-impl')
+    implementation project(':auth-impl')
     // AWS 구현 모듈: S3 파일 업로드·다운로드 처리
     // 예: S3ServiceImpl, PresignedUrlGenerator 등이 이 모듈에 위치
-    implementation project(':aws:aws-impl')
+    implementation project(':aws-impl')
     // 퀴즈 구현 모듈: 퀴즈 CRUD, 출제·채점 로직
     // 예: QuizServiceImpl, QuizRepository 등이 이 모듈에 위치
-    implementation project(':quiz:quiz-impl')
+    implementation project(':quiz-impl')
     // 유틸리티 구현 모듈: 범용 헬퍼 기능
     // 예: HealthCheckController 등이 이 모듈에 위치
-    implementation project(':util:util-impl')
+    implementation project(':util-impl')
     // AI 모듈: Google Gemini 기반 AI 기능
     // 예: AiService에서 ChatClient를 통해 Gemini API를 호출
-    implementation project(':ai:ai-impl')
+    implementation project(':ai-impl')
     // 공통 모듈: 전역 예외 처리, 공통 응답 DTO
     // 예: GlobalExceptionHandler, ApiResponse<T>, BaseEntity 등이 이 모듈에 위치
     implementation project(':global')
@@ -70,16 +70,15 @@ springBoot {
     buildInfo()
 }
 
-// Jib 설정: DOCKER_ID 프로퍼티가 있을 때만 배포 관련 설정을 수행한다
-// CI 빌드(./gradlew build)에서는 DOCKER_ID가 없으므로 평가 시점 오류를 방지한다
-jib {
-    from {
-        // 베이스 이미지: Amazon Corretto JDK 21 (AWS 최적화 OpenJDK 배포판)
-        // 예: 최종 컨테이너는 amazoncorretto:21 위에 앱 JAR + 의존성이 레이어로 추가됨
-        //     Alpine 기반보다 용량은 크지만 glibc 호환성과 AWS 환경 최적화 이점
-        image = "amazoncorretto:21"
-    }
-    if (project.hasProperty("DOCKER_ID")) {
+// Jib 설정: jib 태스크 요청 시에만 평가하여 CI에서 프로퍼티 없이도 빌드 가능
+if (gradle.startParameter.taskNames.any { it.contains("jib") }) {
+    jib {
+        from {
+            // 베이스 이미지: Eclipse Temurin JRE 21 (벤더 중립 OpenJDK 배포판)
+            // 예: 최종 컨테이너는 eclipse-temurin:21-jre 위에 앱 JAR + 의존성이 레이어로 추가됨
+            //     JRE만 포함하여 이미지 크기를 최소화하고, 클라우드 벤더에 종속되지 않음
+            image = "eclipse-temurin:21-jre"
+        }
         to {
             // 푸시할 Docker 이미지 이름: {DOCKER_ID}/{DOCKER_IMAGE_NAME}
             // 예: DOCKER_ID=myuser, DOCKER_IMAGE_NAME=qasker → myuser/qasker
@@ -105,63 +104,81 @@ jib {
             }
         }
         container {
-            // JVM 힙 메모리 크기 설정 (-Xms: 초기 힙, -Xmx: 최대 힙)
-            // 예: JVM_HEAP_SIZE=512m → -Xms512m -Xmx512m, 초기 힙과 최대 힙을 동일하게 설정하여
-            //     GC로 인한 힙 리사이징 오버헤드를 방지
-            def jvmHeapSize = project.property("JVM_HEAP_SIZE")
-            jvmFlags = ["-Xms${jvmHeapSize}", "-Xmx${jvmHeapSize}"]
-
-            // Scouter APM 에이전트 JAR 존재 여부 검증
-            // 예: app/scouter/agent.java/scouter.agent.jar 파일이 없으면 빌드가 즉시 실패하여
-            //     에이전트 누락된 채로 배포되는 상황을 방지
-            def scouterJar = project.file("./scouter/agent.java/scouter.agent.jar")
-            if (!scouterJar.exists()) {
-                throw new GradleException("Scouter agent file not found: ${scouterJar.absolutePath}")
-            }
-
-            // Scouter 연동에 필요한 필수 프로퍼티 검증
-            // 예: ./gradlew jib -PSCOUTER_IP=10.0.0.1 -PSCOUTER_PORT=6100 -PSCOUTER_OBJ_NAME=qasker-api
-            //     하나라도 누락하면 빌드 실패 → 모니터링 설정 없이 배포되는 실수 방지
-            def requiredProps = ["SCOUTER_IP", "SCOUTER_PORT", "SCOUTER_OBJ_NAME"]
-            requiredProps.each { prop ->
-                if (!project.hasProperty(prop)) {
-                    throw new GradleException("[빌드 실패] ${prop} 프로퍼티가 누락되었습니다. (-P${prop}=값 필요)")
-                }
-            }
-
-            // Scouter APM 서버 연결 설정값 할당
-            def collectorIp = project.property("SCOUTER_IP")
-            def objName = project.property("SCOUTER_OBJ_NAME")
-            def collectorPort = project.property("SCOUTER_PORT")
-
-            jvmFlags = jvmFlags + [
-                    // Scouter Java 에이전트를 JVM에 어태치하여 성능 모니터링 활성화
-                    // 예: -javaagent로 로드되면 바이트코드 인스트루멘테이션으로 메서드 실행 시간,
-                    //     SQL 쿼리, HTTP 요청 등을 자동 수집
-                    "-javaagent:/app/scouter/agent.java/scouter.agent.jar",
-
-                    // Java 16+ 모듈 시스템에서 Scouter가 내부 API에 접근할 수 있도록 허용
-                    // 예: Scouter가 java.lang.Thread, java.util.HashMap 등의 내부 필드에 리플렉션으로
-                    //     접근하여 스레드 상태·객체 수를 모니터링 (이 옵션 없으면 InaccessibleObjectException 발생)
-                    "--add-opens=java.base/java.lang=ALL-UNNAMED",
-                    "--add-opens=java.base/java.util=ALL-UNNAMED",
-
-                    // Scouter Collector 서버 IP·포트 설정
-                    // 예: SCOUTER_IP=10.0.0.1, SCOUTER_PORT=6100이면
-                    //     UDP 6100으로 성능 데이터 전송, TCP 6100으로 제어 명령 수신
-                    "-Dnet_collector_ip=${collectorIp}",
-                    "-Dnet_collector_udp_port=${collectorPort}",
-                    "-Dnet_collector_tcp_port=${collectorPort}",
-
-                    // 보안: 원격 클라이언트에서 HeapDump, Method Patch 등 제어 기능 비활성화
-                    // 예: Scouter Client UI에서 "Heap Dump" 버튼 클릭 시 실행되지 않음
-                    //     운영 환경에서 의도치 않은 힙 덤프로 인한 서비스 지연 방지
-                    "-Denable_mgr_agent=false",
-
-                    // Scouter UI에 표시될 애플리케이션 식별 이름
-                    // 예: SCOUTER_OBJ_NAME=qasker-api → Scouter Client 화면에서 "qasker-api"로 표시
-                    "-Dobj_name=${objName}"
-            ]
+            jvmFlags = baseJvmFlags() + scouterJvmFlags()
         }
     }
+}
+
+// ── JVM 플래그 헬퍼 함수 ──
+
+// JVM 기본 설정: 힙 메모리 등 애플리케이션 런타임 옵션
+def baseJvmFlags() {
+    def jvmHeapSize = project.property("JVM_HEAP_SIZE")
+    def gcType = project.property("JVM_GC_TYPE")
+    def maxGcPauseMillis = project.property("JVM_MAX_GC_PAUSE_MILLIS")
+    return [
+        // 초기 힙과 최대 힙을 동일하게 설정하여 GC로 인한 힙 리사이징 오버헤드를 방지
+        "-Xms${jvmHeapSize}", "-Xmx${jvmHeapSize}",
+        // GC 알고리즘
+        "-XX:+Use${gcType}",
+        // GC pause 목표 (ms)
+        "-XX:MaxGCPauseMillis=${maxGcPauseMillis}",
+        // OOM 발생 시 덤프
+        "-XX:+HeapDumpOnOutOfMemoryError",
+        "-XX:HeapDumpPath=/var/log/heapdump.hprof"
+    ]
+}
+
+// Scouter APM 설정: 에이전트 어태치, 모듈 접근 허용, Collector 연결, 보안 옵션
+def scouterJvmFlags() {
+    // 에이전트 JAR 존재 여부 검증
+    // 예: app/scouter/agent.java/scouter.agent.jar 파일이 없으면 빌드가 즉시 실패하여
+    //     에이전트 누락된 채로 배포되는 상황을 방지
+    def scouterJar = project.file("./scouter/agent.java/scouter.agent.jar")
+    if (!scouterJar.exists()) {
+        throw new GradleException("Scouter agent file not found: ${scouterJar.absolutePath}")
+    }
+
+    // Scouter 연동에 필요한 필수 프로퍼티 검증
+    // 예: ./gradlew jib -PSCOUTER_IP=10.0.0.1 -PSCOUTER_PORT=6100 -PSCOUTER_OBJ_NAME=qasker-api
+    //     하나라도 누락하면 빌드 실패 → 모니터링 설정 없이 배포되는 실수 방지
+    def requiredProps = ["SCOUTER_IP", "SCOUTER_PORT", "SCOUTER_OBJ_NAME"]
+    requiredProps.each { prop ->
+        if (!project.hasProperty(prop)) {
+            throw new GradleException("[빌드 실패] ${prop} 프로퍼티가 누락되었습니다. (-P${prop}=값 필요)")
+        }
+    }
+
+    def collectorIp = project.property("SCOUTER_IP")
+    def objName = project.property("SCOUTER_OBJ_NAME")
+    def collectorPort = project.property("SCOUTER_PORT")
+
+    return [
+        // Java 에이전트를 JVM에 어태치하여 성능 모니터링 활성화
+        // 예: -javaagent로 로드되면 바이트코드 인스트루멘테이션으로 메서드 실행 시간,
+        //     SQL 쿼리, HTTP 요청 등을 자동 수집
+        "-javaagent:/app/scouter/agent.java/scouter.agent.jar",
+
+        // Java 16+ 모듈 시스템에서 Scouter가 내부 API에 접근할 수 있도록 허용
+        // 예: Scouter가 java.lang.Thread, java.util.HashMap 등의 내부 필드에 리플렉션으로
+        //     접근하여 스레드 상태·객체 수를 모니터링 (이 옵션 없으면 InaccessibleObjectException 발생)
+        "--add-opens=java.base/java.lang=ALL-UNNAMED",
+        "--add-opens=java.base/java.util=ALL-UNNAMED",
+
+        // Collector 서버 IP·포트 설정
+        // 예: SCOUTER_IP=10.0.0.1, SCOUTER_PORT=6100이면
+        //     UDP 6100으로 성능 데이터 전송, TCP 6100으로 제어 명령 수신
+        "-Dnet_collector_ip=${collectorIp}",
+        "-Dnet_collector_udp_port=${collectorPort}",
+        "-Dnet_collector_tcp_port=${collectorPort}",
+
+        // 보안: 원격 클라이언트에서 HeapDump, Method Patch 등 제어 기능 비활성화
+        // 예: Scouter Client UI에서 "Heap Dump" 버튼 클릭 시 실행되지 않음
+        //     운영 환경에서 의도치 않은 힙 덤프로 인한 서비스 지연 방지
+        "-Denable_mgr_agent=false",
+
+        // Scouter UI에 표시될 애플리케이션 식별 이름
+        // 예: SCOUTER_OBJ_NAME=qasker-api → Scouter Client 화면에서 "qasker-api"로 표시
+        "-Dobj_name=${objName}"
+    ]
 }
