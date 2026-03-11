@@ -47,12 +47,12 @@ jobs:
       - name: 애플리케이션 빌드
         run: ./gradlew :app:bootJar --build-cache --parallel -x test
 
-      - name: api-docs 프로파일로 서버 기동 & OpenAPI spec 추출
+      - name: test 프로파일로 서버 기동 & OpenAPI spec 추출
         run: |
           # 서버를 백그라운드로 기동
           # plain JAR 제외, bootJar만 실행
           JAR_FILE=$(ls app/build/libs/app-*.jar | grep -v plain)
-          java -jar "$JAR_FILE" --spring.profiles.active=api-docs &
+          java -jar "$JAR_FILE" --spring.profiles.active=test &
           SERVER_PID=$!
 
           # 서버 준비 대기 (최대 60초)
