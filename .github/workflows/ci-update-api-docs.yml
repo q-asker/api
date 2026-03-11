@@ -3,7 +3,7 @@ name: API 문서 배포
 on:
   push:
     branches:
-      - develop
+      - ICC-275-api-docs
     paths:
       - 'modules/**/src/main/java/**'
       - 'app/src/main/resources/application*.yml'
