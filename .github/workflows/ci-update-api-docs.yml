@@ -70,10 +70,26 @@ jobs:
             sleep 1
           done
 
-          # OpenAPI spec 추출
+          # OpenAPI spec 추출 및 Redoc 페이지 생성
           mkdir -p docs/api
           curl -s http://localhost:8080/v3/api-docs > docs/api/openapi.json
-          echo "OpenAPI spec 추출 완료"
+          cat > docs/api/index.html << 'HEREDOC'
+          <!DOCTYPE html>
+          <html lang="ko">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Q-Asker API 문서</title>
+            <meta name="description" content="Q-Asker API 명세서">
+            <style>body { margin: 0; padding: 0; }</style>
+          </head>
+          <body>
+            <redoc spec-url='./openapi.json'></redoc>
+            <script src="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"></script>
+          </body>
+          </html>
+          HEREDOC
+          echo "OpenAPI spec 추출 및 Redoc 페이지 생성 완료"
 
           # 서버 종료
           kill $SERVER_PID 2>/dev/null
