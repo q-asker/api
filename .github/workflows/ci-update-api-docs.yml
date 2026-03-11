@@ -71,6 +71,7 @@ jobs:
           done
 
           # OpenAPI spec 추출
+          mkdir -p docs/api
           curl -s http://localhost:8080/v3/api-docs > docs/api/openapi.json
           echo "OpenAPI spec 추출 완료"
 
