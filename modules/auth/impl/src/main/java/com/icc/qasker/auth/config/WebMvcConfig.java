@@ -1,6 +1,6 @@
 package com.icc.qasker.auth.config;
 
-import com.icc.qasker.auth.resolver.UserIdArgumentResolver;
+import com.icc.qasker.auth.util.UserIdArgumentResolver;
 import com.icc.qasker.global.properties.QAskerProperties;
 import java.util.List;
 import lombok.AllArgsConstructor;
@@ -22,7 +22,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
         .addMapping("/**")
         .allowedOrigins(
             qAskerProperties.getFrontendDevUrl(), qAskerProperties.getFrontendDeployUrl())
-        .allowedMethods("GET", "POST", "PUT", "DELETE")
+        .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
         .allowCredentials(true)
         .maxAge(3600);
   }

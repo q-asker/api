@@ -29,7 +29,6 @@ public class TokenRotationServiceImpl implements TokenRotationService {
   public RotateTokenResponse issueTokens(String userId, HttpServletResponse response) {
     String newRtPlain = refreshTokenUtil.issue(userId);
     String newAt = accessTokenHandler.validateAndGenerate(userId);
-
     setRefreshToken(response, newRtPlain);
     return new RotateTokenResponse(newAt);
   }

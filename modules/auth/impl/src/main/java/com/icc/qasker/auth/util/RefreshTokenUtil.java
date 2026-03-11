@@ -43,7 +43,7 @@ public class RefreshTokenUtil {
     RefreshToken refreshToken =
         refreshTokenRepository
             .findByRtHash(oldRtHash)
-            .orElseThrow(() -> new CustomException(ExceptionMessage.UNAUTHORIZED));
+            .orElseThrow(() -> new CustomException(ExceptionMessage.LOGIN_REQUIRED));
 
     if (refreshToken.isExpired(Instant.now())) {
       throw new CustomException(ExceptionMessage.UNAUTHORIZED);

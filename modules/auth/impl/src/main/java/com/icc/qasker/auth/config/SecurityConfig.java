@@ -1,5 +1,7 @@
 package com.icc.qasker.auth.config;
 
+import static org.springframework.security.config.Customizer.withDefaults;
+
 import com.icc.qasker.auth.config.security.filter.JwtTokenAuthenticationFilter;
 import com.icc.qasker.auth.config.security.handler.OAuth2LoginSuccessHandler;
 import com.icc.qasker.auth.config.security.service.PrincipalOAuth2UserService;
@@ -11,6 +13,7 @@ import java.io.IOException;
 import lombok.AllArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -39,7 +42,8 @@ public class SecurityConfig {
   public SecurityFilterChain apiFilterChain(
       HttpSecurity http, AuthenticationManager authenticationManager, JwtProperties jwtProperties)
       throws Exception {
-    http.csrf(AbstractHttpConfigurer::disable)
+    http.cors(withDefaults())
+        .csrf(AbstractHttpConfigurer::disable)
         .sessionManagement(
             session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .formLogin(AbstractHttpConfigurer::disable)
@@ -59,9 +63,15 @@ public class SecurityConfig {
             UsernamePasswordAuthenticationFilter.class)
         .authorizeHttpRequests(
             auth ->
-                auth.requestMatchers("/admin/**")
+                auth.requestMatchers(HttpMethod.POST, "/boards/*/replies")
                     .hasRole("ADMIN")
-                    .requestMatchers("/statistics/**", "/test")
+                    .requestMatchers(HttpMethod.GET, "/boards/**")
+                    .permitAll()
+                    .requestMatchers(HttpMethod.POST, "/boards/**")
+                    .authenticated()
+                    .requestMatchers(HttpMethod.PUT, "/boards/**")
+                    .authenticated()
+                    .requestMatchers(HttpMethod.DELETE, "/boards/**")
                     .authenticated()
                     .anyRequest()
                     .permitAll())

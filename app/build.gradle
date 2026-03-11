@@ -45,6 +45,7 @@ dependencies {
     // 공통 모듈: 전역 예외 처리, 공통 응답 DTO
     // 예: GlobalExceptionHandler, ApiResponse<T>, BaseEntity 등이 이 모듈에 위치
     implementation project(':global')
+    implementation project(':board-impl')
 
 
     // ────────────────────────────────

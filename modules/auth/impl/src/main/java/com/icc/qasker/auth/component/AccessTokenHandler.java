@@ -26,6 +26,7 @@ public class AccessTokenHandler {
                     .withSubject(user.getUserId())
                     .withClaim("userId", user.getUserId())
                     .withClaim("nickname", user.getNickname())
+                    .withClaim("role", user.getRole())
                     .withExpiresAt(
                         new Date(
                             System.currentTimeMillis() + jwtProperties.getAccessExpirationTime()))

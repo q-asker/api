@@ -43,8 +43,12 @@ public enum ExceptionMessage {
 
   // Auth
   UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다."),
-  NOT_ENOUGH_ACCESS(HttpStatus.FORBIDDEN, "접근 권한이 없습니다.");
+  NOT_ENOUGH_ACCESS(HttpStatus.FORBIDDEN, "접근 권한이 없습니다."),
+  LOGIN_REQUIRED(HttpStatus.UNAUTHORIZED, "재로그인이 필요합니다."),
 
+  // ## POST-ISSUE
+  POST_NOT_FOUND(HttpStatus.NOT_FOUND, "게시글을 찾을 수 없습니다."),
+  ALREADY_ANSWERED(HttpStatus.FORBIDDEN, "답변이 달린 글은 수정 및 삭제가 불가능합니다.");
   private final HttpStatus httpStatus;
   private final String message;
 }

@@ -11,25 +11,25 @@ dependencies {
     // 프로젝트 모듈
     // ────────────────────────────────
     // global: 공통 예외 처리, 공통 응답 DTO 등 프로젝트 전역 유틸리티 모듈
-    // 예: GlobalException, ApiResponse<T> 등 전역 클래스를 util-impl에서 참조
+    // 예: GlobalException, ApiResponse<T> 등 전역 클래스를 auth-impl에서 참조
     implementation project(":global")
-    // util-api: 유틸리티 관련 인터페이스·DTO 정의 모듈
-    // 예: UtilController 인터페이스, 응답 DTO를 구현체에서 import
-    implementation project(":util-api")
+    implementation project(":board-api")
+    implementation project(":auth-api")
 
     // ────────────────────────────────
     // 스프링부트 Web & JPA
     // ────────────────────────────────
     // Spring MVC 기반 웹 애플리케이션 구성
-    // 예: @RestController로 유틸리티 API 엔드포인트 구현
+    // 예: @RestController로 인증 API 엔드포인트를 구현하고, @RequestBody로 JSON 요청을 파싱
     implementation "org.springframework.boot:spring-boot-starter-web"
     // Spring Data JPA: JPA 기반 리포지토리 자동 생성, 엔티티 매핑 지원
-    // 예: JpaRepository 인터페이스 선언만으로 CRUD 메서드가 자동 구현됨
+    // 예: public interface UserRepository extends JpaRepository<User, Long> 선언만으로
+    //     findById, save, delete 등 CRUD 메서드가 자동 구현됨
     implementation "org.springframework.boot:spring-boot-starter-data-jpa"
     // MySQL JDBC 드라이버: 런타임에 DB 연결 시 사용 (컴파일 시에는 불필요)
     // 예: JPA가 내부적으로 이 드라이버를 통해 MySQL 서버와 TCP 커넥션을 맺음
+    //     컴파일 시에는 JPA 인터페이스만 참조하므로 runtimeOnly로 충분
     runtimeOnly "com.mysql:mysql-connector-j"
-    
 
     // ────────────────────────────────
     // API 문서 (Swagger)
@@ -37,4 +37,12 @@ dependencies {
     // SpringDoc OpenAPI: API 문서화 어노테이션(@Operation, @Schema) + Swagger UI 제공
     // 예: 서버 기동 후 /swagger-ui/index.html 접속하면 API 목록·테스트 UI가 제공됨
     implementation "org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.8"
+
+    // ────────────────────────────────
+    // 메시징 브로커 연동 (Apache Kafka)
+    // ────────────────────────────────
+    // Spring for Apache Kafka: 순수 Kafka 클라이언트를 Spring 환경에 맞게 추상화 및 자동 구성 지원
+    // 예: KafkaTemplate을 이용한 간편한 메시지 발행(Publish) 및 @KafkaListener를 통한 선언적 메시지 구독(Subscribe)
+    implementation 'org.springframework.kafka:spring-kafka'
+
 }
