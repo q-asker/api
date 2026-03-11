@@ -26,9 +26,28 @@ dependencies {
     implementation "software.amazon.awssdk:s3"
 
     // ────────────────────────────────
+    // JODConverter: LibreOffice 기반 문서 변환
+    // ────────────────────────────────
+    // 예: DocumentConverter.convert(inputFile).to(outputFile).execute()로 PPT/DOCX → PDF 변환
+    //     Spring Boot Starter가 OfficeManager, DocumentConverter 빈을 자동 등록
+    implementation "org.jodconverter:jodconverter-local-lo:4.4.9"
+    implementation "org.jodconverter:jodconverter-spring-boot-starter:4.4.9"
+
+    // ────────────────────────────────
     // API 문서 (Swagger)
     // ────────────────────────────────
     // SpringDoc OpenAPI: API 문서화 어노테이션(@Operation, @Schema) + Swagger UI 제공
     // 예: 서버 기동 후 /swagger-ui/index.html 접속하면 API 목록·테스트 UI가 제공됨
     implementation "org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.8"
+
+    // ────────────────────────────────
+    // 테스트
+    // ────────────────────────────────
+    testImplementation "org.springframework.boot:spring-boot-starter-test"
+    testImplementation platform("org.junit:junit-bom:5.12.2")
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+}
+
+test {
+    useJUnitPlatform()
 }
