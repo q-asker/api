@@ -17,6 +17,7 @@ public enum ExceptionMessage {
   FILE_NAME_TOO_LONG(HttpStatus.BAD_REQUEST, "파일 이름이 깁니다"),
   EXTENSION_NOT_EXIST(HttpStatus.BAD_REQUEST, "확장자가 존재하지 않습니다"),
   EXTENSION_INVALID(HttpStatus.BAD_REQUEST, "허용하지 않는 확장자입니다."),
+  FILE_SIZE_EXCEEDED(HttpStatus.PAYLOAD_TOO_LARGE, "파일 크기가 제한을 초과했습니다."),
   UNSUPPORTED_FILE_TYPE(HttpStatus.BAD_REQUEST, "지원하지 않는 파일 형식입니다."),
   CONVERT_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "파일 변환에 실패했습니다."),
   CONVERT_TIMEOUT(HttpStatus.INTERNAL_SERVER_ERROR, "파일 변환 시간이 초과되었습니다."),
