@@ -35,10 +35,11 @@ spring:
       ddl-auto: create-drop
     show-sql: false
 
-  # Kafka 자동 설정 제외 (테스트/CI에서는 브로커 없음)
+  # 테스트/CI에서 불필요한 자동 설정 제외
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
+      - org.jodconverter.boot.autoconfigure.JodConverterLocalAutoConfiguration
 
   security:
     oauth2:
