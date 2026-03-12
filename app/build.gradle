@@ -111,6 +111,10 @@ if (gradle.startParameter.taskNames.any { it.contains("jib") }) {
         }
         container {
             jvmFlags = baseJvmFlags() + scouterJvmFlags()
+            environment = [
+                // LibreOffice headless 모드: 디스플레이 없는 Docker 환경에서 VCL 플러그인을 svp(가상 렌더러)로 설정
+                "SAL_USE_VCLPLUGIN": "svp"
+            ]
         }
     }
 }
