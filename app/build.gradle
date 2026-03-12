@@ -104,23 +104,6 @@ if (gradle.startParameter.taskNames.any { it.contains("jib") }) {
                     setFrom(file("./scouter").toPath())
                     into = "/app/scouter"
                 }
-                path {
-                    // 호스트의 LibreOffice 라이브러리를 컨테이너에 복사
-                    // JODConverter가 PPT/DOCX → PDF 변환 시 필요
-                    setFrom(file("/usr/lib/libreoffice").toPath())
-                    into = "/usr/lib/libreoffice"
-                }
-                path {
-                    // LibreOffice 실행 바이너리 (soffice)
-                    // JODConverter가 이 경로로 LibreOffice 프로세스를 실행
-                    setFrom(file("/usr/bin/libreoffice").toPath())
-                    into = "/usr/bin/libreoffice"
-                }
-                path {
-                    // LibreOffice 리소스 (폰트, 템플릿 등)
-                    setFrom(file("/usr/share/libreoffice").toPath())
-                    into = "/usr/share/libreoffice"
-                }
             }
         }
         container {
