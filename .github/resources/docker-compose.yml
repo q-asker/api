@@ -18,6 +18,8 @@ services:
       - /usr/lib/libreoffice:/usr/lib/libreoffice
       - /usr/bin/libreoffice:/usr/bin/libreoffice
       - /usr/share/libreoffice:/usr/share/libreoffice
+      - /lib/aarch64-linux-gnu:/lib/aarch64-linux-gnu
+      - /usr/lib/aarch64-linux-gnu:/usr/lib/aarch64-linux-gnu
 
   app-green:
     image: ${DOCKER_IMAGE}
@@ -30,3 +32,5 @@ services:
       - /usr/lib/libreoffice:/usr/lib/libreoffice
       - /usr/bin/libreoffice:/usr/bin/libreoffice
       - /usr/share/libreoffice:/usr/share/libreoffice
+      - /lib/aarch64-linux-gnu:/lib/aarch64-linux-gnu
+      - /usr/lib/aarch64-linux-gnu:/usr/lib/aarch64-linux-gnu
