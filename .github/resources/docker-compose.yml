@@ -14,12 +14,6 @@ services:
       - SPRING_PROFILES_ACTIVE=prod,blue
     ports:
       - "${BLUE_PORT}:8080"
-    volumes:
-      - /usr/lib/libreoffice:/usr/lib/libreoffice
-      - /usr/bin/libreoffice:/usr/bin/libreoffice
-      - /usr/share/libreoffice:/usr/share/libreoffice
-      - /lib/aarch64-linux-gnu:/lib/aarch64-linux-gnu
-      - /usr/lib/aarch64-linux-gnu:/usr/lib/aarch64-linux-gnu
 
   app-green:
     image: ${DOCKER_IMAGE}
@@ -28,9 +22,3 @@ services:
       - SPRING_PROFILES_ACTIVE=prod,green
     ports:
       - "${GREEN_PORT}:8080"
-    volumes:
-      - /usr/lib/libreoffice:/usr/lib/libreoffice
-      - /usr/bin/libreoffice:/usr/bin/libreoffice
-      - /usr/share/libreoffice:/usr/share/libreoffice
-      - /lib/aarch64-linux-gnu:/lib/aarch64-linux-gnu
-      - /usr/lib/aarch64-linux-gnu:/usr/lib/aarch64-linux-gnu
