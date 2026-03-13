@@ -38,39 +38,45 @@ class QueryCountSnapshotTest {
   @EnableJpaAuditing
   @EnableJpaRepositories(basePackages = "com.icc.qasker.quiz.repository")
   @EntityScan(basePackages = "com.icc.qasker")
-  static class JpaAuditingConfig {}
+  static class JpaAuditingConfig {
 
-  @Autowired private EntityManagerFactory emf;
-  @Autowired private ProblemSetRepository problemSetRepository;
-  @Autowired private ProblemRepository problemRepository;
-  @Autowired private EntityManager em;
+  }
+
+  @Autowired
+  private EntityManagerFactory emf;
+  @Autowired
+  private ProblemSetRepository problemSetRepository;
+  @Autowired
+  private ProblemRepository problemRepository;
+  @Autowired
+  private EntityManager em;
 
   private Long savedProblemSetId;
 
   @BeforeEach
   void setUp() {
     ProblemSet problemSet =
-        ProblemSet.builder()
-            .userId("test-user")
-            .generationStatus(GenerationStatus.COMPLETED)
-            .quizType(QuizType.MULTIPLE)
-            .totalQuizCount(5)
-            .sessionId("test-session-" + System.nanoTime())
-            .build();
+      ProblemSet.builder()
+        .userId("test-user")
+        .generationStatus(GenerationStatus.COMPLETED)
+        .quizType(QuizType.MULTIPLE)
+        .totalQuizCount(5)
+        .sessionId("test-session-" + System.nanoTime())
+        .build();
     problemSetRepository.save(problemSet);
     savedProblemSetId = problemSet.getId();
 
-    for (int i = 1; i <= 3; i++) {
+    for (int i = 1; i <= 5; i++) {
       ProblemId problemId = ProblemId.builder().problemSetId(savedProblemSetId).number(i).build();
       Problem problem =
-          Problem.builder().id(problemId).title("Problem " + i).problemSet(problemSet).build();
+        Problem.builder().id(problemId).title("Problem " + i).problemSet(problemSet).build();
 
       List<SelectionData> selections =
-          List.of(
-              new SelectionData("Option 1", true),
-              new SelectionData("Option 2", false),
-              new SelectionData("Option 3", false),
-              new SelectionData("Option 4", false));
+        List.of(
+          new SelectionData("Option 1", true),
+          new SelectionData("Option 2", false),
+          new SelectionData("Option 3", false),
+          new SelectionData("Option 4", false));
 
       problem.bindChildren(selections, "Explanation " + i, List.of(1, i + 1));
       em.persist(problem);
@@ -99,10 +105,10 @@ class QueryCountSnapshotTest {
 
     long queryCount = stats.getPrepareStatementCount();
     System.out.printf(
-        "%n[AFTER]  getProblemSet query count: %d (5 problems)%n" + "         [BEFORE] was: 5%n",
-        queryCount);
+      "%n[AFTER]  getProblemSet query count: %d (5 problems)%n" + "         [BEFORE] was: 7%n",
+      queryCount);
 
-    assertThat(queryCount).isLessThan(5);
+    assertThat(queryCount).isLessThan(7);
   }
 
   /**
@@ -122,15 +128,15 @@ class QueryCountSnapshotTest {
 
     List<Problem> problems = problemRepository.findByIdProblemSetId(savedProblemSetId);
     problems.forEach(
-        p -> {
-          p.getExplanationContent();
-          p.getReferencedPages().size();
-        });
+      p -> {
+        p.getExplanationContent();
+        p.getReferencedPages().size();
+      });
 
     long queryCount = stats.getPrepareStatementCount();
     System.out.printf(
-        "%n[AFTER]  getExplanation query count: %d (3 problems)%n" + "         [BEFORE] was: 7%n",
-        queryCount);
+      "%n[AFTER]  getExplanation query count: %d (5 problems)%n" + "         [BEFORE] was: 11%n",
+      queryCount);
 
     assertThat(queryCount).isEqualTo(1);
   }
