@@ -6,7 +6,7 @@ import com.icc.qasker.quiz.dto.airesponse.ProblemSetGeneratedEvent.QuizGenerated
 import com.icc.qasker.quiz.entity.Problem;
 import com.icc.qasker.quiz.entity.ProblemId;
 import com.icc.qasker.quiz.entity.ProblemSet;
-import com.icc.qasker.quiz.entity.SelectionData;
+import com.icc.qasker.quiz.entity.Selection;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.AccessLevel;
@@ -25,11 +25,11 @@ public final class ProblemMapper {
             .problemSet(problemSet)
             .build();
 
-    List<SelectionData> selections =
+    List<Selection> selections =
         quizDto.getSelections() == null
             ? new ArrayList<>()
             : quizDto.getSelections().stream()
-                .map(s -> new SelectionData(s.getContent(), s.isCorrect()))
+                .map(s -> new Selection(s.getContent(), s.isCorrect()))
                 .collect(toList());
 
     List<Integer> referencedPages =

@@ -40,7 +40,7 @@ public class Problem extends CreatedAt {
   @Convert(converter = SelectionListConverter.class)
   @Column(columnDefinition = "TEXT", nullable = false)
   @Builder.Default
-  private List<SelectionData> selections = new ArrayList<>();
+  private List<Selection> selections = new ArrayList<>();
 
   @Column(columnDefinition = "TEXT")
   private String explanationContent;
@@ -51,9 +51,9 @@ public class Problem extends CreatedAt {
   private List<Integer> referencedPages = new ArrayList<>();
 
   public void bindChildren(
-      List<SelectionData> selections, String explanationContent, List<Integer> referencedPages) {
-    this.selections = selections;
+      List<Selection> selections, String explanationContent, List<Integer> referencedPages) {
+    this.selections = selections == null ? List.of() : List.copyOf(selections);
     this.explanationContent = explanationContent;
-    this.referencedPages = referencedPages;
+    this.referencedPages = referencedPages == null ? List.of() : List.copyOf(referencedPages);
   }
 }

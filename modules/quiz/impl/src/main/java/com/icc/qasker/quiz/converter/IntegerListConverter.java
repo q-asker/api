@@ -7,7 +7,6 @@ import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
-import java.util.ArrayList;
 import java.util.List;
 
 @Converter
@@ -30,10 +29,10 @@ public class IntegerListConverter implements AttributeConverter<List<Integer>, S
   @Override
   public List<Integer> convertToEntityAttribute(String dbData) {
     if (dbData == null || dbData.isBlank()) {
-      return new ArrayList<>();
+      return List.of();
     }
     try {
-      return MAPPER.readValue(dbData, new TypeReference<>() {});
+      return List.copyOf(MAPPER.readValue(dbData, new TypeReference<>() {}));
     } catch (JsonProcessingException e) {
       throw new CustomException(ExceptionMessage.FAIL_CONVERT);
     }

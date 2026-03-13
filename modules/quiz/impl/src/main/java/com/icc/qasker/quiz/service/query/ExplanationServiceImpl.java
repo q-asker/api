@@ -36,7 +36,7 @@ public class ExplanationServiceImpl implements ExplanationService {
                   String explanation =
                       problem.getExplanationContent() != null
                           ? problem.getExplanationContent()
-                          : "No explanation";
+                          : "해설 없음";
                   return new ResultResponse(
                       problem.getId().getNumber(), explanation, problem.getReferencedPages());
                 })

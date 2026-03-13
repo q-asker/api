@@ -3,38 +3,39 @@ package com.icc.qasker.quiz.converter;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.icc.qasker.quiz.entity.SelectionData;
+import com.icc.qasker.global.error.CustomException;
+import com.icc.qasker.global.error.ExceptionMessage;
+import com.icc.qasker.quiz.entity.Selection;
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
-import java.util.ArrayList;
 import java.util.List;
 
 @Converter
-public class SelectionListConverter implements AttributeConverter<List<SelectionData>, String> {
+public class SelectionListConverter implements AttributeConverter<List<Selection>, String> {
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
   @Override
-  public String convertToDatabaseColumn(List<SelectionData> attribute) {
+  public String convertToDatabaseColumn(List<Selection> attribute) {
     if (attribute == null) {
       return "[]";
     }
     try {
       return MAPPER.writeValueAsString(attribute);
     } catch (JsonProcessingException e) {
-      throw new IllegalStateException("Failed to convert selections to JSON", e);
+      throw new CustomException(ExceptionMessage.FAIL_CONVERT);
     }
   }
 
   @Override
-  public List<SelectionData> convertToEntityAttribute(String dbData) {
+  public List<Selection> convertToEntityAttribute(String dbData) {
     if (dbData == null || dbData.isBlank()) {
-      return new ArrayList<>();
+      return List.of();
     }
     try {
-      return MAPPER.readValue(dbData, new TypeReference<>() {});
+      return List.copyOf(MAPPER.readValue(dbData, new TypeReference<>() {}));
     } catch (JsonProcessingException e) {
-      throw new IllegalStateException("Failed to convert JSON to selections", e);
+      throw new CustomException(ExceptionMessage.FAIL_CONVERT);
     }
   }
 }
