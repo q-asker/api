@@ -3,8 +3,7 @@ package com.icc.qasker.aws.service;
 import com.icc.qasker.aws.ConvertService;
 import java.nio.file.Path;
 import lombok.extern.slf4j.Slf4j;
-import org.jodconverter.core.DocumentConverter;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 /**
@@ -13,7 +12,11 @@ import org.springframework.stereotype.Service;
  */
 @Slf4j
 @Service
-@ConditionalOnMissingBean(DocumentConverter.class)
+@ConditionalOnProperty(
+    prefix = "jodconverter.local",
+    name = "enabled",
+    havingValue = "false",
+    matchIfMissing = true)
 public class NoOpConvertService implements ConvertService {
 
   @Override

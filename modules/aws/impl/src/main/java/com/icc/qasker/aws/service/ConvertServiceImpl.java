@@ -9,7 +9,7 @@ import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jodconverter.core.DocumentConverter;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 /**
@@ -19,7 +19,7 @@ import org.springframework.stereotype.Service;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@ConditionalOnBean(DocumentConverter.class)
+@ConditionalOnProperty(prefix = "jodconverter.local", name = "enabled", havingValue = "true")
 public class ConvertServiceImpl implements ConvertService {
 
   private static final String TEMP_DIR = System.getProperty("java.io.tmpdir") + File.separator;
