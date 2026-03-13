@@ -43,7 +43,7 @@ public class MockAIServerAdapter extends AIServerAdapter {
           Map.of(
               "number",
               i,
-              "content",
+              "title",
               "Mock question " + i,
               "selections",
               List.of(
@@ -75,7 +75,7 @@ public class MockAIServerAdapter extends AIServerAdapter {
           Map.of(
               "number",
               i,
-              "content",
+              "title",
               "Mock question " + i,
               "selections",
               List.of(
@@ -108,7 +108,7 @@ public class MockAIServerAdapter extends AIServerAdapter {
           Map.of(
               "number",
               i,
-              "content",
+              "title",
               "Mock question " + i,
               "selections",
               List.of(
