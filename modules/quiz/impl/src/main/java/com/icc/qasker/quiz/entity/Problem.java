@@ -3,15 +3,13 @@ package com.icc.qasker.quiz.entity;
 import static jakarta.persistence.FetchType.LAZY;
 
 import com.icc.qasker.global.entity.CreatedAt;
-import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.MapsId;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.OneToOne;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.AccessLevel;
@@ -37,20 +35,26 @@ public class Problem extends CreatedAt {
   @JoinColumn(name = "problem_set_id")
   private ProblemSet problemSet;
 
-  @OneToMany(mappedBy = "problem", cascade = CascadeType.ALL, orphanRemoval = true)
-  private List<Selection> selections;
-
-  @OneToOne(mappedBy = "problem", cascade = CascadeType.ALL, orphanRemoval = true)
-  private Explanation explanation;
-
-  @OneToMany(mappedBy = "problem", cascade = CascadeType.ALL, orphanRemoval = true)
+  // 비정규화: selection 테이블 → JSON 컬럼
+  @Convert(converter = SelectionListConverter.class)
+  @Column(columnDefinition = "TEXT", nullable = false)
   @Builder.Default
-  private List<ReferencedPage> referencedPages = new ArrayList<>();
+  private List<SelectionData> selections = new ArrayList<>();
+
+  // 비정규화: explanation 테이블 → TEXT 컬럼
+  @Column(columnDefinition = "TEXT")
+  private String explanationContent;
+
+  // 비정규화: referenced_page 테이블 → JSON 컬럼
+  @Convert(converter = IntegerListConverter.class)
+  @Column(columnDefinition = "TEXT", nullable = false)
+  @Builder.Default
+  private List<Integer> referencedPages = new ArrayList<>();
 
   public void bindChildren(
-      List<Selection> selections, Explanation explanation, List<ReferencedPage> referencedPages) {
+      List<SelectionData> selections, String explanationContent, List<Integer> referencedPages) {
     this.selections = selections;
-    this.explanation = explanation;
+    this.explanationContent = explanationContent;
     this.referencedPages = referencedPages;
   }
 }

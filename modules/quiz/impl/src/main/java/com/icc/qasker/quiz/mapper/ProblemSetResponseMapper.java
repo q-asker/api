@@ -6,7 +6,7 @@ import com.icc.qasker.quiz.dto.feresponse.ProblemSetResponse.QuizForFe;
 import com.icc.qasker.quiz.dto.feresponse.ProblemSetResponse.QuizForFe.SelectionForFE;
 import com.icc.qasker.quiz.entity.Problem;
 import com.icc.qasker.quiz.entity.ProblemSet;
-import com.icc.qasker.quiz.entity.Selection;
+import com.icc.qasker.quiz.entity.SelectionData;
 import java.util.List;
 import java.util.stream.IntStream;
 import lombok.AccessLevel;
@@ -24,8 +24,8 @@ public final class ProblemSetResponseMapper {
         IntStream.range(0, problem.getSelections().size())
             .mapToObj(
                 i -> {
-                  Selection selection = problem.getSelections().get(i);
-                  return new SelectionForFE(i + 1, selection.getContent(), selection.isCorrect());
+                  SelectionData sel = problem.getSelections().get(i);
+                  return new SelectionForFE(i + 1, sel.content(), sel.correct());
                 })
             .toList();
 

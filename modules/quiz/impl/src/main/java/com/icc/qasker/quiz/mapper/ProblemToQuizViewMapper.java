@@ -1,7 +1,7 @@
 package com.icc.qasker.quiz.mapper;
 
 import com.icc.qasker.quiz.entity.Problem;
-import com.icc.qasker.quiz.entity.Selection;
+import com.icc.qasker.quiz.entity.SelectionData;
 import com.icc.qasker.quiz.view.QuizView;
 import com.icc.qasker.quiz.view.QuizView.SelectionView;
 import java.util.List;
@@ -17,8 +17,8 @@ public class ProblemToQuizViewMapper {
         IntStream.range(0, problem.getSelections().size())
             .mapToObj(
                 i -> {
-                  Selection selection = problem.getSelections().get(i);
-                  return new SelectionView(i + 1, selection.getContent(), selection.isCorrect());
+                  SelectionData sel = problem.getSelections().get(i);
+                  return new SelectionView(i + 1, sel.content(), sel.correct());
                 })
             .toList();
 
