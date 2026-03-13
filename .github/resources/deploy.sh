@@ -103,7 +103,10 @@ done
 
 # 5. Nginx 트래픽 전환
 send_slack ">>> Nginx 트래픽 전환 ($TARGET_CONTAINER)..."
-echo "set \$service_url http://$TARGET_CONTAINER:8080;" > ./nginx/conf.d/service-url.inc
+cat > ./nginx/conf.d/service-url.inc <<EOF
+set \$service_url http://$TARGET_CONTAINER:8080;
+set \$actuator_url http://$TARGET_CONTAINER:9090;
+EOF
 
 IS_NGINX_RUNNING=$(docker ps | grep nginx)
 if [ -z "$IS_NGINX_RUNNING" ]; then

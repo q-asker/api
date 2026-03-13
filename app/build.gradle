@@ -58,6 +58,8 @@ dependencies {
     // 예: spring.jpa.hibernate.ddl-auto=validate 설정으로 엔티티와 DB 스키마 일치 여부를 검증
     implementation "org.springframework.boot:spring-boot-starter-data-jpa"
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    // Prometheus 메트릭 엔드포인트 지원 (/actuator/prometheus)
+    runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
     // H2: CI 환경에서 OpenAPI spec 추출 시 인메모리 DB로 사용
     runtimeOnly 'com.h2database:h2'
     // Configuration Processor: @ConfigurationProperties 클래스의 메타데이터를 자동 생성
@@ -111,9 +113,11 @@ if (gradle.startParameter.taskNames.any { it.contains("jib") }) {
         }
         container {
             jvmFlags = baseJvmFlags() + scouterJvmFlags()
+            // 서비스 포트(8080) + Actuator 전용 포트(9090)
+            ports = ["8080", "9090"]
+            user = "appuser"
             environment = [
-                // LibreOffice headless 모드: 디스플레이 없는 Docker 환경에서 VCL 플러그인을 svp(가상 렌더러)로 설정
-                "SAL_USE_VCLPLUGIN": "svp"
+                "HOME": "/home/appuser"
             ]
         }
     }
