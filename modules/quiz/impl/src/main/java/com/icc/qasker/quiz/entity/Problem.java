@@ -3,6 +3,8 @@ package com.icc.qasker.quiz.entity;
 import static jakarta.persistence.FetchType.LAZY;
 
 import com.icc.qasker.global.entity.CreatedAt;
+import com.icc.qasker.quiz.converter.IntegerListConverter;
+import com.icc.qasker.quiz.converter.SelectionListConverter;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.EmbeddedId;
@@ -35,17 +37,14 @@ public class Problem extends CreatedAt {
   @JoinColumn(name = "problem_set_id")
   private ProblemSet problemSet;
 
-  // 비정규화: selection 테이블 → JSON 컬럼
   @Convert(converter = SelectionListConverter.class)
   @Column(columnDefinition = "TEXT", nullable = false)
   @Builder.Default
   private List<SelectionData> selections = new ArrayList<>();
 
-  // 비정규화: explanation 테이블 → TEXT 컬럼
   @Column(columnDefinition = "TEXT")
   private String explanationContent;
 
-  // 비정규화: referenced_page 테이블 → JSON 컬럼
   @Convert(converter = IntegerListConverter.class)
   @Column(columnDefinition = "TEXT", nullable = false)
   @Builder.Default

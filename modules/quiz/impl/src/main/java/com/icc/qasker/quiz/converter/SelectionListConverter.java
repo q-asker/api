@@ -1,8 +1,9 @@
-package com.icc.qasker.quiz.entity;
+package com.icc.qasker.quiz.converter;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.icc.qasker.quiz.entity.SelectionData;
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
 import java.util.ArrayList;
@@ -15,7 +16,9 @@ public class SelectionListConverter implements AttributeConverter<List<Selection
 
   @Override
   public String convertToDatabaseColumn(List<SelectionData> attribute) {
-    if (attribute == null) return "[]";
+    if (attribute == null) {
+      return "[]";
+    }
     try {
       return MAPPER.writeValueAsString(attribute);
     } catch (JsonProcessingException e) {
@@ -25,7 +28,9 @@ public class SelectionListConverter implements AttributeConverter<List<Selection
 
   @Override
   public List<SelectionData> convertToEntityAttribute(String dbData) {
-    if (dbData == null || dbData.isBlank()) return new ArrayList<>();
+    if (dbData == null || dbData.isBlank()) {
+      return new ArrayList<>();
+    }
     try {
       return MAPPER.readValue(dbData, new TypeReference<>() {});
     } catch (JsonProcessingException e) {
