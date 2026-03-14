@@ -12,7 +12,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 @EnableCaching
 public class QAskerApplication {
 
-    public static void main(String[] args) {
-        SpringApplication.run(QAskerApplication.class, args);
-    }
+  public static void main(String[] args) {
+    SpringApplication.run(QAskerApplication.class, args);
+  }
 }

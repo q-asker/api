@@ -14,31 +14,43 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import java.util.ArrayList;
 import java.util.List;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
-import lombok.Setter;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Getter
-@Setter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@Builder
 public class Problem extends CreatedAt {
 
-    @EmbeddedId
-    private ProblemId id;
-    @Column(columnDefinition = "TEXT")
-    private String title;
+  @EmbeddedId private ProblemId id;
 
-    @ManyToOne(fetch = LAZY)
-    @MapsId("problemSetId")
-    @JoinColumn(name = "problem_set_id")
-    private ProblemSet problemSet;
+  @Column(columnDefinition = "TEXT")
+  private String title;
 
-    @OneToMany(mappedBy = "problem", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Selection> selections;
+  @ManyToOne(fetch = LAZY)
+  @MapsId("problemSetId")
+  @JoinColumn(name = "problem_set_id")
+  private ProblemSet problemSet;
 
-    @OneToOne(mappedBy = "problem", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Explanation explanation;
+  @OneToMany(mappedBy = "problem", cascade = CascadeType.ALL, orphanRemoval = true)
+  private List<Selection> selections;
 
-    @OneToMany(mappedBy = "problem", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<ReferencedPage> referencedPages = new ArrayList<>();
+  @OneToOne(mappedBy = "problem", cascade = CascadeType.ALL, orphanRemoval = true)
+  private Explanation explanation;
 
+  @OneToMany(mappedBy = "problem", cascade = CascadeType.ALL, orphanRemoval = true)
+  @Builder.Default
+  private List<ReferencedPage> referencedPages = new ArrayList<>();
+
+  public void bindChildren(
+      List<Selection> selections, Explanation explanation, List<ReferencedPage> referencedPages) {
+    this.selections = selections;
+    this.explanation = explanation;
+    this.referencedPages = referencedPages;
+  }
 }

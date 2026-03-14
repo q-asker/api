@@ -16,17 +16,17 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 
-    private final TokenRotationService tokenRotationService;
-    private final QAskerProperties qAskerProperties;
+  private final TokenRotationService tokenRotationService;
+  private final QAskerProperties qAskerProperties;
 
-    @Override
-    public void onAuthenticationSuccess(HttpServletRequest request,
-        HttpServletResponse response,
-        Authentication authentication) throws IOException {
+  @Override
+  public void onAuthenticationSuccess(
+      HttpServletRequest request, HttpServletResponse response, Authentication authentication)
+      throws IOException {
 
-        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
-        User user = principal.getUser();
-        tokenRotationService.issueRefreshToken(user.getUserId(), response);
-        response.sendRedirect(qAskerProperties.getFrontendDeployUrl() + "/login/redirect");
-    }
+    UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+    User user = principal.getUser();
+    tokenRotationService.issueRefreshToken(user.getUserId(), response);
+    response.sendRedirect(qAskerProperties.getFrontendDeployUrl() + "/login/redirect");
+  }
 }

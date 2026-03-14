@@ -10,6 +10,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface RefreshTokenRepository extends JpaRepository<RefreshToken, String> {
 
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
-    Optional<RefreshToken> findByRtHash(String rtHash);
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  Optional<RefreshToken> findByRtHash(String rtHash);
 }

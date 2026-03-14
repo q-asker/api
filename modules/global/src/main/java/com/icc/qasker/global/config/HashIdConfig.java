@@ -10,10 +10,10 @@ import org.springframework.context.annotation.Configuration;
 @AllArgsConstructor
 public class HashIdConfig {
 
-    private final HashIdProperties hashIdProperties;
+  private final HashIdProperties hashIdProperties;
 
-    @Bean
-    public Hashids hashids() {
-        return new Hashids(hashIdProperties.getSalt(), hashIdProperties.getMinLength());
-    }
+  @Bean
+  public Hashids hashids() {
+    return new Hashids(hashIdProperties.getSalt(), hashIdProperties.getMinLength());
+  }
 }

@@ -22,36 +22,30 @@ import org.springframework.stereotype.Component;
 @AllArgsConstructor
 public class PrincipalOAuth2UserService extends DefaultOAuth2UserService {
 
-    private final UserRepository userRepository;
+  private final UserRepository userRepository;
 
-    @Override
-    public OAuth2User loadUser(OAuth2UserRequest userRequest)
-        throws OAuth2AuthenticationException {
-        OAuth2User oAuth2User = super.loadUser(userRequest);
-        String registrationId = userRequest.getClientRegistration().getRegistrationId();
-        OAuth2UserInfo oAuth2UserInfo = null;
-        if (registrationId.equals("google")) {
-            oAuth2UserInfo = new GoogleUserInfo(oAuth2User.getAttributes());
-        } else if (registrationId.equals("kakao")) {
-            oAuth2UserInfo = new KakaoUserInfo(oAuth2User.getAttributes());
-        } else {
-            log.error("Unsupported OAuth2 provider: {}", registrationId);
-            throw new CustomException(ExceptionMessage.DEFAULT_ERROR);
-        }
-        String userId = oAuth2UserInfo.getProvider() + "_" + oAuth2UserInfo.getProviderId();
-        String provider = oAuth2UserInfo.getProvider();
-        String nickname = NicknameGenerateUtil.generate();
-        String role = "ROLE_USER";
-        User user = userRepository.findById(userId).orElse(null);
-        if (user == null) {
-            user = User.builder()
-                .userId(userId)
-                .role(role)
-                .nickname(nickname)
-                .provider(provider)
-                .build();
-            userRepository.save(user);
-        }
-        return new UserPrincipal(user, oAuth2User.getAttributes());
+  @Override
+  public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
+    OAuth2User oAuth2User = super.loadUser(userRequest);
+    String registrationId = userRequest.getClientRegistration().getRegistrationId();
+    OAuth2UserInfo oAuth2UserInfo = null;
+    if (registrationId.equals("google")) {
+      oAuth2UserInfo = new GoogleUserInfo(oAuth2User.getAttributes());
+    } else if (registrationId.equals("kakao")) {
+      oAuth2UserInfo = new KakaoUserInfo(oAuth2User.getAttributes());
+    } else {
+      log.error("Unsupported OAuth2 provider: {}", registrationId);
+      throw new CustomException(ExceptionMessage.DEFAULT_ERROR);
     }
+    String userId = oAuth2UserInfo.getProvider() + "_" + oAuth2UserInfo.getProviderId();
+    String provider = oAuth2UserInfo.getProvider();
+    String nickname = NicknameGenerateUtil.generate();
+    String role = "ROLE_USER";
+    User user = userRepository.findById(userId).orElse(null);
+    if (user == null) {
+      user = User.builder().userId(userId).role(role).nickname(nickname).provider(provider).build();
+      userRepository.save(user);
+    }
+    return new UserPrincipal(user, oAuth2User.getAttributes());
+  }
 }

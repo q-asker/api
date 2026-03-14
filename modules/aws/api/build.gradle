@@ -6,4 +6,6 @@ plugins {
 }
 
 dependencies {
+    // MultipartFile 타입 참조를 위한 spring-web 의존성
+    api "org.springframework:spring-web"
 }

@@ -5,10 +5,9 @@ import jakarta.servlet.http.HttpServletResponse;
 
 public interface TokenRotationService {
 
-    void issueRefreshToken(String userId, HttpServletResponse response);
+  void issueRefreshToken(String userId, HttpServletResponse response);
 
-    RotateTokenResponse issueTokens(String userId, HttpServletResponse response);
+  RotateTokenResponse issueTokens(String userId, HttpServletResponse response);
 
-    RotateTokenResponse rotateTokens(String refreshToken, HttpServletResponse response);
+  RotateTokenResponse rotateTokens(String refreshToken, HttpServletResponse response);
 }
-

@@ -1,7 +1,7 @@
 package com.icc.qasker.quiz.controller;
 
 import com.icc.qasker.quiz.ExplanationService;
-import com.icc.qasker.quiz.dto.feResponse.ExplanationResponse;
+import com.icc.qasker.quiz.dto.feresponse.ExplanationResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -17,12 +17,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/explanation")
 public class ExplanationController {
 
-    private final ExplanationService explanationService;
+  private final ExplanationService explanationService;
 
-    @Operation(summary = "설명을 가져온다")
-    @GetMapping("/{id}")
-    public ResponseEntity<ExplanationResponse> getExplanation(
-        @PathVariable("id") String problemSetId) {
-        return ResponseEntity.ok(explanationService.getExplanationByProblemSetId(problemSetId));
-    }
+  @Operation(summary = "설명을 가져온다")
+  @GetMapping("/{id}")
+  public ResponseEntity<ExplanationResponse> getExplanation(
+      @PathVariable("id") String problemSetId) {
+    return ResponseEntity.ok(explanationService.getExplanationByProblemSetId(problemSetId));
+  }
 }

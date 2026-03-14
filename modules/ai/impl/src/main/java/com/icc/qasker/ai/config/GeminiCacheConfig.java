@@ -9,9 +9,9 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class GeminiCacheConfig {
 
-    @Bean
-    @ConditionalOnMissingBean
-    public GoogleGenAiCachedContentService googleGenAiCachedContentService(Client genAiClient) {
-        return new GoogleGenAiCachedContentService(genAiClient);
-    }
+  @Bean
+  @ConditionalOnMissingBean
+  public GoogleGenAiCachedContentService googleGenAiCachedContentService(Client genAiClient) {
+    return new GoogleGenAiCachedContentService(genAiClient);
+  }
 }

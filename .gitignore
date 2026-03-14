@@ -39,8 +39,17 @@ out/
 
 ### Custom ###
 **/src/main/resources/application-**
+!**/src/main/resources/application-test.yml
 .env
 app/gradle.properties
 app/newrelic/newrelic.yml
 **/heapdump
 monitor_downtime.sh
+
+# Claude Code
+CLAUDE.md
+shrimp-rules.md
+.mcp.json
+.claude
+shrimp_data
+docs

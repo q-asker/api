@@ -15,7 +15,7 @@ dependencies {
     implementation project(":global")
     // auth-api: 인증 관련 인터페이스·DTO 정의 모듈
     // 예: AuthController 인터페이스, LoginRequest/LoginResponse DTO를 구현체에서 import
-    implementation project(":auth:auth-api")
+    implementation project(":auth-api")
 
     // ────────────────────────────────
     // 스프링부트 Web & JPA

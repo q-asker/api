@@ -15,7 +15,7 @@ dependencies {
     implementation project(":global")
     // util-api: 유틸리티 관련 인터페이스·DTO 정의 모듈
     // 예: UtilController 인터페이스, 응답 DTO를 구현체에서 import
-    implementation project(":util:util-api")
+    implementation project(":util-api")
 
     // ────────────────────────────────
     // 스프링부트 Web & JPA
@@ -29,6 +29,7 @@ dependencies {
     // MySQL JDBC 드라이버: 런타임에 DB 연결 시 사용 (컴파일 시에는 불필요)
     // 예: JPA가 내부적으로 이 드라이버를 통해 MySQL 서버와 TCP 커넥션을 맺음
     runtimeOnly "com.mysql:mysql-connector-j"
+    
 
     // ────────────────────────────────
     // API 문서 (Swagger)
