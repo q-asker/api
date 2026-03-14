@@ -35,10 +35,11 @@ spring:
       ddl-auto: create-drop
     show-sql: false
 
-  # Kafka 자동 설정 제외 (테스트/CI에서는 브로커 없음)
+  # 테스트/CI에서 불필요한 자동 설정 제외
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
+      - org.jodconverter.boot.autoconfigure.JodConverterLocalAutoConfiguration
 
   security:
     oauth2:
@@ -97,10 +98,14 @@ aws:
   cloudfront:
     base-url: http://localhost
 
-app:
-  office:
+jodconverter:
+  local:
+    enabled: false
     office-home: /usr/lib/libreoffice
-    port: 2002
+    port-numbers: 2002, 2003, 2004, 2005, 2006
+    max-tasks-per-process: 200
+    task-execution-timeout: 60000
+    task-queue-timeout: 120000
 
 springdoc:
   default-produces-media-type: application/json;charset=UTF-8

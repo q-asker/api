@@ -9,15 +9,17 @@ import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jodconverter.core.DocumentConverter;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 /**
  * JODConverter를 이용하여 문서 파일을 PDF로 변환하는 구현체. JODConverter Spring Boot Starter가 LibreOffice 프로세스 풀을 자동
- * 관리한다.
+ * 관리한다. DocumentConverter 빈이 존재할 때만 등록된다 (test 프로파일에서는 no-op 구현체로 대체).
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@ConditionalOnProperty(prefix = "jodconverter.local", name = "enabled", havingValue = "true")
 public class ConvertServiceImpl implements ConvertService {
 
   private static final String TEMP_DIR = System.getProperty("java.io.tmpdir") + File.separator;

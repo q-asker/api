@@ -58,6 +58,8 @@ dependencies {
     // 예: spring.jpa.hibernate.ddl-auto=validate 설정으로 엔티티와 DB 스키마 일치 여부를 검증
     implementation "org.springframework.boot:spring-boot-starter-data-jpa"
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    // Prometheus 메트릭 엔드포인트 지원 (/actuator/prometheus)
+    runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
     // H2: CI 환경에서 OpenAPI spec 추출 시 인메모리 DB로 사용
     runtimeOnly 'com.h2database:h2'
     // Configuration Processor: @ConfigurationProperties 클래스의 메타데이터를 자동 생성
@@ -80,7 +82,10 @@ if (gradle.startParameter.taskNames.any { it.contains("jib") }) {
             // 베이스 이미지: Eclipse Temurin JRE 21 (벤더 중립 OpenJDK 배포판)
             // 예: 최종 컨테이너는 eclipse-temurin:21-jre 위에 앱 JAR + 의존성이 레이어로 추가됨
             //     JRE만 포함하여 이미지 크기를 최소화하고, 클라우드 벤더에 종속되지 않음
-            image = "eclipse-temurin:21-jre"
+            image = "qasker/q-asker-api-server-base:latest"
+            platforms {
+                platform { os = "linux"; architecture = "arm64" }
+            }
         }
         to {
             // 푸시할 Docker 이미지 이름: {DOCKER_ID}/{DOCKER_IMAGE_NAME}
@@ -108,6 +113,12 @@ if (gradle.startParameter.taskNames.any { it.contains("jib") }) {
         }
         container {
             jvmFlags = baseJvmFlags() + scouterJvmFlags()
+            // 서비스 포트(8080) + Actuator 전용 포트(9090)
+            ports = ["8080", "9090"]
+            user = "appuser"
+            environment = [
+                "HOME": "/home/appuser"
+            ]
         }
     }
 }
