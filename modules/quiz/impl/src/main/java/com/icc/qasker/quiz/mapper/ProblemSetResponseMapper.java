@@ -24,8 +24,8 @@ public final class ProblemSetResponseMapper {
         IntStream.range(0, problem.getSelections().size())
             .mapToObj(
                 i -> {
-                  Selection selection = problem.getSelections().get(i);
-                  return new SelectionForFE(i + 1, selection.getContent(), selection.isCorrect());
+                  Selection sel = problem.getSelections().get(i);
+                  return new SelectionForFE(i + 1, sel.content(), sel.correct());
                 })
             .toList();
 

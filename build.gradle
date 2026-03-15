@@ -110,6 +110,16 @@ subprojects {
         mavenCentral()
     }
 
+    tasks.withType(Test).configureEach {
+        // JUnit 5(Jupiter) 테스트 엔진 활성화
+        // 예: 이 설정이 없으면 @Test 어노테이션을 찾지 못해 "No tests found" 오류 발생
+        useJUnitPlatform()
+        // 테스트 실행 중 System.out/err 출력을 콘솔에 표시
+        testLogging {
+            showStandardStreams = true
+        }
+    }
+
     tasks.withType(JavaCompile).configureEach {
         // -parameters: 컴파일된 .class에 메서드 파라미터 이름을 보존
         // 예: void findById(Long id) 컴파일 시 파라미터 이름 "id"가 .class에 기록됨

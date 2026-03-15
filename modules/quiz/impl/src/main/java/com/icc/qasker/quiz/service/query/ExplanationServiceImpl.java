@@ -7,9 +7,7 @@ import com.icc.qasker.quiz.ExplanationService;
 import com.icc.qasker.quiz.dto.feresponse.ExplanationResponse;
 import com.icc.qasker.quiz.dto.feresponse.ResultResponse;
 import com.icc.qasker.quiz.entity.Problem;
-import com.icc.qasker.quiz.entity.ReferencedPage;
 import com.icc.qasker.quiz.repository.ProblemRepository;
-import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -31,15 +29,18 @@ public class ExplanationServiceImpl implements ExplanationService {
       throw new CustomException(ExceptionMessage.PROBLEM_NOT_FOUND);
     }
 
-    List<ResultResponse> results = new ArrayList<>();
-    for (Problem problem : problems) {
-      String explanation =
-          (problem.getExplanation() != null) ? problem.getExplanation().getContent() : "해설 없음";
-      List<Integer> pages =
-          problem.getReferencedPages().stream().map(ReferencedPage::getPageNumber).toList();
-
-      results.add(new ResultResponse(problem.getId().getNumber(), explanation, pages));
-    }
+    List<ResultResponse> results =
+        problems.stream()
+            .map(
+                problem -> {
+                  String explanation =
+                      problem.getExplanationContent() != null
+                          ? problem.getExplanationContent()
+                          : "해설 없음";
+                  return new ResultResponse(
+                      problem.getId().getNumber(), explanation, problem.getReferencedPages());
+                })
+            .toList();
 
     return new ExplanationResponse(results);
   }
