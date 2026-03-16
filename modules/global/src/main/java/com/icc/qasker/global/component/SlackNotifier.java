@@ -26,16 +26,6 @@ public class SlackNotifier {
         text);
   }
 
-  /** 에러 발생 시 Slack 알림 전송 */
-  @Async
-  public void asyncNotifyError(String text) {
-    sendSlack(
-        slackProperties.getWebhookUrlError(),
-        slackProperties.getUsernameError(),
-        slackProperties.getIconError(),
-        text);
-  }
-
   private void sendSlack(String webhookUrl, String username, String icon, String text) {
     if (!slackProperties.isEnabled() || webhookUrl == null || webhookUrl.isBlank()) {
       return;

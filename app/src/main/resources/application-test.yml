@@ -79,7 +79,6 @@ q-asker:
   slack:
     enabled: false
     webhook-url-notify: http://localhost
-    webhook-url-error:
 
   web:
     frontend-deploy-url: http://localhost:3000
