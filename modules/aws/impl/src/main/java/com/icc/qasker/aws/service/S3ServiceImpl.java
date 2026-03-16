@@ -3,15 +3,12 @@ package com.icc.qasker.aws.service;
 import com.icc.qasker.aws.ConvertService;
 import com.icc.qasker.aws.S3Service;
 import com.icc.qasker.aws.S3ValidateService;
-import com.icc.qasker.aws.dto.FileExistStatusResponse;
 import com.icc.qasker.aws.dto.PresignRequest;
 import com.icc.qasker.aws.dto.PresignResponse;
-import com.icc.qasker.aws.dto.Status;
 import com.icc.qasker.aws.properties.AwsCloudFrontProperties;
 import com.icc.qasker.aws.properties.AwsS3Properties;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
-import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -26,8 +23,6 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.util.UriUtils;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
-import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
@@ -43,23 +38,6 @@ public class S3ServiceImpl implements S3Service {
   S3Client s3Client;
   S3ValidateService s3ValidateService;
   ConvertService convertService;
-
-  @Override
-  public FileExistStatusResponse checkFileExistence(String cloudfrontUrl) {
-    String key = extractKeyFromUrl(cloudfrontUrl);
-
-    try {
-      s3Client.headObject(
-          HeadObjectRequest.builder().bucket(awsS3Properties.bucketName()).key(key).build());
-
-      return new FileExistStatusResponse(Status.EXIST);
-    } catch (NoSuchKeyException e) {
-      return new FileExistStatusResponse(Status.NOT_EXIST);
-    } catch (Exception e) {
-      log.error(e.getMessage());
-      throw new CustomException(ExceptionMessage.NO_FILE_UPLOADED);
-    }
-  }
 
   @Override
   public PresignResponse requestPresign(PresignRequest req) {
@@ -171,22 +149,6 @@ public class S3ServiceImpl implements S3Service {
       } catch (Exception e) {
         log.warn("임시 파일 삭제 실패: {}", path, e);
       }
-    }
-  }
-
-  public String extractKeyFromUrl(String cloudFrontUrl) {
-    try {
-      URI uri = new URI(cloudFrontUrl);
-      // "/uploads/test.pdf" 반환
-      String path = uri.getPath();
-
-      if (path.startsWith("/")) {
-        return path.substring(1);
-      }
-      return path;
-    } catch (Exception e) {
-      log.error(e.getMessage());
-      throw new CustomException(ExceptionMessage.NO_FILE_UPLOADED);
     }
   }
 }
