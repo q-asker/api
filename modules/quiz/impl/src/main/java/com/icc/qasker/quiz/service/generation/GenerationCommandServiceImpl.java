@@ -90,7 +90,6 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
               return;
             }
             shuffleSelectionsIfNeeded(problemSet, request.quizType());
-            mergeExplanation(problemSet);
             List<Integer> savedNumbers =
                 quizCommandService.saveBatch(problemSet.getQuiz(), problemSetId);
 
@@ -138,11 +137,11 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
     notificationService.sendComplete(sessionId);
     slackNotifier.asyncNotifyText(
         """
-            ✅ [퀴즈 생성 완료 알림]
-            ProblemSetId: %s
-            퀴즈 타입: %s
-            문제 수: %d
-            """
+        ✅ [퀴즈 생성 완료 알림]
+        ProblemSetId: %s
+        퀴즈 타입: %s
+        문제 수: %d
+        """
             .formatted(hashUtil.encode(problemSetId), quizType, generatedCount));
   }
 
@@ -152,11 +151,11 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
     notificationService.sendComplete(sessionId);
     slackNotifier.asyncNotifyText(
         """
-            ⚠️ [퀴즈 생성 부분 완료]
-            ProblemSetId: %s
-            퀴즈 타입: %s
-            생성된 문제 수: %d개 / 총 문제 수: %d개
-            """
+        ⚠️ [퀴즈 생성 부분 완료]
+        ProblemSetId: %s
+        퀴즈 타입: %s
+        생성된 문제 수: %d개 / 총 문제 수: %d개
+        """
             .formatted(hashUtil.encode(problemSetId), quizType, generatedCount, quizCount));
   }
 
@@ -165,39 +164,11 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
     notificationService.sendFinishWithError(sessionId, errorMessage);
     slackNotifier.asyncNotifyText(
         """
-            ❌ [퀴즈 생성 실패]
-            ProblemSetId: %s
-            원인: %s
-            """
+        ❌ [퀴즈 생성 실패]
+        ProblemSetId: %s
+        원인: %s
+        """
             .formatted(hashUtil.encode(problemSetId), errorMessage));
-  }
-
-  private void mergeExplanation(ProblemSetGeneratedEvent problemSet) {
-    for (var quiz : problemSet.getQuiz()) {
-      var selections = quiz.getSelections();
-      if (selections == null || selections.isEmpty()) {
-        continue;
-      }
-
-      StringBuilder sb = new StringBuilder(quiz.getExplanation()).append("\n");
-
-      // 정답 해설 먼저
-      for (var selection : selections) {
-        if (selection.isCorrect() && selection.getExplanation() != null) {
-          sb.append(selection.getExplanation());
-          break;
-        }
-      }
-
-      // 나머지 선택지 해설을 정렬 순서대로 나열
-      for (var selection : selections) {
-        if (!selection.isCorrect() && selection.getExplanation() != null) {
-          sb.append("\n").append(selection.getExplanation());
-        }
-      }
-
-      quiz.setExplanation(sb.toString());
-    }
   }
 
   private void shuffleSelectionsIfNeeded(ProblemSetGeneratedEvent problemSet, QuizType quizType) {

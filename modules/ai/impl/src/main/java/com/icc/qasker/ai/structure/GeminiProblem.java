@@ -7,4 +7,4 @@ public record GeminiProblem(
     @JsonPropertyDescription("문제 번호 (1부터 시작)") int number,
     @JsonPropertyDescription("문제 내용") String content,
     @JsonPropertyDescription("선택지 목록") List<GeminiSelection> selections,
-    @JsonPropertyDescription("전체 문항 해설") String explanation) {}
+    @JsonPropertyDescription("전체 문항 해설 (구조화)") GeminiQuizExplanation explanation) {}
