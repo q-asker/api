@@ -1,0 +1,139 @@
+// =============================================================
+// #2 Spring Boot 인스턴스 Alloy 설정
+// Spring Boot 앱 로그 + JODConverter 로그 → 원격 Loki
+// 시스템 메트릭 → 원격 Prometheus
+// =============================================================
+
+// ===== 로그 파이프라인 =====
+
+// Spring Boot 애플리케이션 로그
+local.file_match "app_logs" {
+  path_targets = [
+    {__path__ = "/var/log/app/*.log",  job = "spring-boot"},
+    {__path__ = "/var/log/app/**/*.log", job = "spring-boot"},
+  ]
+}
+
+loki.source.file "app_logs" {
+  targets    = local.file_match.app_logs.targets
+  forward_to = [loki.process.multiline.receiver]
+}
+
+// Java 스택트레이스 멀티라인 처리
+// 공백이나 탭으로 시작하는 줄, 또는 Caused by / ... 패턴을 이전 로그에 병합
+loki.process "multiline" {
+  forward_to = [loki.relabel.springboot_labels.receiver]
+
+  stage.multiline {
+    firstline     = "^\\d{4}-\\d{2}-\\d{2}"
+    max_wait_time = "3s"
+    max_lines     = 128
+  }
+}
+
+// JODConverter / LibreOffice 로그
+local.file_match "jodconverter_logs" {
+  path_targets = [
+    {__path__ = "/var/log/jodconverter/**", job = "jodconverter"},
+  ]
+}
+
+loki.source.file "jodconverter_logs" {
+  targets    = local.file_match.jodconverter_logs.targets
+  forward_to = [loki.relabel.springboot_labels.receiver]
+}
+
+// 시스템 로그
+local.file_match "system_logs" {
+  path_targets = [
+    {__path__ = "/var/log/host/syslog",    job = "system"},
+    {__path__ = "/var/log/host/auth.log",  job = "system"},
+  ]
+}
+
+loki.source.file "system_logs" {
+  targets    = local.file_match.system_logs.targets
+  forward_to = [loki.relabel.springboot_labels.receiver]
+}
+
+// 도커 컨테이너 로그
+discovery.docker "local_containers" {
+  host = "unix:///var/run/docker.sock"
+}
+
+loki.source.docker "container_logs" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.docker.local_containers.targets
+  forward_to = [loki.relabel.springboot_labels.receiver]
+}
+
+// 공통 라벨
+loki.relabel "springboot_labels" {
+  forward_to = [loki.write.remote_loki.receiver]
+
+  rule {
+    target_label = "host"
+    replacement  = "springboot"
+  }
+  rule {
+    target_label = "app"
+    replacement  = "q-asker-api"
+  }
+  rule {
+    target_label = "arch"
+    replacement  = "arm64"
+  }
+}
+
+loki.write "remote_loki" {
+  endpoint {
+    url = env("LOKI_URL")  // 환경변수로 관리 (.env 파일에 저장)
+                           // 예: http://monitoring.example.com:3100/loki/api/v1/push
+  }
+}
+
+// ===== 메트릭 파이프라인 =====
+
+// 1️⃣ Unix 시스템 메트릭 exporter 생성 (CPU, 메모리, 디스크, 네트워크 등)
+//    - node_exporter를 별도로 설치할 필요 없음 (Alloy가 직접 제공)
+prometheus.exporter.unix "system" {}
+
+// 2️⃣ 시스템 메트릭 스크래프: exporter에서 메트릭 수집
+//    targets = prometheus.exporter.unix.system.targets
+//      → exporter가 제공하는 엔드포인트 (보통 localhost:9100)
+//    scrape_interval = "15s"
+//      → 15초마다 메트릭 수집
+//    forward_to = [...]
+//      → 수집한 메트릭을 다음 단계로 전달
+prometheus.scrape "node_metrics" {
+  targets    = prometheus.exporter.unix.system.targets
+  forward_to = [prometheus.relabel.add_springboot_labels.receiver]
+
+  scrape_interval = "15s"
+}
+
+// 3️⃣ 수집한 메트릭의 라벨(태그) 재정의
+//    rule {
+//      target_label = "instance"      ← 라벨 이름 (메트릭 식별)
+//      replacement  = "springboot"    ← 값 (이 Spring Boot 인스턴스임을 표시)
+//    }
+//    → 각 메트릭에 instance="springboot" 라벨 추가
+//    → Grafana에서 메트릭 필터링 시 사용 (어느 서버인지 구분)
+prometheus.relabel "add_springboot_labels" {
+  forward_to = [prometheus.remote_write.remote_prometheus.receiver]
+
+  rule {
+    target_label = "instance"
+    replacement  = "springboot"
+  }
+}
+
+// 4️⃣ 라벨이 추가된 메트릭을 원격 Prometheus 서버로 전송
+//    url = env("PROMETHEUS_URL")
+//      → 환경변수에서 모니터링 스택 주소 읽음 (.env 파일에 저장)
+//      → 예: http://monitoring.example.com:9090/api/v1/write
+prometheus.remote_write "remote_prometheus" {
+  endpoint {
+    url = env("PROMETHEUS_URL")  // 환경변수로 관리 (.env 파일에 저장)
+  }
+}

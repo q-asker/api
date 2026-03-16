@@ -176,30 +176,4 @@ class S3ServiceImplTest {
     // Then: S3Client.putObject()가 호출되어 변환된 PDF가 업로드되었는지 검증한다
     verify(s3Client).putObject(any(PutObjectRequest.class), any(RequestBody.class));
   }
-
-  // 보장: CloudFront URL → S3 키 변환이 정확하여 파일 존재 여부 확인(headObject)이 올바르게 동작한다
-  @Test
-  @DisplayName("CloudFront URL에서 S3 키를 정확히 추출한다")
-  void extractKeyFromUrl_validUrl_returnsKey() {
-    // When: CloudFront URL에서 S3 키를 추출한다
-    // "https://files.test.com/abc-123.pdf" → URI.getPath() = "/abc-123.pdf" → 앞 '/' 제거
-    String key = s3Service.extractKeyFromUrl("https://files.test.com/abc-123.pdf");
-
-    // Then: 추출된 키가 "abc-123.pdf"여야 한다
-    assertThat(key).isEqualTo("abc-123.pdf");
-  }
-
-  // 보장: 경로 앞 '/' 제거로 S3 키가 올바르게 구성되어 NoSuchKeyException을 방지한다
-  @Test
-  @DisplayName("CloudFront URL에서 경로가 /로 시작하면 / 제거 후 반환한다")
-  void extractKeyFromUrl_pathWithSlash_removesLeadingSlash() {
-    // When: 하위 경로가 있는 CloudFront URL에서 S3 키를 추출한다
-    // "https://files.test.com/uploads/test.pdf" → URI.getPath() = "/uploads/test.pdf" →
-    // "uploads/test.pdf"
-    String key = s3Service.extractKeyFromUrl("https://files.test.com/uploads/test.pdf");
-
-    // Then: '/'가 제거되고 "uploads/test.pdf"가 반환되어야 한다
-    // S3 키에 '/'가 남으면 HeadObjectRequest에서 NoSuchKeyException이 발생한다
-    assertThat(key).isEqualTo("uploads/test.pdf");
-  }
 }

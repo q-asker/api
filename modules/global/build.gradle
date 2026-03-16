@@ -31,18 +31,6 @@ dependencies {
     implementation "org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.8"
 
     // ────────────────────────────────
-    // 로깅
-    // ────────────────────────────────
-    // Logback Slack Appender: 로그 이벤트를 Slack 채널로 전송하는 Logback 플러그인
-    // 예: logback-spring.xml에 <appender class="com.github.maricn.logback.SlackAppender">로 설정하면
-    //     ERROR 레벨 로그 발생 시 지정된 Slack 웹훅 URL로 알림 메시지가 전송됨
-    implementation "com.github.maricn:logback-slack-appender:1.6.1"
-    // Janino: Logback 설정에서 조건부 로깅을 사용하기 위한 경량 Java 컴파일러
-    // 예: logback-spring.xml에서 <if condition='property("ENV").equals("prod")'>로
-    //     환경별 로깅 설정을 분기할 수 있음 (Janino 없으면 <if> 태그 파싱 실패)
-    implementation 'org.codehaus.janino:janino:3.1.12'
-
-    // ────────────────────────────────
     // 유틸리티 & 장애 대응
     // ────────────────────────────────
     // Hashids: 숫자 ID를 짧은 고유 문자열로 인코딩/디코딩 (URL-safe ID 난독화)

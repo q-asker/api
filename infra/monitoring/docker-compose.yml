@@ -1,0 +1,40 @@
+# =============================================================
+# #2 Spring Boot 인스턴스 - Alloy 에이전트
+# OCI ARM 2 OCPU / 8GB | Spring Boot + JODConverter 로그 수집
+# 기존 Spring Boot docker-compose에 병합 또는 별도 실행
+# =============================================================
+
+services:
+  alloy:
+    image: grafana/alloy:latest
+    container_name: alloy-springboot
+    restart: unless-stopped
+    volumes:
+      - ./alloy/config.alloy:/etc/alloy/config.alloy:ro
+      # Spring Boot 앱 로그 (실제 경로에 맞게 수정)
+      - /opt/app/logs:/var/log/app:ro
+      # JODConverter / LibreOffice 로그
+      - /tmp/.jodconverter:/var/log/jodconverter:ro
+      # 시스템 로그
+      - /var/log:/var/log/host:ro
+      # Docker 소켓 (Alloy가 컨테이너 메타데이터 수집용)
+      # 목적: Spring Boot 및 LibreOffice 컨테이너의 라벨/이름/환경변수를 가져와
+      #      Loki 로그에 라벨로 추가하여 로그 필터링/쿼리 강화
+      #
+      # 추가되는 라벨 예시:
+      #   container_name: "springboot-app"
+      #   container_image: "spring-boot:3.1.0"
+      #   service_name: "spring-boot"  (docker-compose service name)
+      #
+      # Loki LogQL 쿼리 예시:
+      #   {container_name="springboot-app"} | json | select(error)
+      #   {service_name="spring-boot"} | logfmt
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - LOKI_URL=${LOKI_URL}
+      - PROMETHEUS_URL=${PROMETHEUS_URL}
+    # Alloy 에이전트 실행 커맨드
+    command:
+      - run                              # Alloy 에이전트 시작 모드
+      - --storage.path=/var/lib/alloy/data  # 내부 상태/메타데이터 캐시 경로
+      - /etc/alloy/config.alloy          # 로그/메트릭 수집 설정 파일

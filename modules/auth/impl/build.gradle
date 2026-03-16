@@ -44,18 +44,4 @@ dependencies {
     //     사용자 프로필 조회까지의 흐름을 자동으로 처리
     implementation "org.springframework.boot:spring-boot-starter-oauth2-client"
 
-    // ────────────────────────────────
-    // API 문서 (Swagger)
-    // ────────────────────────────────
-    // SpringDoc OpenAPI: API 문서화 어노테이션(@Operation, @Schema) + Swagger UI 제공
-    // 예: 서버 기동 후 /swagger-ui/index.html 접속하면 API 목록·테스트 UI가 제공됨
-    implementation "org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.8"
-
-    // ────────────────────────────────
-    // 유틸리티
-    // ────────────────────────────────
-    // Hashids: 숫자 ID를 짧은 고유 문자열로 인코딩/디코딩 (URL-safe ID 난독화)
-    // 예: hashids.encode(123) → "YDx" / hashids.decode("YDx") → [123]
-    //     DB의 auto-increment PK를 URL에 노출하지 않고 난독화된 문자열로 변환
-    implementation "org.hashids:hashids:1.0.3"
 }
