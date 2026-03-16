@@ -21,28 +21,31 @@ group = "com.icc.qasker"
 // 예: jib으로 빌드하면 Docker 이미지에 "1.7.0" 태그가 붙음
 version = "1.9.0"
 
+// Git hooks 경로를 .githooks/로 자동 설정
+// 예: ./gradlew build 실행 시 자동으로 git config core.hooksPath .githooks 적용
+//     팀원이 프로젝트를 클론한 뒤 별도 설정 없이 pre-commit, prepare-commit-msg 훅이 동작함
+tasks.register("installGitHooks") {
+    description = "Git hooks 경로를 .githooks/로 설정"
+    group = "setup"
+    doLast {
+        exec {
+            commandLine("git", "config", "core.hooksPath", ".githooks")
+        }
+        logger.lifecycle("✅ Git hooks 경로가 .githooks/로 설정되었습니다.")
+    }
+}
+
 subprojects {
+    // compileJava 실행 전에 Git hooks 설정이 자동 적용되도록 연결
+    tasks.configureEach { task ->
+        if (task.name == "compileJava") {
+            task.dependsOn(rootProject.tasks.named("installGitHooks"))
+        }
+    }
     // java 플러그인: 컴파일·테스트·JAR 패키징 등 Java 빌드 라이프사이클을 제공
     // 예: compileJava, test, jar 등의 태스크가 자동 생성되고,
     //     src/main/java, src/main/resources 디렉토리 구조를 인식함
     apply plugin: 'java'
-    // Spotless 포맷팅 플러그인을 전 서브모듈에 적용
-    apply plugin: 'com.diffplug.spotless'
-
-    spotless {
-
-        java {
-            // Google Java Format: Google 코딩 스타일에 맞춰 자동 포맷팅
-            googleJavaFormat("1.25.2")
-            // import 순서 제거 후 Google 스타일로 재정렬
-            removeUnusedImports()
-            // 파일 끝에 개행 추가
-            endWithNewline()
-            // 줄 끝 공백 제거
-            trimTrailingWhitespace()
-        }
-    }
-
     java {
         toolchain {
             // 빌드·컴파일에 사용할 JDK 버전 지정
@@ -108,6 +111,22 @@ subprojects {
         // 예: org.springframework.boot:spring-boot-starter-web 등 외부 라이브러리를
         //     https://repo.maven.apache.org/maven2 에서 다운로드
         mavenCentral()
+    }
+
+    // Spotless 포맷팅 플러그인을 전 서브모듈에 적용
+    apply plugin: 'com.diffplug.spotless'
+
+    spotless {
+        java {
+            // Google Java Format: Google 코딩 스타일에 맞춰 자동 포맷팅
+            googleJavaFormat("1.25.2")
+            // import 순서 제거 후 Google 스타일로 재정렬
+            removeUnusedImports()
+            // 파일 끝에 개행 추가
+            endWithNewline()
+            // 줄 끝 공백 제거
+            trimTrailingWhitespace()
+        }
     }
 
     tasks.withType(Test).configureEach {
