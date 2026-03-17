@@ -3,7 +3,9 @@ package com.icc.qasker.quiz.controller;
 import com.icc.qasker.global.annotation.UserId;
 import com.icc.qasker.quiz.GenerationCommandService;
 import com.icc.qasker.quiz.GenerationQueryService;
+import com.icc.qasker.quiz.QuizQueryService;
 import com.icc.qasker.quiz.dto.ferequest.GenerationRequest;
+import com.icc.qasker.quiz.dto.feresponse.ExplanationStatusResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -29,6 +31,7 @@ public class GenerationController {
 
   private final GenerationCommandService generationCommandService;
   private final GenerationQueryService generationQueryService;
+  private final QuizQueryService quizQueryService;
 
   @Operation(summary = "제공받은 세션키로 문제 전송을 위한 emitter를 생성한다")
   @GetMapping(value = "/{sessionId}/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -45,5 +48,11 @@ public class GenerationController {
   public void generateQuiz(
       @UserId String userId, @Valid @RequestBody GenerationRequest generationRequest) {
     generationCommandService.triggerGeneration(userId, generationRequest);
+  }
+
+  @Operation(summary = "해설 생성 상태를 조회한다")
+  @GetMapping("/{sessionId}/explanation-status")
+  public ExplanationStatusResponse getExplanationStatus(@PathVariable @UUID String sessionId) {
+    return quizQueryService.getExplanationStatus(sessionId);
   }
 }

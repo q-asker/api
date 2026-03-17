@@ -5,6 +5,7 @@ import com.icc.qasker.ai.dto.GenerationRequestToAI;
 import com.icc.qasker.global.error.ClientSideException;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
+import com.icc.qasker.quiz.dto.ExplanationUpdate;
 import com.icc.qasker.quiz.dto.airesponse.ProblemSetGeneratedEvent;
 import com.icc.qasker.quiz.mapper.AIProblemSetMapper;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
@@ -29,32 +30,51 @@ public class AIServerAdapter {
       String strategyValue,
       int quizCount,
       List<Integer> referencedPages,
-      Consumer<ProblemSetGeneratedEvent> onLineReceived) {
+      Consumer<ProblemSetGeneratedEvent> onQuestionsReceived,
+      Consumer<List<ExplanationUpdate>> onExplanationsReceived,
+      Consumer<Exception> onChunkError) {
     quizOrchestrationService.generateQuiz(
-        new GenerationRequestToAI(
-            fileUrl,
-            strategyValue,
-            quizCount,
-            referencedPages,
-            (problemSet) -> {
-              ProblemSetGeneratedEvent event = AIProblemSetMapper.toEvent(problemSet);
-              onLineReceived.accept(event);
-            }));
+        GenerationRequestToAI.builder()
+            .fileUrl(fileUrl)
+            .strategyValue(strategyValue)
+            .quizCount(quizCount)
+            .referencePages(referencedPages)
+            .questionsConsumer(
+                problemSet -> {
+                  ProblemSetGeneratedEvent event = AIProblemSetMapper.toEvent(problemSet);
+                  onQuestionsReceived.accept(event);
+                })
+            .explanationsConsumer(
+                aiUpdates -> {
+                  List<ExplanationUpdate> updates =
+                      aiUpdates.stream()
+                          .map(u -> new ExplanationUpdate(u.number(), u.mergedExplanation()))
+                          .toList();
+                  onExplanationsReceived.accept(updates);
+                })
+            .errorConsumer(onChunkError)
+            .build());
   }
 
+  @SuppressWarnings("unused")
   private void fallback(
-      GenerationRequestToAI request,
-      Consumer<ProblemSetGeneratedEvent> onLineReceived,
+      String fileUrl,
+      String strategyValue,
+      int quizCount,
+      List<Integer> referencedPages,
+      Consumer<ProblemSetGeneratedEvent> onQuestionsReceived,
+      Consumer<List<ExplanationUpdate>> onExplanationsReceived,
+      Consumer<Exception> onChunkError,
       Throwable t) {
     if (t instanceof CallNotPermittedException) {
       log.error("⛔ [CircuitBreaker] AI 서버 요청 차단됨 (Circuit Open): {}", t.getMessage());
       throw new CustomException(ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR);
     }
-    if (t instanceof ResourceAccessException e) {
+    if (t instanceof ResourceAccessException) {
       log.error("⏳ AI 서버 연결 시간 초과/실패: {}", t.getMessage());
       throw new CustomException(ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR);
     }
-    if (t instanceof ClientSideException e) {
+    if (t instanceof ClientSideException) {
       log.error("⏳ 사용자 오류 발생: {}", t.getMessage());
       return;
     }
