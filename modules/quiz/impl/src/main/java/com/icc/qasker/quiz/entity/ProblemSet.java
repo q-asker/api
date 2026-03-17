@@ -1,6 +1,7 @@
 package com.icc.qasker.quiz.entity;
 
 import com.icc.qasker.global.entity.CreatedAt;
+import com.icc.qasker.quiz.ExplanationStatus;
 import com.icc.qasker.quiz.GenerationStatus;
 import com.icc.qasker.quiz.dto.ferequest.enums.QuizType;
 import jakarta.persistence.CascadeType;
@@ -53,11 +54,23 @@ public class ProblemSet extends CreatedAt {
   @Column(unique = true, nullable = false)
   private String sessionId;
 
+  @Enumerated(EnumType.STRING)
+  @Builder.Default
+  @Column(nullable = false)
+  private ExplanationStatus explanationStatus = ExplanationStatus.PENDING;
+
   // 이하 헬퍼 함수
   public void updateStatus(GenerationStatus status) {
     if (status == null) {
       throw new IllegalArgumentException("ProblemSet status must not be null");
     }
     this.generationStatus = status;
+  }
+
+  public void updateExplanationStatus(ExplanationStatus status) {
+    if (status == null) {
+      throw new IllegalArgumentException("ExplanationStatus must not be null");
+    }
+    this.explanationStatus = status;
   }
 }
