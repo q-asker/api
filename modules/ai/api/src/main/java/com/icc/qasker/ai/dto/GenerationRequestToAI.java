@@ -11,5 +11,4 @@ public record GenerationRequestToAI(
     int quizCount,
     List<Integer> referencePages,
     Consumer<AIProblemSet> questionsConsumer,
-    Consumer<List<AIExplanationUpdate>> explanationsConsumer,
     Consumer<Exception> errorConsumer) {}
