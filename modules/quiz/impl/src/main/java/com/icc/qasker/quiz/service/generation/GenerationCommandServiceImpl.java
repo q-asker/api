@@ -16,10 +16,12 @@ import com.icc.qasker.quiz.QuizQueryService;
 import com.icc.qasker.quiz.SseNotificationService;
 import com.icc.qasker.quiz.adapter.AIServerAdapter;
 import com.icc.qasker.quiz.dto.airesponse.ProblemSetGeneratedEvent;
+import com.icc.qasker.quiz.dto.airesponse.ProblemSetGeneratedEvent.QuizGeneratedFromAI;
 import com.icc.qasker.quiz.dto.ferequest.GenerationRequest;
 import com.icc.qasker.quiz.dto.ferequest.enums.QuizType;
 import com.icc.qasker.quiz.dto.feresponse.ProblemSetResponse;
 import com.icc.qasker.quiz.dto.feresponse.ProblemSetResponse.QuizForFe;
+import com.icc.qasker.quiz.mapper.ExplanationMarkdownBuilder;
 import com.icc.qasker.quiz.mapper.QuizViewToQuizForFeMapper;
 import com.icc.qasker.quiz.view.QuizView;
 import java.util.ArrayList;
@@ -90,13 +92,14 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
           request.quizType().name(),
           request.quizCount(),
           request.pageNumbers(),
-          // 1. questions 콜백: saveBatch + SSE
+          // 1. questions 콜백: 셔플 → 마크다운 빌드 → saveBatch + SSE
           (ProblemSetGeneratedEvent problemSet) -> {
             if (problemSet.getQuiz() == null || problemSet.getQuiz().isEmpty()) {
               log.warn("빈 배치 수신, 건너뜀: sessionId={}", sessionId);
               return;
             }
             shuffleSelectionsIfNeeded(problemSet, request.quizType());
+            buildExplanations(problemSet);
             List<Integer> savedNumbers =
                 quizCommandService.saveBatch(problemSet.getQuiz(), problemSetId);
 
@@ -122,11 +125,7 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
                     request.quizCount(),
                     quizForFeList));
           },
-          // 2. explanations 콜백: DB 저장
-          updates -> {
-            quizCommandService.saveExplanations(problemSetId, updates);
-          },
-          // 3. error 콜백: 해설 실패 플래그 설정
+          // 2. error 콜백: 해설 실패 플래그 설정
           ex -> {
             log.error("청크 에러: {}", ex.getMessage());
             explanationFailed.set(true);
@@ -206,6 +205,13 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
         Collections.shuffle(shuffled);
         quiz.setSelections(shuffled);
       }
+    }
+  }
+
+  /** 셔플된 선택지 순서에 맞춰 해설 마크다운을 빌드하여 explanation에 설정한다. */
+  private void buildExplanations(ProblemSetGeneratedEvent problemSet) {
+    for (QuizGeneratedFromAI quiz : problemSet.getQuiz()) {
+      quiz.setExplanation(ExplanationMarkdownBuilder.build(quiz));
     }
   }
 }

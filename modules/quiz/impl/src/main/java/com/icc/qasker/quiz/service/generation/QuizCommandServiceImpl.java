@@ -5,7 +5,6 @@ import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.quiz.ExplanationStatus;
 import com.icc.qasker.quiz.GenerationStatus;
 import com.icc.qasker.quiz.QuizCommandService;
-import com.icc.qasker.quiz.dto.ExplanationUpdate;
 import com.icc.qasker.quiz.dto.airesponse.ProblemSetGeneratedEvent.QuizGeneratedFromAI;
 import com.icc.qasker.quiz.dto.ferequest.enums.QuizType;
 import com.icc.qasker.quiz.entity.Problem;
@@ -14,9 +13,6 @@ import com.icc.qasker.quiz.mapper.ProblemMapper;
 import com.icc.qasker.quiz.repository.ProblemRepository;
 import com.icc.qasker.quiz.repository.ProblemSetRepository;
 import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -78,26 +74,5 @@ public class QuizCommandServiceImpl implements QuizCommandService {
             .findById(problemSetId)
             .orElseThrow(() -> new CustomException(ExceptionMessage.PROBLEM_SET_NOT_FOUND));
     problemSet.updateExplanationStatus(status);
-  }
-
-  @Override
-  public void saveExplanations(Long problemSetId, List<ExplanationUpdate> updates) {
-    List<Problem> problems = problemRepository.findByIdProblemSetId(problemSetId);
-
-    Map<Integer, Problem> problemByNumber =
-        problems.stream()
-            .collect(Collectors.toMap(p -> p.getId().getNumber(), Function.identity()));
-
-    for (ExplanationUpdate update : updates) {
-      Problem problem = problemByNumber.get(update.number());
-      if (problem != null) {
-        problem.updateExplanation(update.mergedExplanation());
-      } else {
-        log.warn(
-            "해설 업데이트 대상 Problem을 찾을 수 없음: problemSetId={}, number={}",
-            problemSetId,
-            update.number());
-      }
-    }
   }
 }

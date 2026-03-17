@@ -2,7 +2,6 @@ package com.icc.qasker.quiz.adapter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.icc.qasker.ai.QuizOrchestrationService;
-import com.icc.qasker.quiz.dto.ExplanationUpdate;
 import com.icc.qasker.quiz.dto.airesponse.ProblemSetGeneratedEvent;
 import java.util.ArrayList;
 import java.util.List;
@@ -35,7 +34,6 @@ public class MockAIServerAdapter extends AIServerAdapter {
       int quizCount,
       List<Integer> referencedPages,
       Consumer<ProblemSetGeneratedEvent> onQuestionsReceived,
-      Consumer<List<ExplanationUpdate>> onExplanationsReceived,
       Consumer<Exception> onChunkError) {
     List<Integer> pages =
         (referencedPages == null || referencedPages.isEmpty()) ? List.of(1) : referencedPages;

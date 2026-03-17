@@ -5,7 +5,6 @@ import com.icc.qasker.ai.dto.GenerationRequestToAI;
 import com.icc.qasker.global.error.ClientSideException;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
-import com.icc.qasker.quiz.dto.ExplanationUpdate;
 import com.icc.qasker.quiz.dto.airesponse.ProblemSetGeneratedEvent;
 import com.icc.qasker.quiz.mapper.AIProblemSetMapper;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
@@ -31,7 +30,6 @@ public class AIServerAdapter {
       int quizCount,
       List<Integer> referencedPages,
       Consumer<ProblemSetGeneratedEvent> onQuestionsReceived,
-      Consumer<List<ExplanationUpdate>> onExplanationsReceived,
       Consumer<Exception> onChunkError) {
     quizOrchestrationService.generateQuiz(
         GenerationRequestToAI.builder()
@@ -44,14 +42,6 @@ public class AIServerAdapter {
                   ProblemSetGeneratedEvent event = AIProblemSetMapper.toEvent(problemSet);
                   onQuestionsReceived.accept(event);
                 })
-            .explanationsConsumer(
-                aiUpdates -> {
-                  List<ExplanationUpdate> updates =
-                      aiUpdates.stream()
-                          .map(u -> new ExplanationUpdate(u.number(), u.mergedExplanation()))
-                          .toList();
-                  onExplanationsReceived.accept(updates);
-                })
             .errorConsumer(onChunkError)
             .build());
   }
@@ -63,7 +53,6 @@ public class AIServerAdapter {
       int quizCount,
       List<Integer> referencedPages,
       Consumer<ProblemSetGeneratedEvent> onQuestionsReceived,
-      Consumer<List<ExplanationUpdate>> onExplanationsReceived,
       Consumer<Exception> onChunkError,
       Throwable t) {
     if (t instanceof CallNotPermittedException) {
