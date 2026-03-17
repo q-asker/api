@@ -1,13 +1,13 @@
-package com.icc.qasker.quiz.mapper;
+package com.icc.qasker.ai.mapper;
 
-import com.icc.qasker.ai.dto.AIQuizExplanation;
-import com.icc.qasker.ai.dto.AISelection;
-import com.icc.qasker.ai.dto.AISelectionExplanation;
+import com.icc.qasker.ai.structure.GeminiQuizExplanation;
+import com.icc.qasker.ai.structure.GeminiSelection;
+import com.icc.qasker.ai.structure.GeminiSelectionExplanation;
 import java.util.List;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
-/** AIQuizExplanation + List<AISelection> → 최종 마크다운 String 조립. */
+/** GeminiQuizExplanation + List<GeminiSelection> → 최종 마크다운 String 조립. */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class ExplanationMarkdownBuilder {
 
@@ -15,10 +15,11 @@ public class ExplanationMarkdownBuilder {
    * 구조화된 해설 필드들로부터 최종 마크다운을 조립합니다.
    *
    * @param quizExplanation 문항 전체 해설 (자기 점검, 심화 학습)
-   * @param selections AI 응답의 선택지 목록
+   * @param selections Gemini 응답의 선택지 목록
    * @return 병합된 마크다운 문자열
    */
-  public static String build(AIQuizExplanation quizExplanation, List<AISelection> selections) {
+  public static String build(
+      GeminiQuizExplanation quizExplanation, List<GeminiSelection> selections) {
     StringBuilder sb = new StringBuilder();
 
     // 1. 자기 점검 / 심화 학습
@@ -26,7 +27,7 @@ public class ExplanationMarkdownBuilder {
 
     // 2. 정답 선택지
     if (selections != null) {
-      for (AISelection selection : selections) {
+      for (GeminiSelection selection : selections) {
         if (selection.correct() && selection.explanation() != null) {
           appendCorrectSelection(sb, selection);
           break;
@@ -37,7 +38,7 @@ public class ExplanationMarkdownBuilder {
     // 3. 오답 선택지들
     if (selections != null) {
       int wrongIndex = 1;
-      for (AISelection selection : selections) {
+      for (GeminiSelection selection : selections) {
         if (!selection.correct() && selection.explanation() != null) {
           appendWrongSelection(sb, selection, wrongIndex);
           wrongIndex++;
@@ -53,7 +54,7 @@ public class ExplanationMarkdownBuilder {
     return result.stripTrailing();
   }
 
-  private static void appendQuizExplanation(StringBuilder sb, AIQuizExplanation explanation) {
+  private static void appendQuizExplanation(StringBuilder sb, GeminiQuizExplanation explanation) {
     if (explanation == null) {
       return;
     }
@@ -75,8 +76,8 @@ public class ExplanationMarkdownBuilder {
     }
   }
 
-  private static void appendCorrectSelection(StringBuilder sb, AISelection selection) {
-    AISelectionExplanation exp = selection.explanation();
+  private static void appendCorrectSelection(StringBuilder sb, GeminiSelection selection) {
+    GeminiSelectionExplanation exp = selection.explanation();
     sb.append("## 정답 선택지\n\n");
     sb.append("*").append(selection.content()).append("*\n\n");
     sb.append("### 정답 추론\n\n");
@@ -99,8 +100,8 @@ public class ExplanationMarkdownBuilder {
     sb.append("\n\n---\n\n");
   }
 
-  private static void appendWrongSelection(StringBuilder sb, AISelection selection, int index) {
-    AISelectionExplanation exp = selection.explanation();
+  private static void appendWrongSelection(StringBuilder sb, GeminiSelection selection, int index) {
+    GeminiSelectionExplanation exp = selection.explanation();
 
     sb.append("## 오답 선택지 ").append(index);
     if (hasText(exp.typeLabel())) {

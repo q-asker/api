@@ -5,6 +5,6 @@ import java.util.List;
 public record AIProblem(
     int number,
     String content,
-    AIQuizExplanation explanation,
+    String explanation,
     List<AISelection> selections,
     List<Integer> referencedPages) {}
