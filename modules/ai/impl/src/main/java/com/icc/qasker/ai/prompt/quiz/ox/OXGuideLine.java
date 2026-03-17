@@ -63,12 +63,12 @@ public class OXGuideLine {
 
         > 해설은 학습자가 즉시 오개념을 인식하고 교정할 수 있도록 설계합니다 (형성 평가 즉시 피드백 원칙).
 
-        **선택지별 해설** (selections[].explanation — JSON 구조화 필드):
+        **선택지별 해설** (selections[].explanation — String):
         - 정답 O인 경우: O선택지 → **정답 추론**, X선택지 → **오개념 교정**
         - 정답 X인 경우: X선택지 → **정답 추론**, O선택지 → **오개념 교정**
 
-        정답 추론: `reasoning` 필드에 근거와 추론 경로, `evidence` 필드에 강의노트 섹션 참조 인용을 작성하세요. **참(O) 진술이 정답인 경우에도** '왜 참인가'의 강의노트 근거를 반드시 인용하세요.
-        오개념 교정: `typeLabel` 필드에 오답 유형(사실 변조형/관계 변조형/조건 변조형), `diagnosis` 필드에 오개념 진단, `correction` 필드에 교정 방향, `selfCheck` 필드에 학습자가 스스로 오류를 인식하도록 유도하는 개방형 질문 1개, `review` 필드에 복습 참조(강의노트 섹션명)를 작성하세요.
+        정답 추론: `**[정답 추론]**` 마커로 시작하여 근거와 추론 경로를 작성하고, `> 근거: [강의노트 섹션명] > "핵심 문장 인용"` 형식으로 근거를 인용하세요. **참(O) 진술이 정답인 경우에도** '왜 참인가'의 강의노트 근거를 반드시 인용하세요.
+        오개념 교정: 첫 줄에 `[오답 유형]` (사실 변조형/관계 변조형/조건 변조형)을 표기하고, 이후 `- **진단**: 오개념 진단`, `- **교정**: 교정 방향`, `- **스스로 점검**: 학습자가 스스로 오류를 인식하도록 유도하는 개방형 질문 1개`, `> 복습: 강의노트 섹션명` 구조로 작성하세요.
 
         **오답 유형 분류** (변조 전략 ↔ 진단 관점 매핑):
 
@@ -78,11 +78,9 @@ public class OXGuideLine {
         | 관계 변조형 | 과잉 일반화 | 개념 간 관계(인과, 포함)를 뒤바꿈 → 관계 이해의 불완전함 진단 |
         | 조건 변조형 | 맥락 무시 | 적용 조건/범위를 미세 변경 → 조건/범위의 부정확한 이해 진단 |
 
-        **문항 전체 해설** (explanation — JSON 구조화 필드):
-        - **자기 점검**: `selfCheckLabel` 필드에 난이도와 주제, `selfCheckContent` 필드에 메타인지 질문 — 이해~적용: 유사 개념 간 차이를 비교 설명, 분석: 판단 근거를 다른 맥락에서도 적용 가능한지 성찰
-        - **심화 학습**: `deepLearningContent` 필드에 권장 복습 범위 + 다음 Bloom's 인지 수준으로의 학습 경로 안내
-
-        각 필드에 해당 내용만 넣으세요 — 마커(`**[자기 점검]**` 등)나 불릿 구조(`- **진단**:` 등)는 필드값에 포함하지 마세요.
+        **문항 전체 해설** (explanation — String):
+        - **자기 점검**: `**[자기 점검]**` 마커 뒤에 `(난이도: 주제)` 라벨을 표기하고, 이어서 메타인지 질문 — 이해~적용: 유사 개념 간 차이를 비교 설명, 분석: 판단 근거를 다른 맥락에서도 적용 가능한지 성찰
+        - **심화 학습**: `**[심화 학습]**` 마커로 시작하여 권장 복습 범위 + 다음 Bloom's 인지 수준으로의 학습 경로 안내
 
         ---
 
@@ -137,14 +135,18 @@ public class OXGuideLine {
         **content** (단일 진술문 1문장):
         - 선택지 인덱스/기호(1번/2번/A/B, O/X 표기 자체), 정답 특정 문구, 직접 참조 문구를 포함하지 마세요.
 
-        **selections** (2개):
+        응답은 `questions` 배열과 `explanations` 배열로 분리됩니다.
+
+        **questions[].selections** (2개):
         - correct 분포: true 1개 + false 1개
         - content 표기: "O", "X" 두 값으로만 구성
         - correct=true는 "O" 또는 "X" 중 하나가 될 수 있음 (고정 금지)
-        - 각 선택지에 explanation 필드를 포함 ([CRITICAL] 해설 구조 참조)
 
-        **explanation** (문항 전체 해설 — JSON 구조화 필드):
-        - `selfCheckLabel` 필드에 난이도와 주제, `selfCheckContent` 필드에 메타인지 질문, `deepLearningContent` 필드에 복습 범위 + 학습 경로를 작성하세요.
+        **explanations[].quizExplanation** (문항 전체 해설 — 마커 기반 String):
+        - `**[자기 점검]**` 마커 뒤에 `(난이도: 주제)` 라벨, 이어서 메타인지 질문을 작성하고, `**[심화 학습]**` 마커로 시작하여 복습 범위 + 학습 경로를 작성하세요.
+
+        **explanations[].selectionExplanations** (선택지별 해설):
+        - index로 선택지 매칭, explanation에 해설 마커 포함 ([CRITICAL] 해설 구조 참조)
         - **핵심 개념**은 굵게, `기술 용어`는 코드 스타일로 표기하세요.
 
         **가독성**: 개행(\\n)으로 단락 분리, **굵게**/`코드`/> 인용을 적극 활용하세요.
@@ -158,47 +160,33 @@ public class OXGuideLine {
 
         ### 예시 1 (이해·적용, 정답: O)
 
-        - **content**: "TCP의 3-way handshake에서 클라이언트는 서버의 SYN-ACK를 수신한 후에야 ACK를 전송하고 데이터 전송을 시작할 수 있다."
+        **questions[0]**:
+          - number: 1
+          - content: "TCP의 3-way handshake에서 클라이언트는 서버의 SYN-ACK를 수신한 후에야 ACK를 전송하고 데이터 전송을 시작할 수 있다."
+          - selections:
+            - [0] content: "O", correct: true
+            - [1] content: "X", correct: false
 
-        - **selections[0]**: content: "O", correct: true
-        - explanation:
-            - reasoning: "**3-way handshake**는 SYN → SYN-ACK → ACK 순서를 완료해야 연결이 수립됩니다. 클라이언트는 서버의 `SYN-ACK`를 수신해야만 ACK를 전송하고 ESTABLISHED 상태로 전이하여 데이터 전송이 가능합니다."
-            - evidence: "[TCP 연결 수립] > \\"3-way handshake의 세 단계가 모두 완료되어야 연결이 성립한다\\""
-
-        - **selections[1]**: content: "X", correct: false
-        - explanation:
-            - typeLabel: "사실 변조형"
-            - diagnosis: "SYN 전송 후 SYN-ACK 없이도 바로 데이터를 전송할 수 있다고 착각하는 오개념."
-            - correction: "`3-way handshake`는 SYN → SYN-ACK → ACK 세 단계를 모두 완료해야 연결이 ESTABLISHED 상태로 전이됩니다."
-            - selfCheck: "SYN-ACK를 받지 못한 상태(SYN_SENT)에서 클라이언트가 할 수 있는 동작은 무엇인지 생각해 보세요."
-            - review: "[TCP 연결 수립] > 상태 전이 다이어그램"
-
-        - **explanation**:
-          - selfCheckLabel: "이해·적용: 유사 개념 비교"
-          - selfCheckContent: "3-way handshake와 4-way handshake(연결 종료)의 단계 차이를 비교 설명할 수 있나요?"
-          - deepLearningContent: "TCP handshake의 보안 취약점(SYN Flooding 공격)을 **분석** 수준에서 원인과 대응 방안을 비교해 보세요.\\n> 복습: [TCP 연결 수립] 섹션 참조"
+        **explanations[0]** (number: 1):
+          - quizExplanation: "**[자기 점검]** (이해·적용: 유사 개념 비교)\\n3-way handshake와 4-way handshake(연결 종료)의 단계 차이를 비교 설명할 수 있나요?\\n\\n**[심화 학습]**\\nTCP handshake의 보안 취약점(SYN Flooding 공격)을 **분석** 수준에서 원인과 대응 방안을 비교해 보세요.\\n> 복습: [TCP 연결 수립] 섹션 참조"
+          - selectionExplanations:
+            - [0] index: 0, explanation: "**[정답 추론]**\\n**3-way handshake**는 SYN → SYN-ACK → ACK 순서를 완료해야 연결이 수립됩니다. 클라이언트는 서버의 `SYN-ACK`를 수신해야만 ACK를 전송하고 ESTABLISHED 상태로 전이하여 데이터 전송이 가능합니다.\\n> 근거: [TCP 연결 수립] > \\"3-way handshake의 세 단계가 모두 완료되어야 연결이 성립한다\\""
+            - [1] index: 1, explanation: "[사실 변조형]\\n- **진단**: SYN 전송 후 SYN-ACK 없이도 바로 데이터를 전송할 수 있다고 착각하는 오개념.\\n- **교정**: `3-way handshake`는 SYN → SYN-ACK → ACK 세 단계를 모두 완료해야 연결이 ESTABLISHED 상태로 전이됩니다.\\n- **스스로 점검**: SYN-ACK를 받지 못한 상태(SYN_SENT)에서 클라이언트가 할 수 있는 동작은 무엇인지 생각해 보세요.\\n> 복습: [TCP 연결 수립] > 상태 전이 다이어그램"
 
         ### 예시 2 (분석, 정답: X)
 
-        - **content**: "수요의 가격탄력성이 1보다 큰 탄력적 재화의 경우, 가격을 인상하면 총수입(총판매액)이 증가한다."
+        **questions[1]**:
+          - number: 2
+          - content: "수요의 가격탄력성이 1보다 큰 탄력적 재화의 경우, 가격을 인상하면 총수입(총판매액)이 증가한다."
+          - selections:
+            - [0] content: "O", correct: false
+            - [1] content: "X", correct: true
 
-        - **selections[0]**: content: "O", correct: false
-        - explanation:
-            - typeLabel: "관계 변조형"
-            - diagnosis: "'가격 인상 → 수입 증가'라는 직관적 연결을 과잉 일반화하는 오개념."
-            - correction: "탄력적 재화(탄력성 > 1)는 가격 변화율보다 수요량 감소율이 더 크므로, 가격 인상 시 수요량이 급감하여 **총수입이 오히려 감소**합니다. 가격 인상으로 총수입이 증가하는 것은 비탄력적 재화(탄력성 < 1)의 경우입니다."
-            - selfCheck: "탄력성이 1보다 큰 경우와 작은 경우에서 가격 변화가 총수입에 미치는 영향이 왜 반대인지 생각해 보세요."
-            - review: "[수요의 가격탄력성] > 탄력성과 총수입의 관계"
-
-        - **selections[1]**: content: "X", correct: true
-        - explanation:
-            - reasoning: "탄력적 재화는 가격 변화율보다 **수요량 변화율이 더 크므로**, 가격을 인상하면 수요량이 비례 이상으로 감소하여 총수입(가격 × 수량)이 감소합니다. 진술문은 탄력적 재화에서 가격 인상이 총수입을 증가시킨다고 기술하고 있으므로 거짓입니다."
-            - evidence: "[수요의 가격탄력성] > \\"탄력적 수요에서는 가격 인상 시 수요량 감소폭이 커 총수입이 감소한다\\""
-
-        - **explanation**:
-          - selfCheckLabel: "분석: 맥락 전이 성찰"
-          - selfCheckContent: "탄력성이 정확히 1인 단위탄력적 재화에서 가격을 변경하면 총수입은 어떻게 되는지, 그 이유를 탄력적·비탄력적 경우와 비교하여 설명할 수 있나요?"
-          - deepLearningContent: "기업이 가격 전략을 수립할 때 수요의 탄력성을 어떻게 활용하는지 **평가** 수준에서 분석해 보세요.\\n> 복습: [수요의 가격탄력성] 섹션 참조"
+        **explanations[1]** (number: 2):
+          - quizExplanation: "**[자기 점검]** (분석: 맥락 전이 성찰)\\n탄력성이 정확히 1인 단위탄력적 재화에서 가격을 변경하면 총수입은 어떻게 되는지, 그 이유를 탄력적·비탄력적 경우와 비교하여 설명할 수 있나요?\\n\\n**[심화 학습]**\\n기업이 가격 전략을 수립할 때 수요의 탄력성을 어떻게 활용하는지 **평가** 수준에서 분석해 보세요.\\n> 복습: [수요의 가격탄력성] 섹션 참조"
+          - selectionExplanations:
+            - [0] index: 0, explanation: "[관계 변조형]\\n- **진단**: '가격 인상 → 수입 증가'라는 직관적 연결을 과잉 일반화하는 오개념.\\n- **교정**: 탄력적 재화(탄력성 > 1)는 가격 변화율보다 수요량 감소율이 더 크므로, 가격 인상 시 수요량이 급감하여 **총수입이 오히려 감소**합니다. 가격 인상으로 총수입이 증가하는 것은 비탄력적 재화(탄력성 < 1)의 경우입니다.\\n- **스스로 점검**: 탄력성이 1보다 큰 경우와 작은 경우에서 가격 변화가 총수입에 미치는 영향이 왜 반대인지 생각해 보세요.\\n> 복습: [수요의 가격탄력성] > 탄력성과 총수입의 관계"
+            - [1] index: 1, explanation: "**[정답 추론]**\\n탄력적 재화는 가격 변화율보다 **수요량 변화율이 더 크므로**, 가격을 인상하면 수요량이 비례 이상으로 감소하여 총수입(가격 × 수량)이 감소합니다. 진술문은 탄력적 재화에서 가격 인상이 총수입을 증가시킨다고 기술하고 있으므로 거짓입니다.\\n> 근거: [수요의 가격탄력성] > \\"탄력적 수요에서는 가격 인상 시 수요량 감소폭이 커 총수입이 감소한다\\""
 
         ### 피해야 할 예시
 

@@ -2,6 +2,7 @@ package com.icc.qasker.quiz.adapter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.icc.qasker.ai.QuizOrchestrationService;
+import com.icc.qasker.quiz.dto.ExplanationUpdate;
 import com.icc.qasker.quiz.dto.airesponse.ProblemSetGeneratedEvent;
 import java.util.ArrayList;
 import java.util.List;
@@ -33,7 +34,9 @@ public class MockAIServerAdapter extends AIServerAdapter {
       String strategyValue,
       int quizCount,
       List<Integer> referencedPages,
-      Consumer<ProblemSetGeneratedEvent> onLineReceived) {
+      Consumer<ProblemSetGeneratedEvent> onQuestionsReceived,
+      Consumer<List<ExplanationUpdate>> onExplanationsReceived,
+      Consumer<Exception> onChunkError) {
     List<Integer> pages =
         (referencedPages == null || referencedPages.isEmpty()) ? List.of(1) : referencedPages;
 
@@ -60,7 +63,7 @@ public class MockAIServerAdapter extends AIServerAdapter {
     ProblemSetGeneratedEvent event =
         objectMapper.convertValue(
             Map.of("type", "quiz", "quiz", quiz), ProblemSetGeneratedEvent.class);
-    onLineReceived.accept(event);
+    onQuestionsReceived.accept(event);
     try {
       Thread.sleep(10 * 1000);
     } catch (InterruptedException e) {
@@ -92,7 +95,7 @@ public class MockAIServerAdapter extends AIServerAdapter {
     event =
         objectMapper.convertValue(
             Map.of("type", "quiz", "quiz", quiz), ProblemSetGeneratedEvent.class);
-    onLineReceived.accept(event);
+    onQuestionsReceived.accept(event);
 
     try {
       Thread.sleep(10 * 1000);
@@ -125,6 +128,6 @@ public class MockAIServerAdapter extends AIServerAdapter {
     event =
         objectMapper.convertValue(
             Map.of("type", "quiz", "quiz", quiz), ProblemSetGeneratedEvent.class);
-    onLineReceived.accept(event);
+    onQuestionsReceived.accept(event);
   }
 }
