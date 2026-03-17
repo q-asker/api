@@ -1,5 +1,6 @@
 package com.icc.qasker.quiz.dto.feresponse;
 
+import com.icc.qasker.quiz.ExplanationStatus;
 import com.icc.qasker.quiz.GenerationStatus;
 import com.icc.qasker.quiz.dto.ferequest.enums.QuizType;
 import java.util.List;
@@ -15,6 +16,7 @@ public class ProblemSetResponse {
   private String sessionId;
   private String problemSetId;
   private GenerationStatus generationStatus;
+  private ExplanationStatus explanationStatus;
   private QuizType quizType;
   private Integer totalCount;
   private List<QuizForFe> quiz;
