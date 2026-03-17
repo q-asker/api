@@ -26,24 +26,19 @@ public final class AIProblemSetMapper {
     QuizGeneratedFromAI quiz = new QuizGeneratedFromAI();
     quiz.setNumber(problem.number());
     quiz.setTitle(problem.content());
+    quiz.setExplanation(problem.explanation());
     quiz.setReferencedPages(problem.referencedPages());
     quiz.setSelections(
         problem.selections() == null
             ? List.of()
             : problem.selections().stream().map(AIProblemSetMapper::toSelectionsOfAI).toList());
-
-    // 구조화된 해설 → 마크다운 조립
-    String mergedExplanation =
-        ExplanationMarkdownBuilder.build(problem.explanation(), problem.selections());
-    quiz.setExplanation(mergedExplanation);
-
     return quiz;
   }
 
   private static SelectionsOfAI toSelectionsOfAI(AISelection selection) {
     SelectionsOfAI sel = new SelectionsOfAI();
     sel.setContent(selection.content());
-    sel.setExplanation(null);
+    sel.setExplanation(selection.explanation());
     sel.setCorrect(selection.correct());
     return sel;
   }
