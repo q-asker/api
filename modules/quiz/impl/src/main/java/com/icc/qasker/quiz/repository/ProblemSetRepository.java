@@ -2,6 +2,7 @@ package com.icc.qasker.quiz.repository;
 
 import com.icc.qasker.quiz.GenerationStatus;
 import com.icc.qasker.quiz.entity.ProblemSet;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -19,4 +20,6 @@ public interface ProblemSetRepository extends JpaRepository<ProblemSet, Long> {
   Optional<GenerationStatus> findGenerationStatusBySessionId(@Param("sessionId") String sessionId);
 
   Optional<ProblemSet> findFirstBySessionIdOrderByCreatedAtDesc(String sessionId);
+
+  List<ProblemSet> findAllByUserIdOrderByCreatedAtDesc(String userId);
 }

@@ -73,6 +73,8 @@ public class SecurityConfig {
                     .authenticated()
                     .requestMatchers(HttpMethod.DELETE, "/boards/**")
                     .authenticated()
+                    .requestMatchers("/history", "/history/**")
+                    .authenticated()
                     .anyRequest()
                     .permitAll())
         .oauth2Login(
