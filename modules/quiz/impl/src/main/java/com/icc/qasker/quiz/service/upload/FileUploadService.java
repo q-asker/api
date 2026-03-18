@@ -42,7 +42,10 @@ public class FileUploadService {
       file.transferTo(tempFile.toFile());
 
       // 2. PDF 변환 (이미 PDF이면 그대로 반환)
-      pdfFile = convertService.convertToPdf(tempFile);
+      String fileName = tempFile.getFileName().toString();
+      if (!fileName.toLowerCase().endsWith(".pdf")) {
+        pdfFile = convertService.convertToPdf(tempFile);
+      }
 
       final Path finalPdfFile = pdfFile;
 
@@ -73,8 +76,8 @@ public class FileUploadService {
 
       return new FileUploadResponse(cloudFrontUrl);
     } catch (Exception e) {
-      log.error("파일 업로드 실패: {}", originalFileName, e);
-      throw new CustomException(ExceptionMessage.DEFAULT_ERROR);
+      throw new CustomException(
+          ExceptionMessage.DEFAULT_ERROR, "파일 업로드 실패: " + originalFileName, e);
     } finally {
       deleteQuietly(tempFile);
       // pdfFile이 tempFile과 다른 경우에만 삭제 (변환이 발생한 경우)
