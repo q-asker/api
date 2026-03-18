@@ -4,14 +4,12 @@ import com.icc.qasker.board.dto.request.PostRequest;
 import com.icc.qasker.board.dto.request.ReplyRequest;
 import com.icc.qasker.board.dto.response.PostDetailResponse;
 import com.icc.qasker.board.dto.response.PostPageResponse;
-import com.icc.qasker.board.dto.response.PostResponse;
 import com.icc.qasker.board.service.BoardService;
 import com.icc.qasker.board.service.ReplyService;
 import com.icc.qasker.global.annotation.UserId;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
@@ -36,8 +34,7 @@ public class BoardController {
   @Operation(summary = "게시글 명단을 가져온다")
   @GetMapping
   public ResponseEntity<PostPageResponse> getPosts(@PageableDefault Pageable pageable) {
-    Page<PostResponse> page = boardService.getPosts(pageable);
-    return ResponseEntity.ok(PostPageResponse.from(page));
+    return ResponseEntity.ok(boardService.getPosts(pageable));
   }
 
   @Operation(summary = "단일 게시글 내용을 가져온다")

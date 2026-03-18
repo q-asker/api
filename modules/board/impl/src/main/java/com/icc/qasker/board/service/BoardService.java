@@ -3,6 +3,7 @@ package com.icc.qasker.board.service;
 import com.icc.qasker.auth.UserService;
 import com.icc.qasker.board.dto.request.PostRequest;
 import com.icc.qasker.board.dto.response.PostDetailResponse;
+import com.icc.qasker.board.dto.response.PostPageResponse;
 import com.icc.qasker.board.dto.response.PostResponse;
 import com.icc.qasker.board.entity.Board;
 import com.icc.qasker.board.entity.BoardStatus;
@@ -29,16 +30,26 @@ public class BoardService {
   private final PostResponseMapper postResponseMapper;
   private final UserService userService;
 
-  public Page<PostResponse> getPosts(Pageable pageable) {
+  public PostPageResponse getPosts(Pageable pageable) {
     Page<Board> boards = boardRepository.findAll(pageable);
     List<String> userIds = boards.stream().map(Board::getUserId).distinct().toList();
     Map<String, String> nicknames = userService.getNickNames(userIds);
 
-    return boards.map(
-        board -> {
-          String nickname = nicknames.getOrDefault(board.getUserId(), "알 수 없음");
-          return postResponseMapper.fromEntity(board, nickname);
-        });
+    List<PostResponse> posts =
+        boards
+            .map(
+                board -> {
+                  String nickname = nicknames.getOrDefault(board.getUserId(), "알 수 없음");
+                  return postResponseMapper.fromEntity(board, nickname);
+                })
+            .getContent();
+
+    return new PostPageResponse(
+        posts,
+        boards.getTotalElements(),
+        boards.getTotalPages(),
+        boards.getSize(),
+        boards.getNumber());
   }
 
   @Transactional
