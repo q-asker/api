@@ -43,10 +43,10 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
 
   @Override
   public void generateQuiz(GenerationRequestToAI request) {
-    // Gemini 파일 캐시 확인 → 미스 시 기존 방식으로 업로드
+    // Gemini 파일 캐시 확인 → 진행 중이면 대기, 미스 시 기존 방식으로 업로드
     FileMetadata metadata =
         geminiFileService
-            .getCachedFileMetadata(request.fileUrl())
+            .awaitCachedFileMetadata(request.fileUrl())
             .orElseGet(
                 () -> {
                   log.info("Gemini 파일 캐시 미스, 업로드 시작: {}", request.fileUrl());

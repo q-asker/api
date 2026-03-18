@@ -15,6 +15,8 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.model.google.genai.autoconfigure.chat.GoogleGenAiConnectionProperties;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -36,9 +38,10 @@ public class GeminiFileServiceImpl implements GeminiFileService {
   private final String apiKey;
   private final PdfUtils pdfUtils;
 
-  // Gemini 파일 메타데이터 캐시 (CloudFront URL → FileMetadata)
+  // Gemini 파일 업로드 Future 캐시 (CloudFront URL → CompletableFuture<FileMetadata>)
   // TTL 47시간: Gemini Files API 48시간 자동 삭제 전 안전 마진
-  private final Cache<String, FileMetadata> fileMetadataCache =
+  // 업로드 진행 중인 Future도 저장되므로 중복 업로드를 방지한다
+  private final Cache<String, CompletableFuture<FileMetadata>> uploadFutureCache =
       Caffeine.newBuilder().maximumSize(1_000).expireAfterWrite(Duration.ofHours(47)).build();
 
   public GeminiFileServiceImpl(
@@ -52,21 +55,14 @@ public class GeminiFileServiceImpl implements GeminiFileService {
 
   @Override
   public FileMetadata uploadPdf(String pdfUrl) {
-    // 캐시 확인
-    FileMetadata cached = fileMetadataCache.getIfPresent(pdfUrl);
-    if (cached != null) {
-      log.info("Gemini 파일 캐시 히트: url={}, name={}", pdfUrl, cached.name());
-      return cached;
-    }
-
     Path tempFile = null;
 
     try {
       tempFile = pdfUtils.downloadToTemp(pdfUrl);
       FileMetadata metadata = doUpload(tempFile, extractFileName(pdfUrl));
 
-      // 캐시에 저장
-      fileMetadataCache.put(pdfUrl, metadata);
+      // 완료된 Future로 캐시에 저장
+      uploadFutureCache.put(pdfUrl, CompletableFuture.completedFuture(metadata));
       return metadata;
     } catch (IOException e) {
       throw new CustomException(
@@ -95,14 +91,28 @@ public class GeminiFileServiceImpl implements GeminiFileService {
   }
 
   @Override
-  public void cacheFileMetadata(String cloudFrontUrl, FileMetadata metadata) {
-    fileMetadataCache.put(cloudFrontUrl, metadata);
-    log.info("Gemini 파일 메타데이터 캐시 저장: url={}, name={}", cloudFrontUrl, metadata.name());
+  public void cacheUploadFuture(String cloudFrontUrl, CompletableFuture<FileMetadata> future) {
+    uploadFutureCache.put(cloudFrontUrl, future);
+    log.info("Gemini 업로드 Future 캐시 저장: url={}", cloudFrontUrl);
   }
 
   @Override
-  public Optional<FileMetadata> getCachedFileMetadata(String cloudFrontUrl) {
-    return Optional.ofNullable(fileMetadataCache.getIfPresent(cloudFrontUrl));
+  public Optional<FileMetadata> awaitCachedFileMetadata(String cloudFrontUrl) {
+    CompletableFuture<FileMetadata> future = uploadFutureCache.getIfPresent(cloudFrontUrl);
+    if (future == null) {
+      return Optional.empty();
+    }
+
+    try {
+      FileMetadata metadata = future.join();
+      log.info("Gemini 파일 캐시 히트: url={}, name={}", cloudFrontUrl, metadata.name());
+      return Optional.of(metadata);
+    } catch (CompletionException e) {
+      // 업로드 실패 — 캐시에서 제거하여 재시도 가능하게 함
+      uploadFutureCache.invalidate(cloudFrontUrl);
+      log.warn("캐시된 Gemini 업로드 실패, 캐시 제거: url={}, error={}", cloudFrontUrl, e.getMessage());
+      return Optional.empty();
+    }
   }
 
   private FileMetadata doUpload(Path pdfFile, String displayName)

@@ -10,6 +10,7 @@ import com.icc.qasker.quiz.dto.feresponse.FileUploadResponse;
 import com.icc.qasker.util.ConvertService;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import lombok.RequiredArgsConstructor;
@@ -53,31 +54,37 @@ public class FileUploadService {
       // 이펙티블리 파이널
       final Path finalPdfFile = pdfFile;
 
-      // 3. S3 + Gemini 동시 업로드
+      // 3. Gemini용 임시 파일 복사 (백그라운드 업로드가 끝날 때까지 유지)
+      Path geminiCopy =
+          Files.copy(
+              finalPdfFile,
+              Files.createTempFile("gemini-upload-", ".pdf"),
+              StandardCopyOption.REPLACE_EXISTING);
+
+      // 4. S3 + Gemini 동시 시작
       CompletableFuture<String> s3Future =
           CompletableFuture.supplyAsync(() -> s3Service.uploadPdf(finalPdfFile, originalFileName));
 
+      // Gemini 업로드: 완료 시 geminiCopy 정리, 예외는 보존 (캐시에서 join 시 처리)
       CompletableFuture<FileMetadata> geminiFuture =
-          CompletableFuture.supplyAsync(() -> geminiFileService.uploadPdfFromFile(finalPdfFile))
-              .exceptionally(
-                  ex -> {
-                    log.warn("Gemini 사전 업로드 실패 (퀴즈 생성 시 재시도): {}", ex.getMessage());
-                    return null;
+          CompletableFuture.supplyAsync(() -> geminiFileService.uploadPdfFromFile(geminiCopy))
+              .whenComplete(
+                  (metadata, ex) -> {
+                    deleteQuietly(geminiCopy);
+                    if (ex != null) {
+                      log.warn("Gemini 백그라운드 업로드 실패 (퀴즈 생성 시 재시도): {}", ex.getMessage());
+                    } else {
+                      log.info("Gemini 백그라운드 업로드 완료: name={}", metadata.name());
+                    }
                   });
 
       // S3 업로드는 필수 — 실패 시 예외 발생
       String cloudFrontUrl = s3Future.join();
-      // Gemini 업로드는 best-effort: 실패 시 exceptionally에서 null을 반환하므로 예외가 전파되지 않는다.
-      // null인 경우 퀴즈 생성 시점에 Gemini에 재업로드를 시도한다.
-      FileMetadata metadata = geminiFuture.join();
 
-      if (metadata != null) {
-        geminiFileService.cacheFileMetadata(cloudFrontUrl, metadata);
-        log.info("S3 + Gemini 동시 업로드 완료: {}", cloudFrontUrl);
-      } else {
-        log.info("S3 업로드 완료 (Gemini는 퀴즈 생성 시 재시도): {}", cloudFrontUrl);
-      }
+      // Gemini Future를 캐시에 즉시 저장 — 퀴즈 생성 시 awaitCachedFileMetadata()로 대기/조회
+      geminiFileService.cacheUploadFuture(cloudFrontUrl, geminiFuture);
 
+      log.info("S3 업로드 완료, Gemini는 백그라운드 처리 중: {}", cloudFrontUrl);
       return new FileUploadResponse(cloudFrontUrl);
     } catch (Exception e) {
       throw new CustomException(
