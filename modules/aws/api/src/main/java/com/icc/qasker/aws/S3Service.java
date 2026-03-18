@@ -1,13 +1,9 @@
 package com.icc.qasker.aws;
 
-import com.icc.qasker.aws.dto.PresignRequest;
-import com.icc.qasker.aws.dto.PresignResponse;
-import org.springframework.web.multipart.MultipartFile;
+import java.nio.file.Path;
 
 public interface S3Service {
 
-  PresignResponse requestPresign(PresignRequest presignRequest);
-
-  /** 비PDF 파일을 multipart로 수신하여 PDF 변환 후 S3에 업로드한다. */
-  PresignResponse uploadNonPdfFile(MultipartFile file);
+  /** PDF 파일을 S3에 업로드하고 CloudFront URL을 반환한다. */
+  String uploadPdf(Path pdfFile, String originalFileName);
 }

@@ -22,6 +22,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.converter.BeanOutputConverter;
 import org.springframework.ai.google.genai.GoogleGenAiChatOptions;
@@ -42,8 +43,16 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
 
   @Override
   public void generateQuiz(GenerationRequestToAI request) {
-    FileMetadata metadata = geminiFileService.uploadPdf(request.fileUrl());
-    log.info("업로드 완료: name={}, uri={}", metadata.name(), metadata.uri());
+    // Gemini 파일 캐시 확인 → 미스 시 기존 방식으로 업로드
+    FileMetadata metadata =
+        geminiFileService
+            .getCachedFileMetadata(request.fileUrl())
+            .orElseGet(
+                () -> {
+                  log.info("Gemini 파일 캐시 미스, 업로드 시작: {}", request.fileUrl());
+                  return geminiFileService.uploadPdf(request.fileUrl());
+                });
+    log.info("Gemini 파일 준비 완료: name={}, uri={}", metadata.name(), metadata.uri());
 
     var converter = new BeanOutputConverter<>(GeminiResponse.class);
     String jsonSchema = converter.getJsonSchema();
@@ -67,8 +76,7 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
         for (ChunkInfo chunk : chunks) {
           CompletableFuture<Void> future =
               CompletableFuture.runAsync(
-                  () -> processChunkStreaming(request, chunk, finalCacheName, numberCounter),
-                  executor);
+                  () -> processChunk(request, chunk, finalCacheName, numberCounter), executor);
           futures.add(future);
         }
 
@@ -79,11 +87,11 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
       if (cacheName != null) {
         geminiCacheService.deleteCache(cacheName);
       }
-      geminiFileService.deleteFile(metadata.name());
+      // Gemini 파일은 삭제하지 않음 — 48시간 자동 만료, Caffeine 캐시로 재사용 가능
     }
   }
 
-  private void processChunkStreaming(
+  private void processChunk(
       GenerationRequestToAI request,
       ChunkInfo chunk,
       String cacheName,
@@ -92,7 +100,6 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
       log.debug("청크 처리 시작: pages={}, quizCount={}", chunk.referencedPages(), chunk.quizCount());
 
       String userPrompt = UserPrompt.generate(chunk.referencedPages(), chunk.quizCount());
-      StringBuilder buffer = new StringBuilder();
 
       Prompt prompt =
           new Prompt(
@@ -103,40 +110,30 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
                   .responseMimeType("application/json")
                   .build());
 
-      chatModel.stream(prompt)
-          .doOnNext(
-              chatResponse -> {
-                String text = chatResponse.getResult().getOutput().getText();
-                if (text != null) {
-                  buffer.append(text);
-                }
-              })
-          .doOnComplete(
-              () -> {
-                String json = buffer.toString().trim();
-                if (json.isEmpty()) {
-                  log.error("스트리밍 응답이 비어있습니다: pages={}", chunk.referencedPages());
-                  return;
-                }
-                try {
-                  GeminiResponse response = objectMapper.readValue(json, GeminiResponse.class);
-                  processResponse(request, chunk, response, numberCounter);
-                } catch (Exception e) {
-                  log.error(
-                      "응답 JSON 파싱 실패: pages={}, error={}", chunk.referencedPages(), e.getMessage());
-                  request.errorConsumer().accept(e);
-                }
-              })
-          .doOnError(
-              ex -> {
-                log.error("스트리밍 에러: pages={}, error={}", chunk.referencedPages(), ex.getMessage());
-                request
-                    .errorConsumer()
-                    .accept(ex instanceof Exception ? (Exception) ex : new RuntimeException(ex));
-              })
-          .blockLast();
+      ChatResponse chatResponse = chatModel.call(prompt);
+
+      // usage 메타데이터 로깅
+      if (chatResponse.getMetadata() != null && chatResponse.getMetadata().getUsage() != null) {
+        var usage = chatResponse.getMetadata().getUsage();
+        log.info(
+            "Gemini Usage - 입력: {}토큰, 출력: {}토큰, 총: {}토큰, 메타데이터: {}",
+            usage.getPromptTokens(),
+            usage.getCompletionTokens(),
+            usage.getTotalTokens(),
+            chatResponse.getMetadata());
+      }
+
+      String json = chatResponse.getResult().getOutput().getText();
+      if (json == null || json.isBlank()) {
+        log.error("응답이 비어있습니다: pages={}", chunk.referencedPages());
+        return;
+      }
+
+      GeminiResponse response = objectMapper.readValue(json.trim(), GeminiResponse.class);
+      processResponse(request, chunk, response, numberCounter);
     } catch (Exception e) {
       log.error("청크 처리 실패 (계속 진행): pages={}, error={}", chunk.referencedPages(), e.getMessage());
+      request.errorConsumer().accept(e);
     }
   }
 
