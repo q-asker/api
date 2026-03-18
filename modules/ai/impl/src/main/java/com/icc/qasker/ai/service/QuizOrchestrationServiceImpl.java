@@ -113,7 +113,7 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
       ChatResponse chatResponse = chatModel.call(prompt);
 
       // usage 메타데이터 로깅
-      if (chatResponse.getMetadata() != null && chatResponse.getMetadata().getUsage() != null) {
+      if (chatResponse.getMetadata().getUsage() != null) {
         var usage = chatResponse.getMetadata().getUsage();
         log.info(
             "Gemini Usage - 입력: {}토큰, 출력: {}토큰, 총: {}토큰, 메타데이터: {}",
@@ -124,6 +124,7 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
       }
 
       String json = chatResponse.getResult().getOutput().getText();
+      log.info("생성된 퀴즈 원본: {}", json);
       if (json == null || json.isBlank()) {
         log.error("응답이 비어있습니다: pages={}", chunk.referencedPages());
         return;

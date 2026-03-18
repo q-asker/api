@@ -30,6 +30,7 @@ public class FileUploadService {
   /** 파일(PDF, PPT, DOCX)을 PDF로 변환 후 S3와 Gemini에 동시 업로드한다. */
   public FileUploadResponse upload(MultipartFile file) {
     String originalFileName = file.getOriginalFilename();
+
     s3ValidateService.validateFileWithThrowing(
         originalFileName, file.getSize(), file.getContentType());
 
@@ -43,10 +44,13 @@ public class FileUploadService {
 
       // 2. PDF 변환 (이미 PDF이면 그대로 반환)
       String fileName = tempFile.getFileName().toString();
-      if (!fileName.toLowerCase().endsWith(".pdf")) {
+      if (fileName.toLowerCase().endsWith(".pdf")) {
+        pdfFile = tempFile;
+      } else {
         pdfFile = convertService.convertToPdf(tempFile);
       }
 
+      // 이펙티블리 파이널
       final Path finalPdfFile = pdfFile;
 
       // 3. S3 + Gemini 동시 업로드
