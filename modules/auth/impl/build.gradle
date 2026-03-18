@@ -44,4 +44,9 @@ dependencies {
     //     사용자 프로필 조회까지의 흐름을 자동으로 처리
     implementation "org.springframework.boot:spring-boot-starter-oauth2-client"
 
+    // ────────────────────────────────
+    // API 문서 (Swagger)
+    // ────────────────────────────────
+    // SpringDoc OpenAPI: API 문서화 어노테이션(@Operation, @Schema) + Swagger UI 제공
+    implementation "org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.8"
 }
