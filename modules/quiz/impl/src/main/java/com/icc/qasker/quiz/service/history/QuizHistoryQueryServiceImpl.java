@@ -41,11 +41,7 @@ public class QuizHistoryQueryServiceImpl implements QuizHistoryQueryService {
     // IN 쿼리 1번으로 모든 히스토리 일괄 조회
     Map<Long, QuizHistory> historyMap =
         quizHistoryRepository.findAllByProblemSetIdInAndUserId(problemSetIds, userId).stream()
-            .collect(
-                Collectors.toMap(
-                    QuizHistory::getProblemSetId,
-                    h -> h,
-                    (a, b) -> a.getCreatedAt().isAfter(b.getCreatedAt()) ? a : b));
+            .collect(Collectors.toMap(QuizHistory::getProblemSetId, h -> h));
 
     return problemSets.stream()
         .filter(
