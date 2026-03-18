@@ -69,12 +69,12 @@ public class GeminiFileServiceImpl implements GeminiFileService {
       fileMetadataCache.put(pdfUrl, metadata);
       return metadata;
     } catch (IOException e) {
-      log.error("PDF 업로드 중 I/O 오류: {}", e.getMessage());
-      throw new CustomException(ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR);
+      throw new CustomException(
+          ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR, "PDF 업로드 중 I/O 오류", e);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
-      log.error("PDF 처리 대기 중 인터럽트 발생");
-      throw new CustomException(ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR);
+      throw new CustomException(
+          ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR, "PDF 처리 대기 중 인터럽트 발생", e);
     } finally {
       pdfUtils.deleteTempFile(tempFile);
     }
@@ -85,12 +85,12 @@ public class GeminiFileServiceImpl implements GeminiFileService {
     try {
       return doUpload(pdfFile, pdfFile.getFileName().toString());
     } catch (IOException e) {
-      log.error("PDF 업로드 중 I/O 오류: {}", e.getMessage());
-      throw new CustomException(ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR);
+      throw new CustomException(
+          ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR, "PDF 업로드 중 I/O 오류", e);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
-      log.error("PDF 처리 대기 중 인터럽트 발생");
-      throw new CustomException(ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR);
+      throw new CustomException(
+          ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR, "PDF 처리 대기 중 인터럽트 발생", e);
     }
   }
 
@@ -189,15 +189,16 @@ public class GeminiFileServiceImpl implements GeminiFileService {
         return metadata;
       }
       if (STATE_FAILED.equals(state)) {
-        log.error("Gemini 파일 처리 실패: name={}", fileName);
-        throw new CustomException(ExceptionMessage.AI_SERVER_RESPONSE_ERROR);
+        throw new CustomException(
+            ExceptionMessage.AI_SERVER_RESPONSE_ERROR, "Gemini 파일 처리 실패: name=" + fileName);
       }
       Thread.sleep(POLL_INTERVAL_MS);
     }
 
-    log.error(
-        "파일 처리 타임아웃: name={}, {}ms * {} attempts", fileName, POLL_INTERVAL_MS, MAX_POLL_ATTEMPTS);
-    throw new CustomException(ExceptionMessage.AI_SERVER_TIMEOUT);
+    throw new CustomException(
+        ExceptionMessage.AI_SERVER_TIMEOUT,
+        "파일 처리 타임아웃: name=%s, %dms * %d attempts"
+            .formatted(fileName, POLL_INTERVAL_MS, MAX_POLL_ATTEMPTS));
   }
 
   private FileMetadata getFile(String fileName) {
@@ -215,7 +216,6 @@ public class GeminiFileServiceImpl implements GeminiFileService {
       int queryIdx = name.indexOf('?');
       return queryIdx > 0 ? name.substring(0, queryIdx) : name;
     }
-    log.error("파일 이름을 찾을수 없음 url: {}", url);
-    throw new IllegalArgumentException();
+    throw new IllegalArgumentException("파일 이름을 찾을수 없음 url: " + url);
   }
 }

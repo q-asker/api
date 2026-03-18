@@ -70,8 +70,8 @@ public class GeminiCacheServiceImpl implements GeminiCacheService {
 
       return cacheName;
     } catch (Exception e) {
-      log.error("캐시 생성 실패: fileUri={}, error={}", fileUri, e.getMessage());
-      throw new CustomException(ExceptionMessage.AI_SERVER_RESPONSE_ERROR);
+      throw new CustomException(
+          ExceptionMessage.AI_SERVER_RESPONSE_ERROR, "캐시 생성 실패: fileUri=" + fileUri, e);
     }
   }
 

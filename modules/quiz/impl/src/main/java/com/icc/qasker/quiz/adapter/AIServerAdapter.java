@@ -12,11 +12,9 @@ import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import java.util.List;
 import java.util.function.Consumer;
 import lombok.AllArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.ResourceAccessException;
 
-@Slf4j
 @Component
 @AllArgsConstructor
 public class AIServerAdapter {
@@ -56,18 +54,19 @@ public class AIServerAdapter {
       Consumer<Exception> onChunkError,
       Throwable t) {
     if (t instanceof CallNotPermittedException) {
-      log.error("⛔ [CircuitBreaker] AI 서버 요청 차단됨 (Circuit Open): {}", t.getMessage());
-      throw new CustomException(ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR);
+      throw new CustomException(
+          ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR,
+          "CircuitBreaker: AI 서버 요청 차단됨 (Circuit Open)",
+          t);
     }
     if (t instanceof ResourceAccessException) {
-      log.error("⏳ AI 서버 연결 시간 초과/실패: {}", t.getMessage());
-      throw new CustomException(ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR);
+      throw new CustomException(
+          ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR, "AI 서버 연결 시간 초과/실패", t);
     }
     if (t instanceof ClientSideException) {
-      log.error("⏳ 사용자 오류 발생: {}", t.getMessage());
       return;
     }
-    log.error("⚠ AI Server Unknown Error: {}", t.getMessage());
-    throw new CustomException(ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR);
+    throw new CustomException(
+        ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR, "AI Server Unknown Error", t);
   }
 }
