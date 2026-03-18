@@ -23,4 +23,17 @@ dependencies {
     //     application.yml에 spring.ai.google.genai.api-key 설정만으로 자동 연결
     implementation "org.springframework.ai:spring-ai-starter-model-google-genai"
 
+    // Caffeine: Gemini 파일 메타데이터 인메모리 캐시 (업로드 결과 재사용)
+    implementation "com.github.ben-manes.caffeine:caffeine"
+
+    // ────────────────────────────────
+    // 테스트
+    // ────────────────────────────────
+    testImplementation "org.springframework.boot:spring-boot-starter-test"
+    testImplementation platform("org.junit:junit-bom:5.12.2")
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
 }

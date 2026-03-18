@@ -1,5 +1,7 @@
 package com.icc.qasker.ai.service;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.icc.qasker.ai.GeminiFileService;
 import com.icc.qasker.ai.dto.GeminiFileUploadResponse;
 import com.icc.qasker.ai.dto.GeminiFileUploadResponse.FileMetadata;
@@ -10,7 +12,9 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.Map;
+import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.model.google.genai.autoconfigure.chat.GoogleGenAiConnectionProperties;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -32,6 +36,11 @@ public class GeminiFileServiceImpl implements GeminiFileService {
   private final String apiKey;
   private final PdfUtils pdfUtils;
 
+  // Gemini 파일 메타데이터 캐시 (CloudFront URL → FileMetadata)
+  // TTL 47시간: Gemini Files API 48시간 자동 삭제 전 안전 마진
+  private final Cache<String, FileMetadata> fileMetadataCache =
+      Caffeine.newBuilder().maximumSize(1_000).expireAfterWrite(Duration.ofHours(47)).build();
+
   public GeminiFileServiceImpl(
       @Qualifier("geminiFileRestClient") RestClient restClient,
       GoogleGenAiConnectionProperties properties,
@@ -43,22 +52,21 @@ public class GeminiFileServiceImpl implements GeminiFileService {
 
   @Override
   public FileMetadata uploadPdf(String pdfUrl) {
+    // 캐시 확인
+    FileMetadata cached = fileMetadataCache.getIfPresent(pdfUrl);
+    if (cached != null) {
+      log.info("Gemini 파일 캐시 히트: url={}, name={}", pdfUrl, cached.name());
+      return cached;
+    }
+
     Path tempFile = null;
 
     try {
       tempFile = pdfUtils.downloadToTemp(pdfUrl);
-      long fileSize = Files.size(tempFile);
+      FileMetadata metadata = doUpload(tempFile, extractFileName(pdfUrl));
 
-      String uploadSessionUrl = initiateUpload(fileSize, extractFileName(pdfUrl));
-
-      GeminiFileUploadResponse response = uploadBytes(uploadSessionUrl, tempFile, fileSize);
-
-      String fileName = response.file().name();
-
-      log.info("PDF 업로드 완료: name={}, state={}", fileName, response.file().state());
-
-      FileMetadata metadata = waitForProcessing(fileName);
-      log.info("파일 처리 완료: name={}, uri={}", metadata.name(), metadata.uri());
+      // 캐시에 저장
+      fileMetadataCache.put(pdfUrl, metadata);
       return metadata;
     } catch (IOException e) {
       log.error("PDF 업로드 중 I/O 오류: {}", e.getMessage());
@@ -70,6 +78,48 @@ public class GeminiFileServiceImpl implements GeminiFileService {
     } finally {
       pdfUtils.deleteTempFile(tempFile);
     }
+  }
+
+  @Override
+  public FileMetadata uploadPdfFromFile(Path pdfFile) {
+    try {
+      return doUpload(pdfFile, pdfFile.getFileName().toString());
+    } catch (IOException e) {
+      log.error("PDF 업로드 중 I/O 오류: {}", e.getMessage());
+      throw new CustomException(ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      log.error("PDF 처리 대기 중 인터럽트 발생");
+      throw new CustomException(ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR);
+    }
+  }
+
+  @Override
+  public void cacheFileMetadata(String cloudFrontUrl, FileMetadata metadata) {
+    fileMetadataCache.put(cloudFrontUrl, metadata);
+    log.info("Gemini 파일 메타데이터 캐시 저장: url={}, name={}", cloudFrontUrl, metadata.name());
+  }
+
+  @Override
+  public Optional<FileMetadata> getCachedFileMetadata(String cloudFrontUrl) {
+    return Optional.ofNullable(fileMetadataCache.getIfPresent(cloudFrontUrl));
+  }
+
+  private FileMetadata doUpload(Path pdfFile, String displayName)
+      throws IOException, InterruptedException {
+    long fileSize = Files.size(pdfFile);
+
+    String uploadSessionUrl = initiateUpload(fileSize, displayName);
+
+    GeminiFileUploadResponse response = uploadBytes(uploadSessionUrl, pdfFile, fileSize);
+
+    String fileName = response.file().name();
+
+    log.info("PDF 업로드 완료: name={}, state={}", fileName, response.file().state());
+
+    FileMetadata metadata = waitForProcessing(fileName);
+    log.info("파일 처리 완료: name={}, uri={}", metadata.name(), metadata.uri());
+    return metadata;
   }
 
   @Override

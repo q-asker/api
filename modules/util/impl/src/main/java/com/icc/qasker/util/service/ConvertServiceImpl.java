@@ -1,8 +1,8 @@
-package com.icc.qasker.aws.service;
+package com.icc.qasker.util.service;
 
-import com.icc.qasker.aws.ConvertService;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
+import com.icc.qasker.util.ConvertService;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.Set;
