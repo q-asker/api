@@ -36,6 +36,7 @@ public class GlobalExceptionHandler {
 
   @ExceptionHandler(ClientSideException.class)
   public ResponseEntity<CustomErrorResponse> handleClientException(ClientSideException e) {
+    log.warn("클라이언트 요청 오류: {}", e.getMessage());
     return ResponseEntity.status(HttpStatus.BAD_REQUEST)
         .body(new CustomErrorResponse(e.getMessage()));
   }
@@ -52,6 +53,7 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(MaxUploadSizeExceededException.class)
   public ResponseEntity<CustomErrorResponse> handleMaxUploadSizeExceededException(
       MaxUploadSizeExceededException e) {
+    log.warn("파일 업로드 크기 초과: {}", e.getMessage());
     return ResponseEntity.status(ExceptionMessage.FILE_SIZE_EXCEEDED.getHttpStatus())
         .body(new CustomErrorResponse(ExceptionMessage.FILE_SIZE_EXCEEDED.getMessage()));
   }
