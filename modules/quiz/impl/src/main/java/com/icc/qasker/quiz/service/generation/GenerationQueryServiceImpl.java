@@ -45,7 +45,7 @@ public class GenerationQueryServiceImpl implements GenerationQueryService {
                   quizQueryService.getMissedProblems(sessionId, lastEventNumber);
 
               notificationService.sendCreatedMessageWithId(
-                  sessionId, String.valueOf(lastEventNumber + ps.getQuiz().size()), ps);
+                  sessionId, String.valueOf(lastEventNumber + ps.quiz().size()), ps);
 
               // COMPLETE 상태일 경우 완료 메시지 전송
               if (status == COMPLETED) {
