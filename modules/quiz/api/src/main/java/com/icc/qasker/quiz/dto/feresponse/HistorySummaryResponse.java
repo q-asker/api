@@ -5,6 +5,7 @@ import java.time.Instant;
 
 public record HistorySummaryResponse(
     String problemSetId,
+    String title,
     String historyId,
     QuizType quizType,
     int totalCount,

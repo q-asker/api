@@ -22,7 +22,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
         .addMapping("/**")
         .allowedOrigins(
             qAskerProperties.getFrontendDevUrl(), qAskerProperties.getFrontendDeployUrl())
-        .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+        .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
         .allowCredentials(true)
         .maxAge(3600);
   }
