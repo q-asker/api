@@ -33,7 +33,8 @@ public class MockAIServerAdapter extends AIServerAdapter {
       String strategyValue,
       int quizCount,
       List<Integer> referencedPages,
-      Consumer<ProblemSetGeneratedEvent> onLineReceived) {
+      Consumer<ProblemSetGeneratedEvent> onQuestionsReceived,
+      Consumer<Exception> onChunkError) {
     List<Integer> pages =
         (referencedPages == null || referencedPages.isEmpty()) ? List.of(1) : referencedPages;
 
@@ -43,7 +44,7 @@ public class MockAIServerAdapter extends AIServerAdapter {
           Map.of(
               "number",
               i,
-              "content",
+              "title",
               "Mock question " + i,
               "selections",
               List.of(
@@ -60,7 +61,7 @@ public class MockAIServerAdapter extends AIServerAdapter {
     ProblemSetGeneratedEvent event =
         objectMapper.convertValue(
             Map.of("type", "quiz", "quiz", quiz), ProblemSetGeneratedEvent.class);
-    onLineReceived.accept(event);
+    onQuestionsReceived.accept(event);
     try {
       Thread.sleep(10 * 1000);
     } catch (InterruptedException e) {
@@ -75,7 +76,7 @@ public class MockAIServerAdapter extends AIServerAdapter {
           Map.of(
               "number",
               i,
-              "content",
+              "title",
               "Mock question " + i,
               "selections",
               List.of(
@@ -92,7 +93,7 @@ public class MockAIServerAdapter extends AIServerAdapter {
     event =
         objectMapper.convertValue(
             Map.of("type", "quiz", "quiz", quiz), ProblemSetGeneratedEvent.class);
-    onLineReceived.accept(event);
+    onQuestionsReceived.accept(event);
 
     try {
       Thread.sleep(10 * 1000);
@@ -108,7 +109,7 @@ public class MockAIServerAdapter extends AIServerAdapter {
           Map.of(
               "number",
               i,
-              "content",
+              "title",
               "Mock question " + i,
               "selections",
               List.of(
@@ -125,6 +126,6 @@ public class MockAIServerAdapter extends AIServerAdapter {
     event =
         objectMapper.convertValue(
             Map.of("type", "quiz", "quiz", quiz), ProblemSetGeneratedEvent.class);
-    onLineReceived.accept(event);
+    onQuestionsReceived.accept(event);
   }
 }

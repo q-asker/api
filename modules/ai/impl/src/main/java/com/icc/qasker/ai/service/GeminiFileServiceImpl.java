@@ -1,5 +1,7 @@
 package com.icc.qasker.ai.service;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.icc.qasker.ai.GeminiFileService;
 import com.icc.qasker.ai.dto.GeminiFileUploadResponse;
 import com.icc.qasker.ai.dto.GeminiFileUploadResponse.FileMetadata;
@@ -10,7 +12,11 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.model.google.genai.autoconfigure.chat.GoogleGenAiConnectionProperties;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -32,6 +38,12 @@ public class GeminiFileServiceImpl implements GeminiFileService {
   private final String apiKey;
   private final PdfUtils pdfUtils;
 
+  // Gemini 파일 업로드 Future 캐시 (CloudFront URL → CompletableFuture<FileMetadata>)
+  // TTL 47시간: Gemini Files API 48시간 자동 삭제 전 안전 마진
+  // 업로드 진행 중인 Future도 저장되므로 중복 업로드를 방지한다
+  private final Cache<String, CompletableFuture<FileMetadata>> uploadFutureCache =
+      Caffeine.newBuilder().maximumSize(1_000).expireAfterWrite(Duration.ofHours(47)).build();
+
   public GeminiFileServiceImpl(
       @Qualifier("geminiFileRestClient") RestClient restClient,
       GoogleGenAiConnectionProperties properties,
@@ -47,29 +59,77 @@ public class GeminiFileServiceImpl implements GeminiFileService {
 
     try {
       tempFile = pdfUtils.downloadToTemp(pdfUrl);
-      long fileSize = Files.size(tempFile);
+      FileMetadata metadata = doUpload(tempFile, extractFileName(pdfUrl));
 
-      String uploadSessionUrl = initiateUpload(fileSize, extractFileName(pdfUrl));
-
-      GeminiFileUploadResponse response = uploadBytes(uploadSessionUrl, tempFile, fileSize);
-
-      String fileName = response.file().name();
-
-      log.info("PDF 업로드 완료: name={}, state={}", fileName, response.file().state());
-
-      FileMetadata metadata = waitForProcessing(fileName);
-      log.info("파일 처리 완료: name={}, uri={}", metadata.name(), metadata.uri());
+      // 완료된 Future로 캐시에 저장
+      uploadFutureCache.put(pdfUrl, CompletableFuture.completedFuture(metadata));
       return metadata;
     } catch (IOException e) {
-      log.error("PDF 업로드 중 I/O 오류: {}", e.getMessage());
-      throw new CustomException(ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR);
+      throw new CustomException(
+          ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR, "PDF 업로드 중 I/O 오류", e);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
-      log.error("PDF 처리 대기 중 인터럽트 발생");
-      throw new CustomException(ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR);
+      throw new CustomException(
+          ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR, "PDF 처리 대기 중 인터럽트 발생", e);
     } finally {
       pdfUtils.deleteTempFile(tempFile);
     }
+  }
+
+  @Override
+  public FileMetadata uploadPdfFromFile(Path pdfFile) {
+    try {
+      return doUpload(pdfFile, pdfFile.getFileName().toString());
+    } catch (IOException e) {
+      throw new CustomException(
+          ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR, "PDF 업로드 중 I/O 오류", e);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new CustomException(
+          ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR, "PDF 처리 대기 중 인터럽트 발생", e);
+    }
+  }
+
+  @Override
+  public void cacheUploadFuture(String cloudFrontUrl, CompletableFuture<FileMetadata> future) {
+    uploadFutureCache.put(cloudFrontUrl, future);
+    log.info("Gemini 업로드 Future 캐시 저장: url={}", cloudFrontUrl);
+  }
+
+  @Override
+  public Optional<FileMetadata> awaitCachedFileMetadata(String cloudFrontUrl) {
+    CompletableFuture<FileMetadata> future = uploadFutureCache.getIfPresent(cloudFrontUrl);
+    if (future == null) {
+      return Optional.empty();
+    }
+
+    try {
+      FileMetadata metadata = future.join();
+      log.info("Gemini 파일 캐시 히트: url={}, name={}", cloudFrontUrl, metadata.name());
+      return Optional.of(metadata);
+    } catch (CompletionException e) {
+      // 업로드 실패 — 캐시에서 제거하여 재시도 가능하게 함
+      uploadFutureCache.invalidate(cloudFrontUrl);
+      log.warn("캐시된 Gemini 업로드 실패, 캐시 제거: url={}, error={}", cloudFrontUrl, e.getMessage());
+      return Optional.empty();
+    }
+  }
+
+  private FileMetadata doUpload(Path pdfFile, String displayName)
+      throws IOException, InterruptedException {
+    long fileSize = Files.size(pdfFile);
+
+    String uploadSessionUrl = initiateUpload(fileSize, displayName);
+
+    GeminiFileUploadResponse response = uploadBytes(uploadSessionUrl, pdfFile, fileSize);
+
+    String fileName = response.file().name();
+
+    log.info("PDF 업로드 완료: name={}, state={}", fileName, response.file().state());
+
+    FileMetadata metadata = waitForProcessing(fileName);
+    log.info("파일 처리 완료: name={}, uri={}", metadata.name(), metadata.uri());
+    return metadata;
   }
 
   @Override
@@ -139,15 +199,16 @@ public class GeminiFileServiceImpl implements GeminiFileService {
         return metadata;
       }
       if (STATE_FAILED.equals(state)) {
-        log.error("Gemini 파일 처리 실패: name={}", fileName);
-        throw new CustomException(ExceptionMessage.AI_SERVER_RESPONSE_ERROR);
+        throw new CustomException(
+            ExceptionMessage.AI_SERVER_RESPONSE_ERROR, "Gemini 파일 처리 실패: name=" + fileName);
       }
       Thread.sleep(POLL_INTERVAL_MS);
     }
 
-    log.error(
-        "파일 처리 타임아웃: name={}, {}ms * {} attempts", fileName, POLL_INTERVAL_MS, MAX_POLL_ATTEMPTS);
-    throw new CustomException(ExceptionMessage.AI_SERVER_TIMEOUT);
+    throw new CustomException(
+        ExceptionMessage.AI_SERVER_TIMEOUT,
+        "파일 처리 타임아웃: name=%s, %dms * %d attempts"
+            .formatted(fileName, POLL_INTERVAL_MS, MAX_POLL_ATTEMPTS));
   }
 
   private FileMetadata getFile(String fileName) {
@@ -165,7 +226,6 @@ public class GeminiFileServiceImpl implements GeminiFileService {
       int queryIdx = name.indexOf('?');
       return queryIdx > 0 ? name.substring(0, queryIdx) : name;
     }
-    log.error("파일 이름을 찾을수 없음 url: {}", url);
-    throw new IllegalArgumentException();
+    throw new IllegalArgumentException("파일 이름을 찾을수 없음 url: " + url);
   }
 }

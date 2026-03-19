@@ -4,8 +4,7 @@ import com.google.genai.types.Content;
 import com.google.genai.types.FileData;
 import com.google.genai.types.Part;
 import com.icc.qasker.ai.GeminiCacheService;
-import com.icc.qasker.ai.prompt.quiz.common.QuizType;
-import com.icc.qasker.ai.prompt.quiz.system.SystemPrompt;
+import com.icc.qasker.ai.prompt.system.QuizType;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import java.time.Duration;
@@ -33,7 +32,7 @@ public class GeminiCacheServiceImpl implements GeminiCacheService {
   }
 
   @Override
-  public String createCache(String fileUri, String strategyValue, String jsonSchema) {
+  public String createCache(String fileUri, String strategyValue) {
     try {
       Content pdfContent =
           Content.builder()
@@ -46,7 +45,7 @@ public class GeminiCacheServiceImpl implements GeminiCacheService {
               .build();
 
       QuizType strategy = QuizType.valueOf(strategyValue);
-      String systemPrompt = SystemPrompt.generate(strategy, jsonSchema);
+      String systemPrompt = strategy.getGuideLine();
       Content systemInstruction =
           Content.builder().parts(List.of(Part.builder().text(systemPrompt).build())).build();
 
@@ -70,8 +69,8 @@ public class GeminiCacheServiceImpl implements GeminiCacheService {
 
       return cacheName;
     } catch (Exception e) {
-      log.error("캐시 생성 실패: fileUri={}, error={}", fileUri, e.getMessage());
-      throw new CustomException(ExceptionMessage.AI_SERVER_RESPONSE_ERROR);
+      throw new CustomException(
+          ExceptionMessage.AI_SERVER_RESPONSE_ERROR, "캐시 생성 실패: fileUri=" + fileUri, e);
     }
   }
 

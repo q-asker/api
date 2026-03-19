@@ -29,10 +29,11 @@ public class QuizCommandServiceImpl implements QuizCommandService {
 
   @Override
   public Long initProblemSet(
-      String userId, String sessionId, Integer totalQuizCount, QuizType quizType) {
+      String userId, String sessionId, String title, Integer totalQuizCount, QuizType quizType) {
     ProblemSet problemSet =
         ProblemSet.builder()
             .sessionId(sessionId)
+            .title(title)
             .userId(userId)
             .totalQuizCount(totalQuizCount)
             .quizType(quizType)

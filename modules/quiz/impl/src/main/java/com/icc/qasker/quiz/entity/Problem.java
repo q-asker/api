@@ -3,15 +3,15 @@ package com.icc.qasker.quiz.entity;
 import static jakarta.persistence.FetchType.LAZY;
 
 import com.icc.qasker.global.entity.CreatedAt;
-import jakarta.persistence.CascadeType;
+import com.icc.qasker.quiz.converter.IntegerListConverter;
+import com.icc.qasker.quiz.converter.SelectionListConverter;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.MapsId;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.OneToOne;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.AccessLevel;
@@ -37,20 +37,27 @@ public class Problem extends CreatedAt {
   @JoinColumn(name = "problem_set_id")
   private ProblemSet problemSet;
 
-  @OneToMany(mappedBy = "problem", cascade = CascadeType.ALL, orphanRemoval = true)
-  private List<Selection> selections;
-
-  @OneToOne(mappedBy = "problem", cascade = CascadeType.ALL, orphanRemoval = true)
-  private Explanation explanation;
-
-  @OneToMany(mappedBy = "problem", cascade = CascadeType.ALL, orphanRemoval = true)
+  @Convert(converter = SelectionListConverter.class)
+  @Column(columnDefinition = "TEXT", nullable = false)
   @Builder.Default
-  private List<ReferencedPage> referencedPages = new ArrayList<>();
+  private List<Selection> selections = new ArrayList<>();
 
-  public void bindChildren(
-      List<Selection> selections, Explanation explanation, List<ReferencedPage> referencedPages) {
-    this.selections = selections;
-    this.explanation = explanation;
-    this.referencedPages = referencedPages;
+  @Column(columnDefinition = "TEXT")
+  private String explanationContent;
+
+  @Convert(converter = IntegerListConverter.class)
+  @Column(columnDefinition = "TEXT", nullable = false)
+  @Builder.Default
+  private List<Integer> referencedPages = new ArrayList<>();
+
+  // Phase 1: 문제 생성 시 선택지와 참조 페이지를 바인딩
+  public void bindQuizData(List<Selection> selections, List<Integer> referencedPages) {
+    this.selections = selections == null ? List.of() : List.copyOf(selections);
+    this.referencedPages = referencedPages == null ? List.of() : List.copyOf(referencedPages);
+  }
+
+  // Phase 2: 해설 후속 저장 시 호출
+  public void updateExplanation(String explanationContent) {
+    this.explanationContent = explanationContent;
   }
 }

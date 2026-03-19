@@ -18,6 +18,7 @@ public class ProblemSetGeneratedEvent {
     private String title;
     private List<SelectionsOfAI> selections;
     private String explanation;
+    private String quizExplanation;
     private List<Integer> referencedPages;
 
     @Getter

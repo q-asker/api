@@ -10,14 +10,12 @@ import com.icc.qasker.auth.util.NicknameGenerateUtil;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import lombok.AllArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Component;
 
-@Slf4j
 @Component
 @AllArgsConstructor
 public class PrincipalOAuth2UserService extends DefaultOAuth2UserService {
@@ -34,8 +32,8 @@ public class PrincipalOAuth2UserService extends DefaultOAuth2UserService {
     } else if (registrationId.equals("kakao")) {
       oAuth2UserInfo = new KakaoUserInfo(oAuth2User.getAttributes());
     } else {
-      log.error("Unsupported OAuth2 provider: {}", registrationId);
-      throw new CustomException(ExceptionMessage.DEFAULT_ERROR);
+      throw new CustomException(
+          ExceptionMessage.DEFAULT_ERROR, "Unsupported OAuth2 provider: " + registrationId);
     }
     String userId = oAuth2UserInfo.getProvider() + "_" + oAuth2UserInfo.getProviderId();
     String provider = oAuth2UserInfo.getProvider();

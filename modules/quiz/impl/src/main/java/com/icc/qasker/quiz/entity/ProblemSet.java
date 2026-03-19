@@ -32,6 +32,9 @@ public class ProblemSet extends CreatedAt {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
+  @Column(length = 100)
+  private String title;
+
   private String userId;
 
   @OneToMany(mappedBy = "problemSet", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -59,5 +62,9 @@ public class ProblemSet extends CreatedAt {
       throw new IllegalArgumentException("ProblemSet status must not be null");
     }
     this.generationStatus = status;
+  }
+
+  public void updateTitle(String title) {
+    this.title = title;
   }
 }

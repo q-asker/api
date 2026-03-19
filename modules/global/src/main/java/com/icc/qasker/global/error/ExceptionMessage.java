@@ -26,6 +26,8 @@ public enum ExceptionMessage {
   // ## QUIZ ISSUE
   // ExplanationService.java
   PROBLEM_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 문제를 찾을 수 없습니다."),
+  QUIZ_HISTORY_NOT_FOUND(HttpStatus.NOT_FOUND, "퀴즈 히스토리를 찾을 수 없습니다."),
+  QUIZ_HISTORY_FORBIDDEN(HttpStatus.FORBIDDEN, "해당 히스토리에 접근 권한이 없습니다."),
 
   // ## AI ISSUE
   // GenerationService.java
@@ -53,7 +55,11 @@ public enum ExceptionMessage {
 
   // ## POST-ISSUE
   POST_NOT_FOUND(HttpStatus.NOT_FOUND, "게시글을 찾을 수 없습니다."),
-  ALREADY_ANSWERED(HttpStatus.FORBIDDEN, "답변이 달린 글은 수정 및 삭제가 불가능합니다.");
+  ALREADY_ANSWERED(HttpStatus.FORBIDDEN, "답변이 달린 글은 수정 및 삭제가 불가능합니다."),
+
+  // ## CONVERTER
+  FAIL_CONVERT(HttpStatus.INTERNAL_SERVER_ERROR, "컨버팅에 실패했습니다.");
+
   private final HttpStatus httpStatus;
   private final String message;
 }

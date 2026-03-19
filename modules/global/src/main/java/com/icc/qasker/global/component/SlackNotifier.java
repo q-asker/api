@@ -19,9 +19,15 @@ public class SlackNotifier {
 
   @Async
   public void asyncNotifyText(String text) {
-    boolean enabled = slackProperties.isEnabled();
-    String webhookUrl = slackProperties.getWebhookUrlNotify();
-    if (!enabled || webhookUrl == null || webhookUrl.isBlank()) {
+    sendSlack(
+        slackProperties.getWebhookUrlNotify(),
+        slackProperties.getUsernameNotify(),
+        slackProperties.getIconNotify(),
+        text);
+  }
+
+  private void sendSlack(String webhookUrl, String username, String icon, String text) {
+    if (!slackProperties.isEnabled() || webhookUrl == null || webhookUrl.isBlank()) {
       return;
     }
 
@@ -30,9 +36,9 @@ public class SlackNotifier {
             "text",
             text,
             "username",
-            slackProperties.getUsernameNotify(),
-            slackProperties.getIconNotify().startsWith("http") ? "icon_url" : "icon_emoji",
-            slackProperties.getIconNotify());
+            username,
+            icon.startsWith("http") ? "icon_url" : "icon_emoji",
+            icon);
 
     try {
       restClientBuilder

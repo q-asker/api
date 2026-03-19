@@ -12,11 +12,9 @@ import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import java.util.List;
 import java.util.function.Consumer;
 import lombok.AllArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.ResourceAccessException;
 
-@Slf4j
 @Component
 @AllArgsConstructor
 public class AIServerAdapter {
@@ -29,36 +27,46 @@ public class AIServerAdapter {
       String strategyValue,
       int quizCount,
       List<Integer> referencedPages,
-      Consumer<ProblemSetGeneratedEvent> onLineReceived) {
+      Consumer<ProblemSetGeneratedEvent> onQuestionsReceived,
+      Consumer<Exception> onChunkError) {
     quizOrchestrationService.generateQuiz(
-        new GenerationRequestToAI(
-            fileUrl,
-            strategyValue,
-            quizCount,
-            referencedPages,
-            (problemSet) -> {
-              ProblemSetGeneratedEvent event = AIProblemSetMapper.toEvent(problemSet);
-              onLineReceived.accept(event);
-            }));
+        GenerationRequestToAI.builder()
+            .fileUrl(fileUrl)
+            .strategyValue(strategyValue)
+            .quizCount(quizCount)
+            .referencePages(referencedPages)
+            .questionsConsumer(
+                problemSet -> {
+                  ProblemSetGeneratedEvent event = AIProblemSetMapper.toEvent(problemSet);
+                  onQuestionsReceived.accept(event);
+                })
+            .errorConsumer(onChunkError)
+            .build());
   }
 
+  @SuppressWarnings("unused")
   private void fallback(
-      GenerationRequestToAI request,
-      Consumer<ProblemSetGeneratedEvent> onLineReceived,
+      String fileUrl,
+      String strategyValue,
+      int quizCount,
+      List<Integer> referencedPages,
+      Consumer<ProblemSetGeneratedEvent> onQuestionsReceived,
+      Consumer<Exception> onChunkError,
       Throwable t) {
     if (t instanceof CallNotPermittedException) {
-      log.error("⛔ [CircuitBreaker] AI 서버 요청 차단됨 (Circuit Open): {}", t.getMessage());
-      throw new CustomException(ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR);
+      throw new CustomException(
+          ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR,
+          "CircuitBreaker: AI 서버 요청 차단됨 (Circuit Open)",
+          t);
     }
-    if (t instanceof ResourceAccessException e) {
-      log.error("⏳ AI 서버 연결 시간 초과/실패: {}", t.getMessage());
-      throw new CustomException(ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR);
+    if (t instanceof ResourceAccessException) {
+      throw new CustomException(
+          ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR, "AI 서버 연결 시간 초과/실패", t);
     }
-    if (t instanceof ClientSideException e) {
-      log.error("⏳ 사용자 오류 발생: {}", t.getMessage());
+    if (t instanceof ClientSideException) {
       return;
     }
-    log.error("⚠ AI Server Unknown Error: {}", t.getMessage());
-    throw new CustomException(ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR);
+    throw new CustomException(
+        ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR, "AI Server Unknown Error", t);
   }
 }
