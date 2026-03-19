@@ -7,6 +7,7 @@ import java.util.List;
 public record ProblemSetResponse(
     String sessionId,
     String problemSetId,
+    String title,
     GenerationStatus generationStatus,
     QuizType quizType,
     Integer totalCount,

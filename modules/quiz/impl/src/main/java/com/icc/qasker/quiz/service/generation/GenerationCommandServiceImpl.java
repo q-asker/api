@@ -118,6 +118,7 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
                 new ProblemSetResponse(
                     sessionId,
                     hashUtil.encode(problemSetId),
+                    request.title(),
                     GENERATING,
                     QuizType.valueOf(request.quizType().name()),
                     request.quizCount(),

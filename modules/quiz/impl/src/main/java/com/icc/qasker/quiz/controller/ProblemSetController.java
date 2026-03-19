@@ -7,6 +7,7 @@ import com.icc.qasker.quiz.dto.feresponse.ChangeTitleResponse;
 import com.icc.qasker.quiz.dto.feresponse.ProblemSetResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -35,7 +36,7 @@ public class ProblemSetController {
   public ResponseEntity<ChangeTitleResponse> changeProblemSet(
       @UserId String userId,
       @PathVariable("id") String problemSetId,
-      @RequestBody ChangeTitleRequest request) {
+      @Valid @RequestBody ChangeTitleRequest request) {
     return ResponseEntity.ok(
         problemSetService.changeProblemSetTitle(userId, problemSetId, request));
   }
