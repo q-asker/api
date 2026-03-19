@@ -9,7 +9,7 @@ import com.icc.qasker.ai.dto.ChunkInfo;
 import com.icc.qasker.ai.dto.GeminiFileUploadResponse.FileMetadata;
 import com.icc.qasker.ai.dto.GenerationRequestToAI;
 import com.icc.qasker.ai.mapper.GeminiQuestionMapper;
-import com.icc.qasker.ai.prompt.quiz.user.UserPrompt;
+import com.icc.qasker.ai.prompt.user.UserPrompt;
 import com.icc.qasker.ai.structure.GeminiQuestion;
 import com.icc.qasker.ai.structure.GeminiResponse;
 import com.icc.qasker.ai.util.ChunkSplitter;
@@ -35,6 +35,8 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
 
   private static final int MAX_CHUNK_COUNT = 10;
   private static final int MAX_SELECTION_COUNT = 4;
+  private static final String RESPONSE_JSON_SCHEMA =
+      new BeanOutputConverter<>(GeminiResponse.class).getJsonSchema();
 
   private final ObjectMapper objectMapper;
   private final GeminiFileService geminiFileService;
@@ -54,13 +56,9 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
                 });
     log.info("Gemini 파일 준비 완료: name={}, uri={}", metadata.name(), metadata.uri());
 
-    var converter = new BeanOutputConverter<>(GeminiResponse.class);
-    String jsonSchema = converter.getJsonSchema();
-
     String cacheName = null;
     try {
-      cacheName =
-          geminiCacheService.createCache(metadata.uri(), request.strategyValue(), jsonSchema);
+      cacheName = geminiCacheService.createCache(metadata.uri(), request.strategyValue());
       log.info("캐시 생성 완료: cacheName={}", cacheName);
 
       List<ChunkInfo> chunks =
@@ -108,6 +106,7 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
                   .useCachedContent(true)
                   .cachedContentName(cacheName)
                   .responseMimeType("application/json")
+                  .responseSchema(RESPONSE_JSON_SCHEMA)
                   .build());
 
       ChatResponse chatResponse = chatModel.call(prompt);

@@ -29,16 +29,23 @@ public class ExplanationMarkdownBuilder {
       sb.append("\n\n---\n\n");
     }
 
-    // 2. 선택지별 해설 (셔플된 순서대로)
+    // 2. 선택지별 해설
     if (quiz.getSelections() != null) {
+      // 정답 먼저
       for (SelectionsOfAI sel : quiz.getSelections()) {
-        String header = sel.isCorrect() ? "## 정답 선택지" : "## 오답 선택지";
-        sb.append(header).append("\n\n");
-        sb.append("*").append(sel.getContent()).append("*\n\n");
-        if (hasText(sel.getExplanation())) {
-          sb.append(sel.getExplanation().strip());
-          sb.append("\n\n---\n\n");
+        if (!sel.isCorrect()) {
+          continue;
         }
+        sb.append("## 정답 선택지").append("\n\n");
+        appendSelectionExp(sb, sel);
+      }
+      // 그 뒤 오답
+      for (SelectionsOfAI sel : quiz.getSelections()) {
+        if (sel.isCorrect()) {
+          continue;
+        }
+        sb.append("## 오답 선택지").append("\n\n");
+        appendSelectionExp(sb, sel);
       }
     }
 
@@ -48,6 +55,14 @@ public class ExplanationMarkdownBuilder {
       result = result.substring(0, result.length() - "---\n\n".length());
     }
     return result.stripTrailing();
+  }
+
+  private static void appendSelectionExp(StringBuilder sb, SelectionsOfAI sel) {
+    sb.append("*").append(sel.getContent()).append("*\n\n");
+    if (hasText(sel.getExplanation())) {
+      sb.append(sel.getExplanation().strip());
+      sb.append("\n\n---\n\n");
+    }
   }
 
   private static boolean hasText(String s) {

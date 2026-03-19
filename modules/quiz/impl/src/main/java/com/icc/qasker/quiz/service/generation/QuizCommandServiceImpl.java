@@ -2,7 +2,6 @@ package com.icc.qasker.quiz.service.generation;
 
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
-import com.icc.qasker.quiz.ExplanationStatus;
 import com.icc.qasker.quiz.GenerationStatus;
 import com.icc.qasker.quiz.QuizCommandService;
 import com.icc.qasker.quiz.dto.airesponse.ProblemSetGeneratedEvent.QuizGeneratedFromAI;
@@ -65,14 +64,5 @@ public class QuizCommandServiceImpl implements QuizCommandService {
 
     List<Problem> savedProblems = problemRepository.saveAll(problems);
     return savedProblems.stream().map(problem -> problem.getId().getNumber()).toList();
-  }
-
-  @Override
-  public void updateExplanationStatus(Long problemSetId, ExplanationStatus status) {
-    ProblemSet problemSet =
-        problemSetRepository
-            .findById(problemSetId)
-            .orElseThrow(() -> new CustomException(ExceptionMessage.PROBLEM_SET_NOT_FOUND));
-    problemSet.updateExplanationStatus(status);
   }
 }

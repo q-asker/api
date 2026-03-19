@@ -1,8 +1,8 @@
-package com.icc.qasker.ai.prompt.quiz.common;
+package com.icc.qasker.ai.prompt.system;
 
-import com.icc.qasker.ai.prompt.quiz.blank.BlankGuideLine;
-import com.icc.qasker.ai.prompt.quiz.multiple.MultipleGuideLine;
-import com.icc.qasker.ai.prompt.quiz.ox.OXGuideLine;
+import com.icc.qasker.ai.prompt.system.blank.BlankGuideLine;
+import com.icc.qasker.ai.prompt.system.multiple.MultipleGuideLine;
+import com.icc.qasker.ai.prompt.system.ox.OXGuideLine;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 

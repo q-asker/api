@@ -11,6 +11,4 @@ public interface QuizCommandService {
   void updateStatus(Long problemSetId, GenerationStatus status);
 
   List<Integer> saveBatch(List<QuizGeneratedFromAI> generatedProblems, Long problemSetId);
-
-  void updateExplanationStatus(Long problemSetId, ExplanationStatus status);
 }

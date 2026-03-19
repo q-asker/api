@@ -5,7 +5,6 @@ import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.quiz.GenerationStatus;
 import com.icc.qasker.quiz.QuizQueryService;
-import com.icc.qasker.quiz.dto.feresponse.ExplanationStatusResponse;
 import com.icc.qasker.quiz.dto.feresponse.ProblemSetResponse;
 import com.icc.qasker.quiz.dto.feresponse.ProblemSetResponse.QuizForFe;
 import com.icc.qasker.quiz.entity.Problem;
@@ -72,18 +71,8 @@ public class QuizQueryServiceImpl implements QuizQueryService {
         sessionId,
         hashUtil.encode(problemSetId),
         problemSet.getGenerationStatus(),
-        problemSet.getExplanationStatus(),
         problemSet.getQuizType(),
         problemSet.getTotalQuizCount(),
         quizForFeList);
-  }
-
-  @Override
-  public ExplanationStatusResponse getExplanationStatus(String sessionId) {
-    ProblemSet problemSet =
-        problemSetRepository
-            .findFirstBySessionIdOrderByCreatedAtDesc(sessionId)
-            .orElseThrow(() -> new CustomException(ExceptionMessage.PROBLEM_SET_NOT_FOUND));
-    return new ExplanationStatusResponse(problemSet.getExplanationStatus());
   }
 }

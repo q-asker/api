@@ -1,6 +1,5 @@
 package com.icc.qasker.quiz;
 
-import com.icc.qasker.quiz.dto.feresponse.ExplanationStatusResponse;
 import com.icc.qasker.quiz.dto.feresponse.ProblemSetResponse;
 import com.icc.qasker.quiz.view.QuizView;
 import java.util.List;
@@ -13,6 +12,4 @@ public interface QuizQueryService {
   Optional<GenerationStatus> getGenerationStatusBySessionId(String sessionId);
 
   ProblemSetResponse getMissedProblems(String sessionId, int lastQuizNumber);
-
-  ExplanationStatusResponse getExplanationStatus(String sessionId);
 }

@@ -8,7 +8,6 @@ import com.icc.qasker.global.component.HashUtil;
 import com.icc.qasker.global.component.SlackNotifier;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
-import com.icc.qasker.quiz.ExplanationStatus;
 import com.icc.qasker.quiz.GenerationCommandService;
 import com.icc.qasker.quiz.GenerationStatus;
 import com.icc.qasker.quiz.QuizCommandService;
@@ -28,7 +27,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -82,11 +80,8 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
       String sessionId, Long problemSetId, GenerationRequest request) {
 
     AtomicInteger atomicGeneratedCount = new AtomicInteger(0);
-    AtomicBoolean explanationFailed = new AtomicBoolean(false);
 
     try {
-      quizCommandService.updateExplanationStatus(problemSetId, ExplanationStatus.GENERATING);
-
       aiServerAdapter.streamRequest(
           request.uploadedUrl(),
           request.quizType().name(),
@@ -120,15 +115,13 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
                     sessionId,
                     hashUtil.encode(problemSetId),
                     GENERATING,
-                    ExplanationStatus.GENERATING,
                     QuizType.valueOf(request.quizType().name()),
                     request.quizCount(),
                     quizForFeList));
           },
-          // 2. error 콜백: 해설 실패 플래그 설정
+          // 2. error 콜백
           ex -> {
             log.error("청크 에러: {}", ex.getMessage());
-            explanationFailed.set(true);
           });
     } catch (Exception e) {
       log.error("생성 중 오류 발생: sessionId={}", sessionId, e);
@@ -136,14 +129,7 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
       return;
     }
 
-    // ExplanationStatus 최종 결정
     int generatedCount = atomicGeneratedCount.get();
-    if (generatedCount > 0) {
-      quizCommandService.updateExplanationStatus(
-          problemSetId,
-          explanationFailed.get() ? ExplanationStatus.FAILED : ExplanationStatus.COMPLETED);
-    }
-
     if (generatedCount == 0) {
       finalizeError(sessionId, problemSetId, ExceptionMessage.AI_GENERATION_FAILED.getMessage());
     } else if (generatedCount == request.quizCount()) {

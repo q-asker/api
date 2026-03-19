@@ -13,7 +13,7 @@ AI 기반 퀴즈 자동 생성 및 관리 플랫폼의 백엔드 API 서버. 사
 - **ORM**: Spring Data JPA + Hibernate
 - **DB**: MySQL
 - **인증**: Auth0 Java JWT 4.5.0, Spring OAuth2 Client (Google, Kakao)
-- **AI**: Spring AI 1.1.2 + Google Gemini
+- **AI**: Spring AI 1.1.2 + Google Gemini (gemini-3-flash-preview)
 - **클라우드**: AWS SDK 2.27.24 (S3, CloudFront)
 - **메시징**: Spring Kafka
 - **API 문서**: SpringDoc OpenAPI 2.8.8 (Swagger UI)

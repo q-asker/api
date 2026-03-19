@@ -4,13 +4,10 @@ import com.icc.qasker.global.component.HashUtil;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.quiz.ExplanationService;
-import com.icc.qasker.quiz.ExplanationStatus;
 import com.icc.qasker.quiz.dto.feresponse.ExplanationResponse;
 import com.icc.qasker.quiz.dto.feresponse.ResultResponse;
 import com.icc.qasker.quiz.entity.Problem;
-import com.icc.qasker.quiz.entity.ProblemSet;
 import com.icc.qasker.quiz.repository.ProblemRepository;
-import com.icc.qasker.quiz.repository.ProblemSetRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -23,17 +20,10 @@ public class ExplanationServiceImpl implements ExplanationService {
 
   private final HashUtil hashUtil;
   private final ProblemRepository problemRepository;
-  private final ProblemSetRepository problemSetRepository;
 
   @Override
   public ExplanationResponse getExplanationByProblemSetId(String problemSetId) {
     long id = hashUtil.decode(problemSetId);
-
-    ProblemSet problemSet =
-        problemSetRepository
-            .findById(id)
-            .orElseThrow(() -> new CustomException(ExceptionMessage.PROBLEM_SET_NOT_FOUND));
-    ExplanationStatus status = problemSet.getExplanationStatus();
 
     List<Problem> problems = problemRepository.findByIdProblemSetId(id);
     if (problems.isEmpty()) {
@@ -53,6 +43,6 @@ public class ExplanationServiceImpl implements ExplanationService {
                 })
             .toList();
 
-    return new ExplanationResponse(status, results);
+    return new ExplanationResponse(results);
   }
 }
