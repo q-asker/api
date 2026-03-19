@@ -5,6 +5,7 @@ import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.quiz.ProblemSetService;
 import com.icc.qasker.quiz.dto.ferequest.ChangeTitleRequest;
+import com.icc.qasker.quiz.dto.feresponse.ChangeTitleResponse;
 import com.icc.qasker.quiz.dto.feresponse.ProblemSetResponse;
 import com.icc.qasker.quiz.entity.ProblemSet;
 import com.icc.qasker.quiz.mapper.ProblemSetResponseMapper;
@@ -32,13 +33,14 @@ public class ProblemSetServiceImpl implements ProblemSetService {
 
   @Override
   @Transactional
-  public void changeProblemSetTitle(
+  public ChangeTitleResponse changeProblemSetTitle(
       String userId, String problemSetId, ChangeTitleRequest request) {
     ProblemSet ps = getProblemSetEntityByEncoded(problemSetId);
     if (!ps.getUserId().equals(userId)) {
       throw new CustomException(ExceptionMessage.UNAUTHORIZED);
     }
     ps.updateTitle(request.title());
+    return new ChangeTitleResponse(ps.getTitle());
   }
 
   private ProblemSet getProblemSetEntityByEncoded(String encodedId) {

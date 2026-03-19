@@ -3,6 +3,7 @@ package com.icc.qasker.quiz.controller;
 import com.icc.qasker.global.annotation.UserId;
 import com.icc.qasker.quiz.ProblemSetService;
 import com.icc.qasker.quiz.dto.ferequest.ChangeTitleRequest;
+import com.icc.qasker.quiz.dto.feresponse.ChangeTitleResponse;
 import com.icc.qasker.quiz.dto.feresponse.ProblemSetResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -31,11 +32,11 @@ public class ProblemSetController {
 
   @Operation(summary = "문제세트 제목을 변경한다")
   @PatchMapping("/{id}/title")
-  public ResponseEntity<Void> changeProblemSet(
+  public ResponseEntity<ChangeTitleResponse> changeProblemSet(
       @UserId String userId,
       @PathVariable("id") String problemSetId,
       @RequestBody ChangeTitleRequest request) {
-    problemSetService.changeProblemSetTitle(userId, problemSetId, request);
-    return ResponseEntity.ok().build();
+    return ResponseEntity.ok(
+        problemSetService.changeProblemSetTitle(userId, problemSetId, request));
   }
 }

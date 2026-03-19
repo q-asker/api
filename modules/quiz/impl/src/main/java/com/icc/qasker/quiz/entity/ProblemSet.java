@@ -32,6 +32,7 @@ public class ProblemSet extends CreatedAt {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
+  @Column(length = 100)
   private String title;
 
   private String userId;
