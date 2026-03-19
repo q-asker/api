@@ -1,8 +1,8 @@
-package com.icc.qasker.aws.service;
+package com.icc.qasker.util.service;
 
-import com.icc.qasker.aws.ConvertService;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
+import com.icc.qasker.util.ConvertService;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.Set;
@@ -31,14 +31,14 @@ public class ConvertServiceImpl implements ConvertService {
   public Path convertToPdf(Path inputFile) {
     String fileName = inputFile.getFileName().toString();
 
-    // 이미 PDF 파일이면 변환하지 않음
-    if (fileName.toLowerCase().endsWith(".pdf")) {
-      log.info("이미 PDF 파일이므로 변환을 건너뜁니다: {}", fileName);
+    String extension = fileName.substring(fileName.lastIndexOf(".")).toLowerCase();
+
+    // 이미 PDF이면 변환 없이 그대로 반환
+    if (".pdf".equals(extension)) {
       return inputFile;
     }
 
     // 지원하지 않는 확장자 검증
-    String extension = fileName.substring(fileName.lastIndexOf(".")).toLowerCase();
     if (!SUPPORTED_EXTENSIONS.contains(extension)) {
       throw new CustomException(ExceptionMessage.UNSUPPORTED_FILE_TYPE);
     }
@@ -54,8 +54,7 @@ public class ConvertServiceImpl implements ConvertService {
     } catch (CustomException e) {
       throw e;
     } catch (Exception e) {
-      log.error("PDF 변환 중 오류 발생: {}", inputFile, e);
-      throw new CustomException(ExceptionMessage.CONVERT_FAILED);
+      throw new CustomException(ExceptionMessage.CONVERT_FAILED, "PDF 변환 중 오류: " + inputFile, e);
     }
   }
 }

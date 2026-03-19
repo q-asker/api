@@ -17,6 +17,9 @@ dependencies {
     // 예: 퀴즈 이미지 업로드 시 AwsService 인터페이스를 호출
     implementation project(":aws-api")
     implementation project(":ai-api")
+    // util-api: 유틸리티 인터페이스 모듈
+    // 예: ConvertService를 통해 PPT/DOCX → PDF 변환
+    implementation project(":util-api")
     // quiz-api: 퀴즈 관련 인터페이스·DTO 정의 모듈
     // 예: QuizController 인터페이스, QuizRequest/QuizResponse DTO를 구현체에서 import
     implementation project(":quiz-api")

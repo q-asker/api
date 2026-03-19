@@ -1,4 +1,4 @@
-package com.icc.qasker.aws;
+package com.icc.qasker.util;
 
 import java.nio.file.Path;
 

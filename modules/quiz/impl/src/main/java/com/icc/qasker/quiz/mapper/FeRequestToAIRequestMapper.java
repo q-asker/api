@@ -12,7 +12,12 @@ public class FeRequestToAIRequestMapper {
 
   public static GenerationRequestToAI toAIRequest(
       GenerationRequest fe, Consumer<AIProblemSet> consumer) {
-    return new GenerationRequestToAI(
-        fe.uploadedUrl(), fe.quizType().name(), fe.quizCount(), fe.pageNumbers(), consumer);
+    return GenerationRequestToAI.builder()
+        .fileUrl(fe.uploadedUrl())
+        .strategyValue(fe.quizType().name())
+        .quizCount(fe.quizCount())
+        .referencePages(fe.pageNumbers())
+        .questionsConsumer(consumer)
+        .build();
   }
 }

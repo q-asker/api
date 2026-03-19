@@ -1,4 +1,4 @@
-package com.icc.qasker.aws.service;
+package com.icc.qasker.util.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;

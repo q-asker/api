@@ -15,10 +15,12 @@ import com.icc.qasker.quiz.QuizQueryService;
 import com.icc.qasker.quiz.SseNotificationService;
 import com.icc.qasker.quiz.adapter.AIServerAdapter;
 import com.icc.qasker.quiz.dto.airesponse.ProblemSetGeneratedEvent;
+import com.icc.qasker.quiz.dto.airesponse.ProblemSetGeneratedEvent.QuizGeneratedFromAI;
 import com.icc.qasker.quiz.dto.ferequest.GenerationRequest;
 import com.icc.qasker.quiz.dto.ferequest.enums.QuizType;
 import com.icc.qasker.quiz.dto.feresponse.ProblemSetResponse;
 import com.icc.qasker.quiz.dto.feresponse.ProblemSetResponse.QuizForFe;
+import com.icc.qasker.quiz.mapper.ExplanationMarkdownBuilder;
 import com.icc.qasker.quiz.mapper.QuizViewToQuizForFeMapper;
 import com.icc.qasker.quiz.view.QuizView;
 import java.util.ArrayList;
@@ -78,19 +80,21 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
       String sessionId, Long problemSetId, GenerationRequest request) {
 
     AtomicInteger atomicGeneratedCount = new AtomicInteger(0);
+
     try {
       aiServerAdapter.streamRequest(
           request.uploadedUrl(),
           request.quizType().name(),
           request.quizCount(),
           request.pageNumbers(),
+          // 1. questions 콜백: 셔플 → 마크다운 빌드 → saveBatch + SSE
           (ProblemSetGeneratedEvent problemSet) -> {
             if (problemSet.getQuiz() == null || problemSet.getQuiz().isEmpty()) {
               log.warn("빈 배치 수신, 건너뜀: sessionId={}", sessionId);
               return;
             }
             shuffleSelectionsIfNeeded(problemSet, request.quizType());
-            mergeExplanation(problemSet);
+            buildExplanations(problemSet);
             List<Integer> savedNumbers =
                 quizCommandService.saveBatch(problemSet.getQuiz(), problemSetId);
 
@@ -114,6 +118,10 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
                     QuizType.valueOf(request.quizType().name()),
                     request.quizCount(),
                     quizForFeList));
+          },
+          // 2. error 콜백
+          ex -> {
+            log.error("청크 에러: {}", ex.getMessage());
           });
     } catch (Exception e) {
       log.error("생성 중 오류 발생: sessionId={}", sessionId, e);
@@ -138,11 +146,11 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
     notificationService.sendComplete(sessionId);
     slackNotifier.asyncNotifyText(
         """
-            ✅ [퀴즈 생성 완료 알림]
-            ProblemSetId: %s
-            퀴즈 타입: %s
-            문제 수: %d
-            """
+        ✅ [퀴즈 생성 완료 알림]
+        ProblemSetId: %s
+        퀴즈 타입: %s
+        문제 수: %d
+        """
             .formatted(hashUtil.encode(problemSetId), quizType, generatedCount));
   }
 
@@ -152,11 +160,11 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
     notificationService.sendComplete(sessionId);
     slackNotifier.asyncNotifyText(
         """
-            ⚠️ [퀴즈 생성 부분 완료]
-            ProblemSetId: %s
-            퀴즈 타입: %s
-            생성된 문제 수: %d개 / 총 문제 수: %d개
-            """
+        ⚠️ [퀴즈 생성 부분 완료]
+        ProblemSetId: %s
+        퀴즈 타입: %s
+        생성된 문제 수: %d개 / 총 문제 수: %d개
+        """
             .formatted(hashUtil.encode(problemSetId), quizType, generatedCount, quizCount));
   }
 
@@ -165,39 +173,11 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
     notificationService.sendFinishWithError(sessionId, errorMessage);
     slackNotifier.asyncNotifyText(
         """
-            ❌ [퀴즈 생성 실패]
-            ProblemSetId: %s
-            원인: %s
-            """
+        ❌ [퀴즈 생성 실패]
+        ProblemSetId: %s
+        원인: %s
+        """
             .formatted(hashUtil.encode(problemSetId), errorMessage));
-  }
-
-  private void mergeExplanation(ProblemSetGeneratedEvent problemSet) {
-    for (var quiz : problemSet.getQuiz()) {
-      var selections = quiz.getSelections();
-      if (selections == null || selections.isEmpty()) {
-        continue;
-      }
-
-      StringBuilder sb = new StringBuilder(quiz.getExplanation()).append("\n");
-
-      // 정답 해설 먼저
-      for (var selection : selections) {
-        if (selection.isCorrect() && selection.getExplanation() != null) {
-          sb.append(selection.getExplanation());
-          break;
-        }
-      }
-
-      // 나머지 선택지 해설을 정렬 순서대로 나열
-      for (var selection : selections) {
-        if (!selection.isCorrect() && selection.getExplanation() != null) {
-          sb.append("\n").append(selection.getExplanation());
-        }
-      }
-
-      quiz.setExplanation(sb.toString());
-    }
   }
 
   private void shuffleSelectionsIfNeeded(ProblemSetGeneratedEvent problemSet, QuizType quizType) {
@@ -211,6 +191,13 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
         Collections.shuffle(shuffled);
         quiz.setSelections(shuffled);
       }
+    }
+  }
+
+  /** 셔플된 선택지 순서에 맞춰 해설 마크다운을 빌드하여 explanation에 설정한다. */
+  private void buildExplanations(ProblemSetGeneratedEvent problemSet) {
+    for (QuizGeneratedFromAI quiz : problemSet.getQuiz()) {
+      quiz.setExplanation(ExplanationMarkdownBuilder.build(quiz));
     }
   }
 }

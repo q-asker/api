@@ -23,7 +23,7 @@ spring:
         chat:
           options:
             model: gemini-3-flash-preview
-            temperature: 0.3
+            temperature: 0.2
 
   datasource:
     url: jdbc:h2:mem:test;DB_CLOSE_DELAY=-1

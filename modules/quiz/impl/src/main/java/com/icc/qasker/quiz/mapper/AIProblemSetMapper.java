@@ -26,7 +26,7 @@ public final class AIProblemSetMapper {
     QuizGeneratedFromAI quiz = new QuizGeneratedFromAI();
     quiz.setNumber(problem.number());
     quiz.setTitle(problem.content());
-    quiz.setExplanation(problem.explanation());
+    quiz.setQuizExplanation(problem.quizExplanation());
     quiz.setReferencedPages(problem.referencedPages());
     quiz.setSelections(
         problem.selections() == null
@@ -40,7 +40,6 @@ public final class AIProblemSetMapper {
     sel.setContent(selection.content());
     sel.setExplanation(selection.explanation());
     sel.setCorrect(selection.correct());
-    // 안녕세상아
     return sel;
   }
 }

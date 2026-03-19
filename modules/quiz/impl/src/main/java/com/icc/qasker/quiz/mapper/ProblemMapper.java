@@ -35,7 +35,8 @@ public final class ProblemMapper {
     List<Integer> referencedPages =
         quizDto.getReferencedPages() == null ? new ArrayList<>() : quizDto.getReferencedPages();
 
-    problem.bindChildren(selections, quizDto.getExplanation(), referencedPages);
+    problem.bindQuizData(selections, referencedPages);
+    problem.updateExplanation(quizDto.getExplanation());
     return problem;
   }
 }

@@ -24,6 +24,7 @@ public class ExplanationServiceImpl implements ExplanationService {
   @Override
   public ExplanationResponse getExplanationByProblemSetId(String problemSetId) {
     long id = hashUtil.decode(problemSetId);
+
     List<Problem> problems = problemRepository.findByIdProblemSetId(id);
     if (problems.isEmpty()) {
       throw new CustomException(ExceptionMessage.PROBLEM_NOT_FOUND);

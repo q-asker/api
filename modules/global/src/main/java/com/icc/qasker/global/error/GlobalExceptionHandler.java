@@ -23,7 +23,12 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(CustomException.class)
   public ResponseEntity<CustomErrorResponse> handleCustomException(
       CustomException customException) {
-    log.error("Custom Error Occurred", customException);
+    if (customException.getContext() != null) {
+      log.error(
+          "[{}] {}", customException.getContext(), customException.getMessage(), customException);
+    } else {
+      log.error(customException.getMessage(), customException);
+    }
 
     return ResponseEntity.status(customException.getHttpStatus())
         .body(new CustomErrorResponse(customException.getMessage()));

@@ -1,6 +1,6 @@
-package com.icc.qasker.aws.service;
+package com.icc.qasker.util.service;
 
-import com.icc.qasker.aws.ConvertService;
+import com.icc.qasker.util.ConvertService;
 import java.nio.file.Path;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
