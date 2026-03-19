@@ -1,14 +1,5 @@
 package com.icc.qasker.quiz.dto.feresponse;
 
 import java.util.List;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
 
-@Getter
-@AllArgsConstructor
-public class ResultResponse {
-
-  private int number;
-  private String explanation;
-  private List<Integer> referencedPages;
-}
+public record ResultResponse(int number, String explanation, List<Integer> referencedPages) {}

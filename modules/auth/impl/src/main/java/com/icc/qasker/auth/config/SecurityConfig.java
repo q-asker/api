@@ -75,6 +75,8 @@ public class SecurityConfig {
                     .authenticated()
                     .requestMatchers("/history", "/history/**")
                     .authenticated()
+                    .requestMatchers(HttpMethod.PATCH, "/problem-set/*/title")
+                    .authenticated()
                     .anyRequest()
                     .permitAll())
         .oauth2Login(

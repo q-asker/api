@@ -70,6 +70,7 @@ public class QuizQueryServiceImpl implements QuizQueryService {
     return new ProblemSetResponse(
         sessionId,
         hashUtil.encode(problemSetId),
+        problemSet.getTitle(),
         problemSet.getGenerationStatus(),
         problemSet.getQuizType(),
         problemSet.getTotalQuizCount(),

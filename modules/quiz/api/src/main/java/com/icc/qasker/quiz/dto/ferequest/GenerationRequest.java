@@ -14,6 +14,7 @@ public record GenerationRequest(
     @NotNull(message = "sessionId가 null입니다.") @UUID(message = "sessionId가 유효한 UUID 형식이 아닙니다.")
         String sessionId,
     @NotBlank(message = "url이 존재하지 않습니다.") String uploadedUrl,
+    @NotBlank(message = "title이 존재하지 않습니다.") String title,
     @Min(value = 5, message = "quizCount는 5이상입니다.")
         @Max(value = 50, message = "quizCount는 50이하입니다.")
         int quizCount,

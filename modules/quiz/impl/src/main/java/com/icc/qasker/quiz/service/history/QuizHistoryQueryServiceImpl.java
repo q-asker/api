@@ -56,6 +56,8 @@ public class QuizHistoryQueryServiceImpl implements QuizHistoryQueryService {
               boolean completed = history != null;
               return new HistorySummaryResponse(
                   hashUtil.encode(ps.getId()),
+                  ps.getTitle(),
+                  ps.getCreatedAt(),
                   completed ? hashUtil.encode(history.getId()) : null,
                   ps.getQuizType(),
                   ps.getTotalQuizCount(),

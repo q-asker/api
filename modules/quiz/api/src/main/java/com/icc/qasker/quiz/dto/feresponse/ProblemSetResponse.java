@@ -3,41 +3,19 @@ package com.icc.qasker.quiz.dto.feresponse;
 import com.icc.qasker.quiz.GenerationStatus;
 import com.icc.qasker.quiz.dto.ferequest.enums.QuizType;
 import java.util.List;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
 
-@Getter
-@AllArgsConstructor
-@NoArgsConstructor
-public class ProblemSetResponse {
+public record ProblemSetResponse(
+    String sessionId,
+    String problemSetId,
+    String title,
+    GenerationStatus generationStatus,
+    QuizType quizType,
+    Integer totalCount,
+    List<QuizForFe> quiz) {
 
-  private String sessionId;
-  private String problemSetId;
-  private GenerationStatus generationStatus;
-  private QuizType quizType;
-  private Integer totalCount;
-  private List<QuizForFe> quiz;
+  public record QuizForFe(
+      int number, String title, int userAnswer, boolean check, List<SelectionForFE> selections) {
 
-  @Getter
-  @NoArgsConstructor
-  @AllArgsConstructor
-  public static class QuizForFe {
-
-    private int number;
-    private String title;
-    private int userAnswer;
-    private boolean check;
-    private List<SelectionForFE> selections;
-
-    @Getter
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class SelectionForFE {
-
-      private int id;
-      private String content;
-      private boolean correct;
-    }
+    public record SelectionForFE(int id, String content, boolean correct) {}
   }
 }
