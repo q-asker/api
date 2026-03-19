@@ -62,7 +62,11 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
     try {
       problemSetId =
           quizCommandService.initProblemSet(
-              userId, request.sessionId(), request.quizCount(), request.quizType());
+              userId,
+              request.sessionId(),
+              request.title(),
+              request.quizCount(),
+              request.quizType());
     } catch (DataIntegrityViolationException e) {
       log.info("제약 조건 위반: sessionId={}", request.sessionId(), e);
       throw new CustomException(ExceptionMessage.AI_DUPLICATED_GENERATION);
