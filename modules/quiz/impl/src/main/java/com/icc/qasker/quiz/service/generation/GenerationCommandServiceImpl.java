@@ -8,6 +8,7 @@ import com.icc.qasker.global.component.HashUtil;
 import com.icc.qasker.global.component.SlackNotifier;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
+import com.icc.qasker.global.properties.QAskerProperties;
 import com.icc.qasker.quiz.GenerationCommandService;
 import com.icc.qasker.quiz.GenerationStatus;
 import com.icc.qasker.quiz.QuizCommandService;
@@ -48,6 +49,7 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
   // 유틸
   private final HashUtil hashUtil;
   private final SlackNotifier slackNotifier;
+  private final QAskerProperties qAskerProperties;
 
   @Override
   public void triggerGeneration(String userId, GenerationRequest request) {
@@ -152,14 +154,16 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
     quizCommandService.updateStatus(problemSetId, COMPLETED);
     quizHistoryCommandService.createHistory(userId, problemSetId);
     notificationService.sendComplete(sessionId);
+    String encodedId = hashUtil.encode(problemSetId);
+    String quizUrl = qAskerProperties.getFrontendDeployUrl() + "/quiz/" + encodedId;
     slackNotifier.asyncNotifyText(
         """
         ✅ [퀴즈 생성 완료 알림]
-        ProblemSetId: %s
+        ProblemSetId: <%s|%s>
         퀴즈 타입: %s
         문제 수: %d
         """
-            .formatted(hashUtil.encode(problemSetId), quizType, generatedCount));
+            .formatted(quizUrl, encodedId, quizType, generatedCount));
   }
 
   private void finalizePartialSuccess(
@@ -172,26 +176,30 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
     quizCommandService.updateStatus(problemSetId, COMPLETED);
     quizHistoryCommandService.createHistory(userId, problemSetId);
     notificationService.sendComplete(sessionId);
+    String encodedId = hashUtil.encode(problemSetId);
+    String quizUrl = qAskerProperties.getFrontendDeployUrl() + "/quiz/" + encodedId;
     slackNotifier.asyncNotifyText(
         """
         ⚠️ [퀴즈 생성 부분 완료]
-        ProblemSetId: %s
+        ProblemSetId: <%s|%s>
         퀴즈 타입: %s
         생성된 문제 수: %d개 / 총 문제 수: %d개
         """
-            .formatted(hashUtil.encode(problemSetId), quizType, generatedCount, quizCount));
+            .formatted(quizUrl, encodedId, quizType, generatedCount, quizCount));
   }
 
   private void finalizeError(String sessionId, Long problemSetId, String errorMessage) {
     quizCommandService.updateStatus(problemSetId, FAILED);
     notificationService.sendFinishWithError(sessionId, errorMessage);
+    String encodedId = hashUtil.encode(problemSetId);
+    String quizUrl = qAskerProperties.getFrontendDeployUrl() + "/quiz/" + encodedId;
     slackNotifier.asyncNotifyText(
         """
         ❌ [퀴즈 생성 실패]
-        ProblemSetId: %s
+        ProblemSetId: <%s|%s>
         원인: %s
         """
-            .formatted(hashUtil.encode(problemSetId), errorMessage));
+            .formatted(quizUrl, encodedId, errorMessage));
   }
 
   private void shuffleSelectionsIfNeeded(ProblemSetGeneratedEvent problemSet, QuizType quizType) {
