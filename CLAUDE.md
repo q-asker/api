@@ -18,7 +18,7 @@ AI 기반 퀴즈 자동 생성 및 관리 플랫폼의 백엔드 API 서버. 사
 - **메시징**: Spring Kafka
 - **API 문서**: SpringDoc OpenAPI 2.8.8 (Swagger UI)
 - **장애 대응**: Resilience4j 2.3.0 (Circuit Breaker)
-- **모니터링**: Scouter APM, Spring Actuator, Micrometer Prometheus
+- **모니터링**: Glowroot 0.14.5 (Standalone APM), Spring Actuator, Micrometer Prometheus
 - **컨테이너**: Jib 3.4.0 (Docker 빌드)
 - **코드 포맷**: Spotless 7.0.4 + Google Java Format 1.25.2
 - **문서 변환**: JODConverter 4.4.9 (LibreOffice 기반 PPT/DOCX → PDF 변환)
@@ -79,7 +79,7 @@ q-asker/api/
 ├── .githooks/                     # Git 훅 (pre-commit, prepare-commit-msg)
 ├── infra/                          # 인프라 설정 (Docker, 모니터링)
 │   ├── Dockerfile                 # Docker 이미지 빌드
-│   ├── docker-compose.yml         # 로컬 개발 환경 (MySQL, Scouter)
+│   ├── docker-compose.yml         # 로컬 개발 환경 (MySQL)
 │   └── monitoring/                # Prometheus, Alloy 모니터링 설정
 └── .claude/                       # Claude Code 설정
 ```
@@ -122,7 +122,6 @@ app → *-impl → *-api → global
 
 - `DOCKER_ID`, `DOCKER_IMAGE_NAME`, `DOCKER_PASSWORD`
 - `JVM_HEAP_SIZE`, `JVM_GC_TYPE`, `JVM_MAX_GC_PAUSE_MILLIS`
-- `SCOUTER_IP`, `SCOUTER_PORT`, `SCOUTER_OBJ_NAME`
 
 ## 개발 도구 및 설정
 
@@ -133,5 +132,5 @@ app → *-impl → *-api → global
 - **Git Hooks**: `.githooks/` 디렉토리 (`core.hooksPath` 설정 완료)
     - `pre-commit`: Spotless 포맷 검증
     - `prepare-commit-msg`: JIRA 티켓 접두사 자동 추가
-- **로컬 인프라**: Docker Compose (MySQL, Scouter)
+- **로컬 인프라**: Docker Compose (MySQL)
 - **API 문서**: Swagger UI (`/swagger-ui/index.html`), Redoc (GitHub Pages 자동 배포)
