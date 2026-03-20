@@ -10,6 +10,7 @@ import java.util.function.Consumer;
 import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
 import org.springframework.web.client.RestClient;
 
 @Component
@@ -35,8 +36,7 @@ public class MockAIServerAdapter extends AIServerAdapter {
       List<Integer> referencedPages,
       Consumer<ProblemSetGeneratedEvent> onQuestionsReceived,
       Consumer<Exception> onChunkError) {
-    List<Integer> pages =
-        (referencedPages == null || referencedPages.isEmpty()) ? List.of(1) : referencedPages;
+    List<Integer> pages = CollectionUtils.isEmpty(referencedPages) ? List.of(1) : referencedPages;
 
     List<Map<String, Object>> quiz = new ArrayList<>();
     for (int i = 1; i <= quizCount / 3; i++) {

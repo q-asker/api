@@ -21,7 +21,5 @@ public interface ProblemSetRepository extends JpaRepository<ProblemSet, Long> {
 
   Optional<ProblemSet> findFirstBySessionIdOrderByCreatedAtDesc(String sessionId);
 
-  List<ProblemSet> findAllByUserIdOrderByCreatedAtDesc(String userId);
-
-  List<ProblemSet> getProblemSetById(Long id);
+  List<ProblemSet> findAllByUserId(String userId);
 }

@@ -5,12 +5,9 @@ import static com.icc.qasker.quiz.GenerationStatus.FAILED;
 import static com.icc.qasker.quiz.GenerationStatus.GENERATING;
 
 import com.icc.qasker.global.component.HashUtil;
-import com.icc.qasker.global.component.SlackNotifier;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
-import com.icc.qasker.global.properties.QAskerProperties;
 import com.icc.qasker.quiz.GenerationCommandService;
-import com.icc.qasker.quiz.GenerationStatus;
 import com.icc.qasker.quiz.QuizCommandService;
 import com.icc.qasker.quiz.QuizHistoryCommandService;
 import com.icc.qasker.quiz.QuizQueryService;
@@ -28,12 +25,12 @@ import com.icc.qasker.quiz.view.QuizView;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
 @Slf4j
 @Service
@@ -48,20 +45,10 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
   private final QuizHistoryCommandService quizHistoryCommandService;
   // 유틸
   private final HashUtil hashUtil;
-  private final SlackNotifier slackNotifier;
-  private final QAskerProperties qAskerProperties;
+  private final GenerationSlackNotifier generationSlackNotifier;
 
   @Override
   public void triggerGeneration(String userId, GenerationRequest request) {
-    // TOC
-    Optional<GenerationStatus> status =
-        quizQueryService.getGenerationStatusBySessionId(request.sessionId());
-    if (status.isPresent()) {
-      log.info("중복 요청 발생: sessionId: {}", request.sessionId());
-      throw new CustomException(ExceptionMessage.AI_DUPLICATED_GENERATION);
-    }
-
-    // TOU
     Long problemSetId;
     try {
       problemSetId =
@@ -72,16 +59,11 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
               request.quizCount(),
               request.quizType());
     } catch (DataIntegrityViolationException e) {
-      log.info("제약 조건 위반: sessionId={}", request.sessionId(), e);
       throw new CustomException(ExceptionMessage.AI_DUPLICATED_GENERATION);
     }
 
     Thread.ofVirtual()
-        .uncaughtExceptionHandler(
-            (t, e) -> {
-              log.error("가상 스레드 미처리 예외 발생: sessionId={}", request.sessionId(), e);
-            })
-        .start(() -> processAsyncGeneration(userId, request.sessionId(), problemSetId, request));
+        .start(() -> processAsyncGeneration(request.sessionId(), problemSetId, request));
   }
 
   private void processAsyncGeneration(
@@ -95,9 +77,10 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
           request.quizType().name(),
           request.quizCount(),
           request.pageNumbers(),
-          // 1. questions 콜백: 셔플 → 마크다운 빌드 → saveBatch + SSE
+          // 문제 생성시 AI 모듈이 호출할 콜백 함수이다
           (ProblemSetGeneratedEvent problemSet) -> {
-            if (problemSet.getQuiz() == null || problemSet.getQuiz().isEmpty()) {
+            // problemSet.getQuiz() == null || problemSet.getQuiz().isEmpty()
+            if (CollectionUtils.isEmpty(problemSet.getQuiz())) {
               log.warn("빈 배치 수신, 건너뜀: sessionId={}", sessionId);
               return;
             }
@@ -149,65 +132,12 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
     }
   }
 
-  private void finalizeSuccess(
-      String userId, String sessionId, Long problemSetId, QuizType quizType, long generatedCount) {
-    quizCommandService.updateStatus(problemSetId, COMPLETED);
-    quizHistoryCommandService.createHistory(userId, problemSetId);
-    notificationService.sendComplete(sessionId);
-    String encodedId = hashUtil.encode(problemSetId);
-    String quizUrl = qAskerProperties.getFrontendDeployUrl() + "/quiz/" + encodedId;
-    slackNotifier.asyncNotifyText(
-        """
-        ✅ [퀴즈 생성 완료 알림]
-        ProblemSetId: <%s|%s>
-        퀴즈 타입: %s
-        문제 수: %d
-        """
-            .formatted(quizUrl, encodedId, quizType, generatedCount));
-  }
-
-  private void finalizePartialSuccess(
-      String userId,
-      String sessionId,
-      Long problemSetId,
-      QuizType quizType,
-      long generatedCount,
-      long quizCount) {
-    quizCommandService.updateStatus(problemSetId, COMPLETED);
-    quizHistoryCommandService.createHistory(userId, problemSetId);
-    notificationService.sendComplete(sessionId);
-    String encodedId = hashUtil.encode(problemSetId);
-    String quizUrl = qAskerProperties.getFrontendDeployUrl() + "/quiz/" + encodedId;
-    slackNotifier.asyncNotifyText(
-        """
-        ⚠️ [퀴즈 생성 부분 완료]
-        ProblemSetId: <%s|%s>
-        퀴즈 타입: %s
-        생성된 문제 수: %d개 / 총 문제 수: %d개
-        """
-            .formatted(quizUrl, encodedId, quizType, generatedCount, quizCount));
-  }
-
-  private void finalizeError(String sessionId, Long problemSetId, String errorMessage) {
-    quizCommandService.updateStatus(problemSetId, FAILED);
-    notificationService.sendFinishWithError(sessionId, errorMessage);
-    String encodedId = hashUtil.encode(problemSetId);
-    String quizUrl = qAskerProperties.getFrontendDeployUrl() + "/quiz/" + encodedId;
-    slackNotifier.asyncNotifyText(
-        """
-        ❌ [퀴즈 생성 실패]
-        ProblemSetId: <%s|%s>
-        원인: %s
-        """
-            .formatted(quizUrl, encodedId, errorMessage));
-  }
-
   private void shuffleSelectionsIfNeeded(ProblemSetGeneratedEvent problemSet, QuizType quizType) {
     if (quizType != QuizType.MULTIPLE && quizType != QuizType.BLANK) {
       return;
     }
     for (var quiz : problemSet.getQuiz()) {
-      if (quiz.getSelections() != null && !quiz.getSelections().isEmpty()) {
+      if (!CollectionUtils.isEmpty(quiz.getSelections())) {
         List<ProblemSetGeneratedEvent.QuizGeneratedFromAI.SelectionsOfAI> shuffled =
             new ArrayList<>(quiz.getSelections());
         Collections.shuffle(shuffled);
@@ -221,5 +151,25 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
     for (QuizGeneratedFromAI quiz : problemSet.getQuiz()) {
       quiz.setExplanation(ExplanationMarkdownBuilder.build(quiz));
     }
+  }
+
+  private void finalizeSuccess(
+      String sessionId, Long problemSetId, QuizType quizType, long generatedCount) {
+    quizCommandService.updateStatus(problemSetId, COMPLETED);
+    notificationService.sendComplete(sessionId);
+    generationSlackNotifier.notifySuccess(problemSetId, quizType, generatedCount);
+  }
+
+  private void finalizePartialSuccess(
+      String sessionId, Long problemSetId, QuizType quizType, long generatedCount, long quizCount) {
+    quizCommandService.updateStatus(problemSetId, COMPLETED);
+    notificationService.sendComplete(sessionId);
+    generationSlackNotifier.notifyPartialSuccess(problemSetId, quizType, generatedCount, quizCount);
+  }
+
+  private void finalizeError(String sessionId, Long problemSetId, String errorMessage) {
+    quizCommandService.updateStatus(problemSetId, FAILED);
+    notificationService.sendFinishWithError(sessionId, errorMessage);
+    generationSlackNotifier.notifyError(problemSetId, errorMessage);
   }
 }

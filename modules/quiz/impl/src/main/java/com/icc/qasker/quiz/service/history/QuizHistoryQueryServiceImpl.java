@@ -15,6 +15,7 @@ import com.icc.qasker.quiz.entity.QuizHistory;
 import com.icc.qasker.quiz.repository.ProblemRepository;
 import com.icc.qasker.quiz.repository.ProblemSetRepository;
 import com.icc.qasker.quiz.repository.QuizHistoryRepository;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -36,34 +37,10 @@ public class QuizHistoryQueryServiceImpl implements QuizHistoryQueryService {
 
   @Override
   public List<HistorySummaryResponse> getHistoryList(String userId) {
-    List<QuizHistory> histories = quizHistoryRepository.findAllByUserIdOrderByCreatedAtDesc(userId);
-    List<Long> problemSetIds = histories.stream().map(QuizHistory::getProblemSetId).toList();
 
-    Map<Long, ProblemSet> problemSetMap =
-        problemSetRepository.findAllById(problemSetIds).stream()
-            .collect(Collectors.toMap(ProblemSet::getId, ps -> ps));
-
-    return histories.stream()
-        .map(
-            h -> {
-              ProblemSet ps = problemSetMap.get(h.getProblemSetId());
-              if (ps == null) {
-                return null;
-              }
-              boolean completed = h.getStatus() == QuizHistoryStatus.COMPLETED;
-              return new HistorySummaryResponse(
-                  hashUtil.encode(ps.getId()),
-                  ps.getTitle(),
-                  ps.getCreatedAt(),
-                  completed ? hashUtil.encode(h.getId()) : null,
-                  ps.getQuizType(),
-                  ps.getTotalQuizCount(),
-                  completed,
-                  completed ? h.getScore() : null,
-                  completed ? h.getCreatedAt() : null);
-            })
-        .filter(Objects::nonNull)
-        .toList();
+    // IN 쿼리 1번으로 모든 히스토리 일괄 조회
+    List<QuizHistory> histories = quizHistoryRepository.findAllByUserId(userId);
+    return new ArrayList<>();
   }
 
   @Override
@@ -71,8 +48,7 @@ public class QuizHistoryQueryServiceImpl implements QuizHistoryQueryService {
     long id = hashUtil.decode(problemSetId);
     QuizHistory history =
         quizHistoryRepository
-            .findByProblemSetIdAndUserId(id, userId)
-            .filter(h -> h.getStatus() == QuizHistoryStatus.COMPLETED)
+            .findFirstByProblemSetIdAndUserIdOrderByCreatedAtDesc(id, userId)
             .orElseThrow(() -> new CustomException(ExceptionMessage.QUIZ_HISTORY_NOT_FOUND));
 
     ProblemSet problemSet =

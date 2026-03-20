@@ -37,8 +37,9 @@ public class QuizHistoryCommandServiceImpl implements QuizHistoryCommandService 
         .findById(id)
         .orElseThrow(() -> new CustomException(ExceptionMessage.PROBLEM_SET_NOT_FOUND));
 
-    String answersJson = USER_ANSWER_CONVERTER.convertToDatabaseColumn(request.userAnswers());
-    quizHistoryRepository.upsert(userId, id, answersJson, request.score());
+    // 기존 히스토리 전체 삭제 후 재저장 (최신 1건만 유지, @SoftDelete로 자동 소프트딜리트)
+    quizHistoryRepository.deleteAll(
+        quizHistoryRepository.findAllByProblemSetIdAndUserId(id, userId));
 
     QuizHistory history =
         QuizHistory.builder()
@@ -61,9 +62,11 @@ public class QuizHistoryCommandServiceImpl implements QuizHistoryCommandService 
         .filter(ps -> ps.getUserId().equals(userId))
         .orElseThrow(() -> new CustomException(ExceptionMessage.PROBLEM_SET_NOT_FOUND));
 
-    int deleted = quizHistoryRepository.deleteByProblemSetIdAndUserId(id, userId);
-    if (deleted == 0) {
+    // 미완료(히스토리 없음)는 삭제 불가 (@SoftDelete로 자동 소프트딜리트)
+    var histories = quizHistoryRepository.findAllByProblemSetIdAndUserId(id, userId);
+    if (histories.isEmpty()) {
       throw new CustomException(ExceptionMessage.QUIZ_HISTORY_NOT_FOUND);
     }
+    quizHistoryRepository.deleteAll(histories);
   }
 }

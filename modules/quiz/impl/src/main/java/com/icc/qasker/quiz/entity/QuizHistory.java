@@ -21,6 +21,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.SoftDelete;
 
 @Entity
 @Getter
@@ -29,12 +30,8 @@ import lombok.NoArgsConstructor;
 @Builder
 @Table(
     name = "quiz_history",
-    indexes = {@Index(name = "idx_quiz_history_user_id", columnList = "userId")},
-    uniqueConstraints = {
-      @UniqueConstraint(
-          name = "uk_history_ps_user",
-          columnNames = {"problem_set_id", "user_id"})
-    })
+    indexes = {@Index(name = "idx_quiz_history_user_id", columnList = "userId")})
+@SoftDelete(columnName = "deleted")
 public class QuizHistory extends CreatedAt {
 
   @Id
@@ -54,8 +51,4 @@ public class QuizHistory extends CreatedAt {
   @Column private Integer score;
 
   private String totalTime;
-
-  @Builder.Default
-  @Column(nullable = false)
-  private QuizHistoryStatus status = QuizHistoryStatus.INCOMPLETE;
 }

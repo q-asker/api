@@ -27,6 +27,7 @@ import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.converter.BeanOutputConverter;
 import org.springframework.ai.google.genai.GoogleGenAiChatOptions;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
 @Slf4j
 @Service
@@ -142,7 +143,7 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
       ChunkInfo chunk,
       GeminiResponse response,
       AtomicInteger numberCounter) {
-    if (response.questions() == null || response.questions().isEmpty()) {
+    if (CollectionUtils.isEmpty(response.questions())) {
       log.warn("응답에 문제가 없습니다: pages={}", chunk.referencedPages());
       return;
     }
