@@ -115,6 +115,7 @@ public class QuizHistoryQueryServiceImpl implements QuizHistoryQueryService {
         problemSet.getQuizType(),
         problemSet.getTotalQuizCount(),
         history.getScore(),
+        history.getTotalTime(),
         history.getCreatedAt(),
         problemWithAnswers);
   }

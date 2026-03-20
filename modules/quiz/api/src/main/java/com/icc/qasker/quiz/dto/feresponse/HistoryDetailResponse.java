@@ -9,5 +9,6 @@ public record HistoryDetailResponse(
     QuizType quizType,
     int totalCount,
     int score,
+    String totalTime,
     Instant takenAt,
     List<ProblemWithAnswer> problems) {}

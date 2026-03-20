@@ -53,7 +53,8 @@ public class QuizHistory extends CreatedAt {
 
   @Column private Integer score;
 
-  @Enumerated(EnumType.STRING)
+  private String totalTime;
+
   @Builder.Default
   @Column(nullable = false)
   private QuizHistoryStatus status = QuizHistoryStatus.INCOMPLETE;

@@ -40,10 +40,17 @@ public class QuizHistoryCommandServiceImpl implements QuizHistoryCommandService 
     String answersJson = USER_ANSWER_CONVERTER.convertToDatabaseColumn(request.userAnswers());
     quizHistoryRepository.upsert(userId, id, answersJson, request.score());
 
-    return quizHistoryRepository
-        .findIdByProblemSetIdAndUserId(id, userId)
-        .map(hashUtil::encode)
-        .orElseThrow(() -> new CustomException(ExceptionMessage.QUIZ_HISTORY_NOT_FOUND));
+    QuizHistory history =
+        QuizHistory.builder()
+            .userId(userId)
+            .problemSetId(id)
+            .answers(request.userAnswers())
+            .score(request.score())
+            .totalTime(request.totalTime())
+            .build();
+
+    QuizHistory saved = quizHistoryRepository.save(history);
+    return hashUtil.encode(saved.getId());
   }
 
   @Override
