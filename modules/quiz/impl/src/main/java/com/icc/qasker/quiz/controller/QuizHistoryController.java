@@ -3,6 +3,7 @@ package com.icc.qasker.quiz.controller;
 import com.icc.qasker.global.annotation.UserId;
 import com.icc.qasker.quiz.QuizHistoryCommandService;
 import com.icc.qasker.quiz.QuizHistoryQueryService;
+import com.icc.qasker.quiz.dto.ferequest.ChangeHistoryTitleRequest;
 import com.icc.qasker.quiz.dto.ferequest.InitHistoryRequest;
 import com.icc.qasker.quiz.dto.ferequest.SaveHistoryRequest;
 import com.icc.qasker.quiz.dto.feresponse.HistoryDetailResponse;
@@ -67,8 +68,8 @@ public class QuizHistoryController {
   public ResponseEntity<Void> updateHistoryTitle(
       @UserId String userId,
       @PathVariable String historyId,
-      @RequestBody Map<String, String> body) {
-    quizHistoryCommandService.updateHistoryTitle(userId, historyId, body.get("title"));
+      @Valid @RequestBody ChangeHistoryTitleRequest request) {
+    quizHistoryCommandService.updateHistoryTitle(userId, historyId, request.title());
     return ResponseEntity.noContent().build();
   }
 
