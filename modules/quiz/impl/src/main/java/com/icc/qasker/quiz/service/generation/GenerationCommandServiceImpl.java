@@ -9,7 +9,6 @@ import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.quiz.GenerationCommandService;
 import com.icc.qasker.quiz.QuizCommandService;
-import com.icc.qasker.quiz.QuizHistoryCommandService;
 import com.icc.qasker.quiz.QuizQueryService;
 import com.icc.qasker.quiz.SseNotificationService;
 import com.icc.qasker.quiz.adapter.AIServerAdapter;
@@ -42,7 +41,6 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
   private final SseNotificationService notificationService;
   private final QuizCommandService quizCommandService;
   private final QuizQueryService quizQueryService;
-  private final QuizHistoryCommandService quizHistoryCommandService;
   // 유틸
   private final HashUtil hashUtil;
   private final GenerationSlackNotifier generationSlackNotifier;
@@ -60,14 +58,6 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
               request.quizType());
     } catch (DataIntegrityViolationException e) {
       throw new CustomException(ExceptionMessage.AI_DUPLICATED_GENERATION);
-    }
-
-    try {
-      if (userId != null) {
-        quizHistoryCommandService.initHistory(userId, problemSetId);
-      }
-    } catch (Exception e) {
-      log.warn("기록 초기화에 실패했습니다 userId: {}, problemSetId: {}", userId, problemSetId, e);
     }
 
     Thread.ofVirtual()

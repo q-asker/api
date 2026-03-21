@@ -1,10 +1,11 @@
 package com.icc.qasker.quiz;
 
+import com.icc.qasker.quiz.dto.ferequest.InitHistoryRequest;
 import com.icc.qasker.quiz.dto.ferequest.SaveHistoryRequest;
 
 public interface QuizHistoryCommandService {
 
-  void initHistory(String userId, Long problemSetId);
+  void initHistory(String userId, InitHistoryRequest request);
 
   String saveHistory(String userId, SaveHistoryRequest request);
 

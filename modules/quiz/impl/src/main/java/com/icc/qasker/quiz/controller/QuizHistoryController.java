@@ -3,6 +3,7 @@ package com.icc.qasker.quiz.controller;
 import com.icc.qasker.global.annotation.UserId;
 import com.icc.qasker.quiz.QuizHistoryCommandService;
 import com.icc.qasker.quiz.QuizHistoryQueryService;
+import com.icc.qasker.quiz.dto.ferequest.InitHistoryRequest;
 import com.icc.qasker.quiz.dto.ferequest.SaveHistoryRequest;
 import com.icc.qasker.quiz.dto.feresponse.HistoryDetailResponse;
 import com.icc.qasker.quiz.dto.feresponse.HistorySummaryResponse;
@@ -32,15 +33,7 @@ public class QuizHistoryController {
   private final QuizHistoryCommandService quizHistoryCommandService;
   private final QuizHistoryQueryService quizHistoryQueryService;
 
-  @Operation(summary = "퀴즈 완료 후 답안 및 점수를 저장한다")
-  @PostMapping
-  public ResponseEntity<Map<String, String>> saveHistory(
-      @UserId String userId, @Valid @RequestBody SaveHistoryRequest request) {
-    String historyId = quizHistoryCommandService.saveHistory(userId, request);
-    return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("historyId", historyId));
-  }
-
-  @Operation(summary = "내 퀴즈 히스토리 목록을 조회한다 (완료/미완료 포함)")
+  @Operation(summary = "내 퀴즈 히스토리 목록을 조회한다 (완료/미완료")
   @GetMapping
   public ResponseEntity<List<HistorySummaryResponse>> getHistoryList(@UserId String userId) {
     return ResponseEntity.ok(quizHistoryQueryService.getHistoryList(userId));
@@ -51,6 +44,22 @@ public class QuizHistoryController {
   public ResponseEntity<HistoryDetailResponse> getHistoryDetail(
       @UserId String userId, @PathVariable String problemSetId) {
     return ResponseEntity.ok(quizHistoryQueryService.getHistoryDetail(userId, problemSetId));
+  }
+
+  @Operation(summary = "퀴즈 생성 시 히스토리를 초기화한다")
+  @PostMapping("/init")
+  public ResponseEntity<Void> initHistory(
+      @UserId String userId, @Valid @RequestBody InitHistoryRequest request) {
+    quizHistoryCommandService.initHistory(userId, request);
+    return ResponseEntity.status(HttpStatus.CREATED).build();
+  }
+
+  @Operation(summary = "퀴즈 완료 후 답안 및 점수를 저장한다")
+  @PostMapping
+  public ResponseEntity<Map<String, String>> saveHistory(
+      @UserId String userId, @Valid @RequestBody SaveHistoryRequest request) {
+    String historyId = quizHistoryCommandService.saveHistory(userId, request);
+    return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("historyId", historyId));
   }
 
   @Operation(summary = "퀴즈 히스토리 제목을 변경한다")
