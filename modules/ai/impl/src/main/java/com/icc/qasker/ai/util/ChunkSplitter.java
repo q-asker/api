@@ -15,8 +15,9 @@ public class ChunkSplitter {
    * <p>알고리즘:
    *
    * <ol>
-   *   <li>quizCount를 maxChunkCount개의 청크로 라운드 로빈 분배
+   *   <li>첫 번째 청크는 1문제로 고정 (Fast First Chunk), 나머지를 라운드 로빈 분배
    *   <li>pageNumbers를 청크 수에 맞게 균등 분할
+   *   <li>첫 번째 청크만 fastFirst=true, 나머지는 false
    * </ol>
    *
    * @param pageNumbers 참조할 페이지 번호 목록 (정렬된 상태)
@@ -28,6 +29,7 @@ public class ChunkSplitter {
       List<Integer> pageNumbers, int totalQuizCount, int maxChunkCount) {
     int[] quizCounts = distributeQuizCount(totalQuizCount, maxChunkCount);
     int realChunkCount = quizCounts.length;
+    boolean applyFastFirst = realChunkCount >= 2;
 
     int pageCount = pageNumbers.size();
     int basicCountPerChunk = pageCount / realChunkCount;
@@ -36,7 +38,7 @@ public class ChunkSplitter {
     List<ChunkInfo> chunks = new ArrayList<>(realChunkCount);
     int cursor = 0;
 
-    for (int quizCount : quizCounts) {
+    for (int i = 0; i < realChunkCount; i++) {
       int pagesForThisChunk = basicCountPerChunk;
       if (extraPages > 0) {
         pagesForThisChunk++;
@@ -46,7 +48,8 @@ public class ChunkSplitter {
       int end = Math.min(cursor + pagesForThisChunk, pageCount);
       List<Integer> referencedPages = pageNumbers.subList(cursor, end);
 
-      chunks.add(new ChunkInfo(List.copyOf(referencedPages), quizCount));
+      boolean fastFirst = applyFastFirst && i == 0;
+      chunks.add(new ChunkInfo(List.copyOf(referencedPages), quizCounts[i], fastFirst));
       cursor += pagesForThisChunk;
     }
 
@@ -54,19 +57,28 @@ public class ChunkSplitter {
   }
 
   /**
-   * totalQuizCount를 maxChunkCount 이하의 청크로 라운드 로빈 분배한다.
+   * totalQuizCount를 Fast First Chunk 전략으로 분배한다.
    *
-   * <p>예시: totalQuizCount=7, maxChunkCount=3 → [3, 2, 2] (첫 청크부터 나머지 분배)
+   * <p>첫 번째 청크는 1문제로 고정하고, 나머지를 라운드 로빈으로 분배한다.
    *
-   * <p>예시: totalQuizCount=3, maxChunkCount=10 → [1, 1, 1] (실제 청크 수 = min(totalQuizCount,
-   * maxChunkCount))
+   * <p>예시: totalQuizCount=15, maxChunkCount=10 → [1, 2,2,2,2,2,1,1,1,1]
+   *
+   * <p>예시: totalQuizCount=1, maxChunkCount=10 → [1] (Fast First 미적용)
    */
-  private static int[] distributeQuizCount(int totalQuizCount, int maxChunkCount) {
-    int realChunkCount = Math.min(totalQuizCount, maxChunkCount);
-    int[] counts = new int[realChunkCount];
-    for (int i = 0; i < totalQuizCount; i++) {
-      counts[i % realChunkCount]++;
+  static int[] distributeQuizCount(int totalQuizCount, int maxChunkCount) {
+    if (totalQuizCount <= 1) {
+      return new int[] {totalQuizCount};
     }
+
+    int remaining = totalQuizCount - 1;
+    int remainingChunkCount = Math.min(remaining, maxChunkCount - 1);
+    int[] counts = new int[1 + remainingChunkCount];
+    counts[0] = 1;
+
+    for (int i = 0; i < remaining; i++) {
+      counts[1 + (i % remainingChunkCount)]++;
+    }
+
     return counts;
   }
 }
