@@ -11,7 +11,7 @@ public interface QuizHistoryCommandService {
 
   void deleteAllHistory(String userId);
 
-  void deleteSpecificHistory(String userId, String problemSetId);
+  void deleteHistory(String userId, String historyId);
 
   void updateHistoryTitle(String userId, String historyId, String title);
 }

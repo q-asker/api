@@ -77,8 +77,12 @@ public class QuizHistoryCommandServiceImpl implements QuizHistoryCommandService 
   }
 
   @Override
-  public void deleteSpecificHistory(String userId, String problemSetId) {
-    long id = hashUtil.decode(problemSetId);
-    quizHistoryRepository.deleteAllByProblemSetIdAndUserId(id, userId);
+  public void deleteHistory(String userId, String historyId) {
+    long id = hashUtil.decode(historyId);
+    quizHistoryRepository
+        .findById(id)
+        .filter(h -> h.getUserId().equals(userId))
+        .orElseThrow(() -> new CustomException(ExceptionMessage.QUIZ_HISTORY_NOT_FOUND));
+    quizHistoryRepository.deleteById(id);
   }
 }

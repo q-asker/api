@@ -25,7 +25,7 @@ public interface QuizHistoryRepository extends JpaRepository<QuizHistory, Long> 
       value =
           "INSERT INTO quiz_history (user_id, problem_set_id, title, answers, score, created_at) "
               + "VALUES (:userId, :problemSetId, :title, '[]', 0, NOW()) "
-              + "ON DUPLICATE KEY UPDATE title = :title, answers = '[]', score = 0, "
+              + "ON DUPLICATE KEY UPDATE answers = '[]', score = 0, "
               + "total_time = null, created_at = NOW()",
       nativeQuery = true)
   void upsertInitHistory(String userId, Long problemSetId, String title);

@@ -4,7 +4,7 @@ import com.icc.qasker.global.component.HashUtil;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.quiz.QuizHistoryQueryService;
-import com.icc.qasker.quiz.QuizHistoryStatus;
+import com.icc.qasker.quiz.dto.feresponse.HistoryCheckResponse;
 import com.icc.qasker.quiz.dto.feresponse.HistoryDetailResponse;
 import com.icc.qasker.quiz.dto.feresponse.HistorySummaryResponse;
 import com.icc.qasker.quiz.dto.feresponse.ProblemWithAnswer;
@@ -61,19 +61,21 @@ public class QuizHistoryQueryServiceImpl implements QuizHistoryQueryService {
   }
 
   @Override
-  public HistoryDetailResponse getHistoryDetail(String userId, String problemSetId) {
-    long id = hashUtil.decode(problemSetId);
+  public HistoryDetailResponse getHistoryDetail(String userId, String historyId) {
+    long id = hashUtil.decode(historyId);
     QuizHistory history =
         quizHistoryRepository
-            .findFirstByProblemSetIdAndUserIdOrderByCreatedAtDesc(id, userId)
+            .findById(id)
+            .filter(h -> h.getUserId().equals(userId))
             .orElseThrow(() -> new CustomException(ExceptionMessage.QUIZ_HISTORY_NOT_FOUND));
 
+    Long problemSetId = history.getProblemSetId();
     ProblemSet problemSet =
         problemSetRepository
-            .findById(id)
+            .findById(problemSetId)
             .orElseThrow(() -> new CustomException(ExceptionMessage.PROBLEM_SET_NOT_FOUND));
 
-    List<Problem> problems = problemRepository.findByIdProblemSetId(id);
+    List<Problem> problems = problemRepository.findByIdProblemSetId(problemSetId);
 
     Map<Integer, Integer> answerMap =
         history.getAnswers().stream()
@@ -111,6 +113,15 @@ public class QuizHistoryQueryServiceImpl implements QuizHistoryQueryService {
         history.getTotalTime(),
         history.getCreatedAt(),
         problemWithAnswers);
+  }
+
+  @Override
+  public HistoryCheckResponse checkHistory(String userId, String problemSetId) {
+    long id = hashUtil.decode(problemSetId);
+    return quizHistoryRepository
+        .findFirstByProblemSetIdAndUserIdOrderByCreatedAtDesc(id, userId)
+        .map(h -> new HistoryCheckResponse(true, hashUtil.encode(h.getId()), h.getTitle()))
+        .orElse(new HistoryCheckResponse(false, null, null));
   }
 
   private int findCorrectIndex(List<com.icc.qasker.quiz.entity.Selection> selections) {
