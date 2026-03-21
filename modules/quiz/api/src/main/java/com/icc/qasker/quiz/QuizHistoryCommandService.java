@@ -4,9 +4,13 @@ import com.icc.qasker.quiz.dto.ferequest.SaveHistoryRequest;
 
 public interface QuizHistoryCommandService {
 
-  void createHistory(String userId, Long problemSetId);
+  void initHistory(String userId, Long problemSetId);
 
   String saveHistory(String userId, SaveHistoryRequest request);
 
-  void deleteHistory(String userId, String problemSetId);
+  void deleteAllHistory(String userId);
+
+  void deleteSpecificHistory(String userId, String problemSetId);
+
+  void updateHistoryTitle(String userId, String historyId, String title);
 }

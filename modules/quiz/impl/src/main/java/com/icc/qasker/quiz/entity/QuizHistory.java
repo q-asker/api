@@ -44,6 +44,9 @@ public class QuizHistory extends CreatedAt {
   @Column(nullable = false)
   private Long problemSetId;
 
+  @Column(length = 100)
+  private String title;
+
   @Convert(converter = UserAnswerConverter.class)
   @Column(columnDefinition = "TEXT")
   private List<UserAnswer> answers;
@@ -51,4 +54,8 @@ public class QuizHistory extends CreatedAt {
   @Column private Integer score;
 
   private String totalTime;
+
+  public void updateTitle(String title) {
+    this.title = title;
+  }
 }

@@ -25,8 +25,26 @@ public class QuizHistoryCommandServiceImpl implements QuizHistoryCommandService 
   private final HashUtil hashUtil;
 
   @Override
-  public void createHistory(String userId, Long problemSetId) {
-    QuizHistory history = QuizHistory.builder().userId(userId).problemSetId(problemSetId).build();
+  public void initHistory(String userId, Long problemSetId) {
+    String title =
+        problemSetRepository
+            .findById(problemSetId)
+            .orElseThrow(() -> new CustomException(ExceptionMessage.PROBLEM_SET_NOT_FOUND))
+            .getTitle();
+
+    // 기존 히스토리 삭제 후 초기 상태로 재생성
+    quizHistoryRepository.deleteAll(
+        quizHistoryRepository.findAllByProblemSetIdAndUserId(problemSetId, userId));
+
+    QuizHistory history =
+        QuizHistory.builder()
+            .userId(userId)
+            .problemSetId(problemSetId)
+            .title(title)
+            .answers(null)
+            .score(0)
+            .build();
+
     quizHistoryRepository.save(history);
   }
 
@@ -45,6 +63,7 @@ public class QuizHistoryCommandServiceImpl implements QuizHistoryCommandService 
         QuizHistory.builder()
             .userId(userId)
             .problemSetId(id)
+            .title(request.title())
             .answers(request.userAnswers())
             .score(request.score())
             .totalTime(request.totalTime())
@@ -55,18 +74,24 @@ public class QuizHistoryCommandServiceImpl implements QuizHistoryCommandService 
   }
 
   @Override
-  public void deleteHistory(String userId, String problemSetId) {
-    long id = hashUtil.decode(problemSetId);
-    problemSetRepository
-        .findById(id)
-        .filter(ps -> ps.getUserId().equals(userId))
-        .orElseThrow(() -> new CustomException(ExceptionMessage.PROBLEM_SET_NOT_FOUND));
+  public void deleteAllHistory(String userId) {
+    quizHistoryRepository.deleteAllByUserId(userId);
+  }
 
-    // 미완료(히스토리 없음)는 삭제 불가 (@SoftDelete로 자동 소프트딜리트)
-    var histories = quizHistoryRepository.findAllByProblemSetIdAndUserId(id, userId);
-    if (histories.isEmpty()) {
-      throw new CustomException(ExceptionMessage.QUIZ_HISTORY_NOT_FOUND);
-    }
-    quizHistoryRepository.deleteAll(histories);
+  @Override
+  public void deleteSpecificHistory(String userId, String problemSetId) {
+    long id = hashUtil.decode(problemSetId);
+    quizHistoryRepository.deleteAllByProblemSetIdAndUserId(id, userId);
+  }
+
+  @Override
+  public void updateHistoryTitle(String userId, String historyId, String title) {
+    long id = hashUtil.decode(historyId);
+    QuizHistory history =
+        quizHistoryRepository
+            .findById(id)
+            .filter(h -> h.getUserId().equals(userId))
+            .orElseThrow(() -> new CustomException(ExceptionMessage.QUIZ_HISTORY_NOT_FOUND));
+    history.updateTitle(title);
   }
 }

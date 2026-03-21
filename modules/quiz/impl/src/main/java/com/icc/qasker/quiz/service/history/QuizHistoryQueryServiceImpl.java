@@ -12,13 +12,13 @@ import com.icc.qasker.quiz.dto.feresponse.Selection;
 import com.icc.qasker.quiz.entity.Problem;
 import com.icc.qasker.quiz.entity.ProblemSet;
 import com.icc.qasker.quiz.entity.QuizHistory;
+import com.icc.qasker.quiz.mapper.QuizHistoryMapper;
 import com.icc.qasker.quiz.repository.ProblemRepository;
 import com.icc.qasker.quiz.repository.ProblemSetRepository;
 import com.icc.qasker.quiz.repository.QuizHistoryRepository;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import lombok.AllArgsConstructor;
@@ -34,13 +34,30 @@ public class QuizHistoryQueryServiceImpl implements QuizHistoryQueryService {
   private final ProblemSetRepository problemSetRepository;
   private final ProblemRepository problemRepository;
   private final HashUtil hashUtil;
+  private final QuizHistoryMapper quizHistoryMapper;
 
   @Override
   public List<HistorySummaryResponse> getHistoryList(String userId) {
 
     // IN 쿼리 1번으로 모든 히스토리 일괄 조회
     List<QuizHistory> histories = quizHistoryRepository.findAllByUserId(userId);
-    return new ArrayList<>();
+    if (histories.isEmpty()) {
+      return List.of();
+    }
+
+    // ProblemSet IN 쿼리 1번으로 일괄 조회 후 Map으로 변환
+    List<Long> problemSetIds =
+        histories.stream().map(QuizHistory::getProblemSetId).distinct().toList();
+    Map<Long, ProblemSet> problemSetMap =
+        problemSetRepository.findAllById(problemSetIds).stream()
+            .collect(Collectors.toMap(ProblemSet::getId, Function.identity()));
+
+    return histories.stream()
+        .filter(history -> problemSetMap.containsKey(history.getProblemSetId()))
+        .map(
+            history ->
+                quizHistoryMapper.toSummary(history, problemSetMap.get(history.getProblemSetId())))
+        .toList();
   }
 
   @Override

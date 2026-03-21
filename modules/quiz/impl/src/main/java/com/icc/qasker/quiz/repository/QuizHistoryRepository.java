@@ -13,4 +13,8 @@ public interface QuizHistoryRepository extends JpaRepository<QuizHistory, Long> 
       Long problemSetId, String userId);
 
   List<QuizHistory> findAllByProblemSetIdAndUserId(Long problemSetId, String userId);
+
+  long deleteAllByProblemSetIdAndUserId(Long problemSetId, String userId);
+
+  long deleteAllByUserId(String userId);
 }

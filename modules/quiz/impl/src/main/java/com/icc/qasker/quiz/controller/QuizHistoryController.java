@@ -16,6 +16,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -52,11 +53,20 @@ public class QuizHistoryController {
     return ResponseEntity.ok(quizHistoryQueryService.getHistoryDetail(userId, problemSetId));
   }
 
-  @Operation(summary = "완료된 퀴즈 기록을 삭제한다 (미완료 불가)")
-  @DeleteMapping("/{problemSetId}")
-  public ResponseEntity<Void> deleteHistory(
-      @UserId String userId, @PathVariable String problemSetId) {
-    quizHistoryCommandService.deleteHistory(userId, problemSetId);
+  @Operation(summary = "퀴즈 히스토리 제목을 변경한다")
+  @PatchMapping("/{historyId}/title")
+  public ResponseEntity<Void> updateHistoryTitle(
+      @UserId String userId,
+      @PathVariable String historyId,
+      @RequestBody Map<String, String> body) {
+    quizHistoryCommandService.updateHistoryTitle(userId, historyId, body.get("title"));
+    return ResponseEntity.noContent().build();
+  }
+
+  @Operation(summary = "모든 퀴즈 기록을 삭제한다")
+  @DeleteMapping
+  public ResponseEntity<Void> deleteAllHistory(@UserId String userId) {
+    quizHistoryCommandService.deleteAllHistory(userId);
     return ResponseEntity.noContent().build();
   }
 }
