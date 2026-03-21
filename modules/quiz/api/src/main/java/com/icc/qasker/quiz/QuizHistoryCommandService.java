@@ -5,7 +5,7 @@ import com.icc.qasker.quiz.dto.ferequest.SaveHistoryRequest;
 
 public interface QuizHistoryCommandService {
 
-  void initHistory(String userId, InitHistoryRequest request);
+  String initHistory(String userId, InitHistoryRequest request);
 
   String saveHistory(String userId, SaveHistoryRequest request);
 

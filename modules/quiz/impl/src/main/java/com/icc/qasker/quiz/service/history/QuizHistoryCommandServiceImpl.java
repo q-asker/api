@@ -47,11 +47,17 @@ public class QuizHistoryCommandServiceImpl implements QuizHistoryCommandService 
   }
 
   @Override
-  public void initHistory(String userId, InitHistoryRequest request) {
+  public String initHistory(String userId, InitHistoryRequest request) {
     long problemSetId = hashUtil.decode(request.problemSetId());
 
     // upsert: 있으면 초기화, 없으면 새로 생성 (atomic)
     quizHistoryRepository.upsertInitHistory(userId, problemSetId, request.title());
+
+    QuizHistory history =
+        quizHistoryRepository
+            .findFirstByProblemSetIdAndUserIdOrderByCreatedAtDesc(problemSetId, userId)
+            .orElseThrow(() -> new CustomException(ExceptionMessage.QUIZ_HISTORY_NOT_FOUND));
+    return hashUtil.encode(history.getId());
   }
 
   @Override

@@ -7,12 +7,12 @@ import com.icc.qasker.quiz.dto.ferequest.ChangeHistoryTitleRequest;
 import com.icc.qasker.quiz.dto.ferequest.InitHistoryRequest;
 import com.icc.qasker.quiz.dto.ferequest.SaveHistoryRequest;
 import com.icc.qasker.quiz.dto.feresponse.HistoryDetailResponse;
+import com.icc.qasker.quiz.dto.feresponse.HistoryIdResponse;
 import com.icc.qasker.quiz.dto.feresponse.HistorySummaryResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
-import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -49,18 +49,18 @@ public class QuizHistoryController {
 
   @Operation(summary = "퀴즈 생성 시 히스토리를 초기화한다")
   @PostMapping("/init")
-  public ResponseEntity<Void> initHistory(
+  public ResponseEntity<HistoryIdResponse> initHistory(
       @UserId String userId, @Valid @RequestBody InitHistoryRequest request) {
-    quizHistoryCommandService.initHistory(userId, request);
-    return ResponseEntity.status(HttpStatus.CREATED).build();
+    String historyId = quizHistoryCommandService.initHistory(userId, request);
+    return ResponseEntity.status(HttpStatus.CREATED).body(new HistoryIdResponse(historyId));
   }
 
   @Operation(summary = "퀴즈 완료 후 답안 및 점수를 저장한다")
   @PostMapping
-  public ResponseEntity<Map<String, String>> saveHistory(
+  public ResponseEntity<HistoryIdResponse> saveHistory(
       @UserId String userId, @Valid @RequestBody SaveHistoryRequest request) {
     String historyId = quizHistoryCommandService.saveHistory(userId, request);
-    return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("historyId", historyId));
+    return ResponseEntity.status(HttpStatus.CREATED).body(new HistoryIdResponse(historyId));
   }
 
   @Operation(summary = "퀴즈 히스토리 제목을 변경한다")
