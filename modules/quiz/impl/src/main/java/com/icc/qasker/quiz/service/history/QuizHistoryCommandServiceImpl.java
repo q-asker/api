@@ -25,48 +25,33 @@ public class QuizHistoryCommandServiceImpl implements QuizHistoryCommandService 
   private final HashUtil hashUtil;
 
   @Override
-  public void initHistory(String userId, InitHistoryRequest request) {
-    long problemSetId = hashUtil.decode(request.problemSetId());
-
-    // 기존 히스토리 삭제 후 초기 상태로 재생성
-    quizHistoryRepository.deleteAll(
-        quizHistoryRepository.findAllByProblemSetIdAndUserId(problemSetId, userId));
-
-    QuizHistory history =
-        QuizHistory.builder()
-            .userId(userId)
-            .problemSetId(problemSetId)
-            .title(request.title())
-            .answers(null)
-            .score(0)
-            .build();
-
-    quizHistoryRepository.save(history);
-  }
-
-  @Override
   public String saveHistory(String userId, SaveHistoryRequest request) {
     long id = hashUtil.decode(request.problemSetId());
     problemSetRepository
         .findById(id)
         .orElseThrow(() -> new CustomException(ExceptionMessage.PROBLEM_SET_NOT_FOUND));
 
-    // 기존 히스토리 전체 삭제 후 재저장 (최신 1건만 유지, @SoftDelete로 자동 소프트딜리트)
-    quizHistoryRepository.deleteAll(
-        quizHistoryRepository.findAllByProblemSetIdAndUserId(id, userId));
+    // 기존 히스토리 전체 삭제 후 재저장 (최신 1건만 유지)
+    quizHistoryRepository.deleteAllByProblemSetIdAndUserId(id, userId);
 
     QuizHistory history =
         QuizHistory.builder()
             .userId(userId)
             .problemSetId(id)
-            .title(request.title())
             .answers(request.userAnswers())
             .score(request.score())
-            .totalTime(request.totalTime())
             .build();
 
     QuizHistory saved = quizHistoryRepository.save(history);
     return hashUtil.encode(saved.getId());
+  }
+
+  @Override
+  public void initHistory(String userId, InitHistoryRequest request) {
+    long problemSetId = hashUtil.decode(request.problemSetId());
+
+    // upsert: 있으면 초기화, 없으면 새로 생성 (atomic)
+    quizHistoryRepository.upsertInitHistory(userId, problemSetId, request.title());
   }
 
   @Override

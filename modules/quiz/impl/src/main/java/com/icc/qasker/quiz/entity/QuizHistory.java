@@ -21,7 +21,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.SoftDelete;
 
 @Entity
 @Getter
@@ -31,7 +30,6 @@ import org.hibernate.annotations.SoftDelete;
 @Table(
     name = "quiz_history",
     indexes = {@Index(name = "idx_quiz_history_user_id", columnList = "userId")})
-@SoftDelete(columnName = "deleted")
 public class QuizHistory extends CreatedAt {
 
   @Id
