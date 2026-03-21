@@ -36,8 +36,8 @@ public class ProblemSetServiceImpl implements ProblemSetService {
   public ChangeTitleResponse changeProblemSetTitle(
       String userId, String problemSetId, ChangeTitleRequest request) {
     ProblemSet ps = getProblemSetEntityByEncoded(problemSetId);
-    if (!ps.getUserId().equals(userId)) {
-      throw new CustomException(ExceptionMessage.UNAUTHORIZED);
+    if (ps.getUserId() == null || !ps.getUserId().equals(userId)) {
+      throw new CustomException(ExceptionMessage.NOT_ENOUGH_ACCESS);
     }
     ps.updateTitle(request.title());
     return new ChangeTitleResponse(ps.getTitle());
