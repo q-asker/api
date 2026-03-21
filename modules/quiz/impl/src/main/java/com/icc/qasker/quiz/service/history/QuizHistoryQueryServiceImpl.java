@@ -107,6 +107,7 @@ public class QuizHistoryQueryServiceImpl implements QuizHistoryQueryService {
 
     return new HistoryDetailResponse(
         hashUtil.encode(history.getId()),
+        hashUtil.encode(problemSetId),
         problemSet.getQuizType(),
         problemSet.getTotalQuizCount(),
         history.getScore(),

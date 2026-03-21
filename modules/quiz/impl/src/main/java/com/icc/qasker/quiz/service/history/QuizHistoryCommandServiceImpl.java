@@ -36,6 +36,8 @@ public class QuizHistoryCommandServiceImpl implements QuizHistoryCommandService 
 
     QuizHistory history =
         QuizHistory.builder()
+            .title(request.title())
+            .totalTime(request.totalTime())
             .userId(userId)
             .problemSetId(id)
             .answers(request.userAnswers())
