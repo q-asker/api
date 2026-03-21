@@ -58,7 +58,7 @@ public class ExplanationMarkdownBuilder {
   }
 
   private static void appendSelectionExp(StringBuilder sb, SelectionsOfAI sel) {
-    sb.append("*").append(sel.getContent()).append("*\n\n");
+    sb.append("> ").append(sel.getContent()).append("\n\n");
     if (hasText(sel.getExplanation())) {
       sb.append(sel.getExplanation().strip());
       sb.append("\n\n---\n\n");
