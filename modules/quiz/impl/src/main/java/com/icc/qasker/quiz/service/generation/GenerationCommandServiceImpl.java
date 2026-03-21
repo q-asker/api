@@ -62,6 +62,14 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
       throw new CustomException(ExceptionMessage.AI_DUPLICATED_GENERATION);
     }
 
+    try {
+      if (userId != null) {
+        quizHistoryCommandService.initHistory(userId, problemSetId);
+      }
+    } catch (Exception e) {
+      log.warn("기록 초기화에 실패했습니다 userId: {}, problemSetId: {}", userId, problemSetId, e);
+    }
+
     Thread.ofVirtual()
         .start(() -> processAsyncGeneration(request.sessionId(), problemSetId, request));
   }
@@ -84,8 +92,7 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
               log.warn("빈 배치 수신, 건너뜀: sessionId={}", sessionId);
               return;
             }
-            shuffleSelectionsIfNeeded(problemSet, request.quizType());
-            buildExplanations(problemSet);
+            postRefineQuiz(problemSet, request.quizType());
             List<Integer> savedNumbers =
                 quizCommandService.saveBatch(problemSet.getQuiz(), problemSetId);
 
@@ -112,9 +119,7 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
                     quizForFeList));
           },
           // 2. error 콜백
-          ex -> {
-            log.error("청크 에러: {}", ex.getMessage());
-          });
+          ex -> log.error("청크 에러: {}", ex.getMessage()));
     } catch (Exception e) {
       log.error("생성 중 오류 발생: sessionId={}", sessionId, e);
       finalizeError(sessionId, problemSetId, ExceptionMessage.AI_GENERATION_FAILED.getMessage());
@@ -132,22 +137,19 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
     }
   }
 
-  private void shuffleSelectionsIfNeeded(ProblemSetGeneratedEvent problemSet, QuizType quizType) {
-    if (quizType != QuizType.MULTIPLE && quizType != QuizType.BLANK) {
-      return;
-    }
-    for (var quiz : problemSet.getQuiz()) {
-      if (!CollectionUtils.isEmpty(quiz.getSelections())) {
-        List<ProblemSetGeneratedEvent.QuizGeneratedFromAI.SelectionsOfAI> shuffled =
-            new ArrayList<>(quiz.getSelections());
-        Collections.shuffle(shuffled);
-        quiz.setSelections(shuffled);
+  private void postRefineQuiz(ProblemSetGeneratedEvent problemSet, QuizType quizType) {
+    // 1. 선택지 셔플
+    if (quizType == QuizType.MULTIPLE || quizType == QuizType.BLANK) {
+      for (var quiz : problemSet.getQuiz()) {
+        if (!CollectionUtils.isEmpty(quiz.getSelections())) {
+          List<ProblemSetGeneratedEvent.QuizGeneratedFromAI.SelectionsOfAI> shuffled =
+              new ArrayList<>(quiz.getSelections());
+          Collections.shuffle(shuffled);
+          quiz.setSelections(shuffled);
+        }
       }
     }
-  }
-
-  /** 셔플된 선택지 순서에 맞춰 해설 마크다운을 빌드하여 explanation에 설정한다. */
-  private void buildExplanations(ProblemSetGeneratedEvent problemSet) {
+    // 2. 마크다운 포맷팅
     for (QuizGeneratedFromAI quiz : problemSet.getQuiz()) {
       quiz.setExplanation(ExplanationMarkdownBuilder.build(quiz));
     }

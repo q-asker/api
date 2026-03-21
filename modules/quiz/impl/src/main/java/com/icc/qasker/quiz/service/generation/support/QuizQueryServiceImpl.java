@@ -1,4 +1,4 @@
-package com.icc.qasker.quiz.service.generation;
+package com.icc.qasker.quiz.service.generation.support;
 
 import com.icc.qasker.global.component.HashUtil;
 import com.icc.qasker.global.error.CustomException;
