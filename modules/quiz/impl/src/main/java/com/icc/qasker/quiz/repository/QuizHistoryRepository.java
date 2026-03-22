@@ -10,7 +10,7 @@ import org.springframework.data.repository.query.Param;
 
 public interface QuizHistoryRepository extends JpaRepository<QuizHistory, Long> {
 
-  List<QuizHistory> findAllByProblemSetIdInAndUserId(List<Long> problemSetIds, String userId);
+  List<QuizHistory> findAllByUserIdOrderByCreatedAtDesc(String userId);
 
   @Modifying(clearAutomatically = true)
   @Query(
@@ -30,6 +30,13 @@ public interface QuizHistoryRepository extends JpaRepository<QuizHistory, Long> 
       @Param("score") Integer score);
 
   Optional<QuizHistory> findByProblemSetIdAndUserId(Long problemSetId, String userId);
+
+  @Query(
+      value =
+          "SELECT id FROM quiz_history WHERE problem_set_id = :problemSetId AND user_id = :userId",
+      nativeQuery = true)
+  Optional<Long> findIdByProblemSetIdAndUserId(
+      @Param("problemSetId") Long problemSetId, @Param("userId") String userId);
 
   @Modifying
   @Query("DELETE FROM QuizHistory qh WHERE qh.problemSetId = :problemSetId AND qh.userId = :userId")

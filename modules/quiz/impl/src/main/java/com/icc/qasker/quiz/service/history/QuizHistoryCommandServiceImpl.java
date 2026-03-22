@@ -34,8 +34,8 @@ public class QuizHistoryCommandServiceImpl implements QuizHistoryCommandService 
     quizHistoryRepository.upsert(userId, id, answersJson, request.score());
 
     return quizHistoryRepository
-        .findByProblemSetIdAndUserId(id, userId)
-        .map(h -> hashUtil.encode(h.getId()))
+        .findIdByProblemSetIdAndUserId(id, userId)
+        .map(hashUtil::encode)
         .orElseThrow(() -> new CustomException(ExceptionMessage.QUIZ_HISTORY_NOT_FOUND));
   }
 
