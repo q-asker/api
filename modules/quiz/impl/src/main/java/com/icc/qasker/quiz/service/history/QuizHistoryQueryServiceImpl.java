@@ -4,6 +4,7 @@ import com.icc.qasker.global.component.HashUtil;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.quiz.QuizHistoryQueryService;
+import com.icc.qasker.quiz.QuizHistoryStatus;
 import com.icc.qasker.quiz.dto.feresponse.HistoryDetailResponse;
 import com.icc.qasker.quiz.dto.feresponse.HistorySummaryResponse;
 import com.icc.qasker.quiz.dto.feresponse.ProblemWithAnswer;
@@ -44,16 +45,11 @@ public class QuizHistoryQueryServiceImpl implements QuizHistoryQueryService {
             .collect(Collectors.toMap(QuizHistory::getProblemSetId, h -> h));
 
     return problemSets.stream()
-        .filter(
-            ps -> {
-              QuizHistory h = historyMap.get(ps.getId());
-              // 소프트 딜리트된 항목은 목록에서 제외
-              return h == null || !h.isDeleted();
-            })
         .map(
             ps -> {
               QuizHistory history = historyMap.get(ps.getId());
-              boolean completed = history != null;
+              boolean completed =
+                  history != null && history.getStatus() == QuizHistoryStatus.COMPLETED;
               return new HistorySummaryResponse(
                   hashUtil.encode(ps.getId()),
                   ps.getTitle(),
@@ -73,7 +69,8 @@ public class QuizHistoryQueryServiceImpl implements QuizHistoryQueryService {
     long id = hashUtil.decode(problemSetId);
     QuizHistory history =
         quizHistoryRepository
-            .findFirstByProblemSetIdAndUserIdAndDeletedFalseOrderByCreatedAtDesc(id, userId)
+            .findByProblemSetIdAndUserId(id, userId)
+            .filter(h -> h.getStatus() == QuizHistoryStatus.COMPLETED)
             .orElseThrow(() -> new CustomException(ExceptionMessage.QUIZ_HISTORY_NOT_FOUND));
 
     ProblemSet problemSet =

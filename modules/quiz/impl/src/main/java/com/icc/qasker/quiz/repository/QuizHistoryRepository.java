@@ -12,17 +12,27 @@ public interface QuizHistoryRepository extends JpaRepository<QuizHistory, Long> 
 
   List<QuizHistory> findAllByProblemSetIdInAndUserId(List<Long> problemSetIds, String userId);
 
-  Optional<QuizHistory> findFirstByProblemSetIdAndUserIdAndDeletedFalseOrderByCreatedAtDesc(
-      Long problemSetId, String userId);
+  @Modifying(clearAutomatically = true)
+  @Query(
+      value =
+          "INSERT INTO quiz_history (user_id, problem_set_id, answers, score, status, created_at)"
+              + " VALUES (:userId, :problemSetId, :answersJson, :score, 'COMPLETED', NOW())"
+              + " ON DUPLICATE KEY UPDATE"
+              + " answers = VALUES(answers),"
+              + " score = VALUES(score),"
+              + " status = 'COMPLETED',"
+              + " created_at = NOW()",
+      nativeQuery = true)
+  void upsert(
+      @Param("userId") String userId,
+      @Param("problemSetId") Long problemSetId,
+      @Param("answersJson") String answersJson,
+      @Param("score") Integer score);
+
+  Optional<QuizHistory> findByProblemSetIdAndUserId(Long problemSetId, String userId);
 
   @Modifying
   @Query("DELETE FROM QuizHistory qh WHERE qh.problemSetId = :problemSetId AND qh.userId = :userId")
-  void deleteAllByProblemSetIdAndUserId(
-      @Param("problemSetId") Long problemSetId, @Param("userId") String userId);
-
-  @Modifying
-  @Query(
-      "UPDATE QuizHistory qh SET qh.deleted = true WHERE qh.problemSetId = :problemSetId AND qh.userId = :userId")
-  int softDeleteByProblemSetIdAndUserId(
+  int deleteByProblemSetIdAndUserId(
       @Param("problemSetId") Long problemSetId, @Param("userId") String userId);
 }

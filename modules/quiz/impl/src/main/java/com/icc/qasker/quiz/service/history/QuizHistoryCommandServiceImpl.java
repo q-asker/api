@@ -4,8 +4,8 @@ import com.icc.qasker.global.component.HashUtil;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.quiz.QuizHistoryCommandService;
+import com.icc.qasker.quiz.converter.UserAnswerConverter;
 import com.icc.qasker.quiz.dto.ferequest.SaveHistoryRequest;
-import com.icc.qasker.quiz.entity.QuizHistory;
 import com.icc.qasker.quiz.repository.ProblemSetRepository;
 import com.icc.qasker.quiz.repository.QuizHistoryRepository;
 import lombok.AllArgsConstructor;
@@ -16,6 +16,8 @@ import org.springframework.transaction.annotation.Transactional;
 @AllArgsConstructor
 @Transactional
 public class QuizHistoryCommandServiceImpl implements QuizHistoryCommandService {
+
+  private static final UserAnswerConverter USER_ANSWER_CONVERTER = new UserAnswerConverter();
 
   private final QuizHistoryRepository quizHistoryRepository;
   private final ProblemSetRepository problemSetRepository;
@@ -28,19 +30,13 @@ public class QuizHistoryCommandServiceImpl implements QuizHistoryCommandService 
         .findById(id)
         .orElseThrow(() -> new CustomException(ExceptionMessage.PROBLEM_SET_NOT_FOUND));
 
-    // 기존 히스토리 전체 삭제 후 재저장 (최신 1건만 유지)
-    quizHistoryRepository.deleteAllByProblemSetIdAndUserId(id, userId);
+    String answersJson = USER_ANSWER_CONVERTER.convertToDatabaseColumn(request.userAnswers());
+    quizHistoryRepository.upsert(userId, id, answersJson, request.score());
 
-    QuizHistory history =
-        QuizHistory.builder()
-            .userId(userId)
-            .problemSetId(id)
-            .answers(request.userAnswers())
-            .score(request.score())
-            .build();
-
-    QuizHistory saved = quizHistoryRepository.save(history);
-    return hashUtil.encode(saved.getId());
+    return quizHistoryRepository
+        .findByProblemSetIdAndUserId(id, userId)
+        .map(h -> hashUtil.encode(h.getId()))
+        .orElseThrow(() -> new CustomException(ExceptionMessage.QUIZ_HISTORY_NOT_FOUND));
   }
 
   @Override
@@ -51,9 +47,8 @@ public class QuizHistoryCommandServiceImpl implements QuizHistoryCommandService 
         .filter(ps -> ps.getUserId().equals(userId))
         .orElseThrow(() -> new CustomException(ExceptionMessage.PROBLEM_SET_NOT_FOUND));
 
-    // 미완료(히스토리 없음)는 삭제 불가
-    int updated = quizHistoryRepository.softDeleteByProblemSetIdAndUserId(id, userId);
-    if (updated == 0) {
+    int deleted = quizHistoryRepository.deleteByProblemSetIdAndUserId(id, userId);
+    if (deleted == 0) {
       throw new CustomException(ExceptionMessage.QUIZ_HISTORY_NOT_FOUND);
     }
   }
