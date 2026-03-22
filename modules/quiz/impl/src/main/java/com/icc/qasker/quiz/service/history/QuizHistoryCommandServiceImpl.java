@@ -6,6 +6,7 @@ import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.quiz.QuizHistoryCommandService;
 import com.icc.qasker.quiz.converter.UserAnswerConverter;
 import com.icc.qasker.quiz.dto.ferequest.SaveHistoryRequest;
+import com.icc.qasker.quiz.entity.QuizHistory;
 import com.icc.qasker.quiz.repository.ProblemSetRepository;
 import com.icc.qasker.quiz.repository.QuizHistoryRepository;
 import lombok.AllArgsConstructor;
@@ -22,6 +23,12 @@ public class QuizHistoryCommandServiceImpl implements QuizHistoryCommandService 
   private final QuizHistoryRepository quizHistoryRepository;
   private final ProblemSetRepository problemSetRepository;
   private final HashUtil hashUtil;
+
+  @Override
+  public void createHistory(String userId, Long problemSetId) {
+    QuizHistory history = QuizHistory.builder().userId(userId).problemSetId(problemSetId).build();
+    quizHistoryRepository.save(history);
+  }
 
   @Override
   public String saveHistory(String userId, SaveHistoryRequest request) {

@@ -11,6 +11,7 @@ import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.quiz.GenerationCommandService;
 import com.icc.qasker.quiz.GenerationStatus;
 import com.icc.qasker.quiz.QuizCommandService;
+import com.icc.qasker.quiz.QuizHistoryCommandService;
 import com.icc.qasker.quiz.QuizQueryService;
 import com.icc.qasker.quiz.SseNotificationService;
 import com.icc.qasker.quiz.adapter.AIServerAdapter;
@@ -43,6 +44,7 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
   private final SseNotificationService notificationService;
   private final QuizCommandService quizCommandService;
   private final QuizQueryService quizQueryService;
+  private final QuizHistoryCommandService quizHistoryCommandService;
   // 유틸
   private final HashUtil hashUtil;
   private final SlackNotifier slackNotifier;
@@ -77,11 +79,11 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
             (t, e) -> {
               log.error("가상 스레드 미처리 예외 발생: sessionId={}", request.sessionId(), e);
             })
-        .start(() -> processAsyncGeneration(request.sessionId(), problemSetId, request));
+        .start(() -> processAsyncGeneration(userId, request.sessionId(), problemSetId, request));
   }
 
   private void processAsyncGeneration(
-      String sessionId, Long problemSetId, GenerationRequest request) {
+      String userId, String sessionId, Long problemSetId, GenerationRequest request) {
 
     AtomicInteger atomicGeneratedCount = new AtomicInteger(0);
 
@@ -138,16 +140,17 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
     if (generatedCount == 0) {
       finalizeError(sessionId, problemSetId, ExceptionMessage.AI_GENERATION_FAILED.getMessage());
     } else if (generatedCount == request.quizCount()) {
-      finalizeSuccess(sessionId, problemSetId, request.quizType(), generatedCount);
+      finalizeSuccess(userId, sessionId, problemSetId, request.quizType(), generatedCount);
     } else {
       finalizePartialSuccess(
-          sessionId, problemSetId, request.quizType(), generatedCount, request.quizCount());
+          userId, sessionId, problemSetId, request.quizType(), generatedCount, request.quizCount());
     }
   }
 
   private void finalizeSuccess(
-      String sessionId, Long problemSetId, QuizType quizType, long generatedCount) {
+      String userId, String sessionId, Long problemSetId, QuizType quizType, long generatedCount) {
     quizCommandService.updateStatus(problemSetId, COMPLETED);
+    quizHistoryCommandService.createHistory(userId, problemSetId);
     notificationService.sendComplete(sessionId);
     slackNotifier.asyncNotifyText(
         """
@@ -160,8 +163,14 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
   }
 
   private void finalizePartialSuccess(
-      String sessionId, Long problemSetId, QuizType quizType, long generatedCount, long quizCount) {
+      String userId,
+      String sessionId,
+      Long problemSetId,
+      QuizType quizType,
+      long generatedCount,
+      long quizCount) {
     quizCommandService.updateStatus(problemSetId, COMPLETED);
+    quizHistoryCommandService.createHistory(userId, problemSetId);
     notificationService.sendComplete(sessionId);
     slackNotifier.asyncNotifyText(
         """

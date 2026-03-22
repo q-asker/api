@@ -36,10 +36,7 @@ public class QuizHistoryQueryServiceImpl implements QuizHistoryQueryService {
 
   @Override
   public List<HistorySummaryResponse> getHistoryList(String userId) {
-    // 히스토리 기준 조회 — 히스토리가 없는 ProblemSet은 포함하지 않고,
-    // 삭제된 히스토리는 자동으로 목록에서 제외됨
     List<QuizHistory> histories = quizHistoryRepository.findAllByUserIdOrderByCreatedAtDesc(userId);
-
     List<Long> problemSetIds = histories.stream().map(QuizHistory::getProblemSetId).toList();
 
     Map<Long, ProblemSet> problemSetMap =
@@ -50,18 +47,20 @@ public class QuizHistoryQueryServiceImpl implements QuizHistoryQueryService {
         .map(
             h -> {
               ProblemSet ps = problemSetMap.get(h.getProblemSetId());
-              // ProblemSet이 삭제된 경우 히스토리도 노출하지 않음
-              if (ps == null) return null;
+              if (ps == null) {
+                return null;
+              }
+              boolean completed = h.getStatus() == QuizHistoryStatus.COMPLETED;
               return new HistorySummaryResponse(
                   hashUtil.encode(ps.getId()),
                   ps.getTitle(),
                   ps.getCreatedAt(),
-                  hashUtil.encode(h.getId()),
+                  completed ? hashUtil.encode(h.getId()) : null,
                   ps.getQuizType(),
                   ps.getTotalQuizCount(),
-                  true,
-                  h.getScore(),
-                  h.getCreatedAt());
+                  completed,
+                  completed ? h.getScore() : null,
+                  completed ? h.getCreatedAt() : null);
             })
         .filter(Objects::nonNull)
         .toList();
@@ -96,7 +95,6 @@ public class QuizHistoryQueryServiceImpl implements QuizHistoryQueryService {
                   int correctIndex = findCorrectIndex(rawSelections);
                   boolean correct = userAnswer == correctIndex;
 
-                  // indexOf 대신 IntStream으로 index 직접 추적 (O(n²) 방지)
                   List<Selection> selections =
                       IntStream.range(0, rawSelections.size())
                           .mapToObj(

@@ -48,14 +48,13 @@ public class QuizHistory extends CreatedAt {
   private Long problemSetId;
 
   @Convert(converter = UserAnswerConverter.class)
-  @Column(columnDefinition = "TEXT", nullable = false)
+  @Column(columnDefinition = "TEXT")
   private List<UserAnswer> answers;
 
-  @Column(nullable = false)
-  private Integer score;
+  @Column private Integer score;
 
   @Enumerated(EnumType.STRING)
   @Builder.Default
   @Column(nullable = false)
-  private QuizHistoryStatus status = QuizHistoryStatus.COMPLETED;
+  private QuizHistoryStatus status = QuizHistoryStatus.INCOMPLETE;
 }
