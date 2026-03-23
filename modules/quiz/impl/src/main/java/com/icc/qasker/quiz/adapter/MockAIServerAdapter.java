@@ -1,131 +1,64 @@
 package com.icc.qasker.quiz.adapter;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.icc.qasker.ai.QuizOrchestrationService;
-import com.icc.qasker.quiz.dto.airesponse.ProblemSetGeneratedEvent;
+import com.icc.qasker.ai.dto.AIProblem;
+import com.icc.qasker.ai.dto.AIProblemSet;
+import com.icc.qasker.ai.dto.AISelection;
+import com.icc.qasker.ai.dto.GenerationRequestToAI;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.function.Consumer;
 import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
-import org.springframework.web.client.RestClient;
 
 @Component
 @Primary
 @Profile("mock")
 public class MockAIServerAdapter extends AIServerAdapter {
 
-  private final ObjectMapper objectMapper;
-
-  public MockAIServerAdapter(
-      ObjectMapper objectMapper,
-      RestClient aiStreamClient,
-      QuizOrchestrationService quizOrchestrationService) {
+  public MockAIServerAdapter(QuizOrchestrationService quizOrchestrationService) {
     super(quizOrchestrationService);
-    this.objectMapper = objectMapper;
   }
 
   @Override
-  public void streamRequest(
-      String fileUrl,
-      String strategyValue,
-      int quizCount,
-      List<Integer> referencedPages,
-      Consumer<ProblemSetGeneratedEvent> onQuestionsReceived,
-      Consumer<Exception> onChunkError) {
-    List<Integer> pages = CollectionUtils.isEmpty(referencedPages) ? List.of(1) : referencedPages;
+  public void streamRequest(GenerationRequestToAI request) {
+    int quizCount = request.quizCount();
+    List<Integer> pages =
+        CollectionUtils.isEmpty(request.referencePages()) ? List.of(1) : request.referencePages();
 
-    List<Map<String, Object>> quiz = new ArrayList<>();
-    for (int i = 1; i <= quizCount / 3; i++) {
-      quiz.add(
-          Map.of(
-              "number",
-              i,
-              "title",
-              "Mock question " + i,
-              "selections",
-              List.of(
-                  Map.of("content", "Option A", "correct", true),
-                  Map.of("content", "Option B", "correct", false),
-                  Map.of("content", "Option C", "correct", false),
-                  Map.of("content", "Option D", "correct", false)),
-              "explanation",
-              "Mock explanation for question " + i,
-              "pageNumbers",
-              pages));
+    // 3개 청크로 나누어 전송
+    int[][] ranges = {
+      {1, quizCount / 3},
+      {quizCount / 3 + 1, 2 * (quizCount / 3)},
+      {2 * (quizCount / 3) + 1, quizCount}
+    };
+
+    for (int[] range : ranges) {
+      List<AIProblem> problems = new ArrayList<>();
+      for (int i = range[0]; i <= range[1]; i++) {
+        problems.add(
+            new AIProblem(
+                i,
+                "Mock question " + i,
+                "Mock explanation for question " + i,
+                List.of(
+                    new AISelection("Option A", "Mock explanation A", true),
+                    new AISelection("Option B", "Mock explanation B", false),
+                    new AISelection("Option C", "Mock explanation C", false),
+                    new AISelection("Option D", "Mock explanation D", false)),
+                pages));
+      }
+      request.questionsConsumer().accept(new AIProblemSet(problems));
+
+      if (range != ranges[ranges.length - 1]) {
+        try {
+          Thread.sleep(10_000);
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          return;
+        }
+      }
     }
-
-    ProblemSetGeneratedEvent event =
-        objectMapper.convertValue(
-            Map.of("type", "quiz", "quiz", quiz), ProblemSetGeneratedEvent.class);
-    onQuestionsReceived.accept(event);
-    try {
-      Thread.sleep(10 * 1000);
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      return;
-    }
-    pages = (referencedPages == null || referencedPages.isEmpty()) ? List.of(1) : referencedPages;
-
-    quiz = new ArrayList<>();
-    for (int i = quizCount / 3 + 1; i <= 2 * (quizCount / 3); i++) {
-      quiz.add(
-          Map.of(
-              "number",
-              i,
-              "title",
-              "Mock question " + i,
-              "selections",
-              List.of(
-                  Map.of("content", "Option A", "correct", true),
-                  Map.of("content", "Option B", "correct", false),
-                  Map.of("content", "Option C", "correct", false),
-                  Map.of("content", "Option D", "correct", false)),
-              "explanation",
-              "Mock explanation for question " + i,
-              "pageNumbers",
-              pages));
-    }
-
-    event =
-        objectMapper.convertValue(
-            Map.of("type", "quiz", "quiz", quiz), ProblemSetGeneratedEvent.class);
-    onQuestionsReceived.accept(event);
-
-    try {
-      Thread.sleep(10 * 1000);
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      return;
-    }
-    pages = (referencedPages == null || referencedPages.isEmpty()) ? List.of(1) : referencedPages;
-
-    quiz = new ArrayList<>();
-    for (int i = 2 * (quizCount / 3) + 1; i <= quizCount; i++) {
-      quiz.add(
-          Map.of(
-              "number",
-              i,
-              "title",
-              "Mock question " + i,
-              "selections",
-              List.of(
-                  Map.of("content", "Option A", "correct", true),
-                  Map.of("content", "Option B", "correct", false),
-                  Map.of("content", "Option C", "correct", false),
-                  Map.of("content", "Option D", "correct", false)),
-              "explanation",
-              "Mock explanation for question " + i,
-              "pageNumbers",
-              pages));
-    }
-
-    event =
-        objectMapper.convertValue(
-            Map.of("type", "quiz", "quiz", quiz), ProblemSetGeneratedEvent.class);
-    onQuestionsReceived.accept(event);
   }
 }
