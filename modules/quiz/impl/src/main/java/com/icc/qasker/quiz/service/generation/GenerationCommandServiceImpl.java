@@ -4,6 +4,7 @@ import static com.icc.qasker.quiz.GenerationStatus.COMPLETED;
 import static com.icc.qasker.quiz.GenerationStatus.FAILED;
 import static com.icc.qasker.quiz.GenerationStatus.GENERATING;
 
+import com.icc.qasker.ai.dto.GenerationRequestToAI;
 import com.icc.qasker.global.component.HashUtil;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
@@ -18,14 +19,16 @@ import com.icc.qasker.quiz.dto.ferequest.GenerationRequest;
 import com.icc.qasker.quiz.dto.ferequest.enums.QuizType;
 import com.icc.qasker.quiz.dto.feresponse.ProblemSetResponse;
 import com.icc.qasker.quiz.dto.feresponse.ProblemSetResponse.QuizForFe;
+import com.icc.qasker.quiz.mapper.AIProblemSetMapper;
 import com.icc.qasker.quiz.mapper.ExplanationMarkdownBuilder;
 import com.icc.qasker.quiz.mapper.QuizViewToQuizForFeMapper;
 import com.icc.qasker.quiz.view.QuizView;
+import io.micrometer.core.instrument.LongTaskTimer;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
-import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -33,7 +36,6 @@ import org.springframework.util.CollectionUtils;
 
 @Slf4j
 @Service
-@AllArgsConstructor
 public class GenerationCommandServiceImpl implements GenerationCommandService {
 
   // 핵심
@@ -43,7 +45,32 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
   private final QuizQueryService quizQueryService;
   // 유틸
   private final HashUtil hashUtil;
-  private final GenerationSlackNotifier generationSlackNotifier;
+  private final GenerationResultRecorder resultRecorder;
+
+  // Prometheus 메트릭
+  private final LongTaskTimer e2eDuration;
+
+  public GenerationCommandServiceImpl(
+      AIServerAdapter aiServerAdapter,
+      SseNotificationService notificationService,
+      QuizCommandService quizCommandService,
+      QuizQueryService quizQueryService,
+      HashUtil hashUtil,
+      GenerationResultRecorder resultRecorder,
+      MeterRegistry registry) {
+    this.aiServerAdapter = aiServerAdapter;
+    this.notificationService = notificationService;
+    this.quizCommandService = quizCommandService;
+    this.quizQueryService = quizQueryService;
+    this.hashUtil = hashUtil;
+    this.resultRecorder = resultRecorder;
+
+    // E2E 파이프라인 LongTaskTimer — 진행 중인 장기 작업 실시간 감시용
+    this.e2eDuration =
+        LongTaskTimer.builder("quiz.generation.e2e.duration")
+            .description("퀴즈 생성 E2E 파이프라인 소요 시간 (진행 중 포함)")
+            .register(registry);
+  }
 
   @Override
   public void triggerGeneration(String userId, GenerationRequest request) {
@@ -67,53 +94,61 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
   private void processAsyncGeneration(
       String userId, String sessionId, Long problemSetId, GenerationRequest request) {
 
+    // 퀴즈 생성 E2E 소요 시간 측정 시작 (Prometheus 메트릭)
+    LongTaskTimer.Sample e2eSample = e2eDuration.start();
     AtomicInteger atomicGeneratedCount = new AtomicInteger(0);
 
     try {
       aiServerAdapter.streamRequest(
-          request.uploadedUrl(),
-          request.quizType().name(),
-          request.quizCount(),
-          request.pageNumbers(),
-          // 문제 생성시 AI 모듈이 호출할 콜백 함수이다
-          (ProblemSetGeneratedEvent problemSet) -> {
-            // problemSet.getQuiz() == null || problemSet.getQuiz().isEmpty()
-            if (CollectionUtils.isEmpty(problemSet.getQuiz())) {
-              log.warn("빈 배치 수신, 건너뜀: sessionId={}", sessionId);
-              return;
-            }
-            postRefineQuiz(problemSet, request.quizType());
-            List<Integer> savedNumbers =
-                quizCommandService.saveBatch(problemSet.getQuiz(), problemSetId);
+          GenerationRequestToAI.builder()
+              .fileUrl(request.uploadedUrl())
+              .strategyValue(request.quizType().name())
+              .quizCount(request.quizCount())
+              .referencePages(request.pageNumbers())
+              .questionsConsumer(
+                  aiProblemSet -> {
+                    ProblemSetGeneratedEvent problemSet = AIProblemSetMapper.toEvent(aiProblemSet);
+                    if (CollectionUtils.isEmpty(problemSet.getQuiz())) {
+                      log.warn("빈 배치 수신, 건너뜀: sessionId={}", sessionId);
+                      return;
+                    }
 
-            List<QuizView> quizViews = quizQueryService.getQuizViews(problemSetId, savedNumbers);
-            if (quizViews.isEmpty()) {
-              return;
-            }
+                    postRefineQuiz(problemSet, request.quizType());
 
-            List<QuizForFe> quizForFeList =
-                quizViews.stream().map(QuizViewToQuizForFeMapper::toQuizForFe).toList();
+                    List<Integer> savedNumbers =
+                        quizCommandService.saveBatch(problemSet.getQuiz(), problemSetId);
 
-            atomicGeneratedCount.addAndGet(quizViews.size());
+                    List<QuizView> quizViews =
+                        quizQueryService.getQuizViews(problemSetId, savedNumbers);
+                    if (quizViews.isEmpty()) {
+                      return;
+                    }
 
-            notificationService.sendCreatedMessageWithId(
-                sessionId,
-                String.valueOf(quizViews.getLast().getNumber()),
-                new ProblemSetResponse(
-                    sessionId,
-                    hashUtil.encode(problemSetId),
-                    request.title(),
-                    GENERATING,
-                    QuizType.valueOf(request.quizType().name()),
-                    request.quizCount(),
-                    quizForFeList));
-          },
-          // 2. error 콜백
-          ex -> log.error("청크 에러: {}", ex.getMessage()));
+                    List<QuizForFe> quizForFeList =
+                        quizViews.stream().map(QuizViewToQuizForFeMapper::toQuizForFe).toList();
+
+                    atomicGeneratedCount.addAndGet(quizViews.size());
+
+                    notificationService.sendCreatedMessageWithId(
+                        sessionId,
+                        String.valueOf(quizViews.getLast().getNumber()),
+                        new ProblemSetResponse(
+                            sessionId,
+                            hashUtil.encode(problemSetId),
+                            request.title(),
+                            GENERATING,
+                            QuizType.valueOf(request.quizType().name()),
+                            request.quizCount(),
+                            quizForFeList));
+                  })
+              .errorConsumer(ex -> log.error("청크 에러: {}", ex.getMessage()))
+              .build());
     } catch (Exception e) {
       log.error("생성 중 오류 발생: sessionId={}", sessionId, e);
       finalizeError(sessionId, problemSetId, ExceptionMessage.AI_GENERATION_FAILED.getMessage());
       return;
+    } finally {
+      e2eSample.stop();
     }
 
     int generatedCount = atomicGeneratedCount.get();
@@ -149,19 +184,19 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
       String sessionId, Long problemSetId, QuizType quizType, long generatedCount) {
     quizCommandService.updateStatus(problemSetId, COMPLETED);
     notificationService.sendComplete(sessionId);
-    generationSlackNotifier.notifySuccess(problemSetId, quizType, generatedCount);
+    resultRecorder.recordSuccess(problemSetId, quizType, generatedCount);
   }
 
   private void finalizePartialSuccess(
       String sessionId, Long problemSetId, QuizType quizType, long generatedCount, long quizCount) {
     quizCommandService.updateStatus(problemSetId, COMPLETED);
     notificationService.sendComplete(sessionId);
-    generationSlackNotifier.notifyPartialSuccess(problemSetId, quizType, generatedCount, quizCount);
+    resultRecorder.recordPartialSuccess(problemSetId, quizType, generatedCount, quizCount);
   }
 
   private void finalizeError(String sessionId, Long problemSetId, String errorMessage) {
     quizCommandService.updateStatus(problemSetId, FAILED);
     notificationService.sendFinishWithError(sessionId, errorMessage);
-    generationSlackNotifier.notifyError(problemSetId, errorMessage);
+    resultRecorder.recordError(problemSetId, errorMessage);
   }
 }
