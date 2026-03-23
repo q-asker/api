@@ -10,6 +10,7 @@ import com.icc.qasker.ai.dto.GeminiFileUploadResponse.FileMetadata;
 import com.icc.qasker.ai.dto.GenerationRequestToAI;
 import com.icc.qasker.ai.mapper.GeminiQuestionMapper;
 import com.icc.qasker.ai.service.support.GeminiChatService;
+import com.icc.qasker.ai.service.support.GeminiMetricsRecorder;
 import com.icc.qasker.ai.structure.GeminiQuestion;
 import com.icc.qasker.ai.structure.GeminiResponse;
 import com.icc.qasker.ai.util.ChunkSplitter;
@@ -21,6 +22,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -37,9 +39,14 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
   private final GeminiFileService geminiFileService;
   private final GeminiCacheService geminiCacheService;
   private final GeminiChatService geminiChatService;
+  private final GeminiMetricsRecorder metricsRecorder;
 
   @Override
   public void generateQuiz(GenerationRequestToAI request) {
+    long requestStartNanos = System.nanoTime();
+    AtomicLong firstQuizNanos = new AtomicLong(0);
+    AtomicLong lastQuizNanos = new AtomicLong(0);
+
     // Gemini 파일 캐시 확인 → 진행 중이면 대기, 미스 시 기존 방식으로 업로드
     FileMetadata metadata =
         geminiFileService
@@ -103,6 +110,11 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
                           GeminiQuestionMapper.toDto(
                               validated, chunk.referencedPages(), numberCounter);
                       request.questionsConsumer().accept(result);
+
+                      // 첫 번째/마지막 퀴즈 응답 시각 기록
+                      long now = System.nanoTime();
+                      firstQuizNanos.compareAndSet(0, now);
+                      lastQuizNanos.updateAndGet(prev -> Math.max(prev, now));
                     } catch (Exception e) {
                       log.error(
                           "청크 처리 실패 (계속 진행): pages={}, error={}",
@@ -118,6 +130,11 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
         CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).join();
       }
       log.info("전체 병렬 생성 완료: 총 {}번까지 번호 할당됨", numberCounter.get() - 1);
+
+      // 요청 단위 응답 시간 메트릭 기록
+      Long firstNanos = firstQuizNanos.get() == 0 ? null : firstQuizNanos.get();
+      Long lastNanos = lastQuizNanos.get() == 0 ? null : lastQuizNanos.get();
+      metricsRecorder.recordRequestDuration(requestStartNanos, firstNanos, lastNanos);
     } finally {
       if (cacheInfo != null) {
         // 캐시 저장 비용 추정: $1.00/1M tokens/hour

@@ -22,6 +22,9 @@ public class GeminiMetricsRecorder {
   private static final double PRICE_OUTPUT_PER_1M = 3.00;
 
   private final Timer chunkDuration;
+  private final Timer firstQuizDuration;
+  private final Timer totalRequestDuration;
+  private final Timer quizSpreadDuration;
   private final Counter tokensInput;
   private final Counter tokensCached;
   private final Counter tokensThinking;
@@ -32,6 +35,18 @@ public class GeminiMetricsRecorder {
     this.chunkDuration =
         Timer.builder("gemini.chunk.duration")
             .description("Gemini API 청크별 응답 시간")
+            .register(registry);
+    this.firstQuizDuration =
+        Timer.builder("gemini.request.first-quiz.duration")
+            .description("요청 시작 → 첫 번째 퀴즈 응답까지 소요 시간")
+            .register(registry);
+    this.totalRequestDuration =
+        Timer.builder("gemini.request.total.duration")
+            .description("요청 시작 → 전체 퀴즈 생성 완료까지 소요 시간")
+            .register(registry);
+    this.quizSpreadDuration =
+        Timer.builder("gemini.request.spread.duration")
+            .description("첫 번째 퀴즈 응답 ~ 마지막 퀴즈 응답 사이 시간 차이")
             .register(registry);
     this.tokensInput =
         Counter.builder("gemini.tokens.input").description("Gemini 입력 토큰 (비캐시)").register(registry);
@@ -99,5 +114,24 @@ public class GeminiMetricsRecorder {
     costEstimated.increment(totalCost);
 
     return totalCost;
+  }
+
+  /**
+   * 요청 단위 응답 시간 메트릭을 기록한다.
+   *
+   * @param requestStartMs 요청 시작 시각 (System.nanoTime)
+   * @param firstQuizNanos 첫 번째 퀴즈 응답 시각 (System.nanoTime), null이면 퀴즈가 하나도 생성되지 않은 것
+   * @param lastQuizNanos 마지막 퀴즈 응답 시각 (System.nanoTime), null이면 퀴즈가 하나도 생성되지 않은 것
+   */
+  public void recordRequestDuration(long requestStartMs, Long firstQuizNanos, Long lastQuizNanos) {
+    long now = System.nanoTime();
+    totalRequestDuration.record(now - requestStartMs, TimeUnit.NANOSECONDS);
+
+    if (firstQuizNanos != null) {
+      firstQuizDuration.record(firstQuizNanos - requestStartMs, TimeUnit.NANOSECONDS);
+    }
+    if (firstQuizNanos != null && lastQuizNanos != null) {
+      quizSpreadDuration.record(lastQuizNanos - firstQuizNanos, TimeUnit.NANOSECONDS);
+    }
   }
 }
