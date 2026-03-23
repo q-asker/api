@@ -4,6 +4,7 @@ import com.icc.qasker.global.component.HashUtil;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.quiz.QuizHistoryQueryService;
+import com.icc.qasker.quiz.QuizHistoryStatus;
 import com.icc.qasker.quiz.dto.feresponse.HistoryDetailResponse;
 import com.icc.qasker.quiz.dto.feresponse.HistorySummaryResponse;
 import com.icc.qasker.quiz.dto.feresponse.ProblemWithAnswer;
@@ -16,6 +17,7 @@ import com.icc.qasker.quiz.repository.ProblemSetRepository;
 import com.icc.qasker.quiz.repository.QuizHistoryRepository;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import lombok.AllArgsConstructor;
@@ -34,37 +36,33 @@ public class QuizHistoryQueryServiceImpl implements QuizHistoryQueryService {
 
   @Override
   public List<HistorySummaryResponse> getHistoryList(String userId) {
-    List<ProblemSet> problemSets = problemSetRepository.findAllByUserIdOrderByCreatedAtDesc(userId);
+    List<QuizHistory> histories = quizHistoryRepository.findAllByUserIdOrderByCreatedAtDesc(userId);
+    List<Long> problemSetIds = histories.stream().map(QuizHistory::getProblemSetId).toList();
 
-    List<Long> problemSetIds = problemSets.stream().map(ProblemSet::getId).toList();
+    Map<Long, ProblemSet> problemSetMap =
+        problemSetRepository.findAllById(problemSetIds).stream()
+            .collect(Collectors.toMap(ProblemSet::getId, ps -> ps));
 
-    // IN 쿼리 1번으로 모든 히스토리 일괄 조회
-    Map<Long, QuizHistory> historyMap =
-        quizHistoryRepository.findAllByProblemSetIdInAndUserId(problemSetIds, userId).stream()
-            .collect(Collectors.toMap(QuizHistory::getProblemSetId, h -> h));
-
-    return problemSets.stream()
-        .filter(
-            ps -> {
-              QuizHistory h = historyMap.get(ps.getId());
-              // 소프트 딜리트된 항목은 목록에서 제외
-              return h == null || !h.isDeleted();
-            })
+    return histories.stream()
         .map(
-            ps -> {
-              QuizHistory history = historyMap.get(ps.getId());
-              boolean completed = history != null;
+            h -> {
+              ProblemSet ps = problemSetMap.get(h.getProblemSetId());
+              if (ps == null) {
+                return null;
+              }
+              boolean completed = h.getStatus() == QuizHistoryStatus.COMPLETED;
               return new HistorySummaryResponse(
                   hashUtil.encode(ps.getId()),
                   ps.getTitle(),
                   ps.getCreatedAt(),
-                  completed ? hashUtil.encode(history.getId()) : null,
+                  completed ? hashUtil.encode(h.getId()) : null,
                   ps.getQuizType(),
                   ps.getTotalQuizCount(),
                   completed,
-                  completed ? history.getScore() : null,
-                  completed ? history.getCreatedAt() : null);
+                  completed ? h.getScore() : null,
+                  completed ? h.getCreatedAt() : null);
             })
+        .filter(Objects::nonNull)
         .toList();
   }
 
@@ -73,7 +71,8 @@ public class QuizHistoryQueryServiceImpl implements QuizHistoryQueryService {
     long id = hashUtil.decode(problemSetId);
     QuizHistory history =
         quizHistoryRepository
-            .findFirstByProblemSetIdAndUserIdAndDeletedFalseOrderByCreatedAtDesc(id, userId)
+            .findByProblemSetIdAndUserId(id, userId)
+            .filter(h -> h.getStatus() == QuizHistoryStatus.COMPLETED)
             .orElseThrow(() -> new CustomException(ExceptionMessage.QUIZ_HISTORY_NOT_FOUND));
 
     ProblemSet problemSet =
@@ -96,7 +95,6 @@ public class QuizHistoryQueryServiceImpl implements QuizHistoryQueryService {
                   int correctIndex = findCorrectIndex(rawSelections);
                   boolean correct = userAnswer == correctIndex;
 
-                  // indexOf 대신 IntStream으로 index 직접 추적 (O(n²) 방지)
                   List<Selection> selections =
                       IntStream.range(0, rawSelections.size())
                           .mapToObj(

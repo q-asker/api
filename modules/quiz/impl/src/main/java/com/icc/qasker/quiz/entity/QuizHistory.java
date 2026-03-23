@@ -1,16 +1,20 @@
 package com.icc.qasker.quiz.entity;
 
 import com.icc.qasker.global.entity.CreatedAt;
+import com.icc.qasker.quiz.QuizHistoryStatus;
 import com.icc.qasker.quiz.converter.UserAnswerConverter;
 import com.icc.qasker.quiz.dto.ferequest.UserAnswer;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import java.util.List;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -25,7 +29,12 @@ import lombok.NoArgsConstructor;
 @Builder
 @Table(
     name = "quiz_history",
-    indexes = {@Index(name = "idx_quiz_history_user_id", columnList = "userId")})
+    indexes = {@Index(name = "idx_quiz_history_user_id", columnList = "userId")},
+    uniqueConstraints = {
+      @UniqueConstraint(
+          name = "uk_history_ps_user",
+          columnNames = {"problem_set_id", "user_id"})
+    })
 public class QuizHistory extends CreatedAt {
 
   @Id
@@ -39,13 +48,13 @@ public class QuizHistory extends CreatedAt {
   private Long problemSetId;
 
   @Convert(converter = UserAnswerConverter.class)
-  @Column(columnDefinition = "TEXT", nullable = false)
+  @Column(columnDefinition = "TEXT")
   private List<UserAnswer> answers;
 
-  @Column(nullable = false)
-  private Integer score;
+  @Column private Integer score;
 
+  @Enumerated(EnumType.STRING)
   @Builder.Default
   @Column(nullable = false)
-  private boolean deleted = false;
+  private QuizHistoryStatus status = QuizHistoryStatus.INCOMPLETE;
 }
