@@ -1,4 +1,4 @@
-package com.icc.qasker.ai.service;
+package com.icc.qasker.ai.service.support;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;

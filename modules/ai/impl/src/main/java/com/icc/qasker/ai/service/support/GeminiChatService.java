@@ -1,4 +1,4 @@
-package com.icc.qasker.ai.service;
+package com.icc.qasker.ai.service.support;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.icc.qasker.ai.dto.ChunkInfo;

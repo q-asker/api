@@ -8,6 +8,7 @@ import com.icc.qasker.ai.dto.ChunkInfo;
 import com.icc.qasker.ai.dto.GeminiFileUploadResponse.FileMetadata;
 import com.icc.qasker.ai.dto.GenerationRequestToAI;
 import com.icc.qasker.ai.mapper.GeminiQuestionMapper;
+import com.icc.qasker.ai.service.support.GeminiChatService;
 import com.icc.qasker.ai.structure.GeminiQuestion;
 import com.icc.qasker.ai.structure.GeminiResponse;
 import com.icc.qasker.ai.util.ChunkSplitter;
@@ -72,11 +73,6 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
                   // 핵심 비즈니스
                   () -> {
                     try {
-                      log.debug(
-                          "청크 처리 시작: pages={}, quizCount={}",
-                          chunk.referencedPages(),
-                          chunk.quizCount());
-
                       GeminiResponse response =
                           geminiChatService.callAndParse(chunk, finalCacheName);
                       if (response == null) {
@@ -106,10 +102,6 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
                           GeminiQuestionMapper.toDto(
                               validated, chunk.referencedPages(), numberCounter);
                       request.questionsConsumer().accept(result);
-                      log.debug(
-                          "청크 전송 완료: pages={}, 문제 {}개",
-                          chunk.referencedPages(),
-                          result.quiz().size());
                     } catch (Exception e) {
                       log.error(
                           "청크 처리 실패 (계속 진행): pages={}, error={}",
