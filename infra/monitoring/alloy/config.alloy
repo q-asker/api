@@ -128,7 +128,19 @@ prometheus.relabel "add_springboot_labels" {
   }
 }
 
-// 4️⃣ 라벨이 추가된 메트릭을 원격 Prometheus 서버로 전송
+// 4️⃣ Spring Boot Actuator Prometheus 엔드포인트 스크래프
+//    커스텀 메트릭(gemini.*, quiz.*, sse.*, document.*, file.upload.*)을 수집
+//    management.server.port=9090에서 /actuator/prometheus로 노출
+prometheus.scrape "spring_boot_metrics" {
+  targets = [{
+    __address__ = "host.docker.internal:9090",
+  }]
+  metrics_path    = "/actuator/prometheus"
+  scrape_interval = "15s"
+  forward_to      = [prometheus.relabel.add_springboot_labels.receiver]
+}
+
+// 5️⃣ 라벨이 추가된 메트릭을 원격 Prometheus 서버로 전송
 //    url = env("PROMETHEUS_URL")
 //      → 환경변수에서 모니터링 스택 주소 읽음 (.env 파일에 저장)
 //      → 예: http://monitoring.example.com:9090/api/v1/write

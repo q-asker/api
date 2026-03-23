@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 
 import com.icc.qasker.aws.properties.AwsCloudFrontProperties;
 import com.icc.qasker.aws.properties.AwsS3Properties;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -46,7 +47,9 @@ class S3ServiceImplTest {
     AwsCloudFrontProperties awsCloudFrontProperties =
         new AwsCloudFrontProperties("https://files.test.com");
 
-    s3Service = new S3ServiceImpl(awsCloudFrontProperties, awsS3Properties, s3Client);
+    s3Service =
+        new S3ServiceImpl(
+            awsCloudFrontProperties, awsS3Properties, s3Client, new SimpleMeterRegistry());
   }
 
   // 보장: PDF 파일을 S3에 직접 업로드하고 CloudFront URL을 반환한다

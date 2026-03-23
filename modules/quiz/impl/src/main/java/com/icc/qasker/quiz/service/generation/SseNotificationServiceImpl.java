@@ -7,10 +7,11 @@ import com.icc.qasker.quiz.infra.SseEmitterFactory;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker.State;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
 import org.springframework.stereotype.Service;
@@ -18,12 +19,21 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class SseNotificationServiceImpl implements SseNotificationService {
 
   private static final long TIMEOUT = 300 * 1000L;
   private final Map<String, SseEmitter> emitterMap = new ConcurrentHashMap<>();
   private final CircuitBreakerRegistry circuitBreakerRegistry;
+
+  public SseNotificationServiceImpl(
+      CircuitBreakerRegistry circuitBreakerRegistry, MeterRegistry registry) {
+    this.circuitBreakerRegistry = circuitBreakerRegistry;
+
+    // 활성 SSE 연결 수 Gauge — 커넥션 풀 고갈 사전 감지용
+    Gauge.builder("sse.connections.active", emitterMap, Map::size)
+        .description("활성 SSE 연결 수")
+        .register(registry);
+  }
 
   @Override
   public SseEmitter createSseEmitter(String sessionId) {

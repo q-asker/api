@@ -20,7 +20,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class GeminiCacheServiceImpl implements GeminiCacheService {
 
-  private static final Duration DEFAULT_TTL = Duration.ofMinutes(10);
+  private static final Duration DEFAULT_TTL = Duration.ofMinutes(5);
 
   private final GoogleGenAiCachedContentService cachedContentService;
   private final String model;
@@ -32,7 +32,7 @@ public class GeminiCacheServiceImpl implements GeminiCacheService {
   }
 
   @Override
-  public String createCache(String fileUri, String strategyValue) {
+  public CacheInfo createCache(String fileUri, String strategyValue) {
     try {
       Content pdfContent =
           Content.builder()
@@ -59,15 +59,20 @@ public class GeminiCacheServiceImpl implements GeminiCacheService {
 
       GoogleGenAiCachedContent cache = cachedContentService.create(request);
       String cacheName = cache.getName();
+      long tokenCount =
+          cache.getUsageMetadata() != null && cache.getUsageMetadata().totalTokenCount().isPresent()
+              ? cache.getUsageMetadata().totalTokenCount().get()
+              : 0;
 
       log.info(
-          "캐시 생성 완료: name={}, model={}, ttl={}, expireTime={}",
+          "캐시 생성 완료: name={}, model={}, ttl={}, expireTime={}, tokenCount={}",
           cacheName,
           cache.getModel(),
           cache.getTtl(),
-          cache.getExpireTime());
+          cache.getExpireTime(),
+          tokenCount);
 
-      return cacheName;
+      return new CacheInfo(cacheName, tokenCount);
     } catch (Exception e) {
       throw new CustomException(
           ExceptionMessage.AI_SERVER_RESPONSE_ERROR, "캐시 생성 실패: fileUri=" + fileUri, e);

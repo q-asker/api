@@ -113,10 +113,11 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
                       return;
                     }
 
-                    postRefineQuiz(problemSet, request.quizType());
+                    ProblemSetGeneratedEvent refinedProblemSet =
+                        refineQuiz(problemSet, request.quizType());
 
                     List<Integer> savedNumbers =
-                        quizCommandService.saveBatch(problemSet.getQuiz(), problemSetId);
+                        quizCommandService.saveBatch(refinedProblemSet.getQuiz(), problemSetId);
 
                     List<QuizView> quizViews =
                         quizQueryService.getQuizViews(problemSetId, savedNumbers);
@@ -126,8 +127,6 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
 
                     List<QuizForFe> quizForFeList =
                         quizViews.stream().map(QuizViewToQuizForFeMapper::toQuizForFe).toList();
-
-                    atomicGeneratedCount.addAndGet(quizViews.size());
 
                     notificationService.sendCreatedMessageWithId(
                         sessionId,
@@ -140,6 +139,8 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
                             QuizType.valueOf(request.quizType().name()),
                             request.quizCount(),
                             quizForFeList));
+
+                    atomicGeneratedCount.addAndGet(quizViews.size());
                   })
               .errorConsumer(ex -> log.error("청크 에러: {}", ex.getMessage()))
               .build());
@@ -162,7 +163,8 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
     }
   }
 
-  private void postRefineQuiz(ProblemSetGeneratedEvent problemSet, QuizType quizType) {
+  private ProblemSetGeneratedEvent refineQuiz(
+      ProblemSetGeneratedEvent problemSet, QuizType quizType) {
     // 1. 선택지 셔플
     if (quizType == QuizType.MULTIPLE || quizType == QuizType.BLANK) {
       for (var quiz : problemSet.getQuiz()) {
@@ -178,6 +180,7 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
     for (QuizGeneratedFromAI quiz : problemSet.getQuiz()) {
       quiz.setExplanation(ExplanationMarkdownBuilder.build(quiz));
     }
+    return problemSet;
   }
 
   private void finalizeSuccess(

@@ -8,6 +8,8 @@ import com.icc.qasker.ai.dto.GeminiFileUploadResponse.FileMetadata;
 import com.icc.qasker.ai.util.PdfUtils;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Files;
@@ -37,6 +39,7 @@ public class GeminiFileServiceImpl implements GeminiFileService {
   private final RestClient restClient;
   private final String apiKey;
   private final PdfUtils pdfUtils;
+  private final Timer uploadTimer;
 
   // Gemini 파일 업로드 Future 캐시 (CloudFront URL → CompletableFuture<FileMetadata>)
   // TTL 47시간: Gemini Files API 48시간 자동 삭제 전 안전 마진
@@ -47,10 +50,17 @@ public class GeminiFileServiceImpl implements GeminiFileService {
   public GeminiFileServiceImpl(
       @Qualifier("geminiFileRestClient") RestClient restClient,
       GoogleGenAiConnectionProperties properties,
-      PdfUtils pdfUtils) {
+      PdfUtils pdfUtils,
+      MeterRegistry registry) {
     this.restClient = restClient;
     this.apiKey = properties.getApiKey();
     this.pdfUtils = pdfUtils;
+
+    // Gemini 파일 업로드 Timer — 병렬 업로드 병목 식별용
+    this.uploadTimer =
+        Timer.builder("file.upload.gemini.duration")
+            .description("Gemini 파일 업로드 소요 시간")
+            .register(registry);
   }
 
   @Override
@@ -117,6 +127,7 @@ public class GeminiFileServiceImpl implements GeminiFileService {
 
   private FileMetadata doUpload(Path pdfFile, String displayName)
       throws IOException, InterruptedException {
+    Timer.Sample sample = Timer.start();
     long fileSize = Files.size(pdfFile);
 
     String uploadSessionUrl = initiateUpload(fileSize, displayName);
@@ -128,6 +139,7 @@ public class GeminiFileServiceImpl implements GeminiFileService {
     log.info("PDF 업로드 완료: name={}, state={}", fileName, response.file().state());
 
     FileMetadata metadata = waitForProcessing(fileName);
+    sample.stop(uploadTimer);
     log.info("파일 처리 완료: name={}, uri={}", metadata.name(), metadata.uri());
     return metadata;
   }

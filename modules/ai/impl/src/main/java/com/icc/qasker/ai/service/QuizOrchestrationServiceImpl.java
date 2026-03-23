@@ -13,25 +13,28 @@ import com.icc.qasker.ai.prompt.user.UserPrompt;
 import com.icc.qasker.ai.structure.GeminiQuestion;
 import com.icc.qasker.ai.structure.GeminiResponse;
 import com.icc.qasker.ai.util.ChunkSplitter;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
-import lombok.RequiredArgsConstructor;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.converter.BeanOutputConverter;
 import org.springframework.ai.google.genai.GoogleGenAiChatOptions;
+import org.springframework.ai.google.genai.metadata.GoogleGenAiUsage;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
+@AllArgsConstructor
 public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
 
   private static final int MAX_CHUNK_COUNT = 10;
@@ -43,6 +46,7 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
   private final GeminiFileService geminiFileService;
   private final GeminiCacheService geminiCacheService;
   private final ChatModel chatModel;
+  private final GeminiMetricsRecorder metricsRecorder;
 
   @Override
   public void generateQuiz(GenerationRequestToAI request) {
@@ -57,10 +61,12 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
                 });
     log.info("Gemini 파일 준비 완료: name={}, uri={}", metadata.name(), metadata.uri());
 
-    String cacheName = null;
+    GeminiCacheService.CacheInfo cacheInfo = null;
+    Instant cacheCreatedAt = null;
     try {
-      cacheName = geminiCacheService.createCache(metadata.uri(), request.strategyValue());
-      log.info("캐시 생성 완료: cacheName={}", cacheName);
+      cacheInfo = geminiCacheService.createCache(metadata.uri(), request.strategyValue());
+      cacheCreatedAt = Instant.now();
+      log.info("캐시 생성 완료: cacheName={}, tokenCount={}", cacheInfo.name(), cacheInfo.tokenCount());
 
       List<ChunkInfo> chunks =
           ChunkSplitter.createPageChunks(
@@ -70,7 +76,7 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
       AtomicInteger numberCounter = new AtomicInteger(1);
 
       try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
-        final String finalCacheName = cacheName;
+        final String finalCacheName = cacheInfo.name();
         List<CompletableFuture<Void>> futures = new ArrayList<>(chunks.size());
         for (ChunkInfo chunk : chunks) {
           CompletableFuture<Void> future =
@@ -83,8 +89,19 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
       }
       log.info("전체 병렬 생성 완료: 총 {}번까지 번호 할당됨", numberCounter.get() - 1);
     } finally {
-      if (cacheName != null) {
-        geminiCacheService.deleteCache(cacheName);
+      if (cacheInfo != null) {
+        // 캐시 저장 비용 추정: $1.00/1M tokens/hour
+        if (cacheCreatedAt != null && cacheInfo.tokenCount() > 0) {
+          double durationHours =
+              Duration.between(cacheCreatedAt, Instant.now()).toMillis() / 3_600_000.0;
+          double storageCost = cacheInfo.tokenCount() * 1.00 / 1_000_000 * durationHours;
+          log.info(
+              "캐시 저장 비용 추정 - 캐시 토큰: {}, 사용 시간: {}분, 추정 비용: ${}",
+              cacheInfo.tokenCount(),
+              String.format("%.1f", durationHours * 60),
+              String.format("%.6f", storageCost));
+        }
+        geminiCacheService.deleteCache(cacheInfo.name());
       }
       // Gemini 파일은 삭제하지 않음 — 48시간 자동 만료, Caffeine 캐시로 재사용 가능
     }
@@ -96,6 +113,7 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
       String cacheName,
       AtomicInteger numberCounter) {
     try {
+      long startMs = System.currentTimeMillis();
       log.debug("청크 처리 시작: pages={}, quizCount={}", chunk.referencedPages(), chunk.quizCount());
 
       String userPrompt = UserPrompt.generate(chunk.referencedPages(), chunk.quizCount());
@@ -111,20 +129,25 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
                   .build());
 
       ChatResponse chatResponse = chatModel.call(prompt);
+      long elapsedMs = System.currentTimeMillis() - startMs;
 
-      // usage 메타데이터 로깅
+      // Prometheus 메트릭 기록 + 비용 추정
       if (chatResponse.getMetadata().getUsage() != null) {
         var usage = chatResponse.getMetadata().getUsage();
+        double totalCost = metricsRecorder.recordChunkResult(elapsedMs, usage);
         log.info(
-            "Gemini Usage - 입력: {}토큰, 출력: {}토큰, 총: {}토큰, 메타데이터: {}",
+            "Gemini Usage - pages={}, {}ms, 토큰: {}(캐시: {}), 출력: {}, 추정 비용: ${}",
+            chunk.referencedPages(),
+            elapsedMs,
             usage.getPromptTokens(),
+            usage instanceof GoogleGenAiUsage g
+                ? g.getCachedContentTokenCount()
+                : Integer.valueOf(0),
             usage.getCompletionTokens(),
-            usage.getTotalTokens(),
-            chatResponse.getMetadata());
+            String.format("%.6f", totalCost));
       }
 
       String json = chatResponse.getResult().getOutput().getText();
-      log.info("생성된 퀴즈 원본: {}", json);
       if (json == null || json.isBlank()) {
         log.error("응답이 비어있습니다: pages={}", chunk.referencedPages());
         return;
@@ -158,7 +181,7 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
       return;
     }
 
-    // 문제+해설 원본 데이터 전송 (마크다운 빌드는 quiz 모듈에서 셔플 후 수행)
+    // 문제+해설 원본 데이터 전송
     AIProblemSet result =
         GeminiQuestionMapper.toDto(validated, chunk.referencedPages(), numberCounter);
     request.questionsConsumer().accept(result);
