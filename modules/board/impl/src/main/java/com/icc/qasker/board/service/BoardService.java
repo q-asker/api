@@ -1,20 +1,27 @@
 package com.icc.qasker.board.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.icc.qasker.auth.UserService;
 import com.icc.qasker.board.dto.request.PostRequest;
 import com.icc.qasker.board.dto.response.PostDetailResponse;
 import com.icc.qasker.board.dto.response.PostResponse;
 import com.icc.qasker.board.entity.Board;
+import com.icc.qasker.board.entity.BoardEventOutbox;
 import com.icc.qasker.board.entity.BoardStatus;
 import com.icc.qasker.board.entity.Reply;
+import com.icc.qasker.board.event.BoardEventPayload;
+import com.icc.qasker.board.event.BoardEventType;
 import com.icc.qasker.board.mapper.PostResponseMapper;
+import com.icc.qasker.board.repository.BoardEventOutboxRepository;
 import com.icc.qasker.board.repository.BoardRepository;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -22,12 +29,15 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 @Transactional(readOnly = true)
 public class BoardService {
 
   private final BoardRepository boardRepository;
+  private final BoardEventOutboxRepository outboxRepository;
   private final PostResponseMapper postResponseMapper;
   private final UserService userService;
+  private final ObjectMapper objectMapper;
 
   public Page<PostResponse> getPosts(Pageable pageable) {
     Page<Board> boards = boardRepository.findAll(pageable);
@@ -75,6 +85,7 @@ public class BoardService {
     Board board =
         Board.builder().title(request.title()).content(request.content()).userId(userId).build();
     boardRepository.save(board);
+    saveOutbox(board.getBoardId(), userId, request.title(), BoardEventType.POST_CREATED);
   }
 
   @Transactional
@@ -96,6 +107,7 @@ public class BoardService {
       throw new CustomException(ExceptionMessage.NOT_ENOUGH_ACCESS);
     }
     board.update(request.title(), request.content());
+    saveOutbox(boardId, userId, request.title(), BoardEventType.POST_UPDATED);
   }
 
   @Transactional
@@ -115,5 +127,18 @@ public class BoardService {
       throw new CustomException(ExceptionMessage.NOT_ENOUGH_ACCESS);
     }
     board.changeStatus(BoardStatus.DELETED);
+    saveOutbox(boardId, userId, board.getTitle(), BoardEventType.POST_DELETED);
+  }
+
+  private void saveOutbox(Long boardId, String userId, String title, BoardEventType eventType) {
+    try {
+      BoardEventPayload payload =
+          new BoardEventPayload(eventType, boardId, userId, title, Instant.now());
+      String json = objectMapper.writeValueAsString(payload);
+      outboxRepository.save(
+          BoardEventOutbox.builder().boardId(boardId).eventType(eventType).payload(json).build());
+    } catch (Exception e) {
+      log.error("Outbox 저장 실패 - boardId: {}, eventType: {}", boardId, eventType, e);
+    }
   }
 }
