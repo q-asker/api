@@ -69,7 +69,56 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
         for (ChunkInfo chunk : chunks) {
           CompletableFuture<Void> future =
               CompletableFuture.runAsync(
-                  () -> processChunk(request, chunk, finalCacheName, numberCounter), executor);
+                  // 핵심 비즈니스
+                  () -> {
+                    try {
+                      log.debug(
+                          "청크 처리 시작: pages={}, quizCount={}",
+                          chunk.referencedPages(),
+                          chunk.quizCount());
+
+                      GeminiResponse response =
+                          geminiChatService.callAndParse(chunk, finalCacheName);
+                      if (response == null) {
+                        return;
+                      }
+
+                      if (CollectionUtils.isEmpty(response.questions())) {
+                        log.warn("응답이 비어있습니다: pages={}", chunk.referencedPages());
+                        return;
+                      }
+
+                      List<GeminiQuestion> validated =
+                          response.questions().stream()
+                              .filter(
+                                  q ->
+                                      q.selections() == null
+                                          || q.selections().size() <= MAX_SELECTION_COUNT)
+                              .toList();
+
+                      if (validated.isEmpty()) {
+                        log.warn("유효한 문제가 존재하지 않습니다: pages={}", chunk.referencedPages());
+                        return;
+                      }
+
+                      // 문제+해설 원본 데이터 전송
+                      AIProblemSet result =
+                          GeminiQuestionMapper.toDto(
+                              validated, chunk.referencedPages(), numberCounter);
+                      request.questionsConsumer().accept(result);
+                      log.debug(
+                          "청크 전송 완료: pages={}, 문제 {}개",
+                          chunk.referencedPages(),
+                          result.quiz().size());
+                    } catch (Exception e) {
+                      log.error(
+                          "청크 처리 실패 (계속 진행): pages={}, error={}",
+                          chunk.referencedPages(),
+                          e.getMessage());
+                      request.errorConsumer().accept(e);
+                    }
+                  },
+                  executor);
           futures.add(future);
         }
 
@@ -93,52 +142,5 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
       }
       // Gemini 파일은 삭제하지 않음 — 48시간 자동 만료, Caffeine 캐시로 재사용 가능
     }
-  }
-
-  private void processChunk(
-      GenerationRequestToAI request,
-      ChunkInfo chunk,
-      String cacheName,
-      AtomicInteger numberCounter) {
-    try {
-      log.debug("청크 처리 시작: pages={}, quizCount={}", chunk.referencedPages(), chunk.quizCount());
-
-      GeminiResponse response = geminiChatService.callAndParse(chunk, cacheName);
-      if (response == null) {
-        return;
-      }
-
-      processResponse(request, chunk, response, numberCounter);
-    } catch (Exception e) {
-      log.error("청크 처리 실패 (계속 진행): pages={}, error={}", chunk.referencedPages(), e.getMessage());
-      request.errorConsumer().accept(e);
-    }
-  }
-
-  private void processResponse(
-      GenerationRequestToAI request,
-      ChunkInfo chunk,
-      GeminiResponse response,
-      AtomicInteger numberCounter) {
-    if (CollectionUtils.isEmpty(response.questions())) {
-      log.warn("응답에 문제가 없습니다: pages={}", chunk.referencedPages());
-      return;
-    }
-
-    List<GeminiQuestion> validated =
-        response.questions().stream()
-            .filter(q -> q.selections() == null || q.selections().size() <= MAX_SELECTION_COUNT)
-            .toList();
-
-    if (validated.isEmpty()) {
-      log.warn("유효한 문제 없음: pages={}", chunk.referencedPages());
-      return;
-    }
-
-    // 문제+해설 원본 데이터 전송
-    AIProblemSet result =
-        GeminiQuestionMapper.toDto(validated, chunk.referencedPages(), numberCounter);
-    request.questionsConsumer().accept(result);
-    log.debug("청크 전송 완료: pages={}, 문제 {}개", chunk.referencedPages(), result.quiz().size());
   }
 }

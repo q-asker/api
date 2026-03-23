@@ -66,7 +66,7 @@ public class GeminiChatService {
           pages,
           elapsedMs,
           usage.getPromptTokens(),
-          usage instanceof GoogleGenAiUsage g ? g.getCachedContentTokenCount() : 0,
+          usage instanceof GoogleGenAiUsage g ? g.getCachedContentTokenCount() : Integer.valueOf(0),
           usage.getCompletionTokens(),
           String.format("%.6f", totalCost));
     }

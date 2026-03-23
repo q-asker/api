@@ -73,6 +73,9 @@ spring:
       refresh-expiration-time: 60480
 
 q-asker:
+  ai:
+    chat-timeout-ms: 90000
+
   hashid:
     salt: ci-dummy-salt
     min-length: 8
