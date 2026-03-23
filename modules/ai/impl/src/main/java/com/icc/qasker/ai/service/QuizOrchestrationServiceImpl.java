@@ -1,6 +1,7 @@
 package com.icc.qasker.ai.service;
 
 import com.icc.qasker.ai.GeminiCacheService;
+import com.icc.qasker.ai.GeminiCacheService.CacheInfo;
 import com.icc.qasker.ai.GeminiFileService;
 import com.icc.qasker.ai.QuizOrchestrationService;
 import com.icc.qasker.ai.dto.AIProblemSet;
@@ -50,7 +51,7 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
                 });
     log.info("Gemini 파일 준비 완료: name={}, uri={}", metadata.name(), metadata.uri());
 
-    GeminiCacheService.CacheInfo cacheInfo = null;
+    CacheInfo cacheInfo = null;
     Instant cacheCreatedAt = null;
     try {
       cacheInfo = geminiCacheService.createCache(metadata.uri(), request.strategyValue());
