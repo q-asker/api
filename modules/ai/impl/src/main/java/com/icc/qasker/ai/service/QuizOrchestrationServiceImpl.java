@@ -1,6 +1,5 @@
 package com.icc.qasker.ai.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.icc.qasker.ai.GeminiCacheService;
 import com.icc.qasker.ai.GeminiFileService;
 import com.icc.qasker.ai.QuizOrchestrationService;
@@ -9,7 +8,6 @@ import com.icc.qasker.ai.dto.ChunkInfo;
 import com.icc.qasker.ai.dto.GeminiFileUploadResponse.FileMetadata;
 import com.icc.qasker.ai.dto.GenerationRequestToAI;
 import com.icc.qasker.ai.mapper.GeminiQuestionMapper;
-import com.icc.qasker.ai.prompt.user.UserPrompt;
 import com.icc.qasker.ai.structure.GeminiQuestion;
 import com.icc.qasker.ai.structure.GeminiResponse;
 import com.icc.qasker.ai.util.ChunkSplitter;
@@ -23,12 +21,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.ai.chat.model.ChatModel;
-import org.springframework.ai.chat.model.ChatResponse;
-import org.springframework.ai.chat.prompt.Prompt;
-import org.springframework.ai.converter.BeanOutputConverter;
-import org.springframework.ai.google.genai.GoogleGenAiChatOptions;
-import org.springframework.ai.google.genai.metadata.GoogleGenAiUsage;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
@@ -39,14 +31,10 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
 
   private static final int MAX_CHUNK_COUNT = 10;
   private static final int MAX_SELECTION_COUNT = 4;
-  private static final String RESPONSE_JSON_SCHEMA =
-      new BeanOutputConverter<>(GeminiResponse.class).getJsonSchema();
 
-  private final ObjectMapper objectMapper;
   private final GeminiFileService geminiFileService;
   private final GeminiCacheService geminiCacheService;
-  private final ChatModel chatModel;
-  private final GeminiMetricsRecorder metricsRecorder;
+  private final GeminiChatService geminiChatService;
 
   @Override
   public void generateQuiz(GenerationRequestToAI request) {
@@ -113,47 +101,13 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
       String cacheName,
       AtomicInteger numberCounter) {
     try {
-      long startMs = System.currentTimeMillis();
       log.debug("청크 처리 시작: pages={}, quizCount={}", chunk.referencedPages(), chunk.quizCount());
 
-      String userPrompt = UserPrompt.generate(chunk.referencedPages(), chunk.quizCount());
-
-      Prompt prompt =
-          new Prompt(
-              userPrompt,
-              GoogleGenAiChatOptions.builder()
-                  .useCachedContent(true)
-                  .cachedContentName(cacheName)
-                  .responseMimeType("application/json")
-                  .responseSchema(RESPONSE_JSON_SCHEMA)
-                  .build());
-
-      ChatResponse chatResponse = chatModel.call(prompt);
-      long elapsedMs = System.currentTimeMillis() - startMs;
-
-      // Prometheus 메트릭 기록 + 비용 추정
-      if (chatResponse.getMetadata().getUsage() != null) {
-        var usage = chatResponse.getMetadata().getUsage();
-        double totalCost = metricsRecorder.recordChunkResult(elapsedMs, usage);
-        log.info(
-            "Gemini Usage - pages={}, {}ms, 토큰: {}(캐시: {}), 출력: {}, 추정 비용: ${}",
-            chunk.referencedPages(),
-            elapsedMs,
-            usage.getPromptTokens(),
-            usage instanceof GoogleGenAiUsage g
-                ? g.getCachedContentTokenCount()
-                : Integer.valueOf(0),
-            usage.getCompletionTokens(),
-            String.format("%.6f", totalCost));
-      }
-
-      String json = chatResponse.getResult().getOutput().getText();
-      if (json == null || json.isBlank()) {
-        log.error("응답이 비어있습니다: pages={}", chunk.referencedPages());
+      GeminiResponse response = geminiChatService.callAndParse(chunk, cacheName);
+      if (response == null) {
         return;
       }
 
-      GeminiResponse response = objectMapper.readValue(json.trim(), GeminiResponse.class);
       processResponse(request, chunk, response, numberCounter);
     } catch (Exception e) {
       log.error("청크 처리 실패 (계속 진행): pages={}, error={}", chunk.referencedPages(), e.getMessage());
