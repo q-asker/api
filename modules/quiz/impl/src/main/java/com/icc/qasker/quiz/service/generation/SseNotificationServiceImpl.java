@@ -4,6 +4,7 @@ import static com.icc.qasker.global.error.ExceptionMessage.AI_SERVER_COMMUNICATI
 
 import com.icc.qasker.quiz.SseNotificationService;
 import com.icc.qasker.quiz.infra.SseEmitterFactory;
+import com.icc.qasker.quiz.properties.QAskerSseProperties;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker.State;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
@@ -21,12 +22,15 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 @Service
 public class SseNotificationServiceImpl implements SseNotificationService {
 
-  private static final long TIMEOUT = 300 * 1000L;
+  private final long sseTimeoutMs;
   private final Map<String, SseEmitter> emitterMap = new ConcurrentHashMap<>();
   private final CircuitBreakerRegistry circuitBreakerRegistry;
 
   public SseNotificationServiceImpl(
-      CircuitBreakerRegistry circuitBreakerRegistry, MeterRegistry registry) {
+      QAskerSseProperties sseProperties,
+      CircuitBreakerRegistry circuitBreakerRegistry,
+      MeterRegistry registry) {
+    this.sseTimeoutMs = sseProperties.getTimeoutMs();
     this.circuitBreakerRegistry = circuitBreakerRegistry;
 
     // 활성 SSE 연결 수 Gauge — 커넥션 풀 고갈 사전 감지용
@@ -72,7 +76,7 @@ public class SseNotificationServiceImpl implements SseNotificationService {
   }
 
   private @NonNull SseEmitter initSseEmitter(String sessionId) {
-    SseEmitter emitter = SseEmitterFactory.createThreadSafeEmitter(TIMEOUT);
+    SseEmitter emitter = SseEmitterFactory.createThreadSafeEmitter(sseTimeoutMs);
 
     emitter.onCompletion(
         () -> {
