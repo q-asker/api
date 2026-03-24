@@ -21,10 +21,10 @@ public class GeminiMetricsRecorder {
   private static final double PRICE_CACHE_READ_PER_1M = 0.05;
   private static final double PRICE_OUTPUT_PER_1M = 3.00;
 
+  private final MeterRegistry registry;
+
+  // 태그 없는 청크 레벨 메트릭 (청크 단위에서는 maxChunks를 모르므로 태그 없음)
   private final Timer chunkDuration;
-  private final Timer firstQuizDuration;
-  private final Timer totalRequestDuration;
-  private final Timer quizSpreadDuration;
   private final Counter tokensInput;
   private final Counter tokensCached;
   private final Counter tokensThinking;
@@ -32,21 +32,11 @@ public class GeminiMetricsRecorder {
   private final Counter costEstimated;
 
   public GeminiMetricsRecorder(MeterRegistry registry) {
+    this.registry = registry;
+
     this.chunkDuration =
         Timer.builder("gemini.chunk.duration")
             .description("Gemini API 청크별 응답 시간")
-            .register(registry);
-    this.firstQuizDuration =
-        Timer.builder("gemini.request.first-quiz.duration")
-            .description("요청 시작 → 첫 번째 퀴즈 응답까지 소요 시간")
-            .register(registry);
-    this.totalRequestDuration =
-        Timer.builder("gemini.request.total.duration")
-            .description("요청 시작 → 전체 퀴즈 생성 완료까지 소요 시간")
-            .register(registry);
-    this.quizSpreadDuration =
-        Timer.builder("gemini.request.spread.duration")
-            .description("첫 번째 퀴즈 응답 ~ 마지막 퀴즈 응답 사이 시간 차이")
             .register(registry);
     this.tokensInput =
         Counter.builder("gemini.tokens.input").description("Gemini 입력 토큰 (비캐시)").register(registry);
@@ -63,8 +53,6 @@ public class GeminiMetricsRecorder {
             .description("Gemini 추정 비용 (USD)")
             .register(registry);
 
-    // 캐시 히트율 Gauge — 기존 Counter를 활용한 파생 메트릭
-    // 캐시 읽기 $0.05/1M vs 일반 입력 $0.50/1M → 히트율 하락 시 비용 급증 감지용
     Gauge.builder(
             "gemini.cache.hit.ratio",
             this,
@@ -79,7 +67,7 @@ public class GeminiMetricsRecorder {
   }
 
   /**
-   * 청크 처리 완료 후 메트릭을 기록한다. Usage에서 토큰 수를 추출하고 비용을 계산하여 Prometheus에 기록한다.
+   * 청크 처리 완료 후 메트릭을 기록한다.
    *
    * @param elapsedMs 청크 처리 소요 시간 (밀리초)
    * @param usage ChatResponse에서 추출한 Usage 메타데이터
@@ -117,21 +105,37 @@ public class GeminiMetricsRecorder {
   }
 
   /**
-   * 요청 단위 응답 시간 메트릭을 기록한다.
+   * 요청 단위 응답 시간 메트릭을 기록한다. A/B 테스트용 max_chunks 태그를 동적으로 부여한다.
    *
-   * @param requestStartMs 요청 시작 시각 (System.nanoTime)
-   * @param firstQuizNanos 첫 번째 퀴즈 응답 시각 (System.nanoTime), null이면 퀴즈가 하나도 생성되지 않은 것
-   * @param lastQuizNanos 마지막 퀴즈 응답 시각 (System.nanoTime), null이면 퀴즈가 하나도 생성되지 않은 것
+   * @param maxChunkCount 이 요청에 적용된 최대 청크 수
+   * @param requestStartNanos 요청 시작 시각 (System.nanoTime)
+   * @param firstQuizNanos 첫 번째 퀴즈 응답 시각, null이면 퀴즈 미생성
+   * @param lastQuizNanos 마지막 퀴즈 응답 시각, null이면 퀴즈 미생성
    */
-  public void recordRequestDuration(long requestStartMs, Long firstQuizNanos, Long lastQuizNanos) {
+  public void recordRequestDuration(
+      int maxChunkCount, long requestStartNanos, Long firstQuizNanos, Long lastQuizNanos) {
+    String tag = String.valueOf(maxChunkCount);
     long now = System.nanoTime();
-    totalRequestDuration.record(now - requestStartMs, TimeUnit.NANOSECONDS);
+
+    Timer.builder("gemini.request.total.duration")
+        .description("요청 시작 → 전체 퀴즈 생성 완료까지 소요 시간")
+        .tag("max_chunks", tag)
+        .register(registry)
+        .record(now - requestStartNanos, TimeUnit.NANOSECONDS);
 
     if (firstQuizNanos != null) {
-      firstQuizDuration.record(firstQuizNanos - requestStartMs, TimeUnit.NANOSECONDS);
+      Timer.builder("gemini.request.first-quiz.duration")
+          .description("요청 시작 → 첫 번째 퀴즈 응답까지 소요 시간")
+          .tag("max_chunks", tag)
+          .register(registry)
+          .record(firstQuizNanos - requestStartNanos, TimeUnit.NANOSECONDS);
     }
     if (firstQuizNanos != null && lastQuizNanos != null) {
-      quizSpreadDuration.record(lastQuizNanos - firstQuizNanos, TimeUnit.NANOSECONDS);
+      Timer.builder("gemini.request.spread.duration")
+          .description("첫 번째 퀴즈 응답 ~ 마지막 퀴즈 응답 사이 시간 차이")
+          .tag("max_chunks", tag)
+          .register(registry)
+          .record(lastQuizNanos - firstQuizNanos, TimeUnit.NANOSECONDS);
     }
   }
 }

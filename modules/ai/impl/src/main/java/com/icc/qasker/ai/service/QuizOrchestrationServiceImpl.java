@@ -9,6 +9,7 @@ import com.icc.qasker.ai.dto.ChunkInfo;
 import com.icc.qasker.ai.dto.GeminiFileUploadResponse.FileMetadata;
 import com.icc.qasker.ai.dto.GenerationRequestToAI;
 import com.icc.qasker.ai.mapper.GeminiQuestionMapper;
+import com.icc.qasker.ai.properties.QAskerAiProperties;
 import com.icc.qasker.ai.service.support.GeminiChatService;
 import com.icc.qasker.ai.service.support.GeminiMetricsRecorder;
 import com.icc.qasker.ai.structure.GeminiQuestion;
@@ -23,23 +24,34 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 @Slf4j
 @Service
-@AllArgsConstructor
 public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
 
-  private static final int MAX_CHUNK_COUNT = 10;
   private static final int MAX_SELECTION_COUNT = 4;
 
+  private final QAskerAiProperties.Chunk chunkProperties;
   private final GeminiFileService geminiFileService;
   private final GeminiCacheService geminiCacheService;
   private final GeminiChatService geminiChatService;
   private final GeminiMetricsRecorder metricsRecorder;
+
+  public QuizOrchestrationServiceImpl(
+      QAskerAiProperties aiProperties,
+      GeminiFileService geminiFileService,
+      GeminiCacheService geminiCacheService,
+      GeminiChatService geminiChatService,
+      GeminiMetricsRecorder metricsRecorder) {
+    this.chunkProperties = aiProperties.getChunk();
+    this.geminiFileService = geminiFileService;
+    this.geminiCacheService = geminiCacheService;
+    this.geminiChatService = geminiChatService;
+    this.metricsRecorder = metricsRecorder;
+  }
 
   @Override
   public void generateQuiz(GenerationRequestToAI request) {
@@ -65,10 +77,13 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
       cacheCreatedAt = Instant.now();
       log.info("캐시 생성 완료: cacheName={}, tokenCount={}", cacheInfo.name(), cacheInfo.tokenCount());
 
+      // A/B 테스트: 요청마다 랜덤으로 maxChunkCount 선택
+      int maxChunkCount = chunkProperties.pickMaxCount();
+
       List<ChunkInfo> chunks =
           ChunkSplitter.createPageChunks(
-              request.referencePages(), request.quizCount(), MAX_CHUNK_COUNT);
-      log.info("청크 분할 완료: {}개 청크", chunks.size());
+              request.referencePages(), request.quizCount(), maxChunkCount);
+      log.info("청크 분할 완료: {}개 청크 (maxChunkCount={})", chunks.size(), maxChunkCount);
 
       AtomicInteger numberCounter = new AtomicInteger(1);
 
@@ -131,10 +146,11 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
       }
       log.info("전체 병렬 생성 완료: 총 {}번까지 번호 할당됨", numberCounter.get() - 1);
 
-      // 요청 단위 응답 시간 메트릭 기록
+      // 요청 단위 응답 시간 메트릭 기록 (A/B 테스트 태그 포함)
       Long firstNanos = firstQuizNanos.get() == 0 ? null : firstQuizNanos.get();
       Long lastNanos = lastQuizNanos.get() == 0 ? null : lastQuizNanos.get();
-      metricsRecorder.recordRequestDuration(requestStartNanos, firstNanos, lastNanos);
+      metricsRecorder.recordRequestDuration(
+          maxChunkCount, requestStartNanos, firstNanos, lastNanos);
     } finally {
       if (cacheInfo != null) {
         // 캐시 저장 비용 추정: $1.00/1M tokens/hour
