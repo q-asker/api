@@ -125,8 +125,6 @@ resilience4j:
         sliding-window-type: COUNT_BASED
         minimum-number-of-calls: 3
         sliding-window-size: 10
-        ignore-exceptions:
-          - com.icc.qasker.global.error.ClientSideException
         failure-rate-threshold: 60
         wait-duration-in-open-state:
           seconds: 10
