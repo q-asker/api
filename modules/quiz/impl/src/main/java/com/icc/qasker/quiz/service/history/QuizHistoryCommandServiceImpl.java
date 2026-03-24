@@ -18,8 +18,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class QuizHistoryCommandServiceImpl implements QuizHistoryCommandService {
 
-  private static final UserAnswerConverter USER_ANSWER_CONVERTER = new UserAnswerConverter();
-
   private final QuizHistoryRepository quizHistoryRepository;
   private final ProblemSetRepository problemSetRepository;
   private final HashUtil hashUtil;
