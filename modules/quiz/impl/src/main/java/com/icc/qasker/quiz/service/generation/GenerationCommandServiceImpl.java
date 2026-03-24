@@ -38,16 +38,12 @@ import org.springframework.util.CollectionUtils;
 @Service
 public class GenerationCommandServiceImpl implements GenerationCommandService {
 
-  // 핵심
   private final AIServerAdapter aiServerAdapter;
   private final SseNotificationService notificationService;
   private final QuizCommandService quizCommandService;
   private final QuizQueryService quizQueryService;
-  // 유틸
   private final HashUtil hashUtil;
   private final GenerationResultRecorder resultRecorder;
-
-  // Prometheus 메트릭
   private final LongTaskTimer e2eDuration;
 
   public GenerationCommandServiceImpl(
@@ -98,52 +94,72 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
     LongTaskTimer.Sample e2eSample = e2eDuration.start();
     AtomicInteger atomicGeneratedCount = new AtomicInteger(0);
 
+    GenerationRequestToAI requestToAI =
+        GenerationRequestToAI.builder()
+            .fileUrl(request.uploadedUrl())
+            .strategyValue(request.quizType().name())
+            .quizCount(request.quizCount())
+            .referencePages(request.pageNumbers())
+            .questionsConsumer(
+                aiProblemSet -> {
+                  // 1. 전송용 DTO로 변환
+                  ProblemSetGeneratedEvent problemSet = AIProblemSetMapper.toEvent(aiProblemSet);
+                  if (CollectionUtils.isEmpty(problemSet.getQuiz())) {
+                    log.warn("빈 배치 수신, 건너뜀: sessionId={}", sessionId);
+                    return;
+                  }
+
+                  // 2. 선택지 셔플
+                  QuizType quizType = request.quizType();
+                  if (quizType == QuizType.MULTIPLE || quizType == QuizType.BLANK) {
+                    for (var quiz : problemSet.getQuiz()) {
+                      if (!CollectionUtils.isEmpty(quiz.getSelections())) {
+                        List<ProblemSetGeneratedEvent.QuizGeneratedFromAI.SelectionsOfAI> shuffled =
+                            new ArrayList<>(quiz.getSelections());
+                        Collections.shuffle(shuffled);
+                        quiz.setSelections(shuffled);
+                      }
+                    }
+                  }
+
+                  // 3. 마크다운 포맷팅
+                  for (QuizGeneratedFromAI quiz : problemSet.getQuiz()) {
+                    quiz.setExplanation(ExplanationMarkdownBuilder.build(quiz));
+                  }
+
+                  // 4. 데이터베이스에 영속화
+                  List<Integer> savedNumbers =
+                      quizCommandService.saveBatch(problemSet.getQuiz(), problemSetId);
+
+                  // 5. 데이터베이스에 영속화
+                  List<QuizView> quizViews =
+                      quizQueryService.getQuizViews(problemSetId, savedNumbers);
+                  if (quizViews.isEmpty()) {
+                    return;
+                  }
+
+                  //
+                  List<QuizForFe> quizForFeList =
+                      quizViews.stream().map(QuizViewToQuizForFeMapper::toQuizForFe).toList();
+
+                  notificationService.sendCreatedMessageWithId(
+                      sessionId,
+                      String.valueOf(quizViews.getLast().getNumber()),
+                      new ProblemSetResponse(
+                          sessionId,
+                          hashUtil.encode(problemSetId),
+                          request.title(),
+                          GENERATING,
+                          request.quizType(),
+                          request.quizCount(),
+                          quizForFeList));
+
+                  atomicGeneratedCount.addAndGet(quizViews.size());
+                })
+            .build();
+
     try {
-      aiServerAdapter.streamRequest(
-          GenerationRequestToAI.builder()
-              .fileUrl(request.uploadedUrl())
-              .strategyValue(request.quizType().name())
-              .quizCount(request.quizCount())
-              .referencePages(request.pageNumbers())
-              .questionsConsumer(
-                  aiProblemSet -> {
-                    ProblemSetGeneratedEvent problemSet = AIProblemSetMapper.toEvent(aiProblemSet);
-                    if (CollectionUtils.isEmpty(problemSet.getQuiz())) {
-                      log.warn("빈 배치 수신, 건너뜀: sessionId={}", sessionId);
-                      return;
-                    }
-
-                    ProblemSetGeneratedEvent refinedProblemSet =
-                        refineQuiz(problemSet, request.quizType());
-
-                    List<Integer> savedNumbers =
-                        quizCommandService.saveBatch(refinedProblemSet.getQuiz(), problemSetId);
-
-                    List<QuizView> quizViews =
-                        quizQueryService.getQuizViews(problemSetId, savedNumbers);
-                    if (quizViews.isEmpty()) {
-                      return;
-                    }
-
-                    List<QuizForFe> quizForFeList =
-                        quizViews.stream().map(QuizViewToQuizForFeMapper::toQuizForFe).toList();
-
-                    notificationService.sendCreatedMessageWithId(
-                        sessionId,
-                        String.valueOf(quizViews.getLast().getNumber()),
-                        new ProblemSetResponse(
-                            sessionId,
-                            hashUtil.encode(problemSetId),
-                            request.title(),
-                            GENERATING,
-                            QuizType.valueOf(request.quizType().name()),
-                            request.quizCount(),
-                            quizForFeList));
-
-                    atomicGeneratedCount.addAndGet(quizViews.size());
-                  })
-              .errorConsumer(ex -> log.error("청크 에러: {}", ex.getMessage()))
-              .build());
+      aiServerAdapter.streamRequest(requestToAI);
     } catch (Exception e) {
       log.error("생성 중 오류 발생: sessionId={}", sessionId, e);
       finalizeError(sessionId, problemSetId, ExceptionMessage.AI_GENERATION_FAILED.getMessage());
@@ -166,26 +182,6 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
       finalizePartialSuccess(
           sessionId, problemSetId, request.quizType(), generatedCount, quizCount);
     }
-  }
-
-  private ProblemSetGeneratedEvent refineQuiz(
-      ProblemSetGeneratedEvent problemSet, QuizType quizType) {
-    // 1. 선택지 셔플
-    if (quizType == QuizType.MULTIPLE || quizType == QuizType.BLANK) {
-      for (var quiz : problemSet.getQuiz()) {
-        if (!CollectionUtils.isEmpty(quiz.getSelections())) {
-          List<ProblemSetGeneratedEvent.QuizGeneratedFromAI.SelectionsOfAI> shuffled =
-              new ArrayList<>(quiz.getSelections());
-          Collections.shuffle(shuffled);
-          quiz.setSelections(shuffled);
-        }
-      }
-    }
-    // 2. 마크다운 포맷팅
-    for (QuizGeneratedFromAI quiz : problemSet.getQuiz()) {
-      quiz.setExplanation(ExplanationMarkdownBuilder.build(quiz));
-    }
-    return problemSet;
   }
 
   private void finalizeSuccess(
