@@ -92,7 +92,7 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
   }
 
   private void processAsyncGeneration(
-      String userId, String sessionId, Long problemSetId, GenerationRequest request) {
+      String sessionId, Long problemSetId, GenerationRequest request) {
 
     // 퀴즈 생성 E2E 소요 시간 측정 시작 (Prometheus 메트릭)
     LongTaskTimer.Sample e2eSample = e2eDuration.start();
@@ -153,13 +153,18 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
     }
 
     int generatedCount = atomicGeneratedCount.get();
+    int quizCount = request.quizCount();
+
+    // 요청/생성/실패 문제 수 메트릭 기록 (finalize 결과와 무관하게 항상 실행)
+    resultRecorder.recordQuizCounts(quizCount, generatedCount);
+
     if (generatedCount == 0) {
       finalizeError(sessionId, problemSetId, ExceptionMessage.AI_GENERATION_FAILED.getMessage());
-    } else if (generatedCount == request.quizCount()) {
-      finalizeSuccess(userId, sessionId, problemSetId, request.quizType(), generatedCount);
+    } else if (generatedCount == quizCount) {
+      finalizeSuccess(sessionId, problemSetId, request.quizType(), generatedCount);
     } else {
       finalizePartialSuccess(
-          userId, sessionId, problemSetId, request.quizType(), generatedCount, request.quizCount());
+          sessionId, problemSetId, request.quizType(), generatedCount, quizCount);
     }
   }
 
