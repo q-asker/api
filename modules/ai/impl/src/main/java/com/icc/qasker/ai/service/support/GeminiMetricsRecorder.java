@@ -20,6 +20,7 @@ public class GeminiMetricsRecorder {
   private static final double PRICE_INPUT_PER_1M = 0.50;
   private static final double PRICE_CACHE_READ_PER_1M = 0.05;
   private static final double PRICE_OUTPUT_PER_1M = 3.00;
+  private static final double PRICE_CACHE_STORAGE_PER_1M_HOUR = 1.00;
 
   private final MeterRegistry registry;
 
@@ -30,6 +31,7 @@ public class GeminiMetricsRecorder {
   private final Counter tokensThinking;
   private final Counter tokensOutput;
   private final Counter costEstimated;
+  private final Counter cacheStorageCost;
 
   public GeminiMetricsRecorder(MeterRegistry registry) {
     this.registry = registry;
@@ -51,6 +53,10 @@ public class GeminiMetricsRecorder {
     this.costEstimated =
         Counter.builder("gemini.cost.estimated")
             .description("Gemini 추정 비용 (USD)")
+            .register(registry);
+    this.cacheStorageCost =
+        Counter.builder("gemini.cache.storage.cost")
+            .description("Gemini 캐시 저장 추정 비용 (USD)")
             .register(registry);
 
     Gauge.builder(
@@ -88,7 +94,7 @@ public class GeminiMetricsRecorder {
           genAiUsage.getThoughtsTokenCount() != null ? genAiUsage.getThoughtsTokenCount() : 0;
     }
 
-    long nonCachedInputTokens = promptTokens - cachedTokens;
+    long nonCachedInputTokens = Math.max(0, promptTokens - cachedTokens);
     double inputCost = nonCachedInputTokens * PRICE_INPUT_PER_1M / 1_000_000;
     double cacheCost = cachedTokens * PRICE_CACHE_READ_PER_1M / 1_000_000;
     double outputCost = completionTokens * PRICE_OUTPUT_PER_1M / 1_000_000;
@@ -137,5 +143,17 @@ public class GeminiMetricsRecorder {
           .register(registry)
           .record(lastQuizNanos - firstQuizNanos, TimeUnit.NANOSECONDS);
     }
+  }
+
+  /**
+   * 캐시 저장 비용을 기록한다. 캐시 삭제 직전에 호출한다.
+   *
+   * @param tokenCount 캐시에 저장된 토큰 수
+   * @param durationMs 캐시 보관 시간 (밀리초)
+   */
+  public void recordCacheStorageCost(long tokenCount, long durationMs) {
+    double durationHours = durationMs / 3_600_000.0;
+    double cost = tokenCount * PRICE_CACHE_STORAGE_PER_1M_HOUR / 1_000_000 * durationHours;
+    cacheStorageCost.increment(cost);
   }
 }

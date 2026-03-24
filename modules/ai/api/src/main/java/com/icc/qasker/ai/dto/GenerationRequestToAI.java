@@ -10,5 +10,4 @@ public record GenerationRequestToAI(
     String strategyValue,
     int quizCount,
     List<Integer> referencePages,
-    Consumer<AIProblemSet> questionsConsumer,
-    Consumer<Exception> errorConsumer) {}
+    Consumer<AIProblemSet> questionsConsumer) {}

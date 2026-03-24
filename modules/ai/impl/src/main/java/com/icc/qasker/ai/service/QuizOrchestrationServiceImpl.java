@@ -8,6 +8,7 @@ import com.icc.qasker.ai.dto.AIProblemSet;
 import com.icc.qasker.ai.dto.ChunkInfo;
 import com.icc.qasker.ai.dto.GeminiFileUploadResponse.FileMetadata;
 import com.icc.qasker.ai.dto.GenerationRequestToAI;
+import com.icc.qasker.ai.exception.GeminiInfraException;
 import com.icc.qasker.ai.mapper.GeminiQuestionMapper;
 import com.icc.qasker.ai.properties.QAskerAiProperties;
 import com.icc.qasker.ai.service.support.GeminiChatService;
@@ -15,8 +16,6 @@ import com.icc.qasker.ai.service.support.GeminiMetricsRecorder;
 import com.icc.qasker.ai.structure.GeminiQuestion;
 import com.icc.qasker.ai.structure.GeminiResponse;
 import com.icc.qasker.ai.util.ChunkSplitter;
-import java.time.Duration;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -59,23 +58,17 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
     AtomicLong firstQuizNanos = new AtomicLong(0);
     AtomicLong lastQuizNanos = new AtomicLong(0);
 
-    // Gemini 파일 캐시 확인 → 진행 중이면 대기, 미스 시 기존 방식으로 업로드
-    FileMetadata metadata =
-        geminiFileService
-            .awaitCachedFileMetadata(request.fileUrl())
-            .orElseGet(
-                () -> {
-                  log.info("Gemini 파일 캐시 미스, 업로드 시작: {}", request.fileUrl());
-                  return geminiFileService.uploadPdf(request.fileUrl());
-                });
-    log.info("Gemini 파일 준비 완료: name={}, uri={}", metadata.name(), metadata.uri());
-
     CacheInfo cacheInfo = null;
-    Instant cacheCreatedAt = null;
+    long cacheCreatedAtMs = 0;
     try {
+      // Gemini 파일 캐시 확인 → 진행 중이면 대기, 미스 시 기존 방식으로 업로드
+      FileMetadata metadata =
+          geminiFileService
+              .awaitCachedFileMetadata(request.fileUrl())
+              .orElseGet(() -> geminiFileService.uploadPdf(request.fileUrl()));
+
       cacheInfo = geminiCacheService.createCache(metadata.uri(), request.strategyValue());
-      cacheCreatedAt = Instant.now();
-      log.info("캐시 생성 완료: cacheName={}, tokenCount={}", cacheInfo.name(), cacheInfo.tokenCount());
+      cacheCreatedAtMs = System.currentTimeMillis();
 
       // A/B 테스트: 요청마다 랜덤으로 maxChunkCount 선택
       int maxChunkCount = chunkProperties.pickMaxCount();
@@ -93,7 +86,6 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
         for (ChunkInfo chunk : chunks) {
           CompletableFuture<Void> future =
               CompletableFuture.runAsync(
-                  // 핵심 비즈니스
                   () -> {
                     try {
                       GeminiResponse response =
@@ -103,7 +95,6 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
                       }
 
                       if (CollectionUtils.isEmpty(response.questions())) {
-                        log.warn("응답이 비어있습니다: pages={}", chunk.referencedPages());
                         return;
                       }
 
@@ -135,7 +126,6 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
                           "청크 처리 실패 (계속 진행): pages={}, error={}",
                           chunk.referencedPages(),
                           e.getMessage());
-                      request.errorConsumer().accept(e);
                     }
                   },
                   executor);
@@ -151,22 +141,19 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
       Long lastNanos = lastQuizNanos.get() == 0 ? null : lastQuizNanos.get();
       metricsRecorder.recordRequestDuration(
           maxChunkCount, requestStartNanos, firstNanos, lastNanos);
+
+    } catch (Exception e) {
+      throw new GeminiInfraException("Gemini 인프라 장애", e);
     } finally {
-      if (cacheInfo != null) {
-        // 캐시 저장 비용 추정: $1.00/1M tokens/hour
-        if (cacheCreatedAt != null && cacheInfo.tokenCount() > 0) {
-          double durationHours =
-              Duration.between(cacheCreatedAt, Instant.now()).toMillis() / 3_600_000.0;
-          double storageCost = cacheInfo.tokenCount() * 1.00 / 1_000_000 * durationHours;
-          log.info(
-              "캐시 저장 비용 추정 - 캐시 토큰: {}, 사용 시간: {}분, 추정 비용: ${}",
-              cacheInfo.tokenCount(),
-              String.format("%.1f", durationHours * 60),
-              String.format("%.6f", storageCost));
-        }
-        geminiCacheService.deleteCache(cacheInfo.name());
+      if (cacheInfo == null) {
+        return;
       }
-      // Gemini 파일은 삭제하지 않음 — 48시간 자동 만료, Caffeine 캐시로 재사용 가능
+      if (cacheCreatedAtMs > 0 && cacheInfo.tokenCount() > 0) {
+        metricsRecorder.recordCacheStorageCost(
+            cacheInfo.tokenCount(), System.currentTimeMillis() - cacheCreatedAtMs);
+      }
+      // 캐시 안지우면 큰일남
+      geminiCacheService.deleteCache(cacheInfo.name());
     }
   }
 }
