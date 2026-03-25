@@ -8,6 +8,7 @@ import com.icc.qasker.ai.dto.GeminiFileUploadResponse.FileMetadata;
 import com.icc.qasker.ai.util.PdfUtils;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
+import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import java.io.IOException;
@@ -40,6 +41,8 @@ public class GeminiFileServiceImpl implements GeminiFileService {
   private final String apiKey;
   private final PdfUtils pdfUtils;
   private final Timer uploadTimer;
+  private final Counter fileCacheHit;
+  private final Counter fileCacheMiss;
 
   // Gemini 파일 업로드 Future 캐시 (CloudFront URL → CompletableFuture<FileMetadata>)
   // TTL 47시간: Gemini Files API 48시간 자동 삭제 전 안전 마진
@@ -56,10 +59,19 @@ public class GeminiFileServiceImpl implements GeminiFileService {
     this.apiKey = properties.getApiKey();
     this.pdfUtils = pdfUtils;
 
-    // Gemini 파일 업로드 Timer — 병렬 업로드 병목 식별용
     this.uploadTimer =
         Timer.builder("file.upload.gemini.duration")
             .description("Gemini 파일 업로드 소요 시간")
+            .register(registry);
+    this.fileCacheHit =
+        Counter.builder("gemini.file.cache")
+            .tag("result", "hit")
+            .description("Gemini 파일 캐시 히트 수")
+            .register(registry);
+    this.fileCacheMiss =
+        Counter.builder("gemini.file.cache")
+            .tag("result", "miss")
+            .description("Gemini 파일 캐시 미스 수")
             .register(registry);
   }
 
@@ -110,15 +122,17 @@ public class GeminiFileServiceImpl implements GeminiFileService {
   public Optional<FileMetadata> awaitCachedFileMetadata(String cloudFrontUrl) {
     CompletableFuture<FileMetadata> future = uploadFutureCache.getIfPresent(cloudFrontUrl);
     if (future == null) {
+      fileCacheMiss.increment();
       return Optional.empty();
     }
 
     try {
       FileMetadata metadata = future.join();
+      fileCacheHit.increment();
       log.info("Gemini 파일 캐시 히트: url={}, name={}", cloudFrontUrl, metadata.name());
       return Optional.of(metadata);
     } catch (CompletionException e) {
-      // 업로드 실패 — 캐시에서 제거하여 재시도 가능하게 함
+      fileCacheMiss.increment();
       uploadFutureCache.invalidate(cloudFrontUrl);
       log.warn("캐시된 Gemini 업로드 실패, 캐시 제거: url={}, error={}", cloudFrontUrl, e.getMessage());
       return Optional.empty();

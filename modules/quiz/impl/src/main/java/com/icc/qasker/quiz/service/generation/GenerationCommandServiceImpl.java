@@ -23,8 +23,6 @@ import com.icc.qasker.quiz.mapper.AIProblemSetMapper;
 import com.icc.qasker.quiz.mapper.ExplanationMarkdownBuilder;
 import com.icc.qasker.quiz.mapper.QuizViewToQuizForFeMapper;
 import com.icc.qasker.quiz.view.QuizView;
-import io.micrometer.core.instrument.LongTaskTimer;
-import io.micrometer.core.instrument.MeterRegistry;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -44,7 +42,6 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
   private final QuizQueryService quizQueryService;
   private final HashUtil hashUtil;
   private final GenerationResultRecorder resultRecorder;
-  private final LongTaskTimer e2eDuration;
 
   public GenerationCommandServiceImpl(
       AIServerAdapter aiServerAdapter,
@@ -52,20 +49,13 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
       QuizCommandService quizCommandService,
       QuizQueryService quizQueryService,
       HashUtil hashUtil,
-      GenerationResultRecorder resultRecorder,
-      MeterRegistry registry) {
+      GenerationResultRecorder resultRecorder) {
     this.aiServerAdapter = aiServerAdapter;
     this.notificationService = notificationService;
     this.quizCommandService = quizCommandService;
     this.quizQueryService = quizQueryService;
     this.hashUtil = hashUtil;
     this.resultRecorder = resultRecorder;
-
-    // E2E 파이프라인 LongTaskTimer — 진행 중인 장기 작업 실시간 감시용
-    this.e2eDuration =
-        LongTaskTimer.builder("quiz.generation.e2e.duration")
-            .description("퀴즈 생성 E2E 파이프라인 소요 시간 (진행 중 포함)")
-            .register(registry);
   }
 
   @Override
@@ -90,8 +80,6 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
   private void processAsyncGeneration(
       String sessionId, Long problemSetId, GenerationRequest request) {
 
-    // 퀴즈 생성 E2E 소요 시간 측정 시작 (Prometheus 메트릭)
-    LongTaskTimer.Sample e2eSample = e2eDuration.start();
     AtomicInteger atomicGeneratedCount = new AtomicInteger(0);
 
     GenerationRequestToAI requestToAI =
@@ -164,15 +152,13 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
       log.error("생성 중 오류 발생: sessionId={}", sessionId, e);
       finalizeError(sessionId, problemSetId, ExceptionMessage.AI_GENERATION_FAILED.getMessage());
       return;
-    } finally {
-      e2eSample.stop();
     }
 
     int generatedCount = atomicGeneratedCount.get();
     int quizCount = request.quizCount();
 
     // 요청/생성/실패 문제 수 메트릭 기록 (finalize 결과와 무관하게 항상 실행)
-    resultRecorder.recordQuizCounts(quizCount, generatedCount);
+    resultRecorder.recordQuizCounts(request.quizType(), quizCount, generatedCount);
 
     if (generatedCount == 0) {
       finalizeError(sessionId, problemSetId, ExceptionMessage.AI_GENERATION_FAILED.getMessage());
