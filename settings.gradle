@@ -4,6 +4,7 @@ include ':app', ':global',
         ':auth-api', ':auth-impl',
         ':aws-api', ':aws-impl',
         ':quiz-api', ':quiz-impl',
+        ':quiz-history-api', ':quiz-history-impl',
         ':util-api', ':util-impl',
         ':ai-api', ':ai-impl',
         ':board-api', ':board-impl'
@@ -19,6 +20,9 @@ project(':aws-impl').projectDir = file('modules/aws/impl')
 
 project(':quiz-api').projectDir = file('modules/quiz/api')
 project(':quiz-impl').projectDir = file('modules/quiz/impl')
+
+project(':quiz-history-api').projectDir = file('modules/quiz-history/api')
+project(':quiz-history-impl').projectDir = file('modules/quiz-history/impl')
 
 project(':util-api').projectDir = file('modules/util/api')
 project(':util-impl').projectDir = file('modules/util/impl')

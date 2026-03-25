@@ -61,7 +61,10 @@ q-asker/api/
 │   │   └── impl/                  # JWT, OAuth2 구현
 │   ├── quiz/
 │   │   ├── api/                   # 퀴즈 인터페이스, DTO
-│   │   └── impl/                  # 퀴즈 CRUD, 출제/채점 로직
+│   │   └── impl/                  # 퀴즈 생성, 문제세트 조회, 파일 업로드
+│   ├── quiz-history/
+│   │   ├── api/                   # 퀴즈 히스토리 인터페이스, DTO
+│   │   └── impl/                  # 퀴즈 풀이 기록 CRUD
 │   ├── ai/
 │   │   ├── api/                   # AI 인터페이스, DTO
 │   │   └── impl/                  # Google Gemini 연동
@@ -94,6 +97,7 @@ app → *-impl → *-api → global
 - `*-api`: 인터페이스, DTO만 정의 (구현체 금지)
 - `*-impl`: 비즈니스 로직, Repository, Entity
 - `global`: 전역 공통 코드 (BaseEntity, ApiResponse, 예외 처리)
+- `quiz-history-impl` → `quiz-history-api`, `quiz-api`, `global` (퀴즈 히스토리는 quiz-api의 ProblemSetReadService를 통해 ProblemSet 데이터에 접근)
 
 ## 환경 변수
 

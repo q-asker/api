@@ -36,6 +36,8 @@ dependencies {
     // 퀴즈 구현 모듈: 퀴즈 CRUD, 출제·채점 로직
     // 예: QuizServiceImpl, QuizRepository 등이 이 모듈에 위치
     implementation project(':quiz-impl')
+    // 퀴즈 히스토리 구현 모듈: 퀴즈 풀이 기록 CRUD
+    implementation project(':quiz-history-impl')
     // 유틸리티 구현 모듈: 범용 헬퍼 기능
     // 예: HealthCheckController 등이 이 모듈에 위치
     implementation project(':util-impl')
