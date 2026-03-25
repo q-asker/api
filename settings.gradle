@@ -1,13 +1,14 @@
 rootProject.name = 'q-asker'
 
 include ':app', ':global',
-        ':auth-api', ':auth-impl',
-        ':aws-api', ':aws-impl',
-        ':quiz-api', ':quiz-impl',
-        ':quiz-history-api', ':quiz-history-impl',
-        ':util-api', ':util-impl',
-        ':ai-api', ':ai-impl',
-        ':board-api', ':board-impl'
+    ':auth-api', ':auth-impl',
+    ':aws-api', ':aws-impl',
+    ':board-api', ':board-impl',
+    ':quiz-ai-api', ':quiz-ai-impl',
+    ':quiz-history-api', ':quiz-history-impl',
+    ':quiz-make-api', ':quiz-make-impl',
+    ':quiz-set-api', ':quiz-set-impl',
+    ':util-api', ':util-impl'
 
 project(':app').projectDir = file('app')
 project(':global').projectDir = file('modules/global')
@@ -18,17 +19,20 @@ project(':auth-impl').projectDir = file('modules/auth/impl')
 project(':aws-api').projectDir = file('modules/aws/api')
 project(':aws-impl').projectDir = file('modules/aws/impl')
 
-project(':quiz-api').projectDir = file('modules/quiz/api')
-project(':quiz-impl').projectDir = file('modules/quiz/impl')
+project(':board-api').projectDir = file('modules/board/api')
+project(':board-impl').projectDir = file('modules/board/impl')
+
+project(':quiz-ai-api').projectDir = file('modules/quiz-ai/api')
+project(':quiz-ai-impl').projectDir = file('modules/quiz-ai/impl')
 
 project(':quiz-history-api').projectDir = file('modules/quiz-history/api')
 project(':quiz-history-impl').projectDir = file('modules/quiz-history/impl')
 
+project(':quiz-make-api').projectDir = file('modules/quiz-make/api')
+project(':quiz-make-impl').projectDir = file('modules/quiz-make/impl')
+
+project(':quiz-set-api').projectDir = file('modules/quiz-set/api')
+project(':quiz-set-impl').projectDir = file('modules/quiz-set/impl')
+
 project(':util-api').projectDir = file('modules/util/api')
 project(':util-impl').projectDir = file('modules/util/impl')
-
-project(':ai-api').projectDir = file('modules/ai/api')
-project(':ai-impl').projectDir = file('modules/ai/impl')
-
-project(':board-api').projectDir = file('modules/board/api')
-project(':board-impl').projectDir = file('modules/board/impl')

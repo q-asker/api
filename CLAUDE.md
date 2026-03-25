@@ -59,15 +59,18 @@ q-asker/api/
 │   ├── auth/
 │   │   ├── api/                   # 인증 인터페이스, DTO
 │   │   └── impl/                  # JWT, OAuth2 구현
-│   ├── quiz/
-│   │   ├── api/                   # 퀴즈 인터페이스, DTO
-│   │   └── impl/                  # 퀴즈 생성, 문제세트 조회, 파일 업로드
+│   ├── quiz-ai/
+│   │   ├── api/                   # AI 인터페이스, DTO
+│   │   └── impl/                  # Google Gemini 연동
 │   ├── quiz-history/
 │   │   ├── api/                   # 퀴즈 히스토리 인터페이스, DTO
 │   │   └── impl/                  # 퀴즈 풀이 기록 CRUD
-│   ├── ai/
-│   │   ├── api/                   # AI 인터페이스, DTO
-│   │   └── impl/                  # Google Gemini 연동
+│   ├── quiz-make/
+│   │   ├── api/                   # 퀴즈 생성 인터페이스, DTO
+│   │   └── impl/                  # AI 기반 문제 생성, 파일 업로드, SSE 알림
+│   ├── quiz-set/
+│   │   ├── api/                   # 문제세트 인터페이스, DTO, Entity
+│   │   └── impl/                  # 문제세트 CRUD, 조회, 해설
 │   ├── aws/
 │   │   ├── api/                   # AWS 인터페이스
 │   │   └── impl/                  # S3 파일 업로드/다운로드
@@ -97,7 +100,8 @@ app → *-impl → *-api → global
 - `*-api`: 인터페이스, DTO만 정의 (구현체 금지)
 - `*-impl`: 비즈니스 로직, Repository, Entity
 - `global`: 전역 공통 코드 (BaseEntity, ApiResponse, 예외 처리)
-- `quiz-history-impl` → `quiz-history-api`, `quiz-api`, `global` (퀴즈 히스토리는 quiz-api의 ProblemSetReadService를 통해 ProblemSet 데이터에 접근)
+- `quiz-make-impl` → `quiz-make-api`, `quiz-set-api`, `quiz-ai-api`, `global` (퀴즈 생성은 quiz-set의 Entity/Repository와 quiz-ai의 AI 서비스에 접근)
+- `quiz-history-impl` → `quiz-history-api`, `quiz-set-api`, `global` (퀴즈 히스토리는 quiz-set-api의 ProblemSetReadService를 통해 ProblemSet 데이터에 접근)
 
 ## 환경 변수
 

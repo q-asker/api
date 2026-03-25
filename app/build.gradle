@@ -33,9 +33,10 @@ dependencies {
     // AWS 구현 모듈: S3 파일 업로드·다운로드 처리
     // 예: S3ServiceImpl, PresignedUrlGenerator 등이 이 모듈에 위치
     implementation project(':aws-impl')
-    // 퀴즈 구현 모듈: 퀴즈 CRUD, 출제·채점 로직
-    // 예: QuizServiceImpl, QuizRepository 등이 이 모듈에 위치
-    implementation project(':quiz-impl')
+    // 퀴즈 데이터 관리 모듈: 문제세트 CRUD, 조회, 해설
+    implementation project(':quiz-set-impl')
+    // 퀴즈 생성 모듈: AI 기반 문제 생성, 파일 업로드, SSE 알림
+    implementation project(':quiz-make-impl')
     // 퀴즈 히스토리 구현 모듈: 퀴즈 풀이 기록 CRUD
     implementation project(':quiz-history-impl')
     // 유틸리티 구현 모듈: 범용 헬퍼 기능
@@ -43,7 +44,7 @@ dependencies {
     implementation project(':util-impl')
     // AI 모듈: Google Gemini 기반 AI 기능
     // 예: AiService에서 ChatClient를 통해 Gemini API를 호출
-    implementation project(':ai-impl')
+    implementation project(':quiz-ai-impl')
     // 공통 모듈: 전역 예외 처리, 공통 응답 DTO
     // 예: GlobalExceptionHandler, ApiResponse<T>, BaseEntity 등이 이 모듈에 위치
     implementation project(':global')

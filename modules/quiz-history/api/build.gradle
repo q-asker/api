@@ -10,5 +10,5 @@ dependencies {
     // global: 공통 예외 처리, 공통 응답 DTO 등 프로젝트 전역 유틸리티 모듈
     api project(":global")
     // quiz-api: QuizType enum, Selection DTO 등 quiz 공유 타입 참조
-    api project(":quiz-api")
+    api project(":quiz-set-api")
 }
