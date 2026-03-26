@@ -1,7 +1,7 @@
 package com.icc.qasker.ai.properties;
 
 import java.util.List;
-import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicInteger;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -24,13 +24,15 @@ public class QAskerAiProperties {
   @Setter
   public static class Chunk {
 
-    /** A/B 테스트 변형 목록 — 요청마다 랜덤 선택 */
+    /** A/B 테스트 변형 목록 */
     private List<Integer> maxCountVariants = List.of(10);
 
-    /** 변형 목록에서 랜덤으로 하나를 선택한다. */
+    private AtomicInteger roundRobinIndex = new AtomicInteger(0);
+
+    /** 변형 목록에서 순차적으로 하나를 선택한다 (라운드로빈). */
     public int pickMaxCount() {
-      List<Integer> variants = maxCountVariants;
-      return variants.get(ThreadLocalRandom.current().nextInt(variants.size()));
+      int index = roundRobinIndex.getAndUpdate(i -> (i + 1) % maxCountVariants.size());
+      return maxCountVariants.get(index);
     }
   }
 

@@ -24,6 +24,9 @@ import org.springframework.stereotype.Component;
 @AllArgsConstructor
 public class GeminiChatService {
 
+  /** 청크 처리 결과: 파싱된 응답 + 추정 비용 */
+  public record ParsedResult(GeminiResponse response, double cost) {}
+
   private static final String RESPONSE_JSON_SCHEMA =
       new BeanOutputConverter<>(GeminiResponse.class).getJsonSchema();
 
@@ -32,13 +35,13 @@ public class GeminiChatService {
   private final GeminiMetricsRecorder metricsRecorder;
 
   /**
-   * 캐시된 컨텍스트를 사용하여 Gemini API를 호출하고, 파싱된 GeminiResponse를 반환한다.
+   * 캐시된 컨텍스트를 사용하여 Gemini API를 호출하고, 파싱된 결과를 반환한다.
    *
    * @param chunk 청크 정보 (참조 페이지, 문제 수)
    * @param cacheName Gemini Cached Content 이름
-   * @return 파싱된 GeminiResponse, 응답이 비어있으면 null
+   * @return 파싱 결과 (응답 + 비용), 응답이 비어있으면 null
    */
-  public GeminiResponse callAndParse(ChunkInfo chunk, String cacheName) throws Exception {
+  public ParsedResult callAndParse(ChunkInfo chunk, String cacheName) throws Exception {
     long startMs = System.currentTimeMillis();
     List<Integer> pages = chunk.referencedPages();
 
@@ -58,9 +61,10 @@ public class GeminiChatService {
     long elapsedMs = System.currentTimeMillis() - startMs;
 
     // Prometheus 메트릭 기록 + 비용 추정
+    double chunkCost = 0.0;
     if (chatResponse.getMetadata().getUsage() != null) {
       var usage = chatResponse.getMetadata().getUsage();
-      double totalCost = metricsRecorder.recordChunkResult(elapsedMs, usage);
+      chunkCost = metricsRecorder.recordChunkResult(elapsedMs, usage);
       log.info(
           "Gemini Usage - pages={}, {}ms, 토큰: {}(캐시: {}), 출력: {}, 추정 비용: ${}",
           pages,
@@ -68,15 +72,15 @@ public class GeminiChatService {
           usage.getPromptTokens(),
           usage instanceof GoogleGenAiUsage g ? g.getCachedContentTokenCount() : Integer.valueOf(0),
           usage.getCompletionTokens(),
-          String.format("%.6f", totalCost));
+          String.format("%.6f", chunkCost));
     }
 
     String json = chatResponse.getResult().getOutput().getText();
     if (json == null || json.isBlank()) {
       log.error("응답이 비어있습니다: pages={}", pages);
-      return null;
+      return new ParsedResult(null, chunkCost);
     }
 
-    return objectMapper.readValue(json.trim(), GeminiResponse.class);
+    return new ParsedResult(objectMapper.readValue(json.trim(), GeminiResponse.class), chunkCost);
   }
 }

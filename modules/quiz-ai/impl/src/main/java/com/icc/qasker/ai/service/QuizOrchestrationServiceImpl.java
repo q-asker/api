@@ -23,6 +23,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.DoubleAdder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
@@ -57,6 +58,7 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
     long requestStartNanos = System.nanoTime();
     AtomicLong firstQuizNanos = new AtomicLong(0);
     AtomicLong lastQuizNanos = new AtomicLong(0);
+    DoubleAdder totalCostAdder = new DoubleAdder();
 
     CacheInfo cacheInfo = null;
     long cacheCreatedAtMs = 0;
@@ -88,8 +90,13 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
               CompletableFuture.runAsync(
                   () -> {
                     try {
-                      GeminiResponse response =
+                      GeminiChatService.ParsedResult parsed =
                           geminiChatService.callAndParse(chunk, finalCacheName);
+                      if (parsed == null) {
+                        return;
+                      }
+                      totalCostAdder.add(parsed.cost());
+                      GeminiResponse response = parsed.response();
                       if (response == null) {
                         return;
                       }
@@ -140,7 +147,7 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
       Long firstNanos = firstQuizNanos.get() == 0 ? null : firstQuizNanos.get();
       Long lastNanos = lastQuizNanos.get() == 0 ? null : lastQuizNanos.get();
       metricsRecorder.recordRequestDuration(
-          maxChunkCount, requestStartNanos, firstNanos, lastNanos);
+          maxChunkCount, requestStartNanos, firstNanos, lastNanos, totalCostAdder.sum());
 
     } catch (Exception e) {
       throw new GeminiInfraException("Gemini 인프라 장애", e);

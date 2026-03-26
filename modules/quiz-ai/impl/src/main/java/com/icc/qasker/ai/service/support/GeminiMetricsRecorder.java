@@ -16,10 +16,10 @@ import org.springframework.stereotype.Component;
 @Component
 public class GeminiMetricsRecorder {
 
-  // Gemini 3 Flash Preview 단가
-  private static final double PRICE_INPUT_PER_1M = 0.50;
-  private static final double PRICE_CACHE_READ_PER_1M = 0.05;
-  private static final double PRICE_OUTPUT_PER_1M = 3.00;
+  // Gemini 2.5 Flash 단가
+  private static final double PRICE_INPUT_PER_1M = 0.30;
+  private static final double PRICE_CACHE_READ_PER_1M = 0.03;
+  private static final double PRICE_OUTPUT_PER_1M = 2.50;
   private static final double PRICE_CACHE_STORAGE_PER_1M_HOUR = 1.00;
 
   private final MeterRegistry registry;
@@ -117,9 +117,14 @@ public class GeminiMetricsRecorder {
    * @param requestStartNanos 요청 시작 시각 (System.nanoTime)
    * @param firstQuizNanos 첫 번째 퀴즈 응답 시각, null이면 퀴즈 미생성
    * @param lastQuizNanos 마지막 퀴즈 응답 시각, null이면 퀴즈 미생성
+   * @param totalCost 이 요청의 청크별 비용 합계 (USD)
    */
   public void recordRequestDuration(
-      int maxChunkCount, long requestStartNanos, Long firstQuizNanos, Long lastQuizNanos) {
+      int maxChunkCount,
+      long requestStartNanos,
+      Long firstQuizNanos,
+      Long lastQuizNanos,
+      double totalCost) {
     String tag = String.valueOf(maxChunkCount);
     long now = System.nanoTime();
 
@@ -143,6 +148,13 @@ public class GeminiMetricsRecorder {
           .register(registry)
           .record(lastQuizNanos - firstQuizNanos, TimeUnit.NANOSECONDS);
     }
+
+    // 요청 단위 비용 합계 (max_chunks 태그 포함)
+    Counter.builder("gemini.request.cost")
+        .description("요청 단위 추정 비용 합계 (USD)")
+        .tag("max_chunks", tag)
+        .register(registry)
+        .increment(totalCost);
   }
 
   /**
