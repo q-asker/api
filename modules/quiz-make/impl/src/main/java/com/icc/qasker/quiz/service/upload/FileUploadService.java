@@ -8,6 +8,9 @@ import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.quiz.dto.feresponse.FileUploadResponse;
 import com.icc.qasker.util.ConvertService;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+import jakarta.annotation.PostConstruct;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -27,6 +30,17 @@ public class FileUploadService {
   private final GeminiFileService geminiFileService;
   private final S3ValidateService s3ValidateService;
   private final ConvertService convertService;
+  private final MeterRegistry registry;
+
+  @PostConstruct
+  void eagerRegisterMetrics() {
+    for (String type : new String[] {"pdf", "pptx", "ppt", "docx", "doc"}) {
+      Counter.builder("file.upload.request")
+          .description("파일 업로드 요청 수 (확장자별)")
+          .tag("file_type", type)
+          .register(registry);
+    }
+  }
 
   /** 파일(PDF, PPT, DOCX)을 PDF로 변환 후 S3와 Gemini에 동시 업로드한다. */
   public FileUploadResponse upload(MultipartFile file) {
@@ -38,8 +52,15 @@ public class FileUploadService {
     Path tempFile = null;
     Path pdfFile = null;
     try {
-      // 1. 임시 파일로 저장
+      // 요청 파일 타입 카운팅
       String extension = getExtensionOf(originalFileName);
+      Counter.builder("file.upload.request")
+          .description("파일 업로드 요청 수 (확장자별)")
+          .tag("file_type", extension.substring(1).toLowerCase())
+          .register(registry)
+          .increment();
+
+      // 1. 임시 파일로 저장
       tempFile = Files.createTempFile(UUID.randomUUID().toString(), extension);
       file.transferTo(tempFile.toFile());
 

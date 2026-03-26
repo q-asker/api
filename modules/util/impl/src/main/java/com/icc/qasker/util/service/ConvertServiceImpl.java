@@ -5,6 +5,7 @@ import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.util.ConvertService;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
+import jakarta.annotation.PostConstruct;
 import java.io.File;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -30,6 +31,26 @@ public class ConvertServiceImpl implements ConvertService {
 
   private final DocumentConverter documentConverter;
   private final MeterRegistry registry;
+
+  @PostConstruct
+  void eagerRegisterMetrics() {
+    for (String ext : new String[] {"pptx", "ppt", "docx", "doc"}) {
+      for (String result : new String[] {"success", "fail"}) {
+        Timer.builder("document.conversion.duration")
+            .publishPercentileHistogram(true)
+            .serviceLevelObjectives(
+                Duration.ofSeconds(1),
+                Duration.ofSeconds(3),
+                Duration.ofSeconds(5),
+                Duration.ofSeconds(10),
+                Duration.ofSeconds(30))
+            .tag("source_type", ext)
+            .tag("result", result)
+            .description("문서 변환(PPT/DOCX → PDF) 소요 시간")
+            .register(registry);
+      }
+    }
+  }
 
   @Override
   public Path convertToPdf(Path inputFile) {

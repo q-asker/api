@@ -2,12 +2,12 @@ package com.icc.qasker.quiz.dto.ferequest;
 
 import com.icc.qasker.quiz.dto.ferequest.enums.DifficultyType;
 import com.icc.qasker.quiz.dto.ferequest.enums.QuizType;
-import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.util.List;
+import java.util.Set;
 import org.hibernate.validator.constraints.UUID;
 
 public record GenerationRequest(
@@ -15,9 +15,7 @@ public record GenerationRequest(
         String sessionId,
     @NotBlank(message = "url이 존재하지 않습니다.") String uploadedUrl,
     @NotBlank(message = "title이 존재하지 않습니다.") String title,
-    @Min(value = 5, message = "quizCount는 5이상입니다.")
-        @Max(value = 50, message = "quizCount는 50이하입니다.")
-        int quizCount,
+    int quizCount,
     @NotNull(message = "quizType이 null입니다.") QuizType quizType,
     @NotNull(message = "difficultyType가 null입니다.") DifficultyType difficultyType,
     @NotNull(message = "pageNumbers가 null입니다.")
@@ -25,5 +23,14 @@ public record GenerationRequest(
         List<
                 @NotNull(message = "배열 요소가 null입니다.")
                 @Min(value = 1, message = "배열 요소는 1 이상이어야 합니다.") Integer>
-            pageNumbers) {}
-;
+            pageNumbers) {
+
+  private static final Set<Integer> ALLOWED_QUIZ_COUNTS = Set.of(5, 10, 15, 20, 25);
+
+  public GenerationRequest {
+    if (!ALLOWED_QUIZ_COUNTS.contains(quizCount)) {
+      throw new IllegalArgumentException(
+          "quizCount는 " + ALLOWED_QUIZ_COUNTS + " 중 하나여야 합니다. 입력값: " + quizCount);
+    }
+  }
+}

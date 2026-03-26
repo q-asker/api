@@ -34,8 +34,6 @@ public class S3ServiceImpl implements S3Service {
     this.awsCloudFrontProperties = awsCloudFrontProperties;
     this.awsS3Properties = awsS3Properties;
     this.s3Client = s3Client;
-
-    // S3 파일 업로드 Timer — 병렬 업로드 병목 식별용
     this.uploadTimer =
         Timer.builder("file.upload.s3.duration").description("S3 파일 업로드 소요 시간").register(registry);
   }

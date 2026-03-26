@@ -61,7 +61,6 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
     DoubleAdder totalCostAdder = new DoubleAdder();
 
     CacheInfo cacheInfo = null;
-    long cacheCreatedAtMs = 0;
     try {
       // Gemini 파일 캐시 확인 → 진행 중이면 대기, 미스 시 기존 방식으로 업로드
       FileMetadata metadata =
@@ -70,7 +69,6 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
               .orElseGet(() -> geminiFileService.uploadPdf(request.fileUrl()));
 
       cacheInfo = geminiCacheService.createCache(metadata.uri(), request.strategyValue());
-      cacheCreatedAtMs = System.currentTimeMillis();
 
       // A/B 테스트: 요청마다 랜덤으로 maxChunkCount 선택
       int maxChunkCount = chunkProperties.pickMaxCount();
@@ -154,10 +152,6 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
     } finally {
       if (cacheInfo == null) {
         return;
-      }
-      if (cacheCreatedAtMs > 0 && cacheInfo.tokenCount() > 0) {
-        metricsRecorder.recordCacheStorageCost(
-            cacheInfo.tokenCount(), System.currentTimeMillis() - cacheCreatedAtMs);
       }
       // 캐시 안지우면 큰일남
       geminiCacheService.deleteCache(cacheInfo.name());

@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.ConcurrentHashMap;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.model.google.genai.autoconfigure.chat.GoogleGenAiConnectionProperties;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -40,15 +41,20 @@ public class GeminiFileServiceImpl implements GeminiFileService {
   private final RestClient restClient;
   private final String apiKey;
   private final PdfUtils pdfUtils;
+  private final MeterRegistry registry;
   private final Timer uploadTimer;
-  private final Counter fileCacheHit;
-  private final Counter fileCacheMiss;
+  private final Counter fileRequestNew;
+  private final Counter fileRequestRepeat;
 
   // Gemini 파일 업로드 Future 캐시 (CloudFront URL → CompletableFuture<FileMetadata>)
   // TTL 47시간: Gemini Files API 48시간 자동 삭제 전 안전 마진
   // 업로드 진행 중인 Future도 저장되므로 중복 업로드를 방지한다
   private final Cache<String, CompletableFuture<FileMetadata>> uploadFutureCache =
       Caffeine.newBuilder().maximumSize(1_000).expireAfterWrite(Duration.ofHours(47)).build();
+
+  // 같은 파일 URL로 /generation이 재요청되었는지 추적하는 seen-set
+  private final ConcurrentHashMap.KeySetView<String, Boolean> seenFileUrls =
+      ConcurrentHashMap.newKeySet();
 
   public GeminiFileServiceImpl(
       @Qualifier("geminiFileRestClient") RestClient restClient,
@@ -58,20 +64,21 @@ public class GeminiFileServiceImpl implements GeminiFileService {
     this.restClient = restClient;
     this.apiKey = properties.getApiKey();
     this.pdfUtils = pdfUtils;
+    this.registry = registry;
 
     this.uploadTimer =
         Timer.builder("file.upload.gemini.duration")
             .description("Gemini 파일 업로드 소요 시간")
             .register(registry);
-    this.fileCacheHit =
-        Counter.builder("gemini.file.cache")
-            .tag("result", "hit")
-            .description("Gemini 파일 캐시 히트 수")
+    this.fileRequestNew =
+        Counter.builder("gemini.file.request")
+            .tag("type", "new")
+            .description("새로운 파일로 퀴즈 생성 요청 수")
             .register(registry);
-    this.fileCacheMiss =
-        Counter.builder("gemini.file.cache")
-            .tag("result", "miss")
-            .description("Gemini 파일 캐시 미스 수")
+    this.fileRequestRepeat =
+        Counter.builder("gemini.file.request")
+            .tag("type", "repeat")
+            .description("같은 파일로 퀴즈 재생성 요청 수")
             .register(registry);
   }
 
@@ -120,19 +127,24 @@ public class GeminiFileServiceImpl implements GeminiFileService {
 
   @Override
   public Optional<FileMetadata> awaitCachedFileMetadata(String cloudFrontUrl) {
+    // 같은 파일 URL 재요청 여부 추적
+    boolean isNew = seenFileUrls.add(cloudFrontUrl);
+    if (isNew) {
+      fileRequestNew.increment();
+    } else {
+      fileRequestRepeat.increment();
+    }
+
     CompletableFuture<FileMetadata> future = uploadFutureCache.getIfPresent(cloudFrontUrl);
     if (future == null) {
-      fileCacheMiss.increment();
       return Optional.empty();
     }
 
     try {
       FileMetadata metadata = future.join();
-      fileCacheHit.increment();
       log.info("Gemini 파일 캐시 히트: url={}, name={}", cloudFrontUrl, metadata.name());
       return Optional.of(metadata);
     } catch (CompletionException e) {
-      fileCacheMiss.increment();
       uploadFutureCache.invalidate(cloudFrontUrl);
       log.warn("캐시된 Gemini 업로드 실패, 캐시 제거: url={}, error={}", cloudFrontUrl, e.getMessage());
       return Optional.empty();

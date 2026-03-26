@@ -2,7 +2,6 @@ package com.icc.qasker.quiz.service.generation;
 
 import com.icc.qasker.quiz.dto.ferequest.enums.QuizType;
 import io.micrometer.core.instrument.Counter;
-import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.stereotype.Component;
 
@@ -12,29 +11,47 @@ public class GenerationResultRecorder {
 
   private final GenerationSlackNotifier slackNotifier;
   private final MeterRegistry registry;
-  private final DistributionSummary fulfillmentRatio;
 
   public GenerationResultRecorder(GenerationSlackNotifier slackNotifier, MeterRegistry registry) {
     this.slackNotifier = slackNotifier;
     this.registry = registry;
 
-    this.fulfillmentRatio =
-        DistributionSummary.builder("quiz.generation.fulfillment.ratio")
-            .description("요청 대비 실제 생성 문제 수 비율 (0.0~1.0)")
+    // 모든 QuizType × outcome/metric 조합을 미리 등록
+    for (QuizType qt : QuizType.values()) {
+      String type = qt.name();
+      Counter.builder("quiz.generation.quizzes.requested")
+          .description("요청된 퀴즈 문제 수 누적")
+          .tag("quiz_type", type)
+          .register(registry);
+      Counter.builder("quiz.generation.quizzes.generated")
+          .description("실제 생성된 퀴즈 문제 수 누적")
+          .tag("quiz_type", type)
+          .register(registry);
+      for (String outcome : new String[] {"success", "partial", "fail"}) {
+        Counter.builder("quiz.generation.outcome")
+            .tag("outcome", outcome)
+            .tag("quiz_type", type)
             .register(registry);
+      }
+      for (int quizCount : new int[] {5, 10, 15, 20, 25}) {
+        Counter.builder("quiz.generation.requests")
+            .description("퀴즈 생성 요청 횟수 (타입+문제수별)")
+            .tag("quiz_type", type)
+            .tag("quiz_count", String.valueOf(quizCount))
+            .register(registry);
+      }
+    }
   }
 
   public void recordSuccess(Long problemSetId, QuizType quizType, long generatedCount) {
     slackNotifier.notifySuccess(problemSetId, quizType, generatedCount);
     incrementOutcome("success", quizType);
-    fulfillmentRatio.record(1.0);
   }
 
   public void recordPartialSuccess(
       Long problemSetId, QuizType quizType, long generatedCount, long quizCount) {
     slackNotifier.notifyPartialSuccess(problemSetId, quizType, generatedCount, quizCount);
     incrementOutcome("partial", quizType);
-    fulfillmentRatio.record((double) generatedCount / quizCount);
   }
 
   public void recordError(Long problemSetId, String errorMessage) {
@@ -43,10 +60,9 @@ public class GenerationResultRecorder {
         .tag("outcome", "fail")
         .register(registry)
         .increment();
-    fulfillmentRatio.record(0.0);
   }
 
-  /** 요청/생성/실패 문제 수를 퀴즈 타입별로 기록한다. finalize 결과와 무관하게 호출된다. */
+  /** 요청/생성 문제 수를 퀴즈 타입별로 기록한다. finalize 결과와 무관하게 호출된다. */
   public void recordQuizCounts(QuizType quizType, long quizCount, long generatedCount) {
     String type = quizType.name();
     String count = String.valueOf(quizCount);
@@ -69,23 +85,8 @@ public class GenerationResultRecorder {
         .tag("quiz_type", type)
         .register(registry)
         .increment(generatedCount);
-    long failed = quizCount - generatedCount;
-    if (failed > 0) {
-      Counter.builder("quiz.generation.quizzes.failed")
-          .description("생성 실패한 퀴즈 문제 수 누적")
-          .tag("quiz_type", type)
-          .register(registry)
-          .increment(failed);
-    }
   }
 
-  /**
-   * [Prometheus] quiz_generation_outcome_total{outcome=..., quiz_type=...} — Counter 용도: 퀴즈 생성 결과를
-   * outcome(success/partial/fail)과 quiz_type(MULTIPLE/OX/BLANK)별로 카운트한다. 동적 태그: Micrometer는 동일
-   * 이름+태그 조합을 내부 캐싱하므로 매 호출마다 builder().register()해도 안전하다. Grafana PromQL 예시: - 전체 분포:
-   * quiz_generation_outcome_total (Pie Chart) - 분당 추이: rate(quiz_generation_outcome_total[5m])
-   * (Stacked Time Series) - 실패율: rate(quiz_generation_outcome_total{outcome="fail"}[5m])
-   */
   private void incrementOutcome(String outcome, QuizType quizType) {
     Counter.builder("quiz.generation.outcome")
         .tag("outcome", outcome)

@@ -33,7 +33,6 @@ public class SseNotificationServiceImpl implements SseNotificationService {
     this.sseTimeoutMs = sseProperties.getTimeoutMs();
     this.circuitBreakerRegistry = circuitBreakerRegistry;
 
-    // 활성 SSE 연결 수 Gauge — 커넥션 풀 고갈 사전 감지용
     Gauge.builder("sse.connections.active", emitterMap, Map::size)
         .description("활성 SSE 연결 수")
         .register(registry);
