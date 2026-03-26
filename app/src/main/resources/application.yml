@@ -1,3 +1,7 @@
 spring:
   application:
     name: q-asker
+
+logging:
+  level:
+    org.glowroot: OFF

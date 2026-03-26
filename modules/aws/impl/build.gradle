@@ -26,6 +26,13 @@ dependencies {
     implementation "software.amazon.awssdk:s3"
 
     // ────────────────────────────────
+    // Micrometer: Prometheus 커스텀 메트릭 (S3 업로드 Timer)
+    // ────────────────────────────────
+    // aws-impl은 Spring Boot starter가 없어 micrometer-core를 직접 추가
+    // BOM(spring-boot-dependencies)이 버전을 관리하므로 버전 명시 불필요
+    implementation "io.micrometer:micrometer-core"
+
+    // ────────────────────────────────
     // API 문서 (Swagger)
     // ────────────────────────────────
     // SpringDoc OpenAPI: API 문서화 어노테이션(@Operation, @Schema) + Swagger UI 제공

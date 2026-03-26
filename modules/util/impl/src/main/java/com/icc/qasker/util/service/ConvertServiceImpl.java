@@ -3,8 +3,12 @@ package com.icc.qasker.util.service;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.util.ConvertService;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
+import jakarta.annotation.PostConstruct;
 import java.io.File;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +30,27 @@ public class ConvertServiceImpl implements ConvertService {
   private static final Set<String> SUPPORTED_EXTENSIONS = Set.of(".pptx", ".ppt", ".docx", ".doc");
 
   private final DocumentConverter documentConverter;
+  private final MeterRegistry registry;
+
+  @PostConstruct
+  void eagerRegisterMetrics() {
+    for (String ext : new String[] {"pptx", "ppt", "docx", "doc"}) {
+      for (String result : new String[] {"success", "fail"}) {
+        Timer.builder("document.conversion.duration")
+            .publishPercentileHistogram(true)
+            .serviceLevelObjectives(
+                Duration.ofSeconds(1),
+                Duration.ofSeconds(3),
+                Duration.ofSeconds(5),
+                Duration.ofSeconds(10),
+                Duration.ofSeconds(30))
+            .tag("source_type", ext)
+            .tag("result", result)
+            .description("문서 변환(PPT/DOCX → PDF) 소요 시간")
+            .register(registry);
+      }
+    }
+  }
 
   @Override
   public Path convertToPdf(Path inputFile) {
@@ -46,14 +71,42 @@ public class ConvertServiceImpl implements ConvertService {
     String pdfFileName = fileName.substring(0, fileName.lastIndexOf(".")) + ".pdf";
     File pdfFile = new File(TEMP_DIR, pdfFileName);
 
+    Timer.Sample sample = Timer.start(registry);
     try {
       log.info("PDF 변환 시작: {}", inputFile);
       documentConverter.convert(inputFile.toFile()).to(pdfFile).execute();
       log.info("PDF 변환 완료: {}", pdfFile.getAbsolutePath());
+
+      // 문서 변환 Percentile Histogram Timer — tail latency SLO 설정용
+      sample.stop(
+          Timer.builder("document.conversion.duration")
+              .publishPercentileHistogram(true)
+              .serviceLevelObjectives(
+                  Duration.ofSeconds(1),
+                  Duration.ofSeconds(3),
+                  Duration.ofSeconds(5),
+                  Duration.ofSeconds(10),
+                  Duration.ofSeconds(30))
+              .tag("source_type", extension.substring(1))
+              .tag("result", "success")
+              .description("문서 변환(PPT/DOCX → PDF) 소요 시간")
+              .register(registry));
       return pdfFile.toPath();
     } catch (CustomException e) {
+      sample.stop(
+          Timer.builder("document.conversion.duration")
+              .tag("source_type", extension.substring(1))
+              .tag("result", "fail")
+              .description("문서 변환(PPT/DOCX → PDF) 소요 시간")
+              .register(registry));
       throw e;
     } catch (Exception e) {
+      sample.stop(
+          Timer.builder("document.conversion.duration")
+              .tag("source_type", extension.substring(1))
+              .tag("result", "fail")
+              .description("문서 변환(PPT/DOCX → PDF) 소요 시간")
+              .register(registry));
       throw new CustomException(ExceptionMessage.CONVERT_FAILED, "PDF 변환 중 오류: " + inputFile, e);
     }
   }

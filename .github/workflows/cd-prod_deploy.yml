@@ -70,6 +70,16 @@ jobs:
           SLACK_WEBHOOK_URL_VALUE=$(echo "${{ secrets.GRADLE_PROPERTIES }}" | grep '^SLACK_WEBHOOK_URL=' | cut -d'=' -f2-)
           echo "SLACK_WEBHOOK_URL=$SLACK_WEBHOOK_URL_VALUE" >> $GITHUB_ENV
 
+          # GLOWROOT_USER 추출, 마스킹, 환경 변수 등록
+          GLOWROOT_USER_VALUE=$(echo "${{ secrets.GRADLE_PROPERTIES }}" | grep '^GLOWROOT_USER=' | cut -d'=' -f2-)
+          echo "::add-mask::$GLOWROOT_USER_VALUE"
+          echo "GLOWROOT_USER=$GLOWROOT_USER_VALUE" >> $GITHUB_ENV
+
+          # GLOWROOT_PASSWORD 추출, 마스킹, 환경 변수 등록
+          GLOWROOT_PASSWORD_VALUE=$(echo "${{ secrets.GRADLE_PROPERTIES }}" | grep '^GLOWROOT_PASSWORD=' | cut -d'=' -f2-)
+          echo "::add-mask::$GLOWROOT_PASSWORD_VALUE"
+          echo "GLOWROOT_PASSWORD=$GLOWROOT_PASSWORD_VALUE" >> $GITHUB_ENV
+
       - name: 코드 체크아웃
         uses: actions/checkout@v4
 
@@ -120,4 +130,6 @@ jobs:
             # 4. deploy.sh 실행 (기존의 docker run 대신 사용)
             chmod +x deploy.sh
             export SLACK_WEBHOOK_URL="${{ env.SLACK_WEBHOOK_URL }}"
+            export GLOWROOT_USER="${{ env.GLOWROOT_USER }}"
+            export GLOWROOT_PASSWORD="${{ env.GLOWROOT_PASSWORD }}"
             ./deploy.sh "${{ env.BLUE_PORT }}" "${{ env.GREEN_PORT }}" "${{ env.DOCKER_IMAGE_NAME }}"

@@ -13,12 +13,12 @@ AI 기반 퀴즈 자동 생성 및 관리 플랫폼의 백엔드 API 서버. 사
 - **ORM**: Spring Data JPA + Hibernate
 - **DB**: MySQL
 - **인증**: Auth0 Java JWT 4.5.0, Spring OAuth2 Client (Google, Kakao)
-- **AI**: Spring AI 1.1.2 + Google Gemini (gemini-3-flash-preview)
+- **AI**: Spring AI 1.1.2 + Google Gemini (gemini-2.5-flash)
 - **클라우드**: AWS SDK 2.27.24 (S3, CloudFront)
 - **메시징**: Spring Kafka
 - **API 문서**: SpringDoc OpenAPI 2.8.8 (Swagger UI)
 - **장애 대응**: Resilience4j 2.3.0 (Circuit Breaker)
-- **모니터링**: Scouter APM, Spring Actuator, Micrometer Prometheus
+- **모니터링**: Glowroot 0.14.5 (Standalone APM), Spring Actuator, Micrometer Prometheus
 - **컨테이너**: Jib 3.4.0 (Docker 빌드)
 - **코드 포맷**: Spotless 7.0.4 + Google Java Format 1.25.2
 - **문서 변환**: JODConverter 4.4.9 (LibreOffice 기반 PPT/DOCX → PDF 변환)
@@ -59,12 +59,18 @@ q-asker/api/
 │   ├── auth/
 │   │   ├── api/                   # 인증 인터페이스, DTO
 │   │   └── impl/                  # JWT, OAuth2 구현
-│   ├── quiz/
-│   │   ├── api/                   # 퀴즈 인터페이스, DTO
-│   │   └── impl/                  # 퀴즈 CRUD, 출제/채점 로직
-│   ├── ai/
+│   ├── quiz-ai/
 │   │   ├── api/                   # AI 인터페이스, DTO
 │   │   └── impl/                  # Google Gemini 연동
+│   ├── quiz-history/
+│   │   ├── api/                   # 퀴즈 히스토리 인터페이스, DTO
+│   │   └── impl/                  # 퀴즈 풀이 기록 CRUD
+│   ├── quiz-make/
+│   │   ├── api/                   # 퀴즈 생성 인터페이스, DTO
+│   │   └── impl/                  # AI 기반 문제 생성, 파일 업로드, SSE 알림
+│   ├── quiz-set/
+│   │   ├── api/                   # 문제세트 인터페이스, DTO, Entity
+│   │   └── impl/                  # 문제세트 CRUD, 조회, 해설
 │   ├── aws/
 │   │   ├── api/                   # AWS 인터페이스
 │   │   └── impl/                  # S3 파일 업로드/다운로드
@@ -79,7 +85,7 @@ q-asker/api/
 ├── .githooks/                     # Git 훅 (pre-commit, prepare-commit-msg)
 ├── infra/                          # 인프라 설정 (Docker, 모니터링)
 │   ├── Dockerfile                 # Docker 이미지 빌드
-│   ├── docker-compose.yml         # 로컬 개발 환경 (MySQL, Scouter)
+│   ├── docker-compose.yml         # 로컬 개발 환경 (MySQL)
 │   └── monitoring/                # Prometheus, Alloy 모니터링 설정
 └── .claude/                       # Claude Code 설정
 ```
@@ -94,6 +100,8 @@ app → *-impl → *-api → global
 - `*-api`: 인터페이스, DTO만 정의 (구현체 금지)
 - `*-impl`: 비즈니스 로직, Repository, Entity
 - `global`: 전역 공통 코드 (BaseEntity, ApiResponse, 예외 처리)
+- `quiz-make-impl` → `quiz-make-api`, `quiz-set-api`, `quiz-ai-api`, `global` (퀴즈 생성은 quiz-set의 Entity/Repository와 quiz-ai의 AI 서비스에 접근)
+- `quiz-history-impl` → `quiz-history-api`, `quiz-set-api`, `global` (퀴즈 히스토리는 quiz-set-api의 ProblemSetReadService를 통해 ProblemSet 데이터에 접근)
 
 ## 환경 변수
 
@@ -122,7 +130,6 @@ app → *-impl → *-api → global
 
 - `DOCKER_ID`, `DOCKER_IMAGE_NAME`, `DOCKER_PASSWORD`
 - `JVM_HEAP_SIZE`, `JVM_GC_TYPE`, `JVM_MAX_GC_PAUSE_MILLIS`
-- `SCOUTER_IP`, `SCOUTER_PORT`, `SCOUTER_OBJ_NAME`
 
 ## 개발 도구 및 설정
 
@@ -133,5 +140,5 @@ app → *-impl → *-api → global
 - **Git Hooks**: `.githooks/` 디렉토리 (`core.hooksPath` 설정 완료)
     - `pre-commit`: Spotless 포맷 검증
     - `prepare-commit-msg`: JIRA 티켓 접두사 자동 추가
-- **로컬 인프라**: Docker Compose (MySQL, Scouter)
+- **로컬 인프라**: Docker Compose (MySQL)
 - **API 문서**: Swagger UI (`/swagger-ui/index.html`), Redoc (GitHub Pages 자동 배포)

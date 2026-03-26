@@ -15,6 +15,10 @@ services:
       - SPRING_PROFILES_ACTIVE=prod,blue
     ports:
       - "${BLUE_PORT}:8080"
+      - "4001:4000"
+    volumes:
+      - glowroot-blue-data:/app/glowroot/data
+      - ./glowroot/admin.json:/app/glowroot/admin.json
 
   app-green:
     image: ${DOCKER_IMAGE}
@@ -23,3 +27,11 @@ services:
       - SPRING_PROFILES_ACTIVE=prod,green
     ports:
       - "${GREEN_PORT}:8080"
+      - "4002:4000"
+    volumes:
+      - glowroot-green-data:/app/glowroot/data
+      - ./glowroot/admin.json:/app/glowroot/admin.json
+
+volumes:
+  glowroot-blue-data:
+  glowroot-green-data:
