@@ -1,6 +1,8 @@
 package com.icc.qasker.quiz.controller;
 
+import com.icc.qasker.global.annotation.RateLimit;
 import com.icc.qasker.global.annotation.UserId;
+import com.icc.qasker.global.ratelimit.RateLimitTier;
 import com.icc.qasker.quiz.GenerationCommandService;
 import com.icc.qasker.quiz.dto.ferequest.GenerationRequest;
 import io.swagger.v3.oas.annotations.Operation;
@@ -23,6 +25,7 @@ public class GenerationCommandController {
   private final GenerationCommandService generationCommandService;
 
   @Operation(summary = "세션에 문제를 전송한다")
+  @RateLimit(RateLimitTier.CRITICAL)
   @PostMapping
   @ResponseStatus(HttpStatus.ACCEPTED)
   public void generateQuiz(

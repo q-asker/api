@@ -1,5 +1,7 @@
 package com.icc.qasker.quiz.controller;
 
+import com.icc.qasker.global.annotation.RateLimit;
+import com.icc.qasker.global.ratelimit.RateLimitTier;
 import com.icc.qasker.quiz.GenerationQueryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -22,6 +24,7 @@ public class GenerationQueryController {
   private final GenerationQueryService generationQueryService;
 
   @Operation(summary = "제공받은 세션키로 문제 전송을 위한 emitter를 생성한다")
+  @RateLimit(RateLimitTier.HEAVY)
   @GetMapping(value = "/{sessionId}/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
   public SseEmitter subscribeToGeneration(
       @PathVariable @UUID String sessionId,

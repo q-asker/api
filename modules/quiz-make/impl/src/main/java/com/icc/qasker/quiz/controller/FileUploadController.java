@@ -1,5 +1,7 @@
 package com.icc.qasker.quiz.controller;
 
+import com.icc.qasker.global.annotation.RateLimit;
+import com.icc.qasker.global.ratelimit.RateLimitTier;
 import com.icc.qasker.quiz.dto.feresponse.FileUploadResponse;
 import com.icc.qasker.quiz.service.upload.FileUploadService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -22,6 +24,7 @@ public class FileUploadController {
   private final FileUploadService fileUploadService;
 
   @Operation(summary = "파일(PDF, PPT, DOCX)을 PDF로 변환 후 S3와 Gemini에 동시 업로드한다")
+  @RateLimit(RateLimitTier.CRITICAL)
   @PostMapping(value = "/upload-doc", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   public ResponseEntity<FileUploadResponse> upload(@RequestParam("file") MultipartFile file) {
     return ResponseEntity.ok(fileUploadService.upload(file));
