@@ -119,7 +119,7 @@ public class QuizHistoryQueryServiceImpl implements QuizHistoryQueryService {
   public HistoryCheckResponse checkHistory(String userId, String problemSetId) {
     long id = hashUtil.decode(problemSetId);
     return quizHistoryRepository
-        .findFirstByProblemSetIdAndUserIdOrderByCreatedAtDesc(id, userId)
+        .findLatestByProblemSetAndUser(id, userId)
         .map(h -> new HistoryCheckResponse(true, hashUtil.encode(h.getId()), h.getTitle()))
         .orElse(new HistoryCheckResponse(false, null, null));
   }
