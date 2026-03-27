@@ -1,11 +1,12 @@
 package com.icc.qasker.quizhistory.entity;
 
 import com.icc.qasker.global.entity.CreatedAt;
-import com.icc.qasker.quizhistory.converter.UserAnswerConverter;
-import com.icc.qasker.quizhistory.dto.ferequest.UserAnswer;
+import com.icc.qasker.quizhistory.converter.AnswerSnapshotConverter;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -41,15 +42,25 @@ public class QuizHistory extends CreatedAt {
   @Column(length = 100)
   private String title;
 
-  @Convert(converter = UserAnswerConverter.class)
+  @Convert(converter = AnswerSnapshotConverter.class)
   @Column(columnDefinition = "TEXT")
-  private List<UserAnswer> answers;
+  private List<AnswerSnapshot> answers;
 
   @Column private Integer score;
 
   private String totalTime;
 
+  @Enumerated(EnumType.STRING)
+  @Builder.Default
+  @Column(nullable = false)
+  private QuizHistoryStatus status = QuizHistoryStatus.INCOMPLETE;
+
   public void updateTitle(String title) {
     this.title = title;
+  }
+
+  public enum QuizHistoryStatus {
+    INCOMPLETE,
+    COMPLETED
   }
 }
