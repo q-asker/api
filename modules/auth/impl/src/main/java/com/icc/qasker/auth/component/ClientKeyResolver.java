@@ -1,5 +1,6 @@
 package com.icc.qasker.auth.component;
 
+import com.icc.qasker.auth.entity.User;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -11,9 +12,8 @@ public class ClientKeyResolver {
 
   public String resolve(HttpServletRequest request) {
     Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-    // anonymousUser는 String 타입 principal을 가짐 → 미인증으로 처리
-    if (auth != null && auth.isAuthenticated() && !(auth.getPrincipal() instanceof String)) {
-      return "user:" + auth.getName();
+    if (auth != null && auth.isAuthenticated() && auth.getPrincipal() instanceof User user) {
+      return "user:" + user.getUserId();
     }
     return "ip:" + extractIp(request);
   }
