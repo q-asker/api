@@ -11,37 +11,13 @@ public interface QuizHistoryRepository extends JpaRepository<QuizHistory, Long> 
 
   List<QuizHistory> findAllByUserId(String userId);
 
-  @Query(
-      "SELECT h FROM QuizHistory h WHERE h.problemSetId = :problemSetId AND h.userId = :userId"
-          + " ORDER BY h.createdAt DESC LIMIT 1")
-  Optional<QuizHistory> findLatestByProblemSetAndUser(Long problemSetId, String userId);
+  Optional<QuizHistory> findByIdAndUserId(Long id, String userId);
+
+  Optional<QuizHistory> findByUserIdAndProblemSetId(String userId, Long problemSetId);
 
   @Modifying
-  @Query("DELETE FROM QuizHistory h WHERE h.problemSetId = :problemSetId AND h.userId = :userId")
-  void deleteAllByProblemSetIdAndUserId(Long problemSetId, String userId);
-
-  @Modifying
-  @Query(
-      value =
-          "INSERT INTO quiz_history (user_id, problem_set_id, title, answers, score, status, created_at) "
-              + "VALUES (:userId, :problemSetId, :title, '[]', 0,'NOT_COMPLETED', NOW()) "
-              + "ON DUPLICATE KEY UPDATE answers = '[]', score = 0, "
-              + "total_time = null, created_at = NOW()",
-      nativeQuery = true)
-  void upsertInitHistory(String userId, Long problemSetId, String title);
-
-  @Modifying(clearAutomatically = true)
-  @Query(
-      value =
-          "INSERT INTO quiz_history (user_id, problem_set_id, answers, score, status, created_at)"
-              + " VALUES (:userId, :problemSetId, :answersJson, :score, 'COMPLETED', NOW())"
-              + " ON DUPLICATE KEY UPDATE"
-              + " answers = VALUES(answers),"
-              + " score = VALUES(score),"
-              + " status = 'COMPLETED',"
-              + " created_at = NOW()",
-      nativeQuery = true)
-  void upsertSaveHistory(String userId, Long problemSetId, String answersJson, Integer score);
+  @Query("DELETE FROM QuizHistory h WHERE h.id = :id AND h.userId = :userId")
+  void deleteByIdAndUserId(Long id, String userId);
 
   @Modifying
   @Query("DELETE FROM QuizHistory h WHERE h.userId = :userId")
