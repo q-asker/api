@@ -112,16 +112,10 @@ public class RateLimitFilter extends OncePerRequestFilter {
   }
 
   private long getCapacity(RateLimitTier tier) {
-    RateLimitProperties.TierConfig config = getTierConfig(tier);
-    return config != null ? config.getCapacity() : tier.getDefaultCapacity();
+    return tier.getDefaultCapacity();
   }
 
   private long getRefillPerMinute(RateLimitTier tier) {
-    RateLimitProperties.TierConfig config = getTierConfig(tier);
-    return config != null ? config.getRefillPerMinute() : tier.getDefaultRefillPerMinute();
-  }
-
-  private RateLimitProperties.TierConfig getTierConfig(RateLimitTier tier) {
-    return rateLimitProperties.getTiers() != null ? rateLimitProperties.getTiers().get(tier) : null;
+    return tier.getDefaultRefillPerMinute();
   }
 }
