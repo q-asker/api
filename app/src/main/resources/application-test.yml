@@ -24,6 +24,7 @@ spring:
           options:
             model: gemini-3-flash-preview
             temperature: 0.2
+            thinking-budget: -1
 
   datasource:
     url: jdbc:h2:mem:test;DB_CLOSE_DELAY=-1
@@ -72,6 +73,9 @@ spring:
       refresh-expiration-time: 60480
 
 q-asker:
+  ai:
+    chat-timeout-ms: 90000
+
   hashid:
     salt: ci-dummy-salt
     min-length: 8
@@ -121,8 +125,6 @@ resilience4j:
         sliding-window-type: COUNT_BASED
         minimum-number-of-calls: 3
         sliding-window-size: 10
-        ignore-exceptions:
-          - com.icc.qasker.global.error.ClientSideException
         failure-rate-threshold: 60
         wait-duration-in-open-state:
           seconds: 10

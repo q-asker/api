@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.io.File;
 import java.net.URL;
 import java.nio.file.Path;
@@ -33,7 +34,7 @@ class ConvertServiceImplTest {
     // DocumentConverter의 가짜 객체를 생성한다 (실제 LibreOffice 프로세스를 띄우지 않음)
     documentConverter = mock(DocumentConverter.class);
     // 모킹된 DocumentConverter를 주입하여 테스트 대상 서비스를 생성한다
-    convertService = new ConvertServiceImpl(documentConverter);
+    convertService = new ConvertServiceImpl(documentConverter, new SimpleMeterRegistry());
   }
 
   // 클래스패스(src/test/resources)에서 테스트 파일의 절대 경로를 가져오는 헬퍼

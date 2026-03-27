@@ -12,6 +12,9 @@ plugins {
     // 예: ./gradlew spotlessApply → 전체 소스 코드를 Google Java Format으로 자동 정렬
     //     ./gradlew spotlessCheck → CI에서 포맷 위반 여부를 검증
     id "com.diffplug.spotless" version "7.0.4" apply false
+    // 모듈 간 의존성 그래프 시각화 플러그인
+    // 예: ./gradlew generateDependencyGraph → build/reports/dependency-graph/ 에 PNG/SVG 생성
+    id "com.vanniktech.dependency.graph.generator" version "0.8.0"
 }
 
 // 프로젝트 그룹 ID (Maven 좌표에서 groupId 역할)
@@ -19,7 +22,7 @@ plugins {
 group = "com.icc.qasker"
 // 프로젝트 버전 (Docker 이미지 태그, 배포 아티팩트 버전에 사용)
 // 예: jib으로 빌드하면 Docker 이미지에 "1.7.0" 태그가 붙음
-version = "2.0.1"
+version = "2.0.2"
 
 // Git hooks 경로를 .githooks/로 자동 설정
 // 예: ./gradlew build 실행 시 자동으로 git config core.hooksPath .githooks 적용
@@ -32,6 +35,183 @@ tasks.register("installGitHooks") {
             commandLine("git", "config", "core.hooksPath", ".githooks")
         }
         logger.lifecycle("✅ Git hooks 경로가 .githooks/로 설정되었습니다.")
+    }
+}
+
+// 스타일이 적용된 모듈 의존성 그래프 생성
+// 예: ./gradlew dependencyGraphStyled → build/reports/dependency-graph-styled/ 에 SVG 생성
+//     vanniktech 플러그인이 생성한 DOT 파일을 읽어 계층별 색상·스타일을 적용한 뒤
+//     Graphviz(dot)로 렌더링한다. Graphviz 미설치 시 DOT 파일만 생성된다.
+tasks.register("dependencyGraphStyled") {
+    dependsOn("generateProjectDependencyGraph")
+    group = "reporting"
+    description = "스타일이 적용된 모듈 의존성 그래프를 생성합니다"
+
+    def inputDir = file("build/reports/project-dependency-graph")
+    def outputDir = file("build/reports/dependency-graph-styled")
+
+    doLast {
+        def dotFile = new File(inputDir, "project-dependency-graph.dot")
+        if (!dotFile.exists()) {
+            throw new GradleException("DOT 파일이 없습니다: ${dotFile}")
+        }
+
+        outputDir.mkdirs()
+
+        // 원본 DOT 파싱: 노드와 엣지 추출
+        def dotContent = dotFile.text
+        def edges = []
+        def nodes = [] as Set
+
+        dotContent.eachLine { line ->
+            line = line.trim()
+            // 엣지: ":a" -> ":b" [...]
+            def edgeMatcher = line =~ /^"([^"]+)"\s*->\s*"([^"]+)"(.*)$/
+            if (edgeMatcher.matches()) {
+                def from = edgeMatcher[0][1]
+                def to = edgeMatcher[0][2]
+                def attrs = edgeMatcher[0][3]?.trim() ?: ""
+                nodes << from
+                nodes << to
+                edges << [from: from, to: to, attrs: attrs]
+            }
+            // 노드 선언: ":name" [...]
+            def nodeMatcher = line =~ /^"([^"]+)"\s*\[.*$/
+            if (nodeMatcher.matches() && !line.contains("->")) {
+                nodes << nodeMatcher[0][1]
+            }
+        }
+
+        // 노드 분류
+        def implNodes = nodes.findAll { it.endsWith("-impl") }
+        def apiNodes = nodes.findAll { it.endsWith("-api") }
+        def appNode = nodes.find { it == ":app" }
+        def globalNode = nodes.find { it == ":global" }
+
+        // 엣지 분류
+        def appToImpl = edges.findAll { it.from == ":app" && it.to.endsWith("-impl") }
+        def implToOwnApi = edges.findAll { e ->
+            e.from.endsWith("-impl") && e.to.endsWith("-api") &&
+            e.from.replace("-impl", "") == e.to.replace("-api", "")
+        }
+        def crossDeps = edges.findAll { e ->
+            e.from.endsWith("-impl") && e.to.endsWith("-api") &&
+            e.from.replace("-impl", "") != e.to.replace("-api", "")
+        }
+        def apiToApi = edges.findAll { e ->
+            e.from.endsWith("-api") && e.to.endsWith("-api")
+        }
+        def toGlobal = edges.findAll { e ->
+            e.to == ":global" && !e.from.endsWith("-api")  // api→global만 표시
+        }
+        def apiToGlobal = edges.findAll { e ->
+            e.to == ":global" && e.from.endsWith("-api")
+        }
+
+        // 스타일 적용된 DOT 생성
+        def styled = new StringBuilder()
+        styled.append("""digraph {
+  graph [
+    dpi="100"
+    label="${rootProject.name} Module Dependency Graph"
+    labelloc="t"
+    fontsize="28"
+    fontname="Helvetica Neue"
+    bgcolor="#FAFAFA"
+    pad="0.8"
+    nodesep="1.0"
+    ranksep="1.5"
+    rankdir="TB"
+    splines="polyline"
+  ]
+  node [
+    style="filled,rounded"
+    shape="box"
+    fontname="Helvetica Neue"
+    fontsize="14"
+    penwidth="1.5"
+    margin="0.25,0.12"
+  ]
+  edge [
+    dir="forward"
+    color="#90A4AE"
+    penwidth="1.2"
+    arrowsize="0.7"
+  ]
+
+""")
+
+        // 노드 스타일
+        if (appNode) {
+            styled.append("""  "${appNode}" [label="app" fillcolor="#1A237E" fontcolor="white" pencolor="#0D47A1" fontsize="16"]\n""")
+        }
+        implNodes.sort().each { n ->
+            def label = n.replaceFirst(":", "")
+            styled.append("""  "${n}" [label="${label}" fillcolor="#42A5F5" fontcolor="white" pencolor="#1E88E5"]\n""")
+        }
+        apiNodes.sort().each { n ->
+            def label = n.replaceFirst(":", "")
+            styled.append("""  "${n}" [label="${label}" fillcolor="#A5D6A7" fontcolor="#1B5E20" pencolor="#66BB6A"]\n""")
+        }
+        if (globalNode) {
+            styled.append("""  "${globalNode}" [label="global" fillcolor="#FFB74D" fontcolor="#E65100" pencolor="#FFA726" fontsize="16"]\n""")
+        }
+
+        // 계층 정렬
+        styled.append("\n  { rank=\"same\"; ${implNodes.sort().collect { "\"${it}\"" }.join("; ")} }\n")
+        styled.append("  { rank=\"same\"; ${apiNodes.sort().collect { "\"${it}\"" }.join("; ")} }\n\n")
+
+        // 엣지 출력
+        appToImpl.each { e -> styled.append("  \"${e.from}\" -> \"${e.to}\"\n") }
+        styled.append("\n")
+        implToOwnApi.each { e -> styled.append("  \"${e.from}\" -> \"${e.to}\"\n") }
+        styled.append("\n")
+        crossDeps.each { e -> styled.append("  \"${e.from}\" -> \"${e.to}\" [color=\"#EF5350\" style=\"dashed\" constraint=\"false\"]\n") }
+        styled.append("\n")
+        apiToApi.each { e -> styled.append("  \"${e.from}\" -> \"${e.to}\" [color=\"#7E57C2\" penwidth=\"1.8\" constraint=\"false\"]\n") }
+        styled.append("\n")
+        apiToGlobal.each { e -> styled.append("  \"${e.from}\" -> \"${e.to}\" [style=\"dotted\" color=\"#BDBDBD\"]\n") }
+        styled.append("\n")
+
+        // 범례
+        styled.append("""
+  subgraph cluster_legend {
+    label="Legend"
+    fontname="Helvetica Neue"
+    fontsize="13"
+    style="rounded"
+    color="#E0E0E0"
+    bgcolor="white"
+    margin="16"
+    labeljust="l"
+    edge [style="invis"]
+    l1 [label="app (진입점)"     fillcolor="#1A237E" fontcolor="white" pencolor="#0D47A1"]
+    l2 [label="impl (구현)"      fillcolor="#42A5F5" fontcolor="white" pencolor="#1E88E5"]
+    l3 [label="api (인터페이스)" fillcolor="#A5D6A7" fontcolor="#1B5E20" pencolor="#66BB6A"]
+    l4 [label="global (공통)"    fillcolor="#FFB74D" fontcolor="#E65100" pencolor="#FFA726"]
+    l1 -> l2 -> l3 -> l4
+  }
+}
+""")
+
+        def styledDot = new File(outputDir, "dependency-graph-styled.dot")
+        styledDot.text = styled.toString()
+        logger.lifecycle("✅ DOT 파일 생성: ${styledDot}")
+
+        // Graphviz 렌더링
+        try {
+            exec {
+                commandLine("dot", "-Tsvg", "-o", "${outputDir}/dependency-graph-styled.svg", styledDot.absolutePath)
+            }
+            // SVG에 width="100%" 적용
+            def svgFile = new File(outputDir, "dependency-graph-styled.svg")
+            def svgContent = svgFile.text
+            svgFile.text = svgContent.replaceFirst(/<svg width="[^"]*" height="[^"]*"/, '<svg width="100%" height="100vh"')
+            logger.lifecycle("✅ SVG 생성: ${svgFile}")
+        } catch (Exception e) {
+            logger.warn("⚠️ Graphviz(dot)가 설치되어 있지 않습니다. DOT 파일만 생성되었습니다.")
+            logger.warn("   설치: brew install graphviz")
+        }
     }
 }
 
