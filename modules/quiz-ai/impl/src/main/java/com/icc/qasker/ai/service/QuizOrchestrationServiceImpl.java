@@ -54,12 +54,13 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
   }
 
   @Override
-  public void generateQuiz(GenerationRequestToAI request) {
+  public int generateQuiz(GenerationRequestToAI request) {
     long requestStartNanos = System.nanoTime();
     AtomicLong firstQuizNanos = new AtomicLong(0);
     AtomicLong lastQuizNanos = new AtomicLong(0);
     DoubleAdder totalCostAdder = new DoubleAdder();
 
+    int maxChunkCount = 0;
     CacheInfo cacheInfo = null;
     try {
       // Gemini 파일 캐시 확인 → 진행 중이면 대기, 미스 시 기존 방식으로 업로드
@@ -71,7 +72,7 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
       cacheInfo = geminiCacheService.createCache(metadata.uri(), request.strategyValue());
 
       // A/B 테스트: 요청마다 랜덤으로 maxChunkCount 선택
-      int maxChunkCount = chunkProperties.pickMaxCount();
+      maxChunkCount = chunkProperties.pickMaxCount();
 
       List<ChunkInfo> chunks =
           ChunkSplitter.createPageChunks(
@@ -150,11 +151,11 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
     } catch (Exception e) {
       throw new GeminiInfraException("Gemini 인프라 장애", e);
     } finally {
-      if (cacheInfo == null) {
-        return;
+      if (cacheInfo != null) {
+        // 캐시 안지우면 큰일남
+        geminiCacheService.deleteCache(cacheInfo.name());
       }
-      // 캐시 안지우면 큰일남
-      geminiCacheService.deleteCache(cacheInfo.name());
     }
+    return maxChunkCount;
   }
 }

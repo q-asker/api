@@ -17,16 +17,9 @@ public class GenerationResultRecorder {
     this.registry = registry;
 
     // 모든 QuizType × outcome/metric 조합을 미리 등록
+    // (quizzes.requested/generated는 max_chunks 태그가 동적으로 부여되어 eager 등록 생략)
     for (QuizType qt : QuizType.values()) {
       String type = qt.name();
-      Counter.builder("quiz.generation.quizzes.requested")
-          .description("요청된 퀴즈 문제 수 누적")
-          .tag("quiz_type", type)
-          .register(registry);
-      Counter.builder("quiz.generation.quizzes.generated")
-          .description("실제 생성된 퀴즈 문제 수 누적")
-          .tag("quiz_type", type)
-          .register(registry);
       for (String outcome : new String[] {"success", "partial", "fail"}) {
         Counter.builder("quiz.generation.outcome")
             .tag("outcome", outcome)
@@ -63,9 +56,11 @@ public class GenerationResultRecorder {
   }
 
   /** 요청/생성 문제 수를 퀴즈 타입별로 기록한다. finalize 결과와 무관하게 호출된다. */
-  public void recordQuizCounts(QuizType quizType, long quizCount, long generatedCount) {
+  public void recordQuizCounts(
+      QuizType quizType, long quizCount, long generatedCount, int maxChunkCount) {
     String type = quizType.name();
     String count = String.valueOf(quizCount);
+    String chunks = String.valueOf(maxChunkCount);
 
     // 퀴즈 타입 + 문제 수별 요청 횟수 (예: MULTIPLE/10문제 → 20회)
     Counter.builder("quiz.generation.requests")
@@ -78,11 +73,13 @@ public class GenerationResultRecorder {
     Counter.builder("quiz.generation.quizzes.requested")
         .description("요청된 퀴즈 문제 수 누적")
         .tag("quiz_type", type)
+        .tag("max_chunks", chunks)
         .register(registry)
         .increment(quizCount);
     Counter.builder("quiz.generation.quizzes.generated")
         .description("실제 생성된 퀴즈 문제 수 누적")
         .tag("quiz_type", type)
+        .tag("max_chunks", chunks)
         .register(registry)
         .increment(generatedCount);
   }
