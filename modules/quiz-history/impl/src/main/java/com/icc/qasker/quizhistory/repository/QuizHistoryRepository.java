@@ -11,10 +11,10 @@ public interface QuizHistoryRepository extends JpaRepository<QuizHistory, Long> 
 
   List<QuizHistory> findAllByUserId(String userId);
 
-  Optional<QuizHistory> findFirstByProblemSetIdAndUserIdOrderByCreatedAtDesc(
-      Long problemSetId, String userId);
-
-  List<QuizHistory> findAllByProblemSetIdAndUserId(Long problemSetId, String userId);
+  @Query(
+      "SELECT h FROM QuizHistory h WHERE h.problemSetId = :problemSetId AND h.userId = :userId"
+          + " ORDER BY h.createdAt DESC LIMIT 1")
+  Optional<QuizHistory> findLatestByProblemSetAndUser(Long problemSetId, String userId);
 
   @Modifying
   @Query("DELETE FROM QuizHistory h WHERE h.problemSetId = :problemSetId AND h.userId = :userId")
@@ -23,12 +23,25 @@ public interface QuizHistoryRepository extends JpaRepository<QuizHistory, Long> 
   @Modifying
   @Query(
       value =
-          "INSERT INTO quiz_history (user_id, problem_set_id, title, answers, score, created_at) "
-              + "VALUES (:userId, :problemSetId, :title, '[]', 0, NOW()) "
+          "INSERT INTO quiz_history (user_id, problem_set_id, title, answers, score, status, created_at) "
+              + "VALUES (:userId, :problemSetId, :title, '[]', 0,'NOT_COMPLETED', NOW()) "
               + "ON DUPLICATE KEY UPDATE answers = '[]', score = 0, "
               + "total_time = null, created_at = NOW()",
       nativeQuery = true)
   void upsertInitHistory(String userId, Long problemSetId, String title);
+
+  @Modifying(clearAutomatically = true)
+  @Query(
+      value =
+          "INSERT INTO quiz_history (user_id, problem_set_id, answers, score, status, created_at)"
+              + " VALUES (:userId, :problemSetId, :answersJson, :score, 'COMPLETED', NOW())"
+              + " ON DUPLICATE KEY UPDATE"
+              + " answers = VALUES(answers),"
+              + " score = VALUES(score),"
+              + " status = 'COMPLETED',"
+              + " created_at = NOW()",
+      nativeQuery = true)
+  void upsertSaveHistory(String userId, Long problemSetId, String answersJson, Integer score);
 
   @Modifying
   @Query("DELETE FROM QuizHistory h WHERE h.userId = :userId")
