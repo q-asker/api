@@ -75,7 +75,6 @@ spring:
 q-asker:
   ai:
     chat-timeout-ms: 90000
-    formatting-model: gemini-2.0-flash-lite
 
   hashid:
     salt: ci-dummy-salt
