@@ -122,11 +122,13 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
                         return;
                       }
 
-                      // 선택지 길이 균등화: 정답이 최장인 문항의 content만 재작성
-                      metricsRecorder.incrementSelectionChecked(validated.size());
-                      EqualizeOutcome eqOutcome = equalizeSelectionLengths(validated);
-                      validated = eqOutcome.questions();
-                      totalCostAdder.add(eqOutcome.cost());
+                      // 선택지 길이 균등화: MULTIPLE 타입만 적용
+                      if ("MULTIPLE".equals(request.strategyValue())) {
+                        metricsRecorder.incrementSelectionChecked(validated.size());
+                        EqualizeOutcome eqOutcome = equalizeSelectionLengths(validated);
+                        validated = eqOutcome.questions();
+                        totalCostAdder.add(eqOutcome.cost());
+                      }
 
                       // 문제+해설 원본 데이터 전송
                       AIProblemSet result =

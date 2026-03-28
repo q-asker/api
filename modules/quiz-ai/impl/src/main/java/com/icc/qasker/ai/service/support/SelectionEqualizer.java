@@ -3,8 +3,9 @@ package com.icc.qasker.ai.service.support;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.icc.qasker.ai.prompt.user.EqualizationPrompt;
+import com.icc.qasker.ai.properties.QAskerAiProperties;
 import java.util.List;
-import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
@@ -16,7 +17,6 @@ import org.springframework.stereotype.Component;
 /** 선택지 길이 균등화를 담당한다. 정답/오답 정보 없이 content만 전달하여 모델의 정답 편향을 차단한 상태로 길이를 균등화한다. */
 @Slf4j
 @Component
-@AllArgsConstructor
 public class SelectionEqualizer {
 
   /** 균등화 결과: 균등화된 텍스트 + 토큰/비용 */
@@ -27,15 +27,23 @@ public class SelectionEqualizer {
   record EqualizedSelections(
       @JsonPropertyDescription("균등화된 선택지 텍스트 목록 (순서 유지)") List<String> contents) {}
 
-  // Gemini 2.5 Flash 단가
-  private static final double PRICE_INPUT_PER_1M = 0.30;
-  private static final double PRICE_OUTPUT_PER_1M = 2.50;
+  // Gemini 2.5 Flash Lite 단가 (equalization-model 기준)
+  private static final double PRICE_INPUT_PER_1M = 0.10;
+  private static final double PRICE_OUTPUT_PER_1M = 0.40;
 
   private static final String EQUALIZE_SCHEMA =
       new BeanOutputConverter<>(EqualizedSelections.class).getJsonSchema();
 
   private final ChatModel chatModel;
   private final ObjectMapper objectMapper;
+  private final String equalizationModel;
+
+  public SelectionEqualizer(
+      ChatModel chatModel, ObjectMapper objectMapper, QAskerAiProperties aiProperties) {
+    this.chatModel = chatModel;
+    this.objectMapper = objectMapper;
+    this.equalizationModel = aiProperties.getEqualizationModel();
+  }
 
   /**
    * 선택지 content 목록을 의미 보존하면서 길이를 균등화한다. 정답 정보는 전달하지 않는다.
@@ -46,15 +54,16 @@ public class SelectionEqualizer {
   public EqualizeResult equalize(List<String> selectionContents) {
     try {
       long startMs = System.currentTimeMillis();
-      String userPrompt = buildPrompt(selectionContents);
+      String userPrompt = EqualizationPrompt.generate(selectionContents);
 
-      Prompt prompt =
-          new Prompt(
-              userPrompt,
-              GoogleGenAiChatOptions.builder()
-                  .responseMimeType("application/json")
-                  .responseSchema(EQUALIZE_SCHEMA)
-                  .build());
+      GoogleGenAiChatOptions.Builder optionsBuilder =
+          GoogleGenAiChatOptions.builder()
+              .responseMimeType("application/json")
+              .responseSchema(EQUALIZE_SCHEMA);
+      if (equalizationModel != null && !equalizationModel.isBlank()) {
+        optionsBuilder.model(equalizationModel);
+      }
+      Prompt prompt = new Prompt(userPrompt, optionsBuilder.build());
 
       ChatResponse chatResponse = chatModel.call(prompt);
       long elapsedMs = System.currentTimeMillis() - startMs;
@@ -99,16 +108,5 @@ public class SelectionEqualizer {
       log.warn("선택지 균등화 실패 (원본 유지): {}", e.getMessage());
       return null;
     }
-  }
-
-  private String buildPrompt(List<String> contents) {
-    StringBuilder sb = new StringBuilder();
-    sb.append("다음 4개 서술문의 길이를 균등하게 맞추세요.\n");
-    sb.append("가장 긴 서술문은 그대로 유지하고, 짧은 서술문을 가장 긴 것과 비슷한 길이로 늘려 작성하세요.\n");
-    sb.append("각 서술문의 주장과 결론을 변경하지 마세요. 수식어나 부연 설명만 추가하세요.\n\n");
-    for (int i = 0; i < contents.size(); i++) {
-      sb.append(i + 1).append(". ").append(contents.get(i)).append("\n");
-    }
-    return sb.toString();
   }
 }
