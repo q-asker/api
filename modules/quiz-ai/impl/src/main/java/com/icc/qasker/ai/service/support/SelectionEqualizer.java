@@ -72,8 +72,9 @@ public class SelectionEqualizer {
 
   private String buildPrompt(List<String> contents) {
     StringBuilder sb = new StringBuilder();
-    sb.append("다음 4개 서술문의 의미를 보존하면서 길이를 균등하게 다시 작성하세요.\n");
-    sb.append("가장 짧은 서술문에 맞춰 나머지를 압축하세요.\n\n");
+    sb.append("다음 4개 서술문의 길이를 균등하게 맞추세요.\n");
+    sb.append("가장 긴 서술문은 그대로 유지하고, 짧은 서술문을 가장 긴 것과 비슷한 길이로 늘려 작성하세요.\n");
+    sb.append("각 서술문의 주장과 결론을 변경하지 마세요. 수식어나 부연 설명만 추가하세요.\n\n");
     for (int i = 0; i < contents.size(); i++) {
       sb.append(i + 1).append(". ").append(contents.get(i)).append("\n");
     }
