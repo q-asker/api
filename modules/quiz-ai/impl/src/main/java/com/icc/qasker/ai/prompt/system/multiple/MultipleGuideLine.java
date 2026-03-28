@@ -30,6 +30,8 @@ public class MultipleGuideLine {
       ### Step 3 — 문항 줄기를 작성하세요. 긍정형 문항으로 작성하세요.
       - 관련 필드: questions[].content
       - [전제 상황] + [질문] 2블록 구조로 작성하세요.
+      - 비교·분류·대응 관계가 있으면 마크다운 테이블로 정리하세요
+      - 코드 스니펫은 마크다운 코드블록(```)으로, 인라인 코드는 백틱(`)으로 표기하세요
 
       ### Step 4 — 정답 선택지를 오답보다 먼저 1개 작성하세요.
       - 관련 필드: questions[].selections
@@ -45,6 +47,8 @@ public class MultipleGuideLine {
 
       ### Step 6 — 해설을 주어진 구조대로 작성하세요
       - 관련 필드: selections[].explanation, questions[].quizExplanation
+      - \\n 줄바꿈으로 논리적 단락을 구분하세요
+      - **굵게**, `코드`, 테이블, 목록(-), > 인용 등 서식을 활용하세요
 
       #### 구조
       **선택지별 해설** (selections[].explanation):
