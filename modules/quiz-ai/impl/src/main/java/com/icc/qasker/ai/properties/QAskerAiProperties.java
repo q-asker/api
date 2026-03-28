@@ -14,6 +14,9 @@ public class QAskerAiProperties {
   /** Gemini Chat API 타임아웃 (ms) */
   private int chatTimeoutMs = 90_000;
 
+  /** 선택지 균등화에 사용할 모델 (미설정 시 기본 모델 사용) */
+  private String equalizationModel;
+
   /** 청크 분할 설정 */
   private Chunk chunk = new Chunk();
 
