@@ -123,6 +123,7 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
                       }
 
                       // 선택지 길이 균등화: 정답이 최장인 문항의 content만 재작성
+                      metricsRecorder.incrementSelectionChecked(validated.size());
                       EqualizeOutcome eqOutcome = equalizeSelectionLengths(validated);
                       validated = eqOutcome.questions();
                       totalCostAdder.add(eqOutcome.cost());
@@ -184,12 +185,13 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
       if (!isCorrectLongest(q)) {
         continue;
       }
-      metricsRecorder.incrementEqualization();
       List<String> contents = q.selections().stream().map(GeminiSelection::content).toList();
       SelectionEqualizer.EqualizeResult eqResult = selectionEqualizer.equalize(contents);
       if (eqResult == null) {
         continue;
       }
+      metricsRecorder.recordEqualization(
+          eqResult.inputTokens(), eqResult.outputTokens(), eqResult.cost());
       totalEqualizeCost += eqResult.cost();
       equalizedCount++;
       List<GeminiSelection> newSels = new ArrayList<>();

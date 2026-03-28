@@ -19,8 +19,9 @@ import org.springframework.stereotype.Component;
 @AllArgsConstructor
 public class SelectionEqualizer {
 
-  /** 균등화 결과: 균등화된 텍스트 + 추정 비용 */
-  public record EqualizeResult(List<String> contents, double cost) {}
+  /** 균등화 결과: 균등화된 텍스트 + 토큰/비용 */
+  public record EqualizeResult(
+      List<String> contents, long inputTokens, long outputTokens, double cost) {}
 
   @JsonIgnoreProperties(ignoreUnknown = true)
   record EqualizedSelections(
@@ -58,12 +59,14 @@ public class SelectionEqualizer {
       ChatResponse chatResponse = chatModel.call(prompt);
       long elapsedMs = System.currentTimeMillis() - startMs;
 
-      // 비용 계산
+      // 토큰/비용 계산
       double cost = 0.0;
+      long inputTokens = 0;
+      long outputTokens = 0;
       if (chatResponse.getMetadata().getUsage() != null) {
         var usage = chatResponse.getMetadata().getUsage();
-        long inputTokens = usage.getPromptTokens();
-        long outputTokens = usage.getCompletionTokens();
+        inputTokens = usage.getPromptTokens();
+        outputTokens = usage.getCompletionTokens();
         cost =
             inputTokens * PRICE_INPUT_PER_1M / 1_000_000
                 + outputTokens * PRICE_OUTPUT_PER_1M / 1_000_000;
@@ -91,7 +94,7 @@ public class SelectionEqualizer {
         return null;
       }
 
-      return new EqualizeResult(result.contents(), cost);
+      return new EqualizeResult(result.contents(), inputTokens, outputTokens, cost);
     } catch (Exception e) {
       log.warn("선택지 균등화 실패 (원본 유지): {}", e.getMessage());
       return null;
