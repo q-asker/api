@@ -123,7 +123,9 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
                       }
 
                       // 선택지 길이 균등화: 정답이 최장인 문항의 content만 재작성
-                      validated = equalizeSelectionLengths(validated);
+                      EqualizeOutcome eqOutcome = equalizeSelectionLengths(validated);
+                      validated = eqOutcome.questions();
+                      totalCostAdder.add(eqOutcome.cost());
 
                       // 문제+해설 원본 데이터 전송
                       AIProblemSet result =
@@ -167,9 +169,16 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
     return maxChunkCount;
   }
 
-  /** 정답이 유일한 최장 선택지인 문항의 선택지 content를 균등화한다. correct/explanation은 원본을 유지한다. */
-  private List<GeminiQuestion> equalizeSelectionLengths(List<GeminiQuestion> questions) {
+  /**
+   * 정답이 유일한 최장 선택지인 문항의 선택지 content를 균등화한다. correct/explanation은 원본을 유지한다.
+   *
+   * @return 균등화된 문항 목록 + 균등화 API 호출 비용 합계
+   */
+  private EqualizeOutcome equalizeSelectionLengths(List<GeminiQuestion> questions) {
     List<GeminiQuestion> result = new ArrayList<>(questions);
+    double totalEqualizeCost = 0.0;
+    int equalizedCount = 0;
+
     for (int i = 0; i < result.size(); i++) {
       GeminiQuestion q = result.get(i);
       if (!isCorrectLongest(q)) {
@@ -177,19 +186,29 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
       }
       metricsRecorder.incrementEqualization();
       List<String> contents = q.selections().stream().map(GeminiSelection::content).toList();
-      List<String> equalized = selectionEqualizer.equalize(contents);
-      if (equalized == null) {
+      SelectionEqualizer.EqualizeResult eqResult = selectionEqualizer.equalize(contents);
+      if (eqResult == null) {
         continue;
       }
+      totalEqualizeCost += eqResult.cost();
+      equalizedCount++;
       List<GeminiSelection> newSels = new ArrayList<>();
       for (int j = 0; j < q.selections().size(); j++) {
         GeminiSelection orig = q.selections().get(j);
-        newSels.add(new GeminiSelection(equalized.get(j), orig.correct(), orig.explanation()));
+        newSels.add(
+            new GeminiSelection(eqResult.contents().get(j), orig.correct(), orig.explanation()));
       }
       result.set(i, new GeminiQuestion(q.content(), newSels, q.quizExplanation()));
     }
-    return result;
+
+    if (equalizedCount > 0) {
+      log.info(
+          "선택지 균등화 {}건 완료, 균등화 비용: ${}", equalizedCount, String.format("%.6f", totalEqualizeCost));
+    }
+    return new EqualizeOutcome(result, totalEqualizeCost);
   }
+
+  record EqualizeOutcome(List<GeminiQuestion> questions, double cost) {}
 
   /** 단일 문항에서 정답이 유일한 최장 선택지인지 검사한다. */
   private boolean isCorrectLongest(GeminiQuestion question) {
