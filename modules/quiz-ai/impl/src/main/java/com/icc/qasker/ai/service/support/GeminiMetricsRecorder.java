@@ -27,9 +27,14 @@ public class GeminiMetricsRecorder {
   private final Counter tokensCached;
   private final Counter tokensThinking;
   private final Counter tokensOutput;
+  private final Counter selectionEqualization;
 
   public GeminiMetricsRecorder(MeterRegistry registry, QAskerAiProperties aiProperties) {
     this.registry = registry;
+    this.selectionEqualization =
+        Counter.builder("gemini.selection.equalization")
+            .description("선택지 길이 균등화 실행 횟수")
+            .register(registry);
 
     this.chunkDuration =
         Timer.builder("gemini.chunk.duration")
@@ -104,6 +109,11 @@ public class GeminiMetricsRecorder {
     tokensOutput.increment(completionTokens);
 
     return totalCost;
+  }
+
+  /** 선택지 길이 균등화 실행을 기록한다. */
+  public void incrementEqualization() {
+    selectionEqualization.increment();
   }
 
   /**
