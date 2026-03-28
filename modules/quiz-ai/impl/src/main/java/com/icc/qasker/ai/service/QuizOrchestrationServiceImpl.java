@@ -11,11 +11,10 @@ import com.icc.qasker.ai.dto.GenerationRequestToAI;
 import com.icc.qasker.ai.exception.GeminiInfraException;
 import com.icc.qasker.ai.mapper.GeminiQuestionMapper;
 import com.icc.qasker.ai.properties.QAskerAiProperties;
+import com.icc.qasker.ai.service.support.FormattingPipeline;
 import com.icc.qasker.ai.service.support.GeminiChatService;
 import com.icc.qasker.ai.service.support.GeminiMetricsRecorder;
-import com.icc.qasker.ai.service.support.SelectionEqualizer;
 import com.icc.qasker.ai.structure.GeminiQuestion;
-import com.icc.qasker.ai.structure.GeminiQuestion.GeminiSelection;
 import com.icc.qasker.ai.structure.GeminiResponse;
 import com.icc.qasker.ai.util.ChunkSplitter;
 import java.util.ArrayList;
@@ -41,7 +40,7 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
   private final GeminiCacheService geminiCacheService;
   private final GeminiChatService geminiChatService;
   private final GeminiMetricsRecorder metricsRecorder;
-  private final SelectionEqualizer selectionEqualizer;
+  private final FormattingPipeline formattingPipeline;
 
   public QuizOrchestrationServiceImpl(
       QAskerAiProperties aiProperties,
@@ -49,13 +48,13 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
       GeminiCacheService geminiCacheService,
       GeminiChatService geminiChatService,
       GeminiMetricsRecorder metricsRecorder,
-      SelectionEqualizer selectionEqualizer) {
+      FormattingPipeline formattingPipeline) {
     this.chunkProperties = aiProperties.getChunk();
     this.geminiFileService = geminiFileService;
     this.geminiCacheService = geminiCacheService;
     this.geminiChatService = geminiChatService;
     this.metricsRecorder = metricsRecorder;
-    this.selectionEqualizer = selectionEqualizer;
+    this.formattingPipeline = formattingPipeline;
   }
 
   @Override
@@ -122,8 +121,8 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
                         return;
                       }
 
-                      // 선택지 길이 균등화: 정답이 최장인 문항의 content만 재작성
-                      validated = equalizeSelectionLengths(validated);
+                      // Stage 2: 포맷팅 파이프라인 (마크다운 서식 + 선택지 길이 균등화)
+                      validated = formattingPipeline.format(validated);
 
                       // 문제+해설 원본 데이터 전송
                       AIProblemSet result =
@@ -165,47 +164,5 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
       }
     }
     return maxChunkCount;
-  }
-
-  /** 정답이 유일한 최장 선택지인 문항의 선택지 content를 균등화한다. correct/explanation은 원본을 유지한다. */
-  private List<GeminiQuestion> equalizeSelectionLengths(List<GeminiQuestion> questions) {
-    List<GeminiQuestion> result = new ArrayList<>(questions);
-    for (int i = 0; i < result.size(); i++) {
-      GeminiQuestion q = result.get(i);
-      if (!isCorrectLongest(q)) {
-        continue;
-      }
-      metricsRecorder.incrementEqualization();
-      List<String> contents = q.selections().stream().map(GeminiSelection::content).toList();
-      List<String> equalized = selectionEqualizer.equalize(contents);
-      if (equalized == null) {
-        continue;
-      }
-      List<GeminiSelection> newSels = new ArrayList<>();
-      for (int j = 0; j < q.selections().size(); j++) {
-        GeminiSelection orig = q.selections().get(j);
-        newSels.add(new GeminiSelection(equalized.get(j), orig.correct(), orig.explanation()));
-      }
-      result.set(i, new GeminiQuestion(q.content(), newSels, q.quizExplanation()));
-    }
-    return result;
-  }
-
-  /** 단일 문항에서 정답이 유일한 최장 선택지인지 검사한다. */
-  private boolean isCorrectLongest(GeminiQuestion question) {
-    if (question.selections() == null || question.selections().size() < 2) {
-      return false;
-    }
-    int correctLength = 0;
-    int maxWrongLength = 0;
-    for (GeminiSelection sel : question.selections()) {
-      int len = sel.content() != null ? sel.content().length() : 0;
-      if (sel.correct()) {
-        correctLength = len;
-      } else {
-        maxWrongLength = Math.max(maxWrongLength, len);
-      }
-    }
-    return correctLength > maxWrongLength && maxWrongLength > 0;
   }
 }
