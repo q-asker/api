@@ -73,7 +73,8 @@ public class RateLimitFilter extends OncePerRequestFilter {
       return;
     }
 
-    String clientKey = keyResolver.resolve(request);
+    boolean isGlobal = planResolver.resolveGlobal(request);
+    String clientKey = isGlobal ? "global" : keyResolver.resolve(request);
     String bucketKey = clientKey + ":" + tier.name();
     Bucket bucket = bucketCache.get(bucketKey, k -> createBucket(tier));
 
@@ -112,10 +113,19 @@ public class RateLimitFilter extends OncePerRequestFilter {
   }
 
   private long getCapacity(RateLimitTier tier) {
-    return tier.getDefaultCapacity();
+    return getTierConfig(tier).capacity();
   }
 
   private long getRefillPerMinute(RateLimitTier tier) {
-    return tier.getDefaultRefillPerMinute();
+    return getTierConfig(tier).refillPerMinute();
+  }
+
+  private RateLimitProperties.TierConfig getTierConfig(RateLimitTier tier) {
+    RateLimitProperties.TierConfig config = rateLimitProperties.getTiers().get(tier.name());
+    if (config == null) {
+      throw new IllegalStateException(
+          "YAML에 Rate Limit Tier 설정이 없습니다: q-asker.rate-limit.tiers." + tier.name());
+    }
+    return config;
   }
 }
