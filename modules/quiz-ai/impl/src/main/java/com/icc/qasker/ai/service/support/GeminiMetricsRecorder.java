@@ -16,10 +16,10 @@ import org.springframework.stereotype.Component;
 @Component
 public class GeminiMetricsRecorder {
 
-  // Gemini 2.5 Flash 단가
-  private static final double PRICE_INPUT_PER_1M = 0.30;
-  private static final double PRICE_CACHE_READ_PER_1M = 0.03;
-  private static final double PRICE_OUTPUT_PER_1M = 2.50;
+  // Gemini 3.1 Flash Lite 단가
+  private static final double PRICE_INPUT_PER_1M = 0.25;
+  private static final double PRICE_CACHE_READ_PER_1M = 0.025;
+  private static final double PRICE_OUTPUT_PER_1M = 1.50;
 
   private final MeterRegistry registry;
   private final Timer chunkDuration;

@@ -2,7 +2,7 @@ package com.icc.qasker.ai.service.support;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.icc.qasker.ai.dto.ChunkInfo;
-import com.icc.qasker.ai.prompt.user.UserPrompt;
+import com.icc.qasker.ai.prompt.user.RequestWithPageRefAndCountPrompt;
 import com.icc.qasker.ai.structure.GeminiResponse;
 import java.util.List;
 import lombok.AllArgsConstructor;
@@ -45,7 +45,7 @@ public class GeminiChatService {
     long startMs = System.currentTimeMillis();
     List<Integer> pages = chunk.referencedPages();
 
-    String userPrompt = UserPrompt.generate(pages, chunk.quizCount());
+    String userPrompt = RequestWithPageRefAndCountPrompt.generate(pages, chunk.quizCount());
 
     Prompt prompt =
         new Prompt(

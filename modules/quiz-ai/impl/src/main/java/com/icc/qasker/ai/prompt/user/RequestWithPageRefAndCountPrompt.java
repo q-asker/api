@@ -5,7 +5,7 @@ import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
-public class UserPrompt {
+public class RequestWithPageRefAndCountPrompt {
 
   public static String generate(List<Integer> referencePages, int quizCount) {
     return """
