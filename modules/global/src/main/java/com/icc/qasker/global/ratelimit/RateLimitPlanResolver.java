@@ -37,4 +37,20 @@ public class RateLimitPlanResolver {
     }
     return RateLimitTier.READ;
   }
+
+  /** 요청 핸들러에 global=true 가 선언되어 있으면 true를 반환한다. */
+  public boolean resolveGlobal(HttpServletRequest request) {
+    try {
+      HandlerExecutionChain chain = handlerMapping.getHandler(request);
+      if (chain != null && chain.getHandler() instanceof HandlerMethod handlerMethod) {
+        RateLimit rateLimit = handlerMethod.getMethodAnnotation(RateLimit.class);
+        if (rateLimit != null) {
+          return rateLimit.global();
+        }
+      }
+    } catch (Exception ignored) {
+      // 핸들러 조회 실패 시 기본값 사용
+    }
+    return false;
+  }
 }

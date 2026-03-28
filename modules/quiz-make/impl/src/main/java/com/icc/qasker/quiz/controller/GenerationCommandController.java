@@ -25,7 +25,7 @@ public class GenerationCommandController {
   private final GenerationCommandService generationCommandService;
 
   @Operation(summary = "세션에 문제를 전송한다")
-  @RateLimit(RateLimitTier.CRITICAL)
+  @RateLimit(value = RateLimitTier.CRITICAL, global = true)
   @PostMapping
   @ResponseStatus(HttpStatus.ACCEPTED)
   public void generateQuiz(
