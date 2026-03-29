@@ -36,60 +36,6 @@ BLUE_PORT="${1:?BLUE_PORT is required}"
 GREEN_PORT="${2:?GREEN_PORT is required}"
 TOTAL_START_TIME=$(date +%s)
 
-# ==============================================================================
-# Glowroot 초기 설정
-# ==============================================================================
-GLOWROOT_DIR="./glowroot"
-GLOWROOT_ADMIN="$GLOWROOT_DIR/admin.json"
-
-if [ ! -f "$GLOWROOT_ADMIN" ]; then
-  mkdir -p "$GLOWROOT_DIR"
-
-  GLOWROOT_USER="${GLOWROOT_USER:?GLOWROOT_USER is required}"
-  GLOWROOT_PASSWORD="${GLOWROOT_PASSWORD:?GLOWROOT_PASSWORD is required}"
-
-  cat > "$GLOWROOT_ADMIN" <<GLOWROOT_EOF
-{
-  "users": [
-    {
-      "username": "${GLOWROOT_USER}",
-      "password": "${GLOWROOT_PASSWORD}",
-      "roles": ["Administrator"]
-    }
-  ],
-  "roles": [
-    {
-      "name": "Administrator",
-      "permissions": [
-        "agent:transaction",
-        "agent:error",
-        "agent:jvm",
-        "agent:incident",
-        "agent:config",
-        "admin"
-      ]
-    }
-  ],
-  "web": {
-    "port": 4000,
-    "bindAddress": "0.0.0.0",
-    "contextPath": "/",
-    "sessionTimeoutMinutes": 30,
-    "sessionCookieName": "GLOWROOT_SESSION_ID"
-  },
-  "storage": {
-    "rollupExpirationHours": [72, 336, 2160, 2160],
-    "traceExpirationHours": 336,
-    "fullQueryTextExpirationHours": 336,
-    "rollupCappedDatabaseSizesMb": [500, 500, 500, 500],
-    "traceCappedDatabaseSizeMb": 500
-  }
-}
-GLOWROOT_EOF
-
-  echo ">>> Glowroot admin.json 생성 완료 (user: ${GLOWROOT_USER})"
-fi
-
 send_slack "🚀 블루-그린 배포 시작..."
 
 # 1. 현재 구동 중인 프로필 확인

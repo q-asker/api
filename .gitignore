@@ -43,11 +43,6 @@ out/
 .env
 app/gradle.properties
 app/newrelic/newrelic.yml
-app/glowroot/data/
-app/glowroot/tmp/
-app/glowroot/logs/
-app/glowroot/admin.json
-app/glowroot/config.json
 **/heapdump
 monitor_downtime.sh
 

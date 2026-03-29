@@ -18,7 +18,7 @@ AI 기반 퀴즈 자동 생성 및 관리 플랫폼의 백엔드 API 서버. 사
 - **메시징**: Spring Kafka
 - **API 문서**: SpringDoc OpenAPI 2.8.8 (Swagger UI)
 - **장애 대응**: Resilience4j 2.3.0 (Circuit Breaker)
-- **모니터링**: Glowroot 0.14.5 (Standalone APM), Spring Actuator, Micrometer Prometheus
+- **모니터링**: Spring Actuator, Micrometer Prometheus
 - **컨테이너**: Jib 3.4.0 (Docker 빌드)
 - **코드 포맷**: Spotless 7.0.4 + Google Java Format 1.25.2
 - **문서 변환**: JODConverter 4.4.9 (LibreOffice 기반 PPT/DOCX → PDF 변환)
