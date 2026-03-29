@@ -19,14 +19,6 @@ public class GenerationResultRecorder {
     // 모든 QuizType × outcome/metric 조합을 미리 등록
     for (QuizType qt : QuizType.values()) {
       String type = qt.name();
-      Counter.builder("quiz.generation.quizzes.requested")
-          .description("요청된 퀴즈 문제 수 누적")
-          .tag("quiz_type", type)
-          .register(registry);
-      Counter.builder("quiz.generation.quizzes.generated")
-          .description("실제 생성된 퀴즈 문제 수 누적")
-          .tag("quiz_type", type)
-          .register(registry);
       for (String outcome : new String[] {"success", "partial", "fail"}) {
         Counter.builder("quiz.generation.outcome")
             .tag("outcome", outcome)
@@ -40,6 +32,14 @@ public class GenerationResultRecorder {
             .tag("quiz_count", String.valueOf(quizCount))
             .register(registry);
       }
+      Counter.builder("quiz.generation.quizzes.requested")
+          .description("요청된 퀴즈 문제 수 누적")
+          .tag("quiz_type", type)
+          .register(registry);
+      Counter.builder("quiz.generation.quizzes.generated")
+          .description("실제 생성된 퀴즈 문제 수 누적")
+          .tag("quiz_type", type)
+          .register(registry);
     }
   }
 

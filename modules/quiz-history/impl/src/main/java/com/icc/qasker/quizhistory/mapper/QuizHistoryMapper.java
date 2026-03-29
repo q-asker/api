@@ -16,7 +16,11 @@ public final class QuizHistoryMapper {
 
   /** QuizHistory + ProblemSetSummary → HistorySummaryResponse 변환 */
   public HistorySummaryResponse toSummary(QuizHistory history, ProblemSetSummary problemSet) {
-    boolean completed = !history.getAnswers().isEmpty();
+    boolean completed =
+        switch (history.getStatus()) {
+          case COMPLETED -> true;
+          case INCOMPLETE -> false;
+        };
     return new HistorySummaryResponse(
         hashUtil.encode(problemSet.id()),
         history.getTitle(),

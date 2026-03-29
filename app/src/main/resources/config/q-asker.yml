@@ -1,0 +1,7 @@
+q-asker:
+  ai:
+    chat-timeout-ms: 90000
+  async:
+    task-termination-timeout-ms: 10000
+  sse:
+    timeout-ms: 300000

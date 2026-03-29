@@ -2,7 +2,7 @@ package com.icc.qasker.ai.service.support;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.icc.qasker.ai.dto.ChunkInfo;
-import com.icc.qasker.ai.prompt.user.UserPrompt;
+import com.icc.qasker.ai.prompt.user.RequestWithPageRefAndCountPrompt;
 import com.icc.qasker.ai.structure.GeminiResponse;
 import java.util.List;
 import lombok.AllArgsConstructor;
@@ -39,13 +39,18 @@ public class GeminiChatService {
    *
    * @param chunk 청크 정보 (참조 페이지, 문제 수)
    * @param cacheName Gemini Cached Content 이름
+   * @param strategyValue 퀴즈 타입 (MULTIPLE, OX, BLANK)
    * @return 파싱 결과 (응답 + 비용), 응답이 비어있으면 null
    */
-  public ParsedResult callAndParse(ChunkInfo chunk, String cacheName) throws Exception {
+  public ParsedResult callAndParse(
+      ChunkInfo chunk, String cacheName, String strategyValue, String language) throws Exception {
     long startMs = System.currentTimeMillis();
     List<Integer> pages = chunk.referencedPages();
 
-    String userPrompt = UserPrompt.generate(pages, chunk.quizCount());
+    String userPrompt =
+        "OX".equals(strategyValue)
+            ? RequestWithPageRefAndCountPrompt.generateForOX(pages, chunk.quizCount(), language)
+            : RequestWithPageRefAndCountPrompt.generate(pages, chunk.quizCount(), language);
 
     Prompt prompt =
         new Prompt(
