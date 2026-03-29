@@ -1,6 +1,8 @@
 package com.icc.qasker.quizhistory.controller;
 
+import com.icc.qasker.global.annotation.RateLimit;
 import com.icc.qasker.global.annotation.UserId;
+import com.icc.qasker.global.ratelimit.RateLimitTier;
 import com.icc.qasker.quizhistory.QuizHistoryCommandService;
 import com.icc.qasker.quizhistory.dto.ferequest.ChangeHistoryTitleRequest;
 import com.icc.qasker.quizhistory.dto.ferequest.InitHistoryRequest;
@@ -35,6 +37,7 @@ public class QuizHistoryCommandController {
   private final QuizHistoryCommandService quizHistoryCommandService;
 
   @Operation(summary = "퀴즈 생성 시 히스토리를 초기화한다")
+  @RateLimit(RateLimitTier.WRITE)
   @PostMapping("/init")
   public ResponseEntity<HistoryIdResponse> initHistory(
       @UserId String userId, @Valid @RequestBody InitHistoryRequest request) {
@@ -43,6 +46,7 @@ public class QuizHistoryCommandController {
   }
 
   @Operation(summary = "퀴즈 완료 후 답안 및 점수를 저장한다")
+  @RateLimit(RateLimitTier.WRITE)
   @PostMapping
   public ResponseEntity<HistoryIdResponse> saveHistory(
       @UserId String userId, @Valid @RequestBody SaveHistoryRequest request) {
@@ -51,6 +55,7 @@ public class QuizHistoryCommandController {
   }
 
   @Operation(summary = "퀴즈 히스토리 제목을 변경한다")
+  @RateLimit(RateLimitTier.WRITE)
   @PatchMapping("/{historyId}/title")
   @ResponseStatus(HttpStatus.NO_CONTENT)
   public void updateHistoryTitle(
@@ -61,6 +66,7 @@ public class QuizHistoryCommandController {
   }
 
   @Operation(summary = "특정 퀴즈 기록을 삭제한다")
+  @RateLimit(RateLimitTier.WRITE)
   @DeleteMapping("/{historyId}")
   @ResponseStatus(HttpStatus.NO_CONTENT)
   public void deleteHistory(@UserId String userId, @PathVariable String historyId) {
@@ -68,6 +74,7 @@ public class QuizHistoryCommandController {
   }
 
   @Operation(summary = "모든 퀴즈 기록을 삭제한다")
+  @RateLimit(RateLimitTier.WRITE)
   @DeleteMapping("/all")
   @ResponseStatus(HttpStatus.NO_CONTENT)
   public void deleteAllHistory(@UserId String userId) {

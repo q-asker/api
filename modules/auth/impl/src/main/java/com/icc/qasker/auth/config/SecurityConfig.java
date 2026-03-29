@@ -3,6 +3,7 @@ package com.icc.qasker.auth.config;
 import static org.springframework.security.config.Customizer.withDefaults;
 
 import com.icc.qasker.auth.config.security.filter.JwtTokenAuthenticationFilter;
+import com.icc.qasker.auth.config.security.filter.RateLimitFilter;
 import com.icc.qasker.auth.config.security.handler.OAuth2LoginSuccessHandler;
 import com.icc.qasker.auth.config.security.service.PrincipalOAuth2UserService;
 import com.icc.qasker.auth.repository.UserRepository;
@@ -31,6 +32,7 @@ public class SecurityConfig {
   private final UserRepository userRepository;
   private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
   private final PrincipalOAuth2UserService principalOauth2UserService;
+  private final RateLimitFilter rateLimitFilter;
 
   @Bean
   public AuthenticationManager authenticationManager(
@@ -61,6 +63,7 @@ public class SecurityConfig {
         .addFilterBefore(
             new JwtTokenAuthenticationFilter(authenticationManager, userRepository, jwtProperties),
             UsernamePasswordAuthenticationFilter.class)
+        .addFilterAfter(rateLimitFilter, JwtTokenAuthenticationFilter.class)
         .authorizeHttpRequests(
             auth ->
                 auth.requestMatchers(HttpMethod.POST, "/boards/*/replies")

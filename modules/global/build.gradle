@@ -41,4 +41,11 @@ dependencies {
     // 예: @CircuitBreaker(name = "externalApi") → 외부 API 연속 실패 시 자동으로 호출을 차단하고
     //     일정 시간 후 half-open 상태로 전환하여 복구 여부를 확인
     implementation "io.github.resilience4j:resilience4j-spring-boot3:2.3.0"
+
+    // ────────────────────────────────
+    // Rate Limiting
+    // ────────────────────────────────
+    // Bucket4j: Token Bucket 알고리즘 기반 요청 속도 제한
+    // 예: 사용자별/엔드포인트별 차등 Rate Limit 적용, 버스트 트래픽 허용 + 평균 속도 제한
+    implementation "com.bucket4j:bucket4j_jdk17-core:8.16.1"
 }
