@@ -54,6 +54,19 @@ AI 기반 퀴즈 자동 생성 및 관리 플랫폼의 백엔드 API 서버. 사
 ```
 q-asker/api/
 ├── app/                           # 실행 모듈 (Spring Boot main, 설정)
+│   └── src/main/resources/
+│       ├── application.yml        # 공통 설정 (spring.config.import로 config/ 로딩)
+│       ├── application-{profile}.yml  # 프로필별 차이값 (시크릿, 환경별 설정)
+│       └── config/                # 도메인별 공통 설정 (Git 커밋 대상)
+│           ├── server.yml         # server, lifecycle, multipart, threads, jpa, ai.retry
+│           ├── security.yml       # OAuth2 provider, 인증 공통 설정
+│           ├── ai.yml             # AI temperature, chunk, file-client
+│           ├── aws.yml            # S3 정적 설정 (region, extensions 등)
+│           ├── monitoring.yml     # Actuator, Prometheus 메트릭
+│           ├── resilience4j.yml   # Circuit Breaker
+│           ├── jodconverter.yml   # 문서 변환 기본값
+│           ├── springdoc.yml      # API 문서 기본값
+│           └── q-asker.yml        # 커스텀 설정 기본값 (timeout 등)
 ├── modules/
 │   ├── global/                    # 공통 모듈 (BaseEntity, ApiResponse, GlobalExceptionHandler)
 │   ├── auth/

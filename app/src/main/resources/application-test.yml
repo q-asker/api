@@ -2,36 +2,15 @@
 # - 테스트: @ActiveProfiles("test")
 # - CI: --spring.profiles.active=test
 
-server:
-  shutdown: graceful
-
 spring:
-  lifecycle:
-    timeout-per-shutdown-phase: 60s
-
   cache:
     type: simple
-
-  threads:
-    virtual:
-      enabled: true
-
-  ai:
-    google:
-      genai:
-        api-key: ci-dummy-key
-        chat:
-          options:
-            model: gemini-3-flash-preview
-            temperature: 0.2
-            thinking-budget: -1
 
   datasource:
     url: jdbc:h2:mem:test;DB_CLOSE_DELAY=-1
     driver-class-name: org.h2.Driver
 
   jpa:
-    open-in-view: false
     hibernate:
       ddl-auto: create-drop
     show-sql: false
@@ -50,32 +29,25 @@ spring:
             client-id: ci-dummy
             client-secret: ci-dummy
             redirect-uri: http://localhost:8080/login/oauth2/code/google
-            scope:
-              - profile
           kakao:
             client-id: ci-dummy
             client-secret: ci-dummy
-            client-name: Kakao
-            authorization-grant-type: authorization_code
-            client-authentication-method: client_secret_post
             redirect-uri: http://localhost:8080/login/oauth2/code/kakao
-
-        provider:
-          kakao:
-            authorization-uri: https://kauth.kakao.com/oauth/authorize
-            token-uri: https://kauth.kakao.com/oauth/token
-            user-info-uri: https://kapi.kakao.com/v2/user/me
-            user-name-attribute: id
 
     jwt:
       secret: ci-dummy-secret-key
-      access-expiration-time: 30000
       refresh-expiration-time: 60480
 
-q-asker:
   ai:
-    chat-timeout-ms: 90000
+    google:
+      genai:
+        api-key: ci-dummy-key
+        chat:
+          options:
+            model: gemini-3-flash-preview
+            thinking-budget: -1
 
+q-asker:
   hashid:
     salt: ci-dummy-salt
     min-length: 8
@@ -90,14 +62,10 @@ q-asker:
 
 aws:
   s3:
-    region: ap-northeast-2
     bucket-name: ci-dummy
     access-key: ci-dummy
     secret-key: ci-dummy
-    max-file-name-length: 255
     allowed-extensions: application/pdf
-    signature-duration: 100
-    max-file-size: 36700160
 
   cloudfront:
     base-url: http://localhost
@@ -107,29 +75,9 @@ jodconverter:
     enabled: false
     office-home: /usr/lib/libreoffice
     port-numbers: 2002, 2003, 2004, 2005, 2006
-    max-tasks-per-process: 200
-    task-execution-timeout: 60000
-    task-queue-timeout: 120000
 
 springdoc:
-  default-produces-media-type: application/json;charset=UTF-8
   api-docs:
     enabled: true
   swagger-ui:
     enabled: false
-
-resilience4j:
-  circuitbreaker:
-    instances:
-      aiServer:
-        sliding-window-type: COUNT_BASED
-        minimum-number-of-calls: 3
-        sliding-window-size: 10
-        failure-rate-threshold: 60
-        wait-duration-in-open-state:
-          seconds: 10
-        permitted-number-of-calls-in-half-open-state: 2
-        automatic-transition-from-open-to-half-open-enabled: true
-        event-consumer-buffer-size: 10
-    metrics:
-      enabled: true
