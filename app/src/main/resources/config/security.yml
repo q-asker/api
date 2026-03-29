@@ -16,6 +16,3 @@ spring:
             client-name: Kakao
             authorization-grant-type: authorization_code
             client-authentication-method: client_secret_post
-
-    jwt:
-      access-expiration-time: 30000
