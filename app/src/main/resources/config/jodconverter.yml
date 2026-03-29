@@ -1,0 +1,5 @@
+jodconverter:
+  local:
+    max-tasks-per-process: 200
+    task-execution-timeout: 60000
+    task-queue-timeout: 120000
