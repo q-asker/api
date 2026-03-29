@@ -74,7 +74,9 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
               .awaitCachedFileMetadata(request.fileUrl())
               .orElseGet(() -> geminiFileService.uploadPdf(request.fileUrl()));
 
-      cacheInfo = geminiCacheService.createCache(metadata.uri(), request.strategyValue());
+      cacheInfo =
+          geminiCacheService.createCache(
+              metadata.uri(), request.strategyValue(), request.language());
 
       // A/B 테스트: 요청마다 랜덤으로 maxChunkCount 선택
       maxChunkCount = chunkProperties.pickMaxCount();

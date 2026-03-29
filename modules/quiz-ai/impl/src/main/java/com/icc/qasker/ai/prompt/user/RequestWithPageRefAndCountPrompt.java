@@ -8,8 +8,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class RequestWithPageRefAndCountPrompt {
 
-  private static final String LANGUAGE_INSTRUCTION_EN =
-      "\n  - Write all questions, selections, and explanations in English.";
+  private static final String LANGUAGE_INSTRUCTION_EN = "\n  - Write all output in English.";
 
   public static String generate(List<Integer> referencePages, int quizCount, String language) {
     String base =
