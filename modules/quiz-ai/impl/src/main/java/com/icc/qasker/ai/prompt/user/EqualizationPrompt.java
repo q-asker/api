@@ -14,10 +14,14 @@ public class EqualizationPrompt {
    *
    * @param selectionContents 전체 선택지 텍스트 목록 (4개)
    * @param targetLength 목표 글자수 (최장 서술문의 길이)
+   * @param language 출력 언어 ("KO" 또는 "EN")
    */
-  public static String generate(List<String> selectionContents, int targetLength) {
+  public static String generate(List<String> selectionContents, int targetLength, String language) {
+    String unit = "EN".equals(language) ? " words" : "자";
+    String tolerance = "EN".equals(language) ? "±5 words" : "±10자";
+
     return """
-        다음 4개 서술문의 길이를 %d자 근처(±10자)로 균등하게 맞추고, 어투를 통일하세요.
+        다음 4개 서술문의 길이를 %d%s 근처(%s)로 균등하게 맞추고, 어투를 통일하세요.
         각 서술문의 주장과 결론을 변경하지 마세요. 수식어나 부연 설명만 추가하세요.
         서술문에 사실과 다른 내용이 있더라도 원문 그대로 유지하세요. 내용을 교정하는 것은 당신의 역할이 아닙니다.
 
@@ -25,6 +29,8 @@ public class EqualizationPrompt {
         """
         .formatted(
             targetLength,
+            unit,
+            tolerance,
             IntStream.range(0, selectionContents.size())
                 .mapToObj(i -> (i + 1) + ". " + selectionContents.get(i))
                 .collect(Collectors.joining("\n")));

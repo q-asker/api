@@ -97,7 +97,7 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
                     try {
                       GeminiChatService.ParsedResult parsed =
                           geminiChatService.callAndParse(
-                              chunk, finalCacheName, request.strategyValue());
+                              chunk, finalCacheName, request.strategyValue(), request.language());
                       if (parsed == null) {
                         return;
                       }
@@ -127,7 +127,8 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
                       // 선택지 길이 균등화: MULTIPLE 타입만 적용
                       if ("MULTIPLE".equals(request.strategyValue())) {
                         metricsRecorder.incrementSelectionChecked(validated.size());
-                        EqualizeOutcome eqOutcome = equalizeSelectionLengths(validated);
+                        EqualizeOutcome eqOutcome =
+                            equalizeSelectionLengths(validated, request.language());
                         validated = eqOutcome.questions();
                         totalCostAdder.add(eqOutcome.cost());
                       }
@@ -198,7 +199,8 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
    *
    * @return 균등화된 문항 목록 + 균등화 API 호출 비용 합계
    */
-  private EqualizeOutcome equalizeSelectionLengths(List<GeminiQuestion> questions) {
+  private EqualizeOutcome equalizeSelectionLengths(
+      List<GeminiQuestion> questions, String language) {
     List<GeminiQuestion> result = new ArrayList<>(questions);
     double totalEqualizeCost = 0.0;
     int equalizedCount = 0;
@@ -209,7 +211,7 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
         continue;
       }
       List<String> contents = q.selections().stream().map(GeminiSelection::content).toList();
-      SelectionEqualizer.EqualizeResult eqResult = selectionEqualizer.equalize(contents);
+      SelectionEqualizer.EqualizeResult eqResult = selectionEqualizer.equalize(contents, language);
       if (eqResult == null) {
         continue;
       }
