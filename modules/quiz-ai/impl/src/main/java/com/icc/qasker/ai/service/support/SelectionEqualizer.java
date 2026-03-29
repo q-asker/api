@@ -46,15 +46,18 @@ public class SelectionEqualizer {
   }
 
   /**
-   * 선택지 content 목록을 의미 보존하면서 길이를 균등화한다. 정답 정보는 전달하지 않는다.
+   * 선택지 content 목록을 의미 보존하면서 길이와 어투를 균등화한다. 정답 정보는 전달하지 않는다.
    *
    * @param selectionContents 원본 선택지 텍스트 목록 (4개)
    * @return 균등화 결과 (텍스트 + 비용), 실패 시 null
    */
   public EqualizeResult equalize(List<String> selectionContents) {
     try {
+      // 최장 서술문 길이를 목표치로 사용
+      int targetLength = selectionContents.stream().mapToInt(String::length).max().orElse(0);
+
       long startMs = System.currentTimeMillis();
-      String userPrompt = EqualizationPrompt.generate(selectionContents);
+      String userPrompt = EqualizationPrompt.generate(selectionContents, targetLength);
 
       GoogleGenAiChatOptions.Builder optionsBuilder =
           GoogleGenAiChatOptions.builder()
@@ -101,6 +104,19 @@ public class SelectionEqualizer {
             selectionContents.size(),
             result.contents() == null ? 0 : result.contents().size());
         return null;
+      }
+
+      // 변경 전/후 선택지 비교
+      for (int i = 0; i < selectionContents.size(); i++) {
+        String before = selectionContents.get(i);
+        String after = result.contents().get(i);
+        log.info(
+            "선택지[{}] 변경 전({}자): {} → 변경 후({}자): {}",
+            i + 1,
+            before.length(),
+            before,
+            after.length(),
+            after);
       }
 
       return new EqualizeResult(result.contents(), inputTokens, outputTokens, cost);

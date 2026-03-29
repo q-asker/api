@@ -85,6 +85,7 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
       log.info("청크 분할 완료: {}개 청크 (maxChunkCount={})", chunks.size(), maxChunkCount);
 
       AtomicInteger numberCounter = new AtomicInteger(1);
+      AtomicInteger remainingQuota = new AtomicInteger(request.quizCount());
 
       try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
         final String finalCacheName = cacheInfo.name();
@@ -95,7 +96,8 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
                   () -> {
                     try {
                       GeminiChatService.ParsedResult parsed =
-                          geminiChatService.callAndParse(chunk, finalCacheName);
+                          geminiChatService.callAndParse(
+                              chunk, finalCacheName, request.strategyValue());
                       if (parsed == null) {
                         return;
                       }
@@ -130,7 +132,26 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
                         totalCostAdder.add(eqOutcome.cost());
                       }
 
-                      // 문제+해설 원본 데이터 전송
+                      // 총 요청 수 초과분 제거: CAS로 슬롯을 원자적으로 확보
+                      int validatedSize = validated.size();
+                      int before = remainingQuota.getAndUpdate(r -> Math.max(0, r - validatedSize));
+                      int claimed = Math.min(validatedSize, before);
+                      if (claimed == 0) {
+                        log.info(
+                            "이미 요청 수({})만큼 생성 완료, 초과분 버림: pages={}",
+                            request.quizCount(),
+                            chunk.referencedPages());
+                        return;
+                      }
+                      if (claimed < validatedSize) {
+                        log.info(
+                            "초과 문제 {}개 제거: pages={}",
+                            validatedSize - claimed,
+                            chunk.referencedPages());
+                        validated = validated.subList(0, claimed);
+                      }
+
+                      // 문제+해설 원본 데이터 전송 (번호는 이미 확보된 슬롯 기반)
                       AIProblemSet result =
                           GeminiQuestionMapper.toDto(
                               validated, chunk.referencedPages(), numberCounter);

@@ -39,13 +39,18 @@ public class GeminiChatService {
    *
    * @param chunk 청크 정보 (참조 페이지, 문제 수)
    * @param cacheName Gemini Cached Content 이름
+   * @param strategyValue 퀴즈 타입 (MULTIPLE, OX, BLANK)
    * @return 파싱 결과 (응답 + 비용), 응답이 비어있으면 null
    */
-  public ParsedResult callAndParse(ChunkInfo chunk, String cacheName) throws Exception {
+  public ParsedResult callAndParse(ChunkInfo chunk, String cacheName, String strategyValue)
+      throws Exception {
     long startMs = System.currentTimeMillis();
     List<Integer> pages = chunk.referencedPages();
 
-    String userPrompt = RequestWithPageRefAndCountPrompt.generate(pages, chunk.quizCount());
+    String userPrompt =
+        "OX".equals(strategyValue)
+            ? RequestWithPageRefAndCountPrompt.generateForOX(pages, chunk.quizCount())
+            : RequestWithPageRefAndCountPrompt.generate(pages, chunk.quizCount());
 
     Prompt prompt =
         new Prompt(
