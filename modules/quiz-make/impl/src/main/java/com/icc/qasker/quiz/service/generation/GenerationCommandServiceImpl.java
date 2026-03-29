@@ -113,7 +113,7 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
 
                   // 3. 마크다운 포맷팅
                   for (QuizGeneratedFromAI quiz : problemSet.getQuiz()) {
-                    quiz.setExplanation(ExplanationMarkdownBuilder.build(quiz));
+                    quiz.setExplanation(ExplanationMarkdownBuilder.build(quiz, request.language()));
                   }
 
                   // 4. 데이터베이스에 영속화
