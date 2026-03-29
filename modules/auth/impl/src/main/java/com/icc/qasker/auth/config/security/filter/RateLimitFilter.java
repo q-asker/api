@@ -12,6 +12,8 @@ import com.icc.qasker.global.ratelimit.RateLimitTier;
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.ConsumptionProbe;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Tags;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -39,6 +41,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
   private final RateLimitPlanResolver planResolver;
   private final RateLimitProperties rateLimitProperties;
   private final ObjectMapper objectMapper;
+  private final MeterRegistry meterRegistry;
 
   private Cache<String, Bucket> bucketCache;
 
@@ -79,10 +82,27 @@ public class RateLimitFilter extends OncePerRequestFilter {
     Bucket bucket = bucketCache.get(bucketKey, k -> createBucket(tier));
 
     ConsumptionProbe probe = bucket.tryConsumeAndReturnRemaining(1);
+    String scope = isGlobal ? "global" : "client";
+
+    // 글로벌 버킷 잔여 토큰 게이지 등록 (최초 1회만 등록, 이후 동일 참조)
+    if (isGlobal) {
+      meterRegistry.gauge(
+          "rate_limit_global_remaining_tokens",
+          Tags.of("tier", tier.name()),
+          bucket,
+          b -> (double) b.getAvailableTokens());
+    }
+
     if (probe.isConsumed()) {
+      meterRegistry
+          .counter("rate_limit_consumed_total", "tier", tier.name(), "scope", scope)
+          .increment();
       addRateLimitHeaders(response, tier, probe);
       chain.doFilter(request, response);
     } else {
+      meterRegistry
+          .counter("rate_limit_rejected_total", "tier", tier.name(), "scope", scope)
+          .increment();
       long retryAfter = TimeUnit.NANOSECONDS.toSeconds(probe.getNanosToWaitForRefill()) + 1;
       response.setStatus(429);
       response.setContentType("application/json;charset=UTF-8");

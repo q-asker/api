@@ -51,6 +51,8 @@ dependencies {
     implementation "com.bucket4j:bucket4j_jdk17-core:8.16.1"
     // Caffeine: 인메모리 캐시 (버킷 인스턴스 관리)
     implementation "com.github.ben-manes.caffeine:caffeine"
+    // Micrometer: Rate Limit 메트릭 (잔여 토큰, 소비/차단 카운터) 수집
+    implementation "io.micrometer:micrometer-core"
 
     // ────────────────────────────────
     // API 문서 (Swagger)
