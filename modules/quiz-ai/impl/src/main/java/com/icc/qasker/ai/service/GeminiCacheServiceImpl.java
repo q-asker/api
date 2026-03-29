@@ -32,7 +32,7 @@ public class GeminiCacheServiceImpl implements GeminiCacheService {
   }
 
   @Override
-  public CacheInfo createCache(String fileUri, String strategyValue) {
+  public CacheInfo createCache(String fileUri, String strategyValue, String language) {
     try {
       Content pdfContent =
           Content.builder()
@@ -45,7 +45,7 @@ public class GeminiCacheServiceImpl implements GeminiCacheService {
               .build();
 
       QuizType strategy = QuizType.valueOf(strategyValue);
-      String systemPrompt = strategy.getGuideLine();
+      String systemPrompt = strategy.getGuideLine(language);
       Content systemInstruction =
           Content.builder().parts(List.of(Part.builder().text(systemPrompt).build())).build();
 
