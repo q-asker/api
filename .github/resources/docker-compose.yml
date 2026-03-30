@@ -13,6 +13,7 @@ services:
     container_name: app-blue
     environment:
       - SPRING_PROFILES_ACTIVE=prod,blue
+      - JASYPT_ENCRYPTOR_PASSWORD=${JASYPT_ENCRYPTOR_PASSWORD}
     ports:
       - "${BLUE_PORT}:8080"
 
@@ -21,5 +22,6 @@ services:
     container_name: app-green
     environment:
       - SPRING_PROFILES_ACTIVE=prod,green
+      - JASYPT_ENCRYPTOR_PASSWORD=${JASYPT_ENCRYPTOR_PASSWORD}
     ports:
       - "${GREEN_PORT}:8080"

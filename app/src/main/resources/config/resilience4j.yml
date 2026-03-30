@@ -1,3 +1,4 @@
+# Resilience4j CircuitBreaker 설정
 resilience4j:
   circuitbreaker:
     instances:
