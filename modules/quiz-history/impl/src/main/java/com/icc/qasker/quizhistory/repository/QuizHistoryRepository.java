@@ -11,24 +11,13 @@ public interface QuizHistoryRepository extends JpaRepository<QuizHistory, Long> 
 
   List<QuizHistory> findAllByUserId(String userId);
 
-  Optional<QuizHistory> findFirstByProblemSetIdAndUserIdOrderByCreatedAtDesc(
-      Long problemSetId, String userId);
+  Optional<QuizHistory> findByIdAndUserId(Long id, String userId);
 
-  List<QuizHistory> findAllByProblemSetIdAndUserId(Long problemSetId, String userId);
-
-  @Modifying
-  @Query("DELETE FROM QuizHistory h WHERE h.problemSetId = :problemSetId AND h.userId = :userId")
-  void deleteAllByProblemSetIdAndUserId(Long problemSetId, String userId);
+  Optional<QuizHistory> findByUserIdAndProblemSetId(String userId, Long problemSetId);
 
   @Modifying
-  @Query(
-      value =
-          "INSERT INTO quiz_history (user_id, problem_set_id, title, answers, score, created_at) "
-              + "VALUES (:userId, :problemSetId, :title, '[]', 0, NOW()) "
-              + "ON DUPLICATE KEY UPDATE answers = '[]', score = 0, "
-              + "total_time = null, created_at = NOW()",
-      nativeQuery = true)
-  void upsertInitHistory(String userId, Long problemSetId, String title);
+  @Query("DELETE FROM QuizHistory h WHERE h.id = :id AND h.userId = :userId")
+  void deleteByIdAndUserId(Long id, String userId);
 
   @Modifying
   @Query("DELETE FROM QuizHistory h WHERE h.userId = :userId")

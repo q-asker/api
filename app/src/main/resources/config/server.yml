@@ -1,0 +1,26 @@
+server:
+  shutdown: graceful
+
+spring:
+  lifecycle:
+    timeout-per-shutdown-phase: 60s
+
+  servlet:
+    multipart:
+      max-file-size: 35MB
+      max-request-size: 35MB
+      file-size-threshold: 35MB
+
+  threads:
+    virtual:
+      enabled: true
+
+  jpa:
+    open-in-view: false
+    properties:
+      hibernate:
+        default_batch_fetch_size: 100
+
+  ai:
+    retry:
+      max-attempts: 1

@@ -2,6 +2,7 @@ package com.icc.qasker.quiz.mapper;
 
 import com.icc.qasker.quiz.dto.airesponse.ProblemSetGeneratedEvent.QuizGeneratedFromAI;
 import com.icc.qasker.quiz.dto.airesponse.ProblemSetGeneratedEvent.QuizGeneratedFromAI.SelectionsOfAI;
+import com.icc.qasker.quiz.dto.ferequest.enums.Language;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
@@ -20,7 +21,10 @@ public class ExplanationMarkdownBuilder {
    * @param quiz 문제 (셔플된 selections + quizExplanation)
    * @return 병합된 마크다운 문자열
    */
-  public static String build(QuizGeneratedFromAI quiz) {
+  public static String build(QuizGeneratedFromAI quiz, Language language) {
+    String correctHeader = language == Language.EN ? "## Correct Answer" : "## 정답 선택지";
+    String wrongHeader = language == Language.EN ? "## Wrong Answer" : "## 오답 선택지";
+
     StringBuilder sb = new StringBuilder();
 
     // 1. 문항 전체 해설 (자기 점검 + 심화 학습)
@@ -36,7 +40,7 @@ public class ExplanationMarkdownBuilder {
         if (!sel.isCorrect()) {
           continue;
         }
-        sb.append("## 정답 선택지").append("\n\n");
+        sb.append(correctHeader).append("\n\n");
         appendSelectionExp(sb, sel);
       }
       // 그 뒤 오답
@@ -44,7 +48,7 @@ public class ExplanationMarkdownBuilder {
         if (sel.isCorrect()) {
           continue;
         }
-        sb.append("## 오답 선택지").append("\n\n");
+        sb.append(wrongHeader).append("\n\n");
         appendSelectionExp(sb, sel);
       }
     }
