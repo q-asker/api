@@ -17,23 +17,6 @@ spring:
             client-name: Kakao
             authorization-grant-type: authorization_code
             client-authentication-method: client_secret_post
-
----
-spring:
-  config:
-    activate:
-      on-profile: local
-  security:
-    jwt:
-      access-expiration-time: 30000 # 30초
-      refresh-expiration-time: 60480 # 7일
-
----
-spring:
-  config:
-    activate:
-      on-profile: prod
-  security:
     jwt:
       access-expiration-time: 30000 # 30초
       refresh-expiration-time: 604800 # 7일

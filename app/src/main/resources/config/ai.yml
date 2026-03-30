@@ -6,12 +6,8 @@ spring:
         chat:
           options:
             temperature: 0.2
-
----
-spring:
-  config:
-    activate:
-      on-profile: local
+            model: gemini-3.1-flash-lite-preview
+            thinking-budget: 0
 
 q-asker:
   ai:
