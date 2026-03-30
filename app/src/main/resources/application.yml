@@ -12,3 +12,4 @@ spring:
       - optional:classpath:config/ai.yml
       - optional:classpath:config/q-asker.yml
       - optional:classpath:config/aws.yml
+
