@@ -1,3 +1,4 @@
+# Resilience4j CircuitBreaker 설정
 resilience4j:
   circuitbreaker:
     instances:
@@ -13,3 +14,16 @@ resilience4j:
         event-consumer-buffer-size: 10
     metrics:
       enabled: true
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      aiServer:
+        ignore-exceptions:
+          - com.icc.qasker.global.error.ClientSideException

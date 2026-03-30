@@ -1,3 +1,4 @@
+# AWS S3, CloudFront 설정
 aws:
   s3:
     region: ap-northeast-2
