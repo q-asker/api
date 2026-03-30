@@ -86,6 +86,7 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
         GenerationRequestToAI.builder()
             .fileUrl(request.uploadedUrl())
             .strategyValue(request.quizType().name())
+            .language(request.language().name())
             .quizCount(request.quizCount())
             .referencePages(request.pageNumbers())
             .questionsConsumer(
@@ -112,7 +113,7 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
 
                   // 3. 마크다운 포맷팅
                   for (QuizGeneratedFromAI quiz : problemSet.getQuiz()) {
-                    quiz.setExplanation(ExplanationMarkdownBuilder.build(quiz));
+                    quiz.setExplanation(ExplanationMarkdownBuilder.build(quiz, request.language()));
                   }
 
                   // 4. 데이터베이스에 영속화
@@ -146,8 +147,9 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
                 })
             .build();
 
+    int maxChunkCount;
     try {
-      aiServerAdapter.streamRequest(requestToAI);
+      maxChunkCount = aiServerAdapter.streamRequest(requestToAI);
     } catch (Exception e) {
       log.error("생성 중 오류 발생: sessionId={}", sessionId, e);
       finalizeError(sessionId, problemSetId, ExceptionMessage.AI_GENERATION_FAILED.getMessage());
@@ -158,7 +160,7 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
     int quizCount = request.quizCount();
 
     // 요청/생성/실패 문제 수 메트릭 기록 (finalize 결과와 무관하게 항상 실행)
-    resultRecorder.recordQuizCounts(request.quizType(), quizCount, generatedCount);
+    resultRecorder.recordQuizCounts(request.quizType(), quizCount, generatedCount, maxChunkCount);
 
     if (generatedCount == 0) {
       finalizeError(sessionId, problemSetId, ExceptionMessage.AI_GENERATION_FAILED.getMessage());

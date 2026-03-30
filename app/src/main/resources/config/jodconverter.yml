@@ -1,0 +1,30 @@
+# JODConverter (LibreOffice 기반 문서 변환) 설정
+jodconverter:
+  local:
+    max-tasks-per-process: 200
+    task-execution-timeout: 60000
+    task-queue-timeout: 120000
+
+---
+spring:
+  config:
+    activate:
+      on-profile: local
+
+jodconverter:
+  local:
+    enabled: false
+    office-home: /Applications/LibreOffice.app/Contents
+    port-numbers: 2002
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+jodconverter:
+  local:
+    enabled: true
+    office-home: /usr/lib/libreoffice
+    port-numbers: 2002, 2003

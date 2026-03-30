@@ -22,7 +22,7 @@ public class MockAIServerAdapter extends AIServerAdapter {
   }
 
   @Override
-  public void streamRequest(GenerationRequestToAI request) {
+  public int streamRequest(GenerationRequestToAI request) {
     int quizCount = request.quizCount();
     List<Integer> pages =
         CollectionUtils.isEmpty(request.referencePages()) ? List.of(1) : request.referencePages();
@@ -56,9 +56,10 @@ public class MockAIServerAdapter extends AIServerAdapter {
           Thread.sleep(10_000);
         } catch (InterruptedException e) {
           Thread.currentThread().interrupt();
-          return;
+          return 3;
         }
       }
     }
+    return 3;
   }
 }

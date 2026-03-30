@@ -1,7 +1,16 @@
 spring:
   application:
     name: q-asker
+  config:
+    import:
+      - config/server.yml
+      - config/ai.yml
+      - config/security.yml
+      - config/aws.yml
+      - config/jodconverter.yml
+      - config/monitoring.yml
+      - config/q-asker.yml
+      - config/resilience4j.yml
+      - config/springdoc.yml
+      - application-secrets.yml
 
-logging:
-  level:
-    org.glowroot: OFF

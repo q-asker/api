@@ -16,10 +16,10 @@ import org.springframework.stereotype.Component;
 @Component
 public class GeminiMetricsRecorder {
 
-  // Gemini 2.5 Flash 단가
-  private static final double PRICE_INPUT_PER_1M = 0.30;
-  private static final double PRICE_CACHE_READ_PER_1M = 0.03;
-  private static final double PRICE_OUTPUT_PER_1M = 2.50;
+  // Gemini 3.1 Flash Lite 단가
+  private static final double PRICE_INPUT_PER_1M = 0.25;
+  private static final double PRICE_CACHE_READ_PER_1M = 0.025;
+  private static final double PRICE_OUTPUT_PER_1M = 1.50;
 
   private final MeterRegistry registry;
   private final Timer chunkDuration;
@@ -27,9 +27,34 @@ public class GeminiMetricsRecorder {
   private final Counter tokensCached;
   private final Counter tokensThinking;
   private final Counter tokensOutput;
+  private final Counter selectionEqualization;
+  private final Counter selectionChecked;
+  private final Counter eqTokensInput;
+  private final Counter eqTokensOutput;
+  private final Counter eqCost;
 
   public GeminiMetricsRecorder(MeterRegistry registry, QAskerAiProperties aiProperties) {
     this.registry = registry;
+    this.selectionEqualization =
+        Counter.builder("gemini.selection.equalization")
+            .description("선택지 길이 균등화 실행 횟수")
+            .register(registry);
+    this.selectionChecked =
+        Counter.builder("gemini.selection.checked")
+            .description("선택지 균등화 검사 대상 문항 수")
+            .register(registry);
+    this.eqTokensInput =
+        Counter.builder("gemini.equalization.tokens.input")
+            .description("균등화 API 입력 토큰")
+            .register(registry);
+    this.eqTokensOutput =
+        Counter.builder("gemini.equalization.tokens.output")
+            .description("균등화 API 출력 토큰")
+            .register(registry);
+    this.eqCost =
+        Counter.builder("gemini.equalization.cost")
+            .description("균등화 API 추정 비용 (USD)")
+            .register(registry);
 
     this.chunkDuration =
         Timer.builder("gemini.chunk.duration")
@@ -104,6 +129,19 @@ public class GeminiMetricsRecorder {
     tokensOutput.increment(completionTokens);
 
     return totalCost;
+  }
+
+  /** 선택지 균등화 검사 대상 문항 수를 기록한다. */
+  public void incrementSelectionChecked(int count) {
+    selectionChecked.increment(count);
+  }
+
+  /** 선택지 길이 균등화 실행 + 토큰/비용을 기록한다. */
+  public void recordEqualization(long inputTokens, long outputTokens, double cost) {
+    selectionEqualization.increment();
+    eqTokensInput.increment(inputTokens);
+    eqTokensOutput.increment(outputTokens);
+    eqCost.increment(cost);
   }
 
   /**

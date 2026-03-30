@@ -7,9 +7,6 @@ plugins {
     // 예: ./gradlew jib → Dockerfile 없이 Docker Hub에 이미지를 빌드·푸시,
     //     ./gradlew jibDockerBuild → 로컬 Docker 데몬에 이미지를 빌드
     id "com.google.cloud.tools.jib" version "3.4.0"
-    // Download: 외부 파일을 Gradle 태스크로 다운로드하는 플러그인
-    // 예: download.run { src 'https://...' dest 'glowroot.jar' }로 Glowroot 에이전트 자동 다운로드
-    id "de.undercouch.download" version "5.3.0"
 }
 
 // 루트 프로젝트의 version·group을 상속받아 일관된 아티팩트 좌표 유지
@@ -57,6 +54,9 @@ dependencies {
     // Spring MVC 기반 웹 애플리케이션 구성
     // 예: 내장 Tomcat이 기동되고, DispatcherServlet이 모든 HTTP 요청을 라우팅
     implementation "org.springframework.boot:spring-boot-starter-web"
+    // Jasypt: application.yml의 민감한 값(DB 비밀번호, API 키 등)을 ENC()로 암호화하여 Git 커밋 가능하게 함
+    // 예: password: ENC(2kd9fj3k...) → Spring Boot 기동 시 자동 복호화
+    implementation "com.github.ulisesbocchio:jasypt-spring-boot-starter:3.0.5"
     // Spring Data JPA: JPA 기반 리포지토리 자동 생성, 엔티티 매핑 지원
     // 예: spring.jpa.hibernate.ddl-auto=validate 설정으로 엔티티와 DB 스키마 일치 여부를 검증
     implementation "org.springframework.boot:spring-boot-starter-data-jpa"
@@ -69,6 +69,9 @@ dependencies {
     // 예: @ConfigurationProperties(prefix = "app.jwt")로 선언하면
     //     IDE에서 application.yml의 app.jwt.* 속성을 자동완성·타입 검증 가능
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+
+    // 테스트
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
 }
 
 springBoot {
@@ -78,19 +81,6 @@ springBoot {
     buildInfo()
 }
 
-// 로컬 실행 시 Glowroot 에이전트 적용
-// 예: ./gradlew :app:bootRun → http://localhost:4000 에서 Glowroot UI 접근 가능
-bootRun {
-    def glowrootJar = project.file("./glowroot/glowroot.jar")
-    if (glowrootJar.exists()) {
-        jvmArgs = [
-            "-javaagent:${glowrootJar.absolutePath}",
-            "--add-opens=java.base/java.lang=ALL-UNNAMED",
-            "--add-opens=java.base/java.util=ALL-UNNAMED",
-            "-Dglowroot.data.dir=${project.file('./glowroot/data').absolutePath}"
-        ]
-    }
-}
 
 // Jib 설정: jib 태스크 요청 시에만 평가하여 CI에서 프로퍼티 없이도 빌드 가능
 if (gradle.startParameter.taskNames.any { it.contains("jib") }) {
@@ -118,20 +108,10 @@ if (gradle.startParameter.taskNames.any { it.contains("jib") }) {
                 password = project.property("DOCKER_PASSWORD")
             }
         }
-        extraDirectories {
-            paths {
-                path {
-                    // 로컬 ./glowroot 디렉토리를 컨테이너의 /app/glowroot 경로에 복사
-                    // 예: app/glowroot/glowroot.jar → 컨테이너 /app/glowroot/glowroot.jar
-                    setFrom(file("./glowroot").toPath())
-                    into = "/app/glowroot"
-                }
-            }
-        }
         container {
-            jvmFlags = baseJvmFlags() + glowrootJvmFlags()
-            // 서비스 포트(8080) + Actuator 전용 포트(9090) + Glowroot UI 포트(4000)
-            ports = ["8080", "9090", "4000"]
+            jvmFlags = baseJvmFlags()
+            // 서비스 포트(8080) + Actuator 전용 포트(9090)
+            ports = ["8080", "9090"]
             user = "appuser"
             environment = [
                 "HOME": "/home/appuser"
@@ -157,30 +137,5 @@ def baseJvmFlags() {
         // OOM 발생 시 덤프
         "-XX:+HeapDumpOnOutOfMemoryError",
         "-XX:HeapDumpPath=/var/log/heapdump.hprof"
-    ]
-}
-
-// Glowroot APM 설정: 에이전트 어태치, 데이터 디렉토리 지정
-def glowrootJvmFlags() {
-    // 에이전트 JAR 존재 여부 검증
-    // 예: app/glowroot/glowroot.jar 파일이 없으면 빌드가 즉시 실패하여
-    //     에이전트 누락된 채로 배포되는 상황을 방지
-    def glowrootJar = project.file("./glowroot/glowroot.jar")
-    if (!glowrootJar.exists()) {
-        throw new GradleException("Glowroot agent file not found: ${glowrootJar.absolutePath}")
-    }
-
-    return [
-        // Java 에이전트를 JVM에 어태치하여 성능 모니터링 활성화
-        // 예: -javaagent로 로드되면 바이트코드 인스트루멘테이션으로 트랜잭션 추적,
-        //     SQL 쿼리, HTTP 요청, 에러 등을 자동 수집하고 내장 Web UI(포트 4000)에서 조회 가능
-        "-javaagent:/app/glowroot/glowroot.jar",
-
-        // Java 16+ 모듈 시스템에서 Glowroot이 내부 API에 접근할 수 있도록 허용
-        "--add-opens=java.base/java.lang=ALL-UNNAMED",
-        "--add-opens=java.base/java.util=ALL-UNNAMED",
-
-        // Glowroot 데이터 디렉토리 지정 (트랜잭션 기록, 설정 파일 등 저장)
-        "-Dglowroot.data.dir=/app/glowroot/data"
     ]
 }

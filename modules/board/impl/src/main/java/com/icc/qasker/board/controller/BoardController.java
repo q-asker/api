@@ -6,7 +6,9 @@ import com.icc.qasker.board.dto.response.PostDetailResponse;
 import com.icc.qasker.board.dto.response.PostPageResponse;
 import com.icc.qasker.board.service.BoardService;
 import com.icc.qasker.board.service.ReplyService;
+import com.icc.qasker.global.annotation.RateLimit;
 import com.icc.qasker.global.annotation.UserId;
+import com.icc.qasker.global.ratelimit.RateLimitTier;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -45,6 +47,7 @@ public class BoardController {
   }
 
   @Operation(summary = "게시글 작성을 요청한다")
+  @RateLimit(RateLimitTier.WRITE)
   @PostMapping()
   public ResponseEntity<?> createPost(@RequestBody PostRequest request, @UserId String userId) {
     boardService.createPost(request, userId);
@@ -52,6 +55,7 @@ public class BoardController {
   }
 
   @Operation(summary = "게시글을 수정한다")
+  @RateLimit(RateLimitTier.WRITE)
   @PutMapping("/{boardId}")
   public ResponseEntity<?> updatePost(
       @PathVariable Long boardId, @RequestBody PostRequest request, @UserId String userId) {
@@ -60,6 +64,7 @@ public class BoardController {
   }
 
   @Operation(summary = "게시글을 삭제한다")
+  @RateLimit(RateLimitTier.WRITE)
   @DeleteMapping("/{boardId}")
   public ResponseEntity<?> deletePost(@PathVariable Long boardId, @UserId String userId) {
     boardService.deletePost(boardId, userId);
@@ -67,6 +72,7 @@ public class BoardController {
   }
 
   @Operation(summary = "댓글을 단다")
+  @RateLimit(RateLimitTier.WRITE)
   @PostMapping("/{boardId}/replies")
   public ResponseEntity<?> reply(
       @RequestBody ReplyRequest replyRequest, @PathVariable Long boardId, @UserId String userId) {

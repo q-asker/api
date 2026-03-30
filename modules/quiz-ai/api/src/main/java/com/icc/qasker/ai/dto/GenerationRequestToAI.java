@@ -8,6 +8,7 @@ import lombok.Builder;
 public record GenerationRequestToAI(
     String fileUrl,
     String strategyValue,
+    String language,
     int quizCount,
     List<Integer> referencePages,
     Consumer<AIProblemSet> questionsConsumer) {}

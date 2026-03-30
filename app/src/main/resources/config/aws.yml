@@ -1,0 +1,8 @@
+# AWS S3, CloudFront 설정
+aws:
+  s3:
+    region: ap-northeast-2
+    max-file-name-length: 255
+    allowed-extensions: application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint
+    signature-duration: 100
+    max-file-size: 36_700_160

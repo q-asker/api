@@ -10,8 +10,6 @@ jobs:
     name: 빌드 작업
     runs-on: ubuntu-latest
     env:
-      APPLICATION_PROD_YML: ${{ secrets.APPLICATION_PROD_YML }}
-      NEWRELIC_YML: ${{ secrets.NEWRELIC_YML }}
       GRADLE_PROPERTIES: ${{ secrets.GRADLE_PROPERTIES }}
 
     steps:
@@ -20,7 +18,6 @@ jobs:
 
       - name: 환경변수들 등록
         run: |
-          echo "${{ env.APPLICATION_PROD_YML }}" > app/src/main/resources/application-prod.yml
           echo "${{ env.GRADLE_PROPERTIES }}" > app/gradle.properties
 
       - name: JDK 21 설정
@@ -66,19 +63,15 @@ jobs:
           DOCKER_CONTAINER_NAME_VALUE="${DOCKER_ID_VALUE}-${DOCKER_IMAGE_NAME_VALUE}"
           echo "DOCKER_CONTAINER_NAME=$DOCKER_CONTAINER_NAME_VALUE" >> $GITHUB_ENV
 
+          # JASYPT_ENCRYPTOR_PASSWORD 추출, 마스킹, 환경 변수 등록
+          JASYPT_PASSWORD_VALUE=$(echo "${{ secrets.GRADLE_PROPERTIES }}" | grep '^JASYPT_ENCRYPTOR_PASSWORD=' | cut -d'=' -f2-)
+          echo "::add-mask::$JASYPT_PASSWORD_VALUE"
+          echo "JASYPT_ENCRYPTOR_PASSWORD=$JASYPT_PASSWORD_VALUE" >> $GITHUB_ENV
+
           # SLACK_WEBHOOK_URL 추출, 마스킹, 환경 변수 등록
           SLACK_WEBHOOK_URL_VALUE=$(echo "${{ secrets.GRADLE_PROPERTIES }}" | grep '^SLACK_WEBHOOK_URL=' | cut -d'=' -f2-)
           echo "SLACK_WEBHOOK_URL=$SLACK_WEBHOOK_URL_VALUE" >> $GITHUB_ENV
 
-          # GLOWROOT_USER 추출, 마스킹, 환경 변수 등록
-          GLOWROOT_USER_VALUE=$(echo "${{ secrets.GRADLE_PROPERTIES }}" | grep '^GLOWROOT_USER=' | cut -d'=' -f2-)
-          echo "::add-mask::$GLOWROOT_USER_VALUE"
-          echo "GLOWROOT_USER=$GLOWROOT_USER_VALUE" >> $GITHUB_ENV
-
-          # GLOWROOT_PASSWORD 추출, 마스킹, 환경 변수 등록
-          GLOWROOT_PASSWORD_VALUE=$(echo "${{ secrets.GRADLE_PROPERTIES }}" | grep '^GLOWROOT_PASSWORD=' | cut -d'=' -f2-)
-          echo "::add-mask::$GLOWROOT_PASSWORD_VALUE"
-          echo "GLOWROOT_PASSWORD=$GLOWROOT_PASSWORD_VALUE" >> $GITHUB_ENV
 
       - name: 코드 체크아웃
         uses: actions/checkout@v4
@@ -123,6 +116,7 @@ jobs:
             echo "DOCKER_IMAGE=${{ env.DOCKER_IMAGE_NAME }}" > .env
             echo "BLUE_PORT=${{ env.BLUE_PORT }}" >> .env
             echo "GREEN_PORT=${{ env.GREEN_PORT }}" >> .env
+            echo "JASYPT_ENCRYPTOR_PASSWORD=${{ env.JASYPT_ENCRYPTOR_PASSWORD }}" >> .env
 
             # 3. Docker 로그인
             echo "${{ env.DOCKER_PASSWORD }}" | docker login -u "${{ env.DOCKER_ID }}" --password-stdin
@@ -130,6 +124,4 @@ jobs:
             # 4. deploy.sh 실행 (기존의 docker run 대신 사용)
             chmod +x deploy.sh
             export SLACK_WEBHOOK_URL="${{ env.SLACK_WEBHOOK_URL }}"
-            export GLOWROOT_USER="${{ env.GLOWROOT_USER }}"
-            export GLOWROOT_PASSWORD="${{ env.GLOWROOT_PASSWORD }}"
             ./deploy.sh "${{ env.BLUE_PORT }}" "${{ env.GREEN_PORT }}" "${{ env.DOCKER_IMAGE_NAME }}"

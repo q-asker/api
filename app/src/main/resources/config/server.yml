@@ -1,0 +1,55 @@
+# 서버, DB, JPA, 캐시 설정
+server:
+  shutdown: graceful
+
+spring:
+  lifecycle:
+    timeout-per-shutdown-phase: 60s
+
+  servlet:
+    multipart:
+      max-file-size: 35MB
+      max-request-size: 35MB
+      file-size-threshold: 35MB
+
+  threads:
+    virtual:
+      enabled: true
+  ai:
+    retry:
+      max-attempts: 1
+  jpa:
+    open-in-view: false
+    properties:
+      hibernate:
+        default_batch_fetch_size: 100
+
+---
+spring:
+  config:
+    activate:
+      on-profile: local
+  cache:
+    type: none
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+  cache:
+    type: simple
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none
