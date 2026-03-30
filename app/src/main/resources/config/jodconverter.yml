@@ -26,5 +26,5 @@ spring:
 jodconverter:
   local:
     enabled: true
-    office-home: C:/Program Files/Git/usr/lib/libreoffice
+    office-home: /usr/lib/libreoffice
     port-numbers: 2002, 2003
