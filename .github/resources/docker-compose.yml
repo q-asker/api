@@ -3,10 +3,13 @@ services:
     image: nginx:latest
     container_name: nginx
     ports:
-      - "8080:8080"
+      - "80:80"
+      - "443:443"
       - "9090:9090"
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /var/www/certbot:/var/www/certbot:ro
 
   app-blue:
     image: ${DOCKER_IMAGE}
