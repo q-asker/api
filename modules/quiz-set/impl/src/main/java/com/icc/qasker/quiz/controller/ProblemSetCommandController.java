@@ -1,6 +1,8 @@
 package com.icc.qasker.quiz.controller;
 
+import com.icc.qasker.global.annotation.RateLimit;
 import com.icc.qasker.global.annotation.UserId;
+import com.icc.qasker.global.ratelimit.RateLimitTier;
 import com.icc.qasker.quiz.ProblemSetService;
 import com.icc.qasker.quiz.dto.ferequest.ChangeTitleRequest;
 import com.icc.qasker.quiz.dto.feresponse.ChangeTitleResponse;
@@ -24,6 +26,7 @@ public class ProblemSetCommandController {
   private final ProblemSetService problemSetService;
 
   @Operation(summary = "문제세트 제목을 변경한다")
+  @RateLimit(RateLimitTier.WRITE)
   @PatchMapping("/{id}/title")
   public ResponseEntity<ChangeTitleResponse> changeProblemSet(
       @UserId String userId,

@@ -1,0 +1,151 @@
+package com.icc.qasker.auth.config.security.filter;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.icc.qasker.auth.component.ClientKeyResolver;
+import com.icc.qasker.global.error.CustomErrorResponse;
+import com.icc.qasker.global.error.ExceptionMessage;
+import com.icc.qasker.global.properties.RateLimitProperties;
+import com.icc.qasker.global.ratelimit.RateLimitPlanResolver;
+import com.icc.qasker.global.ratelimit.RateLimitTier;
+import io.github.bucket4j.Bandwidth;
+import io.github.bucket4j.Bucket;
+import io.github.bucket4j.ConsumptionProbe;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Tags;
+import jakarta.annotation.PostConstruct;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.concurrent.TimeUnit;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+/** Bucket4j Token Bucket 기반 Rate Limit 필터. JWT 인증 필터 이후에 실행되어 인증 정보를 활용한다. */
+@Component
+@RequiredArgsConstructor
+public class RateLimitFilter extends OncePerRequestFilter {
+
+  private static final String HEADER_LIMIT = "X-RateLimit-Limit";
+  private static final String HEADER_REMAINING = "X-RateLimit-Remaining";
+  private static final String HEADER_RESET = "X-RateLimit-Reset";
+  private static final String HEADER_RETRY_AFTER = "Retry-After";
+
+  private final ClientKeyResolver keyResolver;
+  private final RateLimitPlanResolver planResolver;
+  private final RateLimitProperties rateLimitProperties;
+  private final ObjectMapper objectMapper;
+  private final MeterRegistry meterRegistry;
+
+  private Cache<String, Bucket> bucketCache;
+
+  @PostConstruct
+  public void initCache() {
+    bucketCache =
+        Caffeine.newBuilder()
+            .expireAfterAccess(rateLimitProperties.getBucketExpireMinutes(), TimeUnit.MINUTES)
+            .maximumSize(rateLimitProperties.getMaxBucketSize())
+            .build();
+  }
+
+  @Override
+  protected boolean shouldNotFilter(HttpServletRequest request) {
+    // actuator 엔드포인트는 Rate Limit 제외
+    return request.getRequestURI().startsWith("/actuator");
+  }
+
+  @Override
+  protected void doFilterInternal(
+      HttpServletRequest request, HttpServletResponse response, FilterChain chain)
+      throws ServletException, IOException {
+
+    if (!rateLimitProperties.isEnabled()) {
+      chain.doFilter(request, response);
+      return;
+    }
+
+    RateLimitTier tier = planResolver.resolve(request);
+    if (tier == RateLimitTier.NONE) {
+      chain.doFilter(request, response);
+      return;
+    }
+
+    boolean isGlobal = planResolver.resolveGlobal(request);
+    String clientKey = isGlobal ? "global" : keyResolver.resolve(request);
+    String bucketKey = clientKey + ":" + tier.name();
+    Bucket bucket = bucketCache.get(bucketKey, k -> createBucket(tier));
+
+    ConsumptionProbe probe = bucket.tryConsumeAndReturnRemaining(1);
+    String scope = isGlobal ? "global" : "client";
+
+    // 글로벌 버킷 잔여 토큰 게이지 등록 (최초 1회만 등록, 이후 동일 참조)
+    if (isGlobal) {
+      meterRegistry.gauge(
+          "rate_limit_global_remaining_tokens",
+          Tags.of("tier", tier.name()),
+          bucket,
+          b -> (double) b.getAvailableTokens());
+    }
+
+    if (probe.isConsumed()) {
+      meterRegistry
+          .counter("rate_limit_consumed_total", "tier", tier.name(), "scope", scope)
+          .increment();
+      addRateLimitHeaders(response, tier, probe);
+      chain.doFilter(request, response);
+    } else {
+      meterRegistry
+          .counter("rate_limit_rejected_total", "tier", tier.name(), "scope", scope)
+          .increment();
+      long retryAfter = TimeUnit.NANOSECONDS.toSeconds(probe.getNanosToWaitForRefill()) + 1;
+      response.setStatus(429);
+      response.setContentType("application/json;charset=UTF-8");
+      response.setHeader(HEADER_RETRY_AFTER, String.valueOf(retryAfter));
+      addRateLimitHeaders(response, tier, probe);
+      objectMapper.writeValue(
+          response.getWriter(),
+          new CustomErrorResponse(ExceptionMessage.RATE_LIMIT_EXCEEDED.getMessage()));
+    }
+  }
+
+  private void addRateLimitHeaders(
+      HttpServletResponse response, RateLimitTier tier, ConsumptionProbe probe) {
+    long resetEpochSeconds =
+        Instant.now().plusNanos(probe.getNanosToWaitForRefill()).getEpochSecond();
+    response.setHeader(HEADER_LIMIT, String.valueOf(getCapacity(tier)));
+    response.setHeader(HEADER_REMAINING, String.valueOf(Math.max(0, probe.getRemainingTokens())));
+    response.setHeader(HEADER_RESET, String.valueOf(resetEpochSeconds));
+  }
+
+  private Bucket createBucket(RateLimitTier tier) {
+    Bandwidth bandwidth =
+        Bandwidth.builder()
+            .capacity(getCapacity(tier))
+            .refillGreedy(getRefillPerMinute(tier), Duration.ofMinutes(1))
+            .build();
+    return Bucket.builder().addLimit(bandwidth).build();
+  }
+
+  private long getCapacity(RateLimitTier tier) {
+    return getTierConfig(tier).capacity();
+  }
+
+  private long getRefillPerMinute(RateLimitTier tier) {
+    return getTierConfig(tier).refillPerMinute();
+  }
+
+  private RateLimitProperties.TierConfig getTierConfig(RateLimitTier tier) {
+    RateLimitProperties.TierConfig config = rateLimitProperties.getTiers().get(tier.name());
+    if (config == null) {
+      throw new IllegalStateException(
+          "YAML에 Rate Limit Tier 설정이 없습니다: q-asker.rate-limit.tiers." + tier.name());
+    }
+    return config;
+  }
+}

@@ -58,7 +58,10 @@ public enum ExceptionMessage {
   ALREADY_ANSWERED(HttpStatus.FORBIDDEN, "답변이 달린 글은 수정 및 삭제가 불가능합니다."),
 
   // ## CONVERTER
-  FAIL_CONVERT(HttpStatus.INTERNAL_SERVER_ERROR, "컨버팅에 실패했습니다.");
+  FAIL_CONVERT(HttpStatus.INTERNAL_SERVER_ERROR, "컨버팅에 실패했습니다."),
+
+  // ## RATE LIMIT
+  RATE_LIMIT_EXCEEDED(HttpStatus.TOO_MANY_REQUESTS, "요청이 너무 많습니다. 잠시 후 다시 시도해주세요.");
 
   private final HttpStatus httpStatus;
   private final String message;

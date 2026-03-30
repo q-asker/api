@@ -1,5 +1,7 @@
 package com.icc.qasker.quiz.controller;
 
+import com.icc.qasker.global.annotation.RateLimit;
+import com.icc.qasker.global.ratelimit.RateLimitTier;
 import com.icc.qasker.quiz.ExplanationService;
 import com.icc.qasker.quiz.dto.feresponse.ExplanationResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -20,6 +22,7 @@ public class ExplanationController {
   private final ExplanationService explanationService;
 
   @Operation(summary = "설명을 가져온다")
+  @RateLimit(RateLimitTier.HEAVY)
   @GetMapping("/{id}")
   public ResponseEntity<ExplanationResponse> getExplanation(
       @PathVariable("id") String problemSetId) {

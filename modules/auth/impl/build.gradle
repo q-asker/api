@@ -45,6 +45,16 @@ dependencies {
     implementation "org.springframework.boot:spring-boot-starter-oauth2-client"
 
     // ────────────────────────────────
+    // Rate Limiting
+    // ────────────────────────────────
+    // Bucket4j: Token Bucket 알고리즘 기반 요청 속도 제한 (RateLimitFilter에서 사용)
+    implementation "com.bucket4j:bucket4j_jdk17-core:8.16.1"
+    // Caffeine: 인메모리 캐시 (버킷 인스턴스 관리)
+    implementation "com.github.ben-manes.caffeine:caffeine"
+    // Micrometer: Rate Limit 메트릭 (잔여 토큰, 소비/차단 카운터) 수집
+    implementation "io.micrometer:micrometer-core"
+
+    // ────────────────────────────────
     // API 문서 (Swagger)
     // ────────────────────────────────
     // SpringDoc OpenAPI: API 문서화 어노테이션(@Operation, @Schema) + Swagger UI 제공
