@@ -51,3 +51,6 @@ spring:
 q-asker:
   slack:
     enabled: true
+  web:
+    frontend-deploy-url: https://www.q-asker.com
+    frontend-dev-url: http://q-asker-test-webpage-20251211.s3-website.ap-northeast-2.amazonaws.com
