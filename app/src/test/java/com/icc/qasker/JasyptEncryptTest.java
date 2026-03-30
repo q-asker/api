@@ -23,9 +23,8 @@ class JasyptEncryptTest {
   @BeforeEach
   void setUp() {
     String password = System.getenv("JASYPT_ENCRYPTOR_PASSWORD");
-    if (password == null || password.isBlank()) {
-      throw new IllegalStateException("환경변수 JASYPT_ENCRYPTOR_PASSWORD가 설정되지 않았습니다.");
-    }
+    Assumptions.assumeTrue(
+        password != null && !password.isBlank(), "JASYPT_ENCRYPTOR_PASSWORD 미설정 — 로컬 전용 테스트 skip");
 
     encryptor = new PooledPBEStringEncryptor();
     encryptor.setPassword(password);
