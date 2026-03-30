@@ -160,7 +160,7 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
     int quizCount = request.quizCount();
 
     // 요청/생성/실패 문제 수 메트릭 기록 (finalize 결과와 무관하게 항상 실행)
-    resultRecorder.recordQuizCounts(request.quizType(), quizCount, generatedCount);
+    resultRecorder.recordQuizCounts(request.quizType(), quizCount, generatedCount, maxChunkCount);
 
     if (generatedCount == 0) {
       finalizeError(sessionId, problemSetId, ExceptionMessage.AI_GENERATION_FAILED.getMessage());

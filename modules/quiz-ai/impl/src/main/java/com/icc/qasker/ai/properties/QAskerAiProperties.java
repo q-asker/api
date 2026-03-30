@@ -1,5 +1,6 @@
 package com.icc.qasker.ai.properties;
 
+import com.icc.qasker.ai.ChunkProperties;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import lombok.Getter;
@@ -25,7 +26,7 @@ public class QAskerAiProperties {
 
   @Getter
   @Setter
-  public static class Chunk {
+  public static class Chunk implements ChunkProperties {
 
     /** A/B 테스트 변형 목록 */
     private List<Integer> maxCountVariants = List.of(10);
