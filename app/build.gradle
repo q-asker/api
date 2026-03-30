@@ -57,6 +57,9 @@ dependencies {
     // Spring MVC 기반 웹 애플리케이션 구성
     // 예: 내장 Tomcat이 기동되고, DispatcherServlet이 모든 HTTP 요청을 라우팅
     implementation "org.springframework.boot:spring-boot-starter-web"
+    // Jasypt: application.yml의 민감한 값(DB 비밀번호, API 키 등)을 ENC()로 암호화하여 Git 커밋 가능하게 함
+    // 예: password: ENC(2kd9fj3k...) → Spring Boot 기동 시 자동 복호화
+    implementation "com.github.ulisesbocchio:jasypt-spring-boot-starter:3.0.5"
     // Spring Data JPA: JPA 기반 리포지토리 자동 생성, 엔티티 매핑 지원
     // 예: spring.jpa.hibernate.ddl-auto=validate 설정으로 엔티티와 DB 스키마 일치 여부를 검증
     implementation "org.springframework.boot:spring-boot-starter-data-jpa"
@@ -69,6 +72,9 @@ dependencies {
     // 예: @ConfigurationProperties(prefix = "app.jwt")로 선언하면
     //     IDE에서 application.yml의 app.jwt.* 속성을 자동완성·타입 검증 가능
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+
+    // 테스트
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
 }
 
 springBoot {
@@ -81,6 +87,9 @@ springBoot {
 // 로컬 실행 시 Glowroot 에이전트 적용
 // 예: ./gradlew :app:bootRun → http://localhost:4000 에서 Glowroot UI 접근 가능
 bootRun {
+    // gradle.properties의 JASYPT_ENCRYPTOR_PASSWORD를 환경변수로 주입
+    environment 'JASYPT_ENCRYPTOR_PASSWORD', findProperty('JASYPT_ENCRYPTOR_PASSWORD') ?: System.getenv('JASYPT_ENCRYPTOR_PASSWORD') ?: ''
+
     def glowrootJar = project.file("./glowroot/glowroot.jar")
     if (glowrootJar.exists()) {
         jvmArgs = [
