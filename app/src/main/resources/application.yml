@@ -12,5 +12,5 @@ spring:
       - config/q-asker.yml
       - config/resilience4j.yml
       - config/springdoc.yml
-      - config/secrets.yml
+      - application-secrets.yml
 
