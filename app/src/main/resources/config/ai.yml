@@ -1,0 +1,24 @@
+# AI (Google Gemini) 설정
+spring:
+  ai:
+    google:
+      genai:
+        chat:
+          options:
+            temperature: 0.2
+
+---
+spring:
+  config:
+    activate:
+      on-profile: local
+
+q-asker:
+  ai:
+    equalization-model: gemini-2.5-flash-lite
+    chunk:
+      max-count-variants: 10, 5
+    file-client:
+      base-url: https://generativelanguage.googleapis.com
+      connect-timeout-ms: 5000
+      read-timeout-ms: 30000
