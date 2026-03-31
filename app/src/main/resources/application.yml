@@ -6,7 +6,7 @@ spring:
       - config/server.yml
       - config/ai.yml
       - config/security.yml
-      - config/aws.yml
+      - config/oci.yml
       - config/jodconverter.yml
       - config/monitoring.yml
       - config/q-asker.yml

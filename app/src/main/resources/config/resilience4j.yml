@@ -12,5 +12,7 @@ resilience4j:
         permitted-number-of-calls-in-half-open-state: 2
         automatic-transition-from-open-to-half-open-enabled: true
         event-consumer-buffer-size: 10
+        record-exceptions:
+          - com.icc.qasker.ai.exception.GeminiInfraException
     metrics:
       enabled: true
