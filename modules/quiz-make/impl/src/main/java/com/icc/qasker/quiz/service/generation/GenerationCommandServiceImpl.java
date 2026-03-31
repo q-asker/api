@@ -152,7 +152,11 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
       maxChunkCount = aiServerAdapter.streamRequest(requestToAI);
     } catch (Exception e) {
       log.error("생성 중 오류 발생: sessionId={}", sessionId, e);
-      finalizeError(sessionId, problemSetId, ExceptionMessage.AI_GENERATION_FAILED.getMessage());
+      finalizeError(
+          sessionId,
+          problemSetId,
+          request.quizType(),
+          ExceptionMessage.AI_GENERATION_FAILED.getMessage());
       return;
     }
 
@@ -163,7 +167,11 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
     resultRecorder.recordQuizCounts(request.quizType(), quizCount, generatedCount, maxChunkCount);
 
     if (generatedCount == 0) {
-      finalizeError(sessionId, problemSetId, ExceptionMessage.AI_GENERATION_FAILED.getMessage());
+      finalizeError(
+          sessionId,
+          problemSetId,
+          request.quizType(),
+          ExceptionMessage.AI_GENERATION_FAILED.getMessage());
     } else if (generatedCount == quizCount) {
       finalizeSuccess(sessionId, problemSetId, request.quizType(), generatedCount);
     } else {
@@ -186,9 +194,10 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
     resultRecorder.recordPartialSuccess(problemSetId, quizType, generatedCount, quizCount);
   }
 
-  private void finalizeError(String sessionId, Long problemSetId, String errorMessage) {
+  private void finalizeError(
+      String sessionId, Long problemSetId, QuizType quizType, String errorMessage) {
     quizCommandService.updateStatus(problemSetId, FAILED);
     notificationService.sendFinishWithError(sessionId, errorMessage);
-    resultRecorder.recordError(problemSetId, errorMessage);
+    resultRecorder.recordError(problemSetId, quizType, errorMessage);
   }
 }
