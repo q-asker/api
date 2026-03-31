@@ -22,6 +22,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -44,6 +46,9 @@ public class RateLimitFilter extends OncePerRequestFilter {
   private final MeterRegistry meterRegistry;
 
   private Cache<String, Bucket> bucketCache;
+
+  // 글로벌 버킷은 만료 없이 영구 보관 — Micrometer Gauge의 WeakReference가 끊기지 않도록 강참조 유지
+  private final Map<String, Bucket> globalBucketStore = new ConcurrentHashMap<>();
 
   @PostConstruct
   public void initCache() {
@@ -79,19 +84,28 @@ public class RateLimitFilter extends OncePerRequestFilter {
     boolean isGlobal = planResolver.resolveGlobal(request);
     String clientKey = isGlobal ? "global" : keyResolver.resolve(request);
     String bucketKey = clientKey + ":" + tier.name();
-    Bucket bucket = bucketCache.get(bucketKey, k -> createBucket(tier));
+
+    Bucket bucket;
+    if (isGlobal) {
+      // 글로벌 버킷은 Caffeine 캐시 만료 대상에서 제외 — Gauge WeakReference가 끊기지 않도록 강참조 유지
+      bucket =
+          globalBucketStore.computeIfAbsent(
+              bucketKey,
+              k -> {
+                Bucket b = createBucket(tier);
+                meterRegistry.gauge(
+                    "rate_limit_global_remaining_tokens",
+                    Tags.of("tier", tier.name()),
+                    b,
+                    bkt -> (double) bkt.getAvailableTokens());
+                return b;
+              });
+    } else {
+      bucket = bucketCache.get(bucketKey, k -> createBucket(tier));
+    }
 
     ConsumptionProbe probe = bucket.tryConsumeAndReturnRemaining(1);
     String scope = isGlobal ? "global" : "client";
-
-    // 글로벌 버킷 잔여 토큰 게이지 등록 (최초 1회만 등록, 이후 동일 참조)
-    if (isGlobal) {
-      meterRegistry.gauge(
-          "rate_limit_global_remaining_tokens",
-          Tags.of("tier", tier.name()),
-          bucket,
-          b -> (double) b.getAvailableTokens());
-    }
 
     if (probe.isConsumed()) {
       meterRegistry
