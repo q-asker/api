@@ -38,8 +38,8 @@ TOTAL_START_TIME=$(date +%s)
 
 send_slack "🚀 블루-그린 배포 시작..."
 
-# 1. 현재 구동 중인 프로필 확인
-CURRENT_PROFILE=$(curl -s --connect-timeout 3 --max-time 5 http://localhost:8080/status | grep -o '"profile":"[^"]*"' | cut -d'"' -f4)
+# 1. 현재 구동 중인 프로필 확인 (Nginx HTTPS 경유)
+CURRENT_PROFILE=$(curl -s --connect-timeout 3 --max-time 5 -k https://localhost/status | grep -o '"profile":"[^"]*"' | cut -d'"' -f4)
 
 # 2. 타겟 프로필 및 포트 설정
 if [[ "$CURRENT_PROFILE" == *"blue"* ]]; then

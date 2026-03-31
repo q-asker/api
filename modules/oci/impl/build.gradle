@@ -1,0 +1,53 @@
+plugins {
+    // java-library: api/implementation 의존성 구분을 지원하는 라이브러리 모듈용 플러그인
+    // 예: api로 선언한 의존성은 이 모듈을 사용하는 소비자에게 전이됨,
+    //     implementation으로 선언하면 내부에서만 사용되고 소비자에게 노출되지 않음
+    id 'java-library'
+}
+
+dependencies {
+
+    // ────────────────────────────────
+    // 프로젝트 모듈
+    // ────────────────────────────────
+    // global: 공통 예외 처리, 공통 응답 DTO 등 프로젝트 전역 유틸리티 모듈
+    // 예: 업로드 실패 시 GlobalException을 던져 공통 에러 응답으로 변환
+    implementation project(":global")
+    // oci-api: OCI Object Storage 인터페이스·DTO 정의 모듈
+    // 예: ObjectStorageService 인터페이스, FileValidateService를 구현체에서 import
+    implementation project(":oci-api")
+
+    // ────────────────────────────────
+    // OCI Object Storage SDK
+    // ────────────────────────────────
+    // OCI Object Storage 클라이언트: 버킷 파일 업로드
+    // 예: uploadManager.upload(request)로 멀티파트 병렬 업로드
+    implementation "com.oracle.oci.sdk:oci-java-sdk-objectstorage:3.80.3"
+    // OCI SDK HTTP 클라이언트 (Spring Boot 3.x Jakarta 호환, Jersey3 사용)
+    implementation "com.oracle.oci.sdk:oci-java-sdk-common-httpclient-jersey3:3.80.3"
+
+    // ────────────────────────────────
+    // Micrometer: Prometheus 커스텀 메트릭 (OCI 업로드 Timer)
+    // ────────────────────────────────
+    // oci-impl은 Spring Boot starter가 없어 micrometer-core를 직접 추가
+    // BOM(spring-boot-dependencies)이 버전을 관리하므로 버전 명시 불필요
+    implementation "io.micrometer:micrometer-core"
+
+    // ────────────────────────────────
+    // API 문서 (Swagger)
+    // ────────────────────────────────
+    // SpringDoc OpenAPI: API 문서화 어노테이션(@Operation, @Schema) + Swagger UI 제공
+    // 예: 서버 기동 후 /swagger-ui/index.html 접속하면 API 목록·테스트 UI가 제공됨
+    implementation "org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.8"
+
+    // ────────────────────────────────
+    // 테스트
+    // ────────────────────────────────
+    testImplementation "org.springframework.boot:spring-boot-starter-test"
+    testImplementation platform("org.junit:junit-bom:5.12.2")
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+}
+
+test {
+    useJUnitPlatform()
+}

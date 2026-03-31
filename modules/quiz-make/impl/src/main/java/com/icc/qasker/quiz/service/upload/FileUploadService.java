@@ -2,10 +2,10 @@ package com.icc.qasker.quiz.service.upload;
 
 import com.icc.qasker.ai.GeminiFileService;
 import com.icc.qasker.ai.dto.GeminiFileUploadResponse.FileMetadata;
-import com.icc.qasker.aws.S3Service;
-import com.icc.qasker.aws.S3ValidateService;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
+import com.icc.qasker.oci.FileValidateService;
+import com.icc.qasker.oci.ObjectStorageService;
 import com.icc.qasker.quiz.dto.feresponse.FileUploadResponse;
 import com.icc.qasker.util.ConvertService;
 import io.micrometer.core.instrument.Counter;
@@ -26,9 +26,9 @@ import org.springframework.web.multipart.MultipartFile;
 @RequiredArgsConstructor
 public class FileUploadService {
 
-  private final S3Service s3Service;
+  private final ObjectStorageService objectStorageService;
   private final GeminiFileService geminiFileService;
-  private final S3ValidateService s3ValidateService;
+  private final FileValidateService fileValidateService;
   private final ConvertService convertService;
   private final MeterRegistry registry;
 
@@ -46,7 +46,7 @@ public class FileUploadService {
   public FileUploadResponse upload(MultipartFile file) {
     String originalFileName = file.getOriginalFilename();
 
-    s3ValidateService.validateFileWithThrowing(
+    fileValidateService.validateFileWithThrowing(
         originalFileName, file.getSize(), file.getContentType());
 
     Path tempFile = null;
@@ -84,7 +84,8 @@ public class FileUploadService {
 
       // 4. S3 + Gemini 동시 시작
       CompletableFuture<String> s3Future =
-          CompletableFuture.supplyAsync(() -> s3Service.uploadPdf(finalPdfFile, originalFileName));
+          CompletableFuture.supplyAsync(
+              () -> objectStorageService.uploadPdf(finalPdfFile, originalFileName));
 
       // Gemini 업로드: 완료 시 geminiCopy 정리, 예외는 보존 (캐시에서 join 시 처리)
       CompletableFuture<FileMetadata> geminiFuture =

@@ -64,12 +64,9 @@ public class GenerationResultRecorder {
     incrementOutcome("partial", quizType);
   }
 
-  public void recordError(Long problemSetId, String errorMessage) {
+  public void recordError(Long problemSetId, QuizType quizType, String errorMessage) {
     slackNotifier.notifyError(problemSetId, errorMessage);
-    Counter.builder("quiz.generation.outcome")
-        .tag("outcome", "fail")
-        .register(registry)
-        .increment();
+    incrementOutcome("fail", quizType);
   }
 
   /** 요청/생성 문제 수를 퀴즈 타입별로 기록한다. finalize 결과와 무관하게 호출된다. */

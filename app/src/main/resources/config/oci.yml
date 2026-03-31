@@ -1,0 +1,11 @@
+# AWS CloudFront + OCI Object Storage 설정
+
+# OCI Object Storage (파일 업로드 스토리지)
+oci:
+  object-storage:
+    region: ap-chuncheon-1
+    config-file-path: ~/.oci/config
+    profile: DEFAULT
+    max-file-name-length: 255
+    allowed-extensions: application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint
+    max-file-size: 36_700_160
