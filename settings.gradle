@@ -2,7 +2,7 @@ rootProject.name = 'q-asker'
 
 include ':app', ':global',
     ':auth-api', ':auth-impl',
-    ':aws-api', ':aws-impl',
+    ':oci-api', ':oci-impl',
     ':board-api', ':board-impl',
     ':quiz-ai-api', ':quiz-ai-impl',
     ':quiz-history-api', ':quiz-history-impl',
@@ -16,8 +16,8 @@ project(':global').projectDir = file('modules/global')
 project(':auth-api').projectDir = file('modules/auth/api')
 project(':auth-impl').projectDir = file('modules/auth/impl')
 
-project(':aws-api').projectDir = file('modules/aws/api')
-project(':aws-impl').projectDir = file('modules/aws/impl')
+project(':oci-api').projectDir = file('modules/oci/api')
+project(':oci-impl').projectDir = file('modules/oci/impl')
 
 project(':board-api').projectDir = file('modules/board/api')
 project(':board-impl').projectDir = file('modules/board/impl')

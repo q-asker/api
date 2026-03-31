@@ -7,7 +7,7 @@ q-asker:
   async:
     task-termination-timeout-ms: 10000
   sse:
-    timeout-ms: 300000
+    timeout-ms: 120000
   rate-limit:
     enabled: true
     bucket-expire-minutes: 10
