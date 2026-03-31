@@ -93,6 +93,10 @@ public class GeminiFileServiceImpl implements GeminiFileService {
       // 완료된 Future로 캐시에 저장
       uploadFutureCache.put(pdfUrl, CompletableFuture.completedFuture(metadata));
       return metadata;
+    } catch (java.io.FileNotFoundException e) {
+      // S3/CloudFront URL이 404인 경우 — AI 인프라 문제가 아닌 클라이언트 오류
+      throw new CustomException(
+          ExceptionMessage.INVALID_URL_REQUEST, "PDF 파일을 찾을 수 없습니다: " + e.getMessage(), e);
     } catch (IOException e) {
       throw new CustomException(
           ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR, "PDF 업로드 중 I/O 오류", e);

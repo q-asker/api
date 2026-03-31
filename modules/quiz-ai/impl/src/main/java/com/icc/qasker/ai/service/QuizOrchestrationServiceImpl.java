@@ -185,6 +185,9 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
       metricsRecorder.recordRequestDuration(
           maxChunkCount, requestStartNanos, firstNanos, lastNanos, totalCostAdder.sum());
 
+    } catch (com.icc.qasker.global.error.CustomException e) {
+      // 클라이언트 오류(파일 없음 등)는 서킷브레이커 대상에서 제외 — GeminiInfraException으로 감싸지 않고 그대로 전파
+      throw e;
     } catch (Exception e) {
       throw new GeminiInfraException("Gemini 인프라 장애", e);
     } finally {
