@@ -1,0 +1,19 @@
+# AI (Google Gemini) 설정
+spring:
+  ai:
+    retry:
+      max-attempts: 1
+    google:
+      genai:
+        chat:
+          options:
+            temperature: 0.4
+            model: gemini-3.1-flash-lite-preview
+            thinking-budget: 0
+
+q-asker:
+  ai:
+    chat-timeout-ms: 90000
+    equalization-model: gemini-2.5-flash-lite
+    chunk:
+      max-count-variants: 10, 5
