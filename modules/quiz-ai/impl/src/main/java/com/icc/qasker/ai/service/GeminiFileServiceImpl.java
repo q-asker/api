@@ -38,7 +38,7 @@ public class GeminiFileServiceImpl implements GeminiFileService {
   private final Counter fileRequestNew;
   private final Counter fileRequestRepeat;
 
-  // GCS 업로드 Future 캐시 (CloudFront URL → CompletableFuture<FileMetadata>)
+  // GCS 업로드 Future 캐시 (CDN URL → CompletableFuture<FileMetadata>)
   // TTL 47시간: GCS 수명주기 정책(1일)과 정합
   private final Cache<String, CompletableFuture<FileMetadata>> uploadFutureCache =
       Caffeine.newBuilder().maximumSize(1_000).expireAfterWrite(Duration.ofHours(47)).build();
@@ -102,32 +102,32 @@ public class GeminiFileServiceImpl implements GeminiFileService {
   }
 
   @Override
-  public void cacheUploadFuture(String cloudFrontUrl, CompletableFuture<FileMetadata> future) {
-    uploadFutureCache.put(cloudFrontUrl, future);
-    log.info("GCS 업로드 Future 캐시 저장: url={}", cloudFrontUrl);
+  public void cacheUploadFuture(String cdnUrl, CompletableFuture<FileMetadata> future) {
+    uploadFutureCache.put(cdnUrl, future);
+    log.info("GCS 업로드 Future 캐시 저장: url={}", cdnUrl);
   }
 
   @Override
-  public Optional<FileMetadata> awaitCachedFileMetadata(String cloudFrontUrl) {
-    boolean isNew = seenFileUrls.add(cloudFrontUrl);
+  public Optional<FileMetadata> awaitCachedFileMetadata(String cdnUrl) {
+    boolean isNew = seenFileUrls.add(cdnUrl);
     if (isNew) {
       fileRequestNew.increment();
     } else {
       fileRequestRepeat.increment();
     }
 
-    CompletableFuture<FileMetadata> future = uploadFutureCache.getIfPresent(cloudFrontUrl);
+    CompletableFuture<FileMetadata> future = uploadFutureCache.getIfPresent(cdnUrl);
     if (future == null) {
       return Optional.empty();
     }
 
     try {
       FileMetadata metadata = future.join();
-      log.info("GCS 파일 캐시 히트: url={}, name={}", cloudFrontUrl, metadata.name());
+      log.info("GCS 파일 캐시 히트: url={}, name={}", cdnUrl, metadata.name());
       return Optional.of(metadata);
     } catch (CompletionException e) {
-      uploadFutureCache.invalidate(cloudFrontUrl);
-      log.warn("캐시된 GCS 업로드 실패, 캐시 제거: url={}, error={}", cloudFrontUrl, e.getMessage());
+      uploadFutureCache.invalidate(cdnUrl);
+      log.warn("캐시된 GCS 업로드 실패, 캐시 제거: url={}, error={}", cdnUrl, e.getMessage());
       return Optional.empty();
     }
   }

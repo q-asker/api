@@ -1,7 +1,7 @@
 package com.icc.qasker.oci.config;
 
 import com.icc.qasker.oci.ObjectStorageService;
-import com.icc.qasker.oci.properties.AwsCloudFrontProperties;
+import com.icc.qasker.oci.properties.CdnProperties;
 import java.nio.file.Path;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
@@ -18,8 +18,7 @@ public class MockOciClientConfig {
 
   @Bean
   @Primary
-  public ObjectStorageService mockObjectStorageService(
-      AwsCloudFrontProperties cloudFrontProperties) {
+  public ObjectStorageService mockObjectStorageService(CdnProperties cdnProperties) {
     return new ObjectStorageService() {
       @Override
       public String uploadPdf(Path pdfFile, String originalFileName) {
@@ -29,7 +28,7 @@ public class MockOciClientConfig {
         } catch (InterruptedException e) {
           throw new RuntimeException(e);
         }
-        return cloudFrontProperties.baseUrl() + "/" + UUID.randomUUID() + ".pdf";
+        return cdnProperties.baseUrl() + "/" + UUID.randomUUID() + ".pdf";
       }
     };
   }

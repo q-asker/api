@@ -19,7 +19,7 @@ public class PdfUtils {
   private final FileValidateService fileValidateService;
 
   public Path downloadToTemp(String pdfUrl) throws IOException {
-    fileValidateService.checkCloudFrontUrlWithThrowing(pdfUrl);
+    fileValidateService.checkCdnUrlWithThrowing(pdfUrl);
     Path tempFile = Files.createTempFile("gemini-upload-", ".pdf");
 
     log.debug("PDF 다운로드 시작: {} -> {}", pdfUrl, tempFile);

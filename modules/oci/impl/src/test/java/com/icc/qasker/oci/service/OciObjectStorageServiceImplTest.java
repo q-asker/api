@@ -6,7 +6,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.icc.qasker.oci.properties.AwsCloudFrontProperties;
+import com.icc.qasker.oci.properties.CdnProperties;
 import com.icc.qasker.oci.properties.OciObjectStorageProperties;
 import com.oracle.bmc.objectstorage.transfer.UploadManager;
 import com.oracle.bmc.objectstorage.transfer.UploadManager.UploadRequest;
@@ -32,17 +32,16 @@ class OciObjectStorageServiceImplTest {
         new OciObjectStorageProperties(
             "test-namespace", "test-bucket", "ap-chuncheon-1", "~/.oci/config", "DEFAULT");
 
-    AwsCloudFrontProperties cloudFrontProperties =
-        new AwsCloudFrontProperties("https://files.test.com");
+    CdnProperties cdnProperties = new CdnProperties("https://files.test.com");
 
     service =
         new OciObjectStorageServiceImpl(
-            cloudFrontProperties, ociProperties, uploadManager, new SimpleMeterRegistry());
+            cdnProperties, ociProperties, uploadManager, new SimpleMeterRegistry());
   }
 
   @Test
-  @DisplayName("PDF 업로드 시 OCI에 저장하고 CloudFront URL을 반환한다")
-  void uploadPdf_pdfFile_returnsCloudFrontUrl() throws IOException {
+  @DisplayName("PDF 업로드 시 OCI에 저장하고 CDN URL을 반환한다")
+  void uploadPdf_pdfFile_returnsCdnUrl() throws IOException {
     // Given: 임시 PDF 파일을 생성한다
     Path pdfFile = Files.createTempFile("test", ".pdf");
     Files.writeString(pdfFile, "dummy pdf content");
@@ -52,11 +51,11 @@ class OciObjectStorageServiceImplTest {
 
     try {
       // When: PDF 파일 업로드를 실행한다
-      String cloudFrontUrl = service.uploadPdf(pdfFile, "document.pdf");
+      String cdnUrl = service.uploadPdf(pdfFile, "document.pdf");
 
-      // Then: CloudFront 도메인으로 시작하고 .pdf로 끝나야 한다
-      assertThat(cloudFrontUrl).startsWith("https://files.test.com/");
-      assertThat(cloudFrontUrl).endsWith(".pdf");
+      // Then: CDN 도메인으로 시작하고 .pdf로 끝나야 한다
+      assertThat(cdnUrl).startsWith("https://files.test.com/");
+      assertThat(cdnUrl).endsWith(".pdf");
 
       // Then: UploadManager.upload()이 호출되었는지 검증한다
       verify(uploadManager).upload(any(UploadRequest.class));

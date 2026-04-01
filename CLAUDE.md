@@ -14,7 +14,7 @@
 | ORM | Spring Data JPA + Hibernate | (Boot BOM) |
 | DB | MySQL | - |
 | 인증 | JWT (Auth0 java-jwt 4.5.0) + OAuth2 Client | - |
-| 클라우드 | OCI Java SDK (Object Storage) + AWS CloudFront + Google Cloud Storage | 3.80.3 |
+| 클라우드 | OCI Java SDK (Object Storage) + Cloudflare CDN + Google Cloud Storage | 3.80.3 |
 | 문서변환 | JODConverter (LibreOffice) | 4.4.9 |
 | 모니터링 | Micrometer + Prometheus + Actuator | (Boot BOM) |
 | 장애격리 | Resilience4j (Circuit Breaker) | 2.3.0 |
@@ -68,7 +68,7 @@ q-asker/api/
 │           ├── server.yml        # 서버, DB, JPA, 캐시
 │           ├── ai.yml            # Google Gemini AI 설정
 │           ├── security.yml      # JWT, OAuth2, CORS
-│           ├── aws.yml           # OCI Object Storage, CloudFront
+│           ├── aws.yml           # OCI Object Storage, CDN
 │           ├── jodconverter.yml  # LibreOffice 문서변환
 │           ├── monitoring.yml    # Actuator, Prometheus
 │           ├── q-asker.yml       # 앱 커스텀 설정
