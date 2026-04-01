@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantLock;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -81,6 +82,8 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
       String sessionId, Long problemSetId, GenerationRequest request) {
 
     AtomicInteger atomicGeneratedCount = new AtomicInteger(0);
+    AtomicInteger numberCounter = new AtomicInteger(1);
+    ReentrantLock consumerLock = new ReentrantLock();
 
     GenerationRequestToAI requestToAI =
         GenerationRequestToAI.builder()
@@ -91,59 +94,69 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
             .referencePages(request.pageNumbers())
             .questionsConsumer(
                 aiProblemSet -> {
-                  // 1. 전송용 DTO로 변환
-                  ProblemSetGeneratedEvent problemSet = AIProblemSetMapper.toEvent(aiProblemSet);
-                  if (CollectionUtils.isEmpty(problemSet.getQuiz())) {
-                    log.warn("빈 배치 수신, 건너뜀: sessionId={}", sessionId);
-                    return;
-                  }
+                  consumerLock.lock();
+                  try {
+                    // 1. 전송용 DTO로 변환
+                    ProblemSetGeneratedEvent problemSet = AIProblemSetMapper.toEvent(aiProblemSet);
+                    if (CollectionUtils.isEmpty(problemSet.getQuiz())) {
+                      log.warn("빈 배치 수신, 건너뜀: sessionId={}", sessionId);
+                      return;
+                    }
 
-                  // 2. 선택지 셔플
-                  QuizType quizType = request.quizType();
-                  if (quizType == QuizType.MULTIPLE || quizType == QuizType.BLANK) {
-                    for (var quiz : problemSet.getQuiz()) {
-                      if (!CollectionUtils.isEmpty(quiz.getSelections())) {
-                        List<ProblemSetGeneratedEvent.QuizGeneratedFromAI.SelectionsOfAI> shuffled =
-                            new ArrayList<>(quiz.getSelections());
-                        Collections.shuffle(shuffled);
-                        quiz.setSelections(shuffled);
+                    // 2. 순서 보장 번호 할당
+                    for (QuizGeneratedFromAI quiz : problemSet.getQuiz()) {
+                      quiz.setNumber(numberCounter.getAndIncrement());
+                    }
+
+                    // 3. 선택지 셔플
+                    QuizType quizType = request.quizType();
+                    if (quizType == QuizType.MULTIPLE || quizType == QuizType.BLANK) {
+                      for (var quiz : problemSet.getQuiz()) {
+                        if (!CollectionUtils.isEmpty(quiz.getSelections())) {
+                          List<ProblemSetGeneratedEvent.QuizGeneratedFromAI.SelectionsOfAI>
+                              shuffled = new ArrayList<>(quiz.getSelections());
+                          Collections.shuffle(shuffled);
+                          quiz.setSelections(shuffled);
+                        }
                       }
                     }
+
+                    // 4. 마크다운 포맷팅
+                    for (QuizGeneratedFromAI quiz : problemSet.getQuiz()) {
+                      quiz.setExplanation(
+                          ExplanationMarkdownBuilder.build(quiz, request.language()));
+                    }
+
+                    // 5. 데이터베이스에 영속화
+                    List<Integer> savedNumbers =
+                        quizCommandService.saveBatch(problemSet.getQuiz(), problemSetId);
+
+                    // 6. SSE 전송
+                    List<QuizView> quizViews =
+                        quizQueryService.getQuizViews(problemSetId, savedNumbers);
+                    if (quizViews.isEmpty()) {
+                      return;
+                    }
+
+                    List<QuizForFe> quizForFeList =
+                        quizViews.stream().map(QuizViewToQuizForFeMapper::toQuizForFe).toList();
+
+                    notificationService.sendCreatedMessageWithId(
+                        sessionId,
+                        String.valueOf(quizViews.getLast().getNumber()),
+                        new ProblemSetResponse(
+                            sessionId,
+                            hashUtil.encode(problemSetId),
+                            request.title(),
+                            GENERATING,
+                            request.quizType(),
+                            request.quizCount(),
+                            quizForFeList));
+
+                    atomicGeneratedCount.addAndGet(quizViews.size());
+                  } finally {
+                    consumerLock.unlock();
                   }
-
-                  // 3. 마크다운 포맷팅
-                  for (QuizGeneratedFromAI quiz : problemSet.getQuiz()) {
-                    quiz.setExplanation(ExplanationMarkdownBuilder.build(quiz, request.language()));
-                  }
-
-                  // 4. 데이터베이스에 영속화
-                  List<Integer> savedNumbers =
-                      quizCommandService.saveBatch(problemSet.getQuiz(), problemSetId);
-
-                  // 5. 데이터베이스에 영속화
-                  List<QuizView> quizViews =
-                      quizQueryService.getQuizViews(problemSetId, savedNumbers);
-                  if (quizViews.isEmpty()) {
-                    return;
-                  }
-
-                  //
-                  List<QuizForFe> quizForFeList =
-                      quizViews.stream().map(QuizViewToQuizForFeMapper::toQuizForFe).toList();
-
-                  notificationService.sendCreatedMessageWithId(
-                      sessionId,
-                      String.valueOf(quizViews.getLast().getNumber()),
-                      new ProblemSetResponse(
-                          sessionId,
-                          hashUtil.encode(problemSetId),
-                          request.title(),
-                          GENERATING,
-                          request.quizType(),
-                          request.quizCount(),
-                          quizForFeList));
-
-                  atomicGeneratedCount.addAndGet(quizViews.size());
                 })
             .build();
 

@@ -39,7 +39,6 @@ public class MockAIServerAdapter extends AIServerAdapter {
       for (int i = range[0]; i <= range[1]; i++) {
         problems.add(
             new AIProblem(
-                i,
                 "Mock question " + i,
                 "Mock explanation for question " + i,
                 List.of(
