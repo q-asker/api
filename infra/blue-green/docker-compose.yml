@@ -1,0 +1,35 @@
+services:
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    ports:
+      - "80:80"
+      - "443:443"
+      - "9090:9090"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - /etc/ssl/cloudflare:/etc/ssl/cloudflare:ro
+
+  app-blue:
+    image: ${DOCKER_IMAGE}
+    container_name: app-blue
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod,blue
+      - JASYPT_ENCRYPTOR_PASSWORD=${JASYPT_ENCRYPTOR_PASSWORD}
+    volumes:
+      - ~/.oci:/home/appuser/.oci:ro
+      - ~/.config/gcloud:/home/appuser/.config/gcloud:ro
+    ports:
+      - "${BLUE_PORT}:8080"
+
+  app-green:
+    image: ${DOCKER_IMAGE}
+    container_name: app-green
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod,green
+      - JASYPT_ENCRYPTOR_PASSWORD=${JASYPT_ENCRYPTOR_PASSWORD}
+    volumes:
+      - ~/.oci:/home/appuser/.oci:ro
+      - ~/.config/gcloud:/home/appuser/.config/gcloud:ro
+    ports:
+      - "${GREEN_PORT}:8080"

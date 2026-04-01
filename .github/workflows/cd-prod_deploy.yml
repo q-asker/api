@@ -97,7 +97,7 @@ jobs:
           host: ${{ env.EC2_HOST }}
           username: ${{ env.EC2_USER }}
           key: ${{ env.EC2_KEY }}
-          source: ".github/resources/*"
+          source: "infra/blue-green/*"
           target: "/home/${{ env.EC2_USER }}/deploy"
           strip_components: 2
 

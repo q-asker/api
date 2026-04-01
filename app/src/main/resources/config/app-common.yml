@@ -1,0 +1,55 @@
+# Q-Asker 애플리케이션 공통 설정
+q-asker:
+  hashid:
+    min-length: 8
+  async:
+    task-termination-timeout-ms: 10000
+  sse:
+    timeout-ms: 120000
+
+# 파일 업로드 검증
+  file-validation:
+    max-file-name-length: 255
+    allowed-extensions: application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint
+    max-file-size: 36_700_160
+
+server:
+  shutdown: graceful
+
+spring:
+  lifecycle:
+    timeout-per-shutdown-phase: 60s
+
+  servlet:
+    multipart:
+      max-file-size: 35MB
+      max-request-size: 35MB
+      file-size-threshold: 0
+
+  threads:
+    virtual:
+      enabled: true
+
+---
+spring:
+  config:
+    activate:
+      on-profile: local
+
+q-asker:
+  slack:
+    enabled: false
+  web:
+    frontend-deploy-url: http://localhost:5173
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+q-asker:
+  slack:
+    enabled: true
+  web:
+    frontend-deploy-url: https://www.q-asker.com

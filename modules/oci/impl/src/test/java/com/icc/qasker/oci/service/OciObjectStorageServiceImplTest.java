@@ -30,14 +30,7 @@ class OciObjectStorageServiceImplTest {
 
     OciObjectStorageProperties ociProperties =
         new OciObjectStorageProperties(
-            "test-namespace",
-            "test-bucket",
-            "ap-chuncheon-1",
-            "~/.oci/config",
-            "DEFAULT",
-            36_700_160L,
-            255,
-            "application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation");
+            "test-namespace", "test-bucket", "ap-chuncheon-1", "~/.oci/config", "DEFAULT");
 
     AwsCloudFrontProperties cloudFrontProperties =
         new AwsCloudFrontProperties("https://files.test.com");
