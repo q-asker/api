@@ -8,8 +8,7 @@ services:
       - "9090:9090"
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d
-      - /etc/letsencrypt:/etc/letsencrypt:ro
-      - /var/www/certbot:/var/www/certbot:ro
+      - /etc/ssl/cloudflare:/etc/ssl/cloudflare:ro
 
   app-blue:
     image: ${DOCKER_IMAGE}
