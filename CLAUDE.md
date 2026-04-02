@@ -88,7 +88,9 @@ q-asker/api/
 │   ├── monitoring/               # Grafana Alloy 설정
 │   ├── mysql/                    # MySQL Docker 설정
 │   ├── base-image/               # Docker 베이스 이미지
-│   └── terraform/gcp/            # GCP 인프라 (GCS, IAM, Vertex AI)
+│   └── terraform/
+│       ├── gcp/                  # GCP 인프라 (GCS, IAM, Vertex AI)
+│       └── oci/                  # OCI 인프라 (NSG Cloudflare 인바운드 규칙)
 ├── docs/                         # 문서, 분석 자료
 ├── .githooks/                    # Git 훅 (pre-commit, pre-push, prepare-commit-msg)
 └── .github/workflows/            # CI/CD
