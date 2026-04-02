@@ -8,3 +8,22 @@ if [ $? -ne 0 ]; then
   echo "./gradlew spotlessApply 를 실행한 뒤 다시 커밋하세요."
   exit 1
 fi
+
+# application-secrets.yml 암호화 검증 — 평문 값 커밋 차단
+SECRETS_FILE="app/src/main/resources/application-secrets.yml"
+if git diff --cached --name-only | grep -qF "$SECRETS_FILE"; then
+  echo "application-secrets.yml 암호화 검증 중..."
+  UNENCRYPTED=$(git show ":$SECRETS_FILE" \
+    | grep -nE '^\s*[^#][^:]*:\s+\S' \
+    | grep -v 'ENC(' \
+    | grep -vE ':\s+(local|prod|dev|test|staging|true|false|null|[0-9]+)\s*$')
+  if [ -n "$UNENCRYPTED" ]; then
+    echo ""
+    echo "[ERROR] application-secrets.yml에 암호화되지 않은 값이 있습니다:"
+    echo "$UNENCRYPTED"
+    echo ""
+    echo "모든 민감한 값은 Jasypt ENC(...) 형식으로 암호화해야 합니다."
+    exit 1
+  fi
+  echo "application-secrets.yml 암호화 검증 완료."
+fi
