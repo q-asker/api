@@ -16,7 +16,8 @@ if git diff --cached --name-only | grep -qF "$SECRETS_FILE"; then
   UNENCRYPTED=$(git show ":$SECRETS_FILE" \
     | grep -nE '^\s*[^#][^:]*:\s+\S' \
     | grep -v 'ENC(' \
-    | grep -vE ':\s+(local|prod|dev|test|staging|true|false|null|[0-9]+)\s*$')
+    | grep -vE 'on-profile:\s+\S' \
+    | grep -vE ':\s+(true|false|null|[0-9]+)\s*$')
   if [ -n "$UNENCRYPTED" ]; then
     echo ""
     echo "[ERROR] application-secrets.yml에 암호화되지 않은 값이 있습니다:"
