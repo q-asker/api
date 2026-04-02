@@ -66,7 +66,7 @@ public class CustomException extends RuntimeException {
   // 로그) ERROR [bucket=my-bucket] 파일 업로드에 실패했습니다
   //       com.icc.qasker.global.error.CustomException: 파일 업로드에 실패했습니다
   //         at ...Service.method(Service.java:30)
-  //       Caused by: software.amazon.awssdk.services.s3.model.S3Exception: Access Denied
+  //       Caused by: RuntimeException: OCI Object Storage 업로드 실패
   //         at ...S3Client.putObject(S3Client.java:120)
   public CustomException(ExceptionMessage exceptionMessage, String context, Throwable cause) {
     super(exceptionMessage.getMessage(), cause);

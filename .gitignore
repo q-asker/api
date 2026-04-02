@@ -37,6 +37,11 @@ out/
 .vscode/
 .DS_Store
 
+### Terraform ###
+*.tfstate
+*.tfstate.backup
+.terraform/
+
 ### Custom ###
 **/src/main/resources/application-**
 !**/src/main/resources/application-test.yml
@@ -48,9 +53,9 @@ app/newrelic/newrelic.yml
 monitor_downtime.sh
 
 # Claude Code
-CLAUDE.md
 shrimp-rules.md
 .mcp.json
 .claude
 shrimp_data
 docs
+.gstack/

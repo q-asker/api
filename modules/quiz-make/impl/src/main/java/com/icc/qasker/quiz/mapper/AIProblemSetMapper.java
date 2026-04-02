@@ -24,7 +24,6 @@ public final class AIProblemSetMapper {
 
   private static QuizGeneratedFromAI toQuizGeneratedFromAI(AIProblem problem) {
     QuizGeneratedFromAI quiz = new QuizGeneratedFromAI();
-    quiz.setNumber(problem.number());
     quiz.setTitle(problem.content());
     quiz.setQuizExplanation(problem.quizExplanation());
     quiz.setReferencedPages(problem.referencedPages());

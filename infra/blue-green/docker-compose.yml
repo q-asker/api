@@ -8,8 +8,7 @@ services:
       - "9090:9090"
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d
-      - /etc/letsencrypt:/etc/letsencrypt:ro
-      - /var/www/certbot:/var/www/certbot:ro
+      - /etc/ssl/cloudflare:/etc/ssl/cloudflare:ro
 
   app-blue:
     image: ${DOCKER_IMAGE}
@@ -19,6 +18,7 @@ services:
       - JASYPT_ENCRYPTOR_PASSWORD=${JASYPT_ENCRYPTOR_PASSWORD}
     volumes:
       - ~/.oci:/home/appuser/.oci:ro
+      - ~/.config/gcloud:/home/appuser/.config/gcloud:ro
     ports:
       - "${BLUE_PORT}:8080"
 
@@ -30,5 +30,6 @@ services:
       - JASYPT_ENCRYPTOR_PASSWORD=${JASYPT_ENCRYPTOR_PASSWORD}
     volumes:
       - ~/.oci:/home/appuser/.oci:ro
+      - ~/.config/gcloud:/home/appuser/.config/gcloud:ro
     ports:
       - "${GREEN_PORT}:8080"

@@ -1,7 +1,7 @@
 package com.icc.qasker.oci.service;
 
 import com.icc.qasker.oci.ObjectStorageService;
-import com.icc.qasker.oci.properties.AwsCloudFrontProperties;
+import com.icc.qasker.oci.properties.CdnProperties;
 import com.icc.qasker.oci.properties.OciObjectStorageProperties;
 import com.oracle.bmc.objectstorage.requests.PutObjectRequest;
 import com.oracle.bmc.objectstorage.transfer.UploadManager;
@@ -24,17 +24,17 @@ import org.springframework.web.util.UriUtils;
 @ConditionalOnBean(UploadManager.class)
 public class OciObjectStorageServiceImpl implements ObjectStorageService {
 
-  private final AwsCloudFrontProperties awsCloudFrontProperties;
+  private final CdnProperties cdnProperties;
   private final OciObjectStorageProperties ociProperties;
   private final UploadManager uploadManager;
   private final Timer uploadTimer;
 
   public OciObjectStorageServiceImpl(
-      AwsCloudFrontProperties awsCloudFrontProperties,
+      CdnProperties cdnProperties,
       OciObjectStorageProperties ociProperties,
       UploadManager uploadManager,
       MeterRegistry registry) {
-    this.awsCloudFrontProperties = awsCloudFrontProperties;
+    this.cdnProperties = cdnProperties;
     this.ociProperties = ociProperties;
     this.uploadManager = uploadManager;
     this.uploadTimer =
@@ -75,7 +75,7 @@ public class OciObjectStorageServiceImpl implements ObjectStorageService {
             throw new RuntimeException("OCI Object Storage 업로드 실패: " + originalFileName, e);
           }
 
-          String finalUrl = awsCloudFrontProperties.baseUrl() + "/" + objectName;
+          String finalUrl = cdnProperties.baseUrl() + "/" + objectName;
           log.info("PDF OCI 업로드 완료: {} -> {}", originalFileName, finalUrl);
           return finalUrl;
         });

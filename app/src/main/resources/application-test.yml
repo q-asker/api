@@ -41,7 +41,8 @@ spring:
   ai:
     google:
       genai:
-        api-key: ci-dummy-key
+        project-id: ci-dummy-project
+        location: us-central1
         chat:
           options:
             model: gemini-3-flash-preview
@@ -58,17 +59,9 @@ q-asker:
 
   web:
     frontend-deploy-url: http://localhost:3000
-    frontend-dev-url: http://localhost:3000
 
-aws:
-  s3:
-    bucket-name: ci-dummy
-    access-key: ci-dummy
-    secret-key: ci-dummy
-    allowed-extensions: application/pdf
-
-  cloudfront:
-    base-url: http://localhost
+cdn:
+  base-url: http://localhost
 
 jodconverter:
   local:

@@ -2,6 +2,5 @@ package com.icc.qasker.oci.properties;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-@ConfigurationProperties(prefix = "aws.cloudfront")
-public record AwsCloudFrontProperties(String baseUrl) {}
-;
+@ConfigurationProperties(prefix = "cdn")
+public record CdnProperties(String baseUrl) {}

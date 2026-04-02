@@ -18,13 +18,15 @@ dependencies {
     // ────────────────────────────────
     // Spring AI
     // ────────────────────────────────
-    // Spring AI Google GenAI Starter: Google Gemini 모델 연동을 위한 자동 구성 및 클라이언트 제공
-    // 예: ChatClient.create(geminiModel).prompt("질문을 생성해줘").call()로 Gemini API 호출,
-    //     application.yml에 spring.ai.google.genai.api-key 설정만으로 자동 연결
+    // Spring AI Google GenAI Starter: Vertex AI 모드로 Gemini 모델 연동
+    // Client.builder().vertexAI(true)로 Vertex AI 엔드포인트 사용
     implementation "org.springframework.ai:spring-ai-starter-model-google-genai"
 
-    // Caffeine: Gemini 파일 메타데이터 인메모리 캐시 (업로드 결과 재사용)
+    // Caffeine: GCS 파일 메타데이터 인메모리 캐시 (업로드 결과 재사용)
     implementation "com.github.ben-manes.caffeine:caffeine"
+
+    // Google Cloud Storage: Vertex AI 컨텍스트 캐싱을 위한 PDF 임시 저장소
+    implementation "com.google.cloud:google-cloud-storage"
 
     // ────────────────────────────────
     // 테스트

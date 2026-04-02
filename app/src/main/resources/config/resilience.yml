@@ -1,4 +1,6 @@
-# Resilience4j CircuitBreaker 설정
+# 장애 방어 및 트래픽 제어 설정
+
+# Circuit Breaker (Resilience4j)
 resilience4j:
   circuitbreaker:
     instances:
@@ -16,3 +18,26 @@ resilience4j:
           - com.icc.qasker.ai.exception.GeminiInfraException
     metrics:
       enabled: true
+
+# Rate Limiting (Bucket4j)
+q-asker:
+  rate-limit:
+    enabled: true
+    bucket-expire-minutes: 10
+    max-bucket-size: 100000
+    tiers:
+      CRITICAL:
+        capacity: 10
+        refill-per-minute: 10
+      HEAVY:
+        capacity: 10
+        refill-per-minute: 10
+      WRITE:
+        capacity: 20
+        refill-per-minute: 20
+      STANDARD:
+        capacity: 10
+        refill-per-minute: 10
+      READ:
+        capacity: 60
+        refill-per-minute: 60

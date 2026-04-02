@@ -1,23 +1,5 @@
-# 서버, DB, JPA, 캐시 설정
-server:
-  shutdown: graceful
-
+# 데이터베이스, JPA, 캐시 설정
 spring:
-  lifecycle:
-    timeout-per-shutdown-phase: 60s
-
-  servlet:
-    multipart:
-      max-file-size: 35MB
-      max-request-size: 35MB
-      file-size-threshold: 0
-
-  threads:
-    virtual:
-      enabled: true
-  ai:
-    retry:
-      max-attempts: 1
   jpa:
     open-in-view: false
     properties:

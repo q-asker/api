@@ -42,7 +42,7 @@ public class FileUploadService {
     }
   }
 
-  /** 파일(PDF, PPT, DOCX)을 PDF로 변환 후 S3와 Gemini에 동시 업로드한다. */
+  /** 파일(PDF, PPT, DOCX)을 PDF로 변환 후 OCI와 Gemini에 동시 업로드한다. */
   public FileUploadResponse upload(MultipartFile file) {
     String originalFileName = file.getOriginalFilename();
 
@@ -82,8 +82,8 @@ public class FileUploadService {
               Files.createTempFile("gemini-upload-", ".pdf"),
               StandardCopyOption.REPLACE_EXISTING);
 
-      // 4. S3 + Gemini 동시 시작
-      CompletableFuture<String> s3Future =
+      // 4. OCI + Gemini 동시 시작
+      CompletableFuture<String> ociFuture =
           CompletableFuture.supplyAsync(
               () -> objectStorageService.uploadPdf(finalPdfFile, originalFileName));
 
@@ -100,14 +100,14 @@ public class FileUploadService {
                     }
                   });
 
-      // S3 업로드는 필수 — 실패 시 예외 발생
-      String cloudFrontUrl = s3Future.join();
+      // OCI 업로드는 필수 — 실패 시 예외 발생
+      String cdnUrl = ociFuture.join();
 
       // Gemini Future를 캐시에 즉시 저장 — 퀴즈 생성 시 awaitCachedFileMetadata()로 대기/조회
-      geminiFileService.cacheUploadFuture(cloudFrontUrl, geminiFuture);
+      geminiFileService.cacheUploadFuture(cdnUrl, geminiFuture);
 
-      log.info("S3 업로드 완료, Gemini는 백그라운드 처리 중: {}", cloudFrontUrl);
-      return new FileUploadResponse(cloudFrontUrl);
+      log.info("OCI 업로드 완료, Gemini는 백그라운드 처리 중: {}", cdnUrl);
+      return new FileUploadResponse(cdnUrl);
     } catch (Exception e) {
       throw new CustomException(
           ExceptionMessage.DEFAULT_ERROR, "파일 업로드 실패: " + originalFileName, e);
