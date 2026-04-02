@@ -1,6 +1,8 @@
 # AI (Google Gemini) 설정
 spring:
   ai:
+    retry:
+      max-attempts: 1
     google:
       genai:
         chat:
@@ -11,10 +13,7 @@ spring:
 
 q-asker:
   ai:
+    chat-timeout-ms: 90000
     equalization-model: gemini-2.5-flash-lite
     chunk:
       max-count-variants: 10, 5
-    file-client:
-      base-url: https://generativelanguage.googleapis.com
-      connect-timeout-ms: 5000
-      read-timeout-ms: 30000

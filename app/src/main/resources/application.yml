@@ -3,14 +3,14 @@ spring:
     name: q-asker
   config:
     import:
-      - config/server.yml
-      - config/ai.yml
-      - config/security.yml
-      - config/oci.yml
+      - config/database-config.yml
+      - config/ai-setting.yml
+      - config/spring-security.yml
+      - config/oci-bucket-config.yml
       - config/jodconverter.yml
-      - config/monitoring.yml
-      - config/q-asker.yml
-      - config/resilience4j.yml
-      - config/springdoc.yml
+      - config/actuator.yml
+      - config/app-common.yml
+      - config/resilience.yml
+      - config/spring-doc.yml
       - application-secrets.yml
 

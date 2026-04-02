@@ -20,7 +20,9 @@ public class GeminiClientConfig {
   @Bean
   public Client googleGenAiClient(GoogleGenAiConnectionProperties properties) {
     return Client.builder()
-        .apiKey(properties.getApiKey())
+        .project(properties.getProjectId())
+        .location(properties.getLocation())
+        .vertexAI(true)
         .httpOptions(HttpOptions.builder().timeout(aiProperties.getChatTimeoutMs()).build())
         .build();
   }

@@ -249,14 +249,13 @@ subprojects {
         // annotationProcessor에도 동일 BOM 적용
         // 예: spring-boot-configuration-processor 버전도 BOM이 관리하므로 버전 명시 불필요
         annotationProcessor platform("org.springframework.boot:spring-boot-dependencies:3.5.8")
-        // AWS SDK BOM: AWS 서비스 클라이언트 버전 통합 관리
-        // 예: implementation "software.amazon.awssdk:s3" 선언 시 버전 생략 가능,
-        //     S3, SQS 등 여러 AWS 모듈 간 버전 불일치 방지
-        implementation platform("software.amazon.awssdk:bom:2.27.24")
         // Spring AI BOM: Spring AI 관련 라이브러리 버전 통합 관리
         // 예: implementation "org.springframework.ai:spring-ai-starter-model-google-genai" 선언 시
         //     버전 생략 가능, Spring AI 모듈 간 호환성 보장
         implementation platform("org.springframework.ai:spring-ai-bom:1.1.2")
+        // Google Cloud BOM: Google Cloud 서비스 클라이언트 버전 통합 관리
+        // 예: implementation "com.google.cloud:google-cloud-storage" 선언 시 버전 생략 가능
+        implementation platform("com.google.cloud:libraries-bom:26.67.0")
 
         // ────────────────────────────────
         // 전 모듈 공통 라이브러리

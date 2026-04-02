@@ -86,7 +86,6 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
               request.referencePages(), request.quizCount(), maxChunkCount);
       log.info("청크 분할 완료: {}개 청크 (maxChunkCount={})", chunks.size(), maxChunkCount);
 
-      AtomicInteger numberCounter = new AtomicInteger(1);
       AtomicInteger remainingQuota = new AtomicInteger(request.quizCount());
 
       try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
@@ -154,10 +153,9 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
                         validated = validated.subList(0, claimed);
                       }
 
-                      // 문제+해설 원본 데이터 전송 (번호는 이미 확보된 슬롯 기반)
+                      // 문제+해설 원본 데이터 전송 (번호는 소비자 측에서 할당)
                       AIProblemSet result =
-                          GeminiQuestionMapper.toDto(
-                              validated, chunk.referencedPages(), numberCounter);
+                          GeminiQuestionMapper.toDto(validated, chunk.referencedPages());
                       request.questionsConsumer().accept(result);
 
                       // 첫 번째/마지막 퀴즈 응답 시각 기록
@@ -177,7 +175,7 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
 
         CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).join();
       }
-      log.info("전체 병렬 생성 완료: 총 {}번까지 번호 할당됨", numberCounter.get() - 1);
+      log.info("전체 병렬 생성 완료");
 
       // 요청 단위 응답 시간 메트릭 기록 (A/B 테스트 태그 포함)
       Long firstNanos = firstQuizNanos.get() == 0 ? null : firstQuizNanos.get();

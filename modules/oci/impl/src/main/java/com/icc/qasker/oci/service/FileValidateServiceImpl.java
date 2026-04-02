@@ -3,8 +3,8 @@ package com.icc.qasker.oci.service;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.oci.FileValidateService;
-import com.icc.qasker.oci.properties.AwsCloudFrontProperties;
-import com.icc.qasker.oci.properties.OciObjectStorageProperties;
+import com.icc.qasker.oci.properties.CdnProperties;
+import com.icc.qasker.oci.properties.FileValidationProperties;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -12,22 +12,22 @@ import org.springframework.stereotype.Service;
 @AllArgsConstructor
 public class FileValidateServiceImpl implements FileValidateService {
 
-  private final AwsCloudFrontProperties awsCloudFrontProperties;
-  private final OciObjectStorageProperties ociObjectStorageProperties;
+  private final CdnProperties cdnProperties;
+  private final FileValidationProperties fileValidationProperties;
 
   @Override
-  public void checkCloudFrontUrlWithThrowing(String url) {
-    if (!url.startsWith(awsCloudFrontProperties.baseUrl())) {
+  public void checkCdnUrlWithThrowing(String url) {
+    if (!url.startsWith(cdnProperties.baseUrl())) {
       throw new CustomException(ExceptionMessage.INVALID_URL_REQUEST);
     }
   }
 
   @Override
   public void validateFileWithThrowing(String fileName, long fileSize, String contentType) {
-    int maxFileNameLength = ociObjectStorageProperties.maxFileNameLength();
-    String allowedExtensions = ociObjectStorageProperties.allowedExtensions();
+    int maxFileNameLength = fileValidationProperties.maxFileNameLength();
+    String allowedExtensions = fileValidationProperties.allowedExtensions();
 
-    if (fileSize > ociObjectStorageProperties.maxFileSize()) {
+    if (fileSize > fileValidationProperties.maxFileSize()) {
       throw new CustomException(ExceptionMessage.OUT_OF_FILE_SIZE);
     }
     if (fileName == null) {

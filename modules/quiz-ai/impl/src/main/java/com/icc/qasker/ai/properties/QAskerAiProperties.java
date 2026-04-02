@@ -21,8 +21,8 @@ public class QAskerAiProperties {
   /** 청크 분할 설정 */
   private Chunk chunk = new Chunk();
 
-  /** Gemini File REST Client 설정 */
-  private FileClient fileClient = new FileClient();
+  /** Google Cloud Storage 설정 */
+  private Gcs gcs = new Gcs();
 
   @Getter
   @Setter
@@ -42,15 +42,9 @@ public class QAskerAiProperties {
 
   @Getter
   @Setter
-  public static class FileClient {
+  public static class Gcs {
 
-    /** Gemini File API 베이스 URL */
-    private String baseUrl = "https://generativelanguage.googleapis.com";
-
-    /** 연결 타임아웃 (ms) */
-    private int connectTimeoutMs = 5_000;
-
-    /** 읽기 타임아웃 (ms) */
-    private int readTimeoutMs = 30_000;
+    /** GCS 버킷 이름 */
+    private String bucketName;
   }
 }

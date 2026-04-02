@@ -20,8 +20,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
   public void addCorsMappings(CorsRegistry registry) {
     registry
         .addMapping("/**")
-        .allowedOrigins(
-            qAskerProperties.getFrontendDevUrl(), qAskerProperties.getFrontendDeployUrl())
+        .allowedOrigins(qAskerProperties.getFrontendDeployUrl())
         .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
         .allowCredentials(true)
         .maxAge(3600);

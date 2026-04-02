@@ -1,0 +1,6 @@
+# OCI Object Storage 버킷 설정
+oci:
+  object-storage:
+    region: ap-chuncheon-1
+    config-file-path: ~/.oci/config
+    profile: DEFAULT
