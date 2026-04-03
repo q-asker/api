@@ -61,7 +61,7 @@ public class RefreshTokenUtil {
   }
 
   private Instant nextExpiry() {
-    return Instant.now().plusSeconds(jwtProperties.getRefreshExpirationTime());
+    return Instant.now().plusSeconds(jwtProperties.getRefreshExpirationSecond());
   }
 
   public record RotateResult(String userId, String newRtPlain) {}
