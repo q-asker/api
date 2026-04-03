@@ -29,7 +29,8 @@ public class AccessTokenHandler {
                     .withClaim("role", user.getRole())
                     .withExpiresAt(
                         new Date(
-                            System.currentTimeMillis() + jwtProperties.getAccessExpirationTime()))
+                            System.currentTimeMillis()
+                                + jwtProperties.getAccessExpirationSecond() * 1000))
                     .sign(Algorithm.HMAC512(jwtProperties.getSecret())))
         .orElseThrow(() -> new CustomException(ExceptionMessage.USER_NOT_FOUND));
   }

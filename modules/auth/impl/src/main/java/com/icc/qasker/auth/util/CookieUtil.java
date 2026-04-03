@@ -16,6 +16,7 @@ public class CookieUtil {
     return ResponseCookie.from("refresh_token", value)
         .httpOnly(true)
         .secure(true)
+        .sameSite("None")
         .path("/")
         .maxAge(expireTime)
         .build();
@@ -32,6 +33,7 @@ public class CookieUtil {
     return ResponseCookie.from("refresh_token", "")
         .httpOnly(true)
         .secure(true)
+        .sameSite("None")
         .path("/")
         .maxAge(0)
         .build();
