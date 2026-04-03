@@ -36,7 +36,8 @@ spring:
 
     jwt:
       secret: ci-dummy-secret-key
-      refresh-expiration-time: 60480
+      access-expiration-second: 30
+      refresh-expiration-second: 60480
 
   ai:
     google:
