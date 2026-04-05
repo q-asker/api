@@ -18,5 +18,5 @@ spring:
             authorization-grant-type: authorization_code
             client-authentication-method: client_secret_post
     jwt:
-      access-expiration-second: 30 # 30초
-      refresh-expiration-second: 604800 # 7일
+      access-expiration-second: 86400 # 1일
+      refresh-expiration-second: 2592000 # 30일
