@@ -85,27 +85,17 @@ public class OXGuideLine {
 
       ---
 
-      ## 완성본 예시
-
+      ## JSON 구조
       > selections[].content = "O" 또는 "X"만.
-
       ```json
       {
         "questions": [{
-          "content": "**개념 A**는 **조건 X**가 충족된 후에만 **상태 Y**로 전이되어 기능을 수행할 수 있다.",
-          "referencedPages": [2],
-          "quizExplanation": "**[자기 점검]** (이해·적용: 유사 개념 비교)\\n개념 A와 개념 B의 상태 전이 조건 차이를 비교할 수 있나요?\\n\\n**[심화 학습]**\\n조건 X가 실패할 때 발생하는 문제를 분석해 보세요. [강의노트 섹션명] 참조.",
+          "content": "{Step 3-1 진술문}\\n\\n{Step 3-2 서식}",
+          "referencedPages": [실제 참조한 페이지 번호],
+          "quizExplanation": "**[자기 점검]** (난이도: 주제)\\n{메타인지 질문}\\n\\n**[심화 학습]**\\n{복습 범위 + 학습 경로}",
           "selections": [
-            {
-              "content": "O",
-              "correct": true,
-              "explanation": "**[정답 추론]**\\n개념 A는 조건 X의 모든 단계가 완료된 후 상태 Y로 전이됩니다.\\n- 근거: [강의노트 섹션명] > \\"조건 X가 완료되어야 상태 Y로 전이된다\\""
-            },
-            {
-              "content": "X",
-              "correct": false,
-              "explanation": "[사실 변조형]\\n- **진단**: 조건 X 없이도 상태 Y로 전이 가능하다는 오개념\\n- **교정**: 조건 X의 모든 단계가 완료되어야 상태 Y로 전이됨\\n- **스스로 점검**: 조건 X가 생략된 상태에서 가능한 동작은 무엇인지 확인해 보세요\\n- 복습: [강의노트 섹션명]"
-            }
+            {"content": "O", "correct": true or false, "explanation": "**[정답 추론]**\\n{근거와 추론 경로}\\n- 근거: [강의노트 섹션명] > \\"핵심 문장 인용\\""},
+            {"content": "X", "correct": true or false, "explanation": "[사실 변조형/관계 변조형/조건 변조형]\\n- **진단**: {오개념 진단}\\n- **교정**: {핵심 차이점}\\n- **스스로 점검**: {오류 인식 유도 질문}\\n- 복습: {섹션명}"}
           ]
         }]
       }
