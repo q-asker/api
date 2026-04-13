@@ -49,8 +49,8 @@ public class GeminiChatService {
 
     String userPrompt =
         "OX".equals(strategyValue)
-            ? RequestWithPageRefAndCountPrompt.generateForOX(pages, chunk.quizCount(), language)
-            : RequestWithPageRefAndCountPrompt.generate(pages, chunk.quizCount(), language);
+            ? RequestWithPageRefAndCountPrompt.generateForOX(pages, chunk.quizCount())
+            : RequestWithPageRefAndCountPrompt.generate(pages, chunk.quizCount());
 
     Prompt prompt =
         new Prompt(
