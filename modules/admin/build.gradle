@@ -11,6 +11,8 @@ dependencies {
     implementation project(":global")
     // board-api: BoardAdminService 인터페이스, 요청 DTO
     implementation project(":board-api")
+    // oci-api: ObjectStorageService 인터페이스 (이미지 업로드)
+    implementation project(":oci-api")
 
     // ────────────────────────────────
     // 스프링부트 Web
