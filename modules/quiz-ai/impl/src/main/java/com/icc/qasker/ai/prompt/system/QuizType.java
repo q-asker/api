@@ -1,31 +1,30 @@
 package com.icc.qasker.ai.prompt.system;
 
 import com.icc.qasker.ai.prompt.system.blank.BlankGuideLine;
+import com.icc.qasker.ai.prompt.system.blank.BlankGuideLineEn;
 import com.icc.qasker.ai.prompt.system.multiple.MultipleGuideLine;
+import com.icc.qasker.ai.prompt.system.multiple.MultipleGuideLineEn;
 import com.icc.qasker.ai.prompt.system.ox.OXGuideLine;
+import com.icc.qasker.ai.prompt.system.ox.OXGuideLineEn;
+import com.icc.qasker.global.error.CustomException;
+import com.icc.qasker.global.error.ExceptionMessage;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 public enum QuizType implements QuizPromptStrategy {
-  MULTIPLE(MultipleGuideLine.content),
-  BLANK(BlankGuideLine.content),
-  OX(OXGuideLine.content);
-
-  private static final String LANGUAGE_SUFFIX_EN =
-      """
-
-      ---
-
-      ## Output Language
-      - You MUST write all output (content, selections, explanations) in **English**.
-      - selections[].content must contain ONLY the answer text (one concise sentence). \
-      Never put explanations, diagnoses, or reasoning in the content field.
-      """;
+  MULTIPLE(MultipleGuideLine.content, MultipleGuideLineEn.content),
+  BLANK(BlankGuideLine.content, BlankGuideLineEn.content),
+  OX(OXGuideLine.content, OXGuideLineEn.content);
 
   private final String guideLine;
+  private final String guideLineEn;
 
   @Override
   public String getGuideLine(String language) {
-    return "EN".equals(language) ? guideLine + LANGUAGE_SUFFIX_EN : guideLine;
+    return switch (language) {
+      case "EN" -> guideLineEn;
+      case "KR" -> guideLine;
+      default -> throw new CustomException(ExceptionMessage.AI_SERVER_RESPONSE_ERROR);
+    };
   }
 }
