@@ -12,4 +12,5 @@ public record PostDetailResponse(
     String status,
     Instant createdAt,
     List<String> replies,
-    boolean isWriter) {}
+    boolean isWriter,
+    String category) {}
