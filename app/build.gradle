@@ -36,9 +36,8 @@ dependencies {
     implementation project(':quiz-make-impl')
     // 퀴즈 히스토리 구현 모듈: 퀴즈 풀이 기록 CRUD
     implementation project(':quiz-history-impl')
-    // 유틸리티 구현 모듈: 범용 헬퍼 기능
-    // 예: HealthCheckController 등이 이 모듈에 위치
-    implementation project(':util-impl')
+    // 문서 변환 모듈: PPT/DOCX → PDF 변환 (JODConverter)
+    implementation project(':document-impl')
     // AI 모듈: Google Gemini 기반 AI 기능
     // 예: AiService에서 ChatClient를 통해 Gemini API를 호출
     implementation project(':quiz-ai-impl')
@@ -46,6 +45,8 @@ dependencies {
     // 예: GlobalExceptionHandler, ApiResponse<T>, BaseEntity 등이 이 모듈에 위치
     implementation project(':global')
     implementation project(':board-impl')
+    // 관리자 모듈: 어드민 전용 API 엔드포인트
+    implementation project(':admin')
 
 
     // ────────────────────────────────

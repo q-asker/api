@@ -1,6 +1,6 @@
 rootProject.name = 'q-asker'
 
-include ':app', ':global',
+include ':app', ':global', ':admin',
     ':auth-api', ':auth-impl',
     ':oci-api', ':oci-impl',
     ':board-api', ':board-impl',
@@ -8,10 +8,12 @@ include ':app', ':global',
     ':quiz-history-api', ':quiz-history-impl',
     ':quiz-make-api', ':quiz-make-impl',
     ':quiz-set-api', ':quiz-set-impl',
-    ':util-api', ':util-impl'
+    ':document-api', ':document-impl'
+
 
 project(':app').projectDir = file('app')
 project(':global').projectDir = file('modules/global')
+project(':admin').projectDir = file('modules/admin')
 
 project(':auth-api').projectDir = file('modules/auth/api')
 project(':auth-impl').projectDir = file('modules/auth/impl')
@@ -34,5 +36,5 @@ project(':quiz-make-impl').projectDir = file('modules/quiz-make/impl')
 project(':quiz-set-api').projectDir = file('modules/quiz-set/api')
 project(':quiz-set-impl').projectDir = file('modules/quiz-set/impl')
 
-project(':util-api').projectDir = file('modules/util/api')
-project(':util-impl').projectDir = file('modules/util/impl')
+project(':document-api').projectDir = file('modules/document/api')
+project(':document-impl').projectDir = file('modules/document/impl')
