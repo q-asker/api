@@ -42,6 +42,8 @@ public class MultipleGuideLine {
       - 절차·흐름·인과 관계 → ```mermaid\\ngraph TD\\n  A[시작] --> B[처리] --> C[결과]\\n```
       - 소스 코드 → ```java\\nresult = a + b;\\n```
       - 원문 인용 → > \\"조건 X가 성립하면 결과 Y가 발생한다.\\"
+      - 순서가 있는 나열(단계·우선순위·랭킹) → 1. 첫째\\n2. 둘째\\n3. 셋째
+      - 순서 없는 나열(특징·조건·구성 요소) → - 항목 A\\n- 항목 B\\n- 항목 C
       - 수식 → $v = \\\\frac{d}{t}$
 
       #### Step 3-3. 질문문 작성 (content 전체에서 유일한 물음표)
@@ -104,7 +106,7 @@ public class MultipleGuideLine {
       ```json
       {
         "questions": [{
-          "content": "{Step 3-1 평서문}\\n\\n{Step 3-2 서식}\\n\\n{Step 3-3 질문문 — '~것은?' 1개}",
+          "content": "{Step 3-1. 상황 설명 (평서문만 허용)}\\n\\n{Step 3-2. 마크다운 자료 배치}\\n\\n{Step 3-3. 질문문 작성 (content 전체에서 유일한 물음표)}",
           "referencedPages": [실제 참조한 페이지 번호],
           "quizExplanation": "**[자기 점검]** (난이도: 주제)\\n{메타인지 질문}\\n\\n**[심화 학습]**\\n{복습 범위 + 학습 경로}",
           "selections": [
