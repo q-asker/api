@@ -51,13 +51,13 @@ public class SelectionEqualizer {
    * @param selectionContents 원본 선택지 텍스트 목록 (4개)
    * @return 균등화 결과 (텍스트 + 비용), 실패 시 null
    */
-  public EqualizeResult equalize(List<String> selectionContents) {
+  public EqualizeResult equalize(List<String> selectionContents, String language) {
     try {
       // 최장 서술문 길이를 목표치로 사용
       int targetLength = selectionContents.stream().mapToInt(String::length).max().orElse(0);
 
       long startMs = System.currentTimeMillis();
-      String userPrompt = EqualizationPrompt.generate(selectionContents, targetLength);
+      String userPrompt = EqualizationPrompt.generate(selectionContents, targetLength, language);
 
       GoogleGenAiChatOptions.Builder optionsBuilder =
           GoogleGenAiChatOptions.builder()

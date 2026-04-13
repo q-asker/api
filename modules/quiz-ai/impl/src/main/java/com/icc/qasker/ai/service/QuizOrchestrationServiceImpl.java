@@ -213,7 +213,7 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
         continue;
       }
       List<String> contents = q.selections().stream().map(GeminiSelection::content).toList();
-      SelectionEqualizer.EqualizeResult eqResult = selectionEqualizer.equalize(contents);
+      SelectionEqualizer.EqualizeResult eqResult = selectionEqualizer.equalize(contents, language);
       if (eqResult == null) {
         continue;
       }
