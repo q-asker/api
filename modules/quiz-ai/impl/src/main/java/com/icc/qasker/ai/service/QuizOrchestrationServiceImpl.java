@@ -154,8 +154,7 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
                       }
 
                       // 문제+해설 원본 데이터 전송 (번호는 소비자 측에서 할당)
-                      AIProblemSet result =
-                          GeminiQuestionMapper.toDto(validated, chunk.referencedPages());
+                      AIProblemSet result = GeminiQuestionMapper.toDto(validated);
                       request.questionsConsumer().accept(result);
 
                       // 첫 번째/마지막 퀴즈 응답 시각 기록
@@ -228,7 +227,8 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
         newSels.add(
             new GeminiSelection(eqResult.contents().get(j), orig.correct(), orig.explanation()));
       }
-      result.set(i, new GeminiQuestion(q.content(), newSels, q.quizExplanation()));
+      result.set(
+          i, new GeminiQuestion(q.content(), newSels, q.quizExplanation(), q.referencedPages()));
     }
 
     if (equalizedCount > 0) {

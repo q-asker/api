@@ -10,12 +10,19 @@ public class RequestWithPageRefAndCountPrompt {
 
   private static final String LANGUAGE_INSTRUCTION_EN = "\n  - Write all output in English.";
 
+  private static final int DIFFICULTY_THRESHOLD = 3;
+
   public static String generate(List<Integer> referencePages, int quizCount, String language) {
+    String difficultyInstruction =
+        quizCount <= DIFFICULTY_THRESHOLD ? "- 난이도: 상 위주로 출제하세요" : "- 난이도: 중/상을 균등 배분하세요";
     String base =
         """
       [생성 지시]
-      - 강의노트의 %s 페이지를 참고하여 정확히 %d개의 문제를 생성하세요."""
-            .formatted(referencePages, quizCount);
+      - 정확히 %d개의 문제를 생성하세요.
+      - %s 페이지를 힌트로 활용하되, 출제에 적합한 페이지를 자유롭게 선택하세요.
+      - 각 문항의 referencedPages에 실제 참조한 페이지 번호를 기록하세요.
+      %s"""
+            .formatted(quizCount, referencePages, difficultyInstruction);
     return "EN".equals(language) ? base + LANGUAGE_INSTRUCTION_EN : base;
   }
 
@@ -33,12 +40,17 @@ public class RequestWithPageRefAndCountPrompt {
       distribution.append(i + 1).append("번→").append(assignments.get(i));
     }
 
+    String difficultyInstruction =
+        quizCount <= DIFFICULTY_THRESHOLD ? "- 난이도: 중 위주로 출제하세요" : "- 난이도: 하/중을 균등 배분하세요";
     String base =
         """
       [생성 지시]
-      - 강의노트의 %s 페이지를 참고하여 정확히 %d개의 문제를 생성하세요.
-      - 정답 배분: %s"""
-            .formatted(referencePages, quizCount, distribution);
+      - 정확히 %d개의 문제를 생성하세요.
+      - %s 페이지를 힌트로 활용하되, 출제에 적합한 페이지를 자유롭게 선택하세요.
+      - 각 문항의 referencedPages에 실제 참조한 페이지 번호를 기록하세요.
+      - 정답 배분: %s
+      %s"""
+            .formatted(quizCount, referencePages, distribution, difficultyInstruction);
     return "EN".equals(language) ? base + LANGUAGE_INSTRUCTION_EN : base;
   }
 }
