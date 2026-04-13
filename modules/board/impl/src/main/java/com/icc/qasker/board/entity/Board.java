@@ -10,7 +10,6 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.Lob;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.time.Instant;
@@ -40,8 +39,7 @@ public class Board extends CreatedAt {
   @Column(nullable = false, length = 100)
   private String title;
 
-  @Lob
-  @Column(nullable = false)
+  @Column(nullable = false, columnDefinition = "LONGTEXT")
   private String content;
 
   private Long viewCount;
