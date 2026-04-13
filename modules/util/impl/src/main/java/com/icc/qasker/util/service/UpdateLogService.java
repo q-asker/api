@@ -20,13 +20,13 @@ public class UpdateLogService {
   @Cacheable(value = "recentUpdateLog", key = "'root'")
   @Transactional(readOnly = true)
   public UpdateLogResponse getUpdateLog() {
-    return UpdateLogResponseMapper.fromEntity(updateLogRepository.findTop3ByOrderByCreatedAtDesc());
+    return UpdateLogResponseMapper.fromEntity(updateLogRepository.findTop5ByOrderByCreatedAtDesc());
   }
 
   @Transactional
   @CachePut(value = "recentUpdateLog", key = "'root'")
   public UpdateLogResponse createUpdateLog(UpdateLogRequest request) {
     updateLogRepository.save(UpdateLog.builder().updateText(request.updateText()).build());
-    return UpdateLogResponseMapper.fromEntity(updateLogRepository.findTop3ByOrderByCreatedAtDesc());
+    return UpdateLogResponseMapper.fromEntity(updateLogRepository.findTop5ByOrderByCreatedAtDesc());
   }
 }
