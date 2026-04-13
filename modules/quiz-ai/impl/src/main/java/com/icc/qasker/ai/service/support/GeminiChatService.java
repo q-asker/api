@@ -2,7 +2,7 @@ package com.icc.qasker.ai.service.support;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.icc.qasker.ai.dto.ChunkInfo;
-import com.icc.qasker.ai.prompt.user.RequestWithPageRefAndCountPrompt;
+import com.icc.qasker.ai.prompt.QuizType;
 import com.icc.qasker.ai.structure.GeminiResponse;
 import java.util.List;
 import lombok.AllArgsConstructor;
@@ -46,11 +46,9 @@ public class GeminiChatService {
       ChunkInfo chunk, String cacheName, String strategyValue, String language) throws Exception {
     long startMs = System.currentTimeMillis();
     List<Integer> pages = chunk.referencedPages();
+    QuizType quizType = QuizType.valueOf(strategyValue);
 
-    String userPrompt =
-        "OX".equals(strategyValue)
-            ? RequestWithPageRefAndCountPrompt.generateForOX(pages, chunk.quizCount())
-            : RequestWithPageRefAndCountPrompt.generate(pages, chunk.quizCount());
+    String userPrompt = quizType.generateRequestPrompt(pages, chunk.quizCount());
 
     Prompt prompt =
         new Prompt(
