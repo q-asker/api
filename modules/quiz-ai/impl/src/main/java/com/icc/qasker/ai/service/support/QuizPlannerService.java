@@ -31,7 +31,8 @@ public class QuizPlannerService {
   public record QuizPlanItem(
       @JsonPropertyDescription(
               "이 문항에 사용할 마크다운 서식 (table, quote_list, mermaid, ordered_list, code_block)")
-          String format) {}
+          String format,
+      @JsonPropertyDescription("마크다운 서식 활용 방안 가볍게 한줄로)") String hint) {}
 
   @JsonIgnoreProperties(ignoreUnknown = true)
   record QuizPlanResponse(@JsonPropertyDescription("문항별 출제 계획 목록") List<QuizPlanItem> items) {}
@@ -104,6 +105,7 @@ public class QuizPlannerService {
         log.warn("문항 계획 응답이 비어있습니다.");
         return null;
       }
+      log.info("문항 힌트 수립 완료: {}", json);
 
       QuizPlanResponse result = objectMapper.readValue(json.trim(), QuizPlanResponse.class);
 

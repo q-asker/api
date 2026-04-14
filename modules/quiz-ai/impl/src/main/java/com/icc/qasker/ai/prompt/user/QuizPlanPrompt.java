@@ -43,11 +43,11 @@ public class QuizPlanPrompt {
         %s
 
         각 문항의 **format**을 결정하세요. 해당 문항이 참조하는 페이지의 내용을 가장 잘 표현할 수 있는 서식을 선택하세요.
-        - table: 속성 비교, 2개 이상 항목의 특성 대조
-        - quote_list: 원문 인용 + 특징/조건 나열
-        - mermaid: 절차, 흐름, 인과 관계 다이어그램
-        - ordered_list: 단계, 우선순위, 랭킹
-        - code_block: 강의노트에 소스 코드가 포함된 경우에만 사용"""
+        - table: 속성 비교, 2개 이상 항목의 특성 대조. 예: "A와 B의 차이점을 표로 정리"
+        - quote_list: 원문 인용 + 특징/조건 나열. 예: "정의를 인용하고 핵심 특징을 목록으로 제시"
+        - mermaid: 절차, 흐름, 인과 관계 다이어그램. 예: "처리 과정을 순서도로 시각화"
+        - ordered_list: 단계, 우선순위, 랭킹. 예: "실행 순서를 번호 매겨 나열"
+        - code_block: 강의노트에 소스 코드가 포함된 경우에만. 예: "코드 스니펫을 제시하고 동작을 질문\""""
         .formatted(chunkDescription);
   }
 
@@ -59,11 +59,11 @@ public class QuizPlanPrompt {
         %s
 
         Decide the **format** for each question. Choose the format that best represents the content of the referenced pages.
-        - table: attribute comparison, contrasting characteristics of 2+ items
-        - quote_list: original text citation + listing features/conditions
-        - mermaid: procedures, flows, cause-effect diagrams
-        - ordered_list: steps, priorities, rankings
-        - code_block: only when the lecture notes contain source code"""
+        - table: attribute comparison, contrasting characteristics of 2+ items. e.g. "summarize differences between A and B in a table"
+        - quote_list: original text citation + listing features/conditions. e.g. "quote a definition and list key characteristics"
+        - mermaid: procedures, flows, cause-effect diagrams. e.g. "visualize a process as a flowchart"
+        - ordered_list: steps, priorities, rankings. e.g. "list execution steps in numbered order"
+        - code_block: only when the lecture notes contain source code. e.g. "present a code snippet and ask about its behavior\""""
         .formatted(chunkDescription);
   }
 }

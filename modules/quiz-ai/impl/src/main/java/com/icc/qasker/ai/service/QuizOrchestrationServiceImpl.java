@@ -312,7 +312,11 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
     if (items.isEmpty()) return null;
     StringBuilder sb = new StringBuilder("\n[서식 지시]");
     for (int i = 0; i < items.size(); i++) {
-      sb.append("\n- ").append(i + 1).append("번 문항: ").append(items.get(i).format()).append(" 서식");
+      QuizPlanItem item = items.get(i);
+      sb.append("\n- ").append(i + 1).append("번 문항: ").append(item.format()).append(" 서식");
+      if (item.hint() != null && !item.hint().isBlank()) {
+        sb.append(" — ").append(item.hint());
+      }
     }
     return sb.toString();
   }
