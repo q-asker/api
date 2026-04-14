@@ -56,6 +56,9 @@ public class ProblemSet extends CreatedAt {
   @Column(unique = true, nullable = false)
   private String sessionId;
 
+  @Column(nullable = false)
+  private String fileUrl;
+
   // 이하 헬퍼 함수
   public void updateStatus(GenerationStatus status) {
     if (status == null) {

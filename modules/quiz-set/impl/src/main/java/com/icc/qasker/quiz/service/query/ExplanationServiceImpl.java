@@ -8,6 +8,7 @@ import com.icc.qasker.quiz.dto.feresponse.ExplanationResponse;
 import com.icc.qasker.quiz.dto.feresponse.ResultResponse;
 import com.icc.qasker.quiz.entity.Problem;
 import com.icc.qasker.quiz.repository.ProblemRepository;
+import com.icc.qasker.quiz.repository.ProblemSetRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,12 +21,19 @@ public class ExplanationServiceImpl implements ExplanationService {
 
   private final HashUtil hashUtil;
   private final ProblemRepository problemRepository;
+  private final ProblemSetRepository problemSetRepository;
 
   @Override
+  @Transactional(readOnly = true)
   public ExplanationResponse getExplanationByProblemSetId(String problemSetId) {
     long id = hashUtil.decode(problemSetId);
 
     List<Problem> problems = problemRepository.findByIdProblemSetId(id);
+    String fileUrl =
+        problemSetRepository
+            .findById(id)
+            .orElseThrow(() -> new CustomException(ExceptionMessage.PROBLEM_SET_NOT_FOUND))
+            .getFileUrl();
     if (problems.isEmpty()) {
       throw new CustomException(ExceptionMessage.PROBLEM_NOT_FOUND);
     }
@@ -43,6 +51,6 @@ public class ExplanationServiceImpl implements ExplanationService {
                 })
             .toList();
 
-    return new ExplanationResponse(results);
+    return new ExplanationResponse(results, fileUrl);
   }
 }
