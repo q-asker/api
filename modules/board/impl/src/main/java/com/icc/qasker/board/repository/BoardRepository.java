@@ -13,8 +13,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface BoardRepository extends JpaRepository<Board, Long> {
 
-  Page<Board> findAll(Pageable pageable);
-
   Page<Board> findByCategory(BoardCategory category, Pageable pageable);
 
   @Query("SELECT DISTINCT b FROM Board b LEFT JOIN FETCH b.replies WHERE b.boardId = :boardId")

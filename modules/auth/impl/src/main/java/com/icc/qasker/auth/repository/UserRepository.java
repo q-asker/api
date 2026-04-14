@@ -11,8 +11,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface UserRepository extends JpaRepository<User, String> {
 
-  boolean existsByUserId(String userId);
-
   @Query(
       "SELECT new com.icc.qasker.auth.dto.response.UserInfoResponse(u.userId, u.nickname) "
           + "FROM User u WHERE u.userId IN :userIds")

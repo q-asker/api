@@ -5,7 +5,6 @@ import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.icc.qasker.ai.dto.ChunkInfo;
 import com.icc.qasker.ai.prompt.user.QuizPlanPrompt;
-import com.icc.qasker.ai.properties.QAskerAiProperties;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.model.ChatModel;
@@ -45,13 +44,10 @@ public class QuizPlannerService {
 
   private final ChatModel chatModel;
   private final ObjectMapper objectMapper;
-  private final String planningModel;
 
-  public QuizPlannerService(
-      ChatModel chatModel, ObjectMapper objectMapper, QAskerAiProperties aiProperties) {
+  public QuizPlannerService(ChatModel chatModel, ObjectMapper objectMapper) {
     this.chatModel = chatModel;
     this.objectMapper = objectMapper;
-    this.planningModel = aiProperties.getPlanningModel();
   }
 
   /**
@@ -68,16 +64,14 @@ public class QuizPlannerService {
       long startMs = System.currentTimeMillis();
       String userPrompt = QuizPlanPrompt.generate(chunks, language);
 
-      GoogleGenAiChatOptions.Builder optionsBuilder =
+      GoogleGenAiChatOptions options =
           GoogleGenAiChatOptions.builder()
               .useCachedContent(true)
               .cachedContentName(cacheName)
               .responseMimeType("application/json")
-              .responseSchema(PLAN_SCHEMA);
-      if (planningModel != null && !planningModel.isBlank()) {
-        optionsBuilder.model(planningModel);
-      }
-      Prompt prompt = new Prompt(userPrompt, optionsBuilder.build());
+              .responseSchema(PLAN_SCHEMA)
+              .build();
+      Prompt prompt = new Prompt(userPrompt, options);
 
       ChatResponse chatResponse = chatModel.call(prompt);
       long elapsedMs = System.currentTimeMillis() - startMs;
