@@ -18,6 +18,9 @@ public class QAskerAiProperties {
   /** 선택지 균등화에 사용할 모델 (미설정 시 기본 모델 사용) */
   private String equalizationModel;
 
+  /** 문항 계획에 사용할 모델 (미설정 시 기본 모델 사용) */
+  private String planningModel;
+
   /** 청크 분할 설정 */
   private Chunk chunk = new Chunk();
 

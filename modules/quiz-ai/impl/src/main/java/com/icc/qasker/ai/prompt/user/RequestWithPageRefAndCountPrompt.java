@@ -12,6 +12,12 @@ public class RequestWithPageRefAndCountPrompt {
     return buildBase(referencePages, quizCount, "");
   }
 
+  /** 문항 계획 결과를 포함한 유저 프롬프트를 생성한다. planExtra가 null이면 기본 프롬프트와 동일. */
+  public static String generateWithPlan(
+      List<Integer> referencePages, int quizCount, String planExtra) {
+    return buildBase(referencePages, quizCount, planExtra != null ? planExtra : "");
+  }
+
   /** OX 타입 전용: 각 문항의 O/X 정답을 사전 배분하여 유저 프롬프트에 포함한다. O 편향을 방지한다 */
   public static String generateForOX(List<Integer> referencePages, int quizCount) {
     java.util.Random random = new java.util.Random();

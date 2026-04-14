@@ -17,6 +17,13 @@ public enum QuizType implements QuizPromptStrategy {
     public String generateRequestPrompt(List<Integer> referencePages, int quizCount) {
       return RequestWithPageRefAndCountPrompt.generate(referencePages, quizCount);
     }
+
+    @Override
+    public String generateRequestPrompt(
+        List<Integer> referencePages, int quizCount, String planExtra) {
+      return RequestWithPageRefAndCountPrompt.generateWithPlan(
+          referencePages, quizCount, planExtra);
+    }
   },
   BLANK(BlankGuideLine.content) {
     @Override
