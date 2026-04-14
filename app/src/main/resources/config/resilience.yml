@@ -27,8 +27,8 @@ q-asker:
     max-bucket-size: 100000
     tiers:
       CRITICAL:
-        capacity: 1
-        refill-per-minute: 1
+        capacity: 10
+        refill-per-minute: 10
       HEAVY:
         capacity: 10
         refill-per-minute: 10
