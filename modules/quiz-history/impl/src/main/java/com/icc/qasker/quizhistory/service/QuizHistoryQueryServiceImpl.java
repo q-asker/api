@@ -39,7 +39,7 @@ public class QuizHistoryQueryServiceImpl implements QuizHistoryQueryService {
   public List<HistorySummaryResponse> getHistoryList(String userId) {
 
     // IN 쿼리 1번으로 모든 히스토리 일괄 조회
-    List<QuizHistory> histories = quizHistoryRepository.findAllByUserId(userId);
+    List<QuizHistory> histories = quizHistoryRepository.findAllByUserIdOrderByCreatedAtDesc(userId);
     if (histories.isEmpty()) {
       return List.of();
     }
