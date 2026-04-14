@@ -55,7 +55,12 @@ public class QuizHistoryCommandServiceImpl implements QuizHistoryCommandService 
     QuizHistory history =
         quizHistoryRepository
             .findByUserIdAndProblemSetId(userId, hashUtil.decode(request.problemSetId()))
-            .orElseThrow(() -> new CustomException(ExceptionMessage.QUIZ_HISTORY_NOT_FOUND));
+            .orElse(
+                QuizHistory.builder()
+                    .userId(userId)
+                    .problemSetId(hashUtil.decode(request.problemSetId()))
+                    .title(request.title())
+                    .build());
     history.completeQuiz(snapshots, request.score());
     return hashUtil.encode(history.getId());
   }
