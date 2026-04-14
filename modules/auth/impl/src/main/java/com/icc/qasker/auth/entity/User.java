@@ -24,4 +24,8 @@ public class User extends CreatedAt {
     this.provider = provider;
     this.nickname = nickname;
   }
+
+  public void changeNickname(String nickname) {
+    this.nickname = nickname;
+  }
 }
