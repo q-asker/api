@@ -20,8 +20,8 @@ dependencies {
     implementation project(":quiz-ai-api")
     // oci-api: OCI Object Storage 파일 업로드 인터페이스
     implementation project(":oci-api")
-    // util-api: 문서 변환(PPT/DOCX → PDF) 인터페이스
-    implementation project(":util-api")
+    // document-api: 문서 변환(PPT/DOCX → PDF) 인터페이스
+    implementation project(":document-api")
 
     // ────────────────────────────────
     // 스프링부트 Web & JPA & AOP

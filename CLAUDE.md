@@ -25,6 +25,7 @@
 | 빌드 | Gradle (Groovy DSL) | 8.14.3 |
 | 컨테이너 | Jib (Docker) | 3.4.0 |
 | 포맷터 | Spotless + Google Java Format | 7.0.4 / 1.25.2 |
+| DB 마이그레이션 | Flyway | (Boot BOM) |
 | 테스트 | JUnit 5 | (Boot BOM) |
 
 ## 명령어 (Scripts)

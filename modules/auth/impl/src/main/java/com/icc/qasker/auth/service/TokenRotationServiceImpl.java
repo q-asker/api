@@ -26,14 +26,6 @@ public class TokenRotationServiceImpl implements TokenRotationService {
   }
 
   @Override
-  public RotateTokenResponse issueTokens(String userId, HttpServletResponse response) {
-    String newRtPlain = refreshTokenUtil.issue(userId);
-    String newAt = accessTokenHandler.validateAndGenerate(userId);
-    setRefreshToken(response, newRtPlain);
-    return new RotateTokenResponse(newAt);
-  }
-
-  @Override
   public RotateTokenResponse rotateTokens(String refreshToken, HttpServletResponse response) {
     var newRtCookie = refreshTokenUtil.validateAndRotate(refreshToken);
     String newAt = accessTokenHandler.validateAndGenerate(newRtCookie.userId());

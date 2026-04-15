@@ -10,6 +10,4 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class QAskerProperties {
 
   private final String frontendDeployUrl;
-  private final String aiServerUrl;
-  private final String aiMockingServerUrl;
 }

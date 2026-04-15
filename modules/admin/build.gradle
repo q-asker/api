@@ -1,0 +1,26 @@
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+
+    // ────────────────────────────────
+    // 프로젝트 모듈
+    // ────────────────────────────────
+    // global: 공통 어노테이션 (@UserId, @RateLimit)
+    implementation project(":global")
+    // board-api: BoardAdminService 인터페이스, 요청 DTO
+    implementation project(":board-api")
+    // oci-api: ObjectStorageService 인터페이스 (이미지 업로드)
+    implementation project(":oci-api")
+
+    // ────────────────────────────────
+    // 스프링부트 Web
+    // ────────────────────────────────
+    implementation "org.springframework.boot:spring-boot-starter-web"
+
+    // ────────────────────────────────
+    // API 문서 (Swagger)
+    // ────────────────────────────────
+    implementation "org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.8"
+}

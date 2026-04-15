@@ -2,6 +2,7 @@ package com.icc.qasker.oci.config;
 
 import com.icc.qasker.oci.ObjectStorageService;
 import com.icc.qasker.oci.properties.CdnProperties;
+import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
@@ -29,6 +30,17 @@ public class MockOciClientConfig {
           throw new RuntimeException(e);
         }
         return cdnProperties.baseUrl() + "/" + UUID.randomUUID() + ".pdf";
+      }
+
+      @Override
+      public String uploadImage(
+          InputStream inputStream,
+          long contentLength,
+          String contentType,
+          String originalFileName) {
+        log.info("Mock OCI Image Upload: {}", originalFileName);
+        String ext = originalFileName.substring(originalFileName.lastIndexOf("."));
+        return cdnProperties.baseUrl() + "/images/" + UUID.randomUUID() + ext;
       }
     };
   }

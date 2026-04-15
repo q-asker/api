@@ -2,12 +2,12 @@ package com.icc.qasker.quiz.service.upload;
 
 import com.icc.qasker.ai.GeminiFileService;
 import com.icc.qasker.ai.dto.GeminiFileUploadResponse.FileMetadata;
+import com.icc.qasker.document.ConvertService;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.oci.FileValidateService;
 import com.icc.qasker.oci.ObjectStorageService;
 import com.icc.qasker.quiz.dto.feresponse.FileUploadResponse;
-import com.icc.qasker.util.ConvertService;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.annotation.PostConstruct;

@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -32,6 +33,16 @@ public class UserServiceImpl implements UserService {
     if (!userRepository.existsById(userId)) {
       throw new CustomException(ExceptionMessage.USER_NOT_FOUND);
     }
+  }
+
+  @Override
+  @Transactional
+  public void changeNickName(String userId, String nickname) {
+    User user =
+        userRepository
+            .findById(userId)
+            .orElseThrow(() -> new CustomException(ExceptionMessage.USER_NOT_FOUND));
+    user.changeNickname(nickname);
   }
 
   @Override

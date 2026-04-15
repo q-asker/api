@@ -44,6 +44,38 @@ public class OciObjectStorageServiceImpl implements ObjectStorageService {
   }
 
   @Override
+  public String uploadImage(
+      InputStream inputStream, long contentLength, String contentType, String originalFileName) {
+    return uploadTimer.record(
+        () -> {
+          String extension = originalFileName.substring(originalFileName.lastIndexOf("."));
+          String objectName = "images/" + UUID.randomUUID() + extension;
+
+          String encodedFileName = UriUtils.encode(originalFileName, StandardCharsets.UTF_8);
+
+          PutObjectRequest putObjectRequest =
+              PutObjectRequest.builder()
+                  .namespaceName(ociProperties.namespace())
+                  .bucketName(ociProperties.bucketName())
+                  .objectName(objectName)
+                  .contentType(contentType)
+                  .opcMeta(java.util.Map.of("original-filename", encodedFileName))
+                  .build();
+
+          UploadRequest uploadRequest =
+              UploadRequest.builder(inputStream, contentLength)
+                  .allowOverwrite(true)
+                  .build(putObjectRequest);
+
+          uploadManager.upload(uploadRequest);
+
+          String finalUrl = cdnProperties.baseUrl() + "/" + objectName;
+          log.info("이미지 OCI 업로드 완료: {} -> {}", originalFileName, finalUrl);
+          return finalUrl;
+        });
+  }
+
+  @Override
   public String uploadPdf(Path pdfFile, String originalFileName) {
     return uploadTimer.record(
         () -> {

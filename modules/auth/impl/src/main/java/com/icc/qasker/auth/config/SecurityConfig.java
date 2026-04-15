@@ -66,7 +66,7 @@ public class SecurityConfig {
         .addFilterAfter(rateLimitFilter, JwtTokenAuthenticationFilter.class)
         .authorizeHttpRequests(
             auth ->
-                auth.requestMatchers(HttpMethod.POST, "/boards/*/replies")
+                auth.requestMatchers("/admin/**")
                     .hasRole("ADMIN")
                     .requestMatchers(HttpMethod.GET, "/boards/**")
                     .permitAll()

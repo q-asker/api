@@ -7,7 +7,5 @@ public interface TokenRotationService {
 
   void issueRefreshToken(String userId, HttpServletResponse response);
 
-  RotateTokenResponse issueTokens(String userId, HttpServletResponse response);
-
   RotateTokenResponse rotateTokens(String refreshToken, HttpServletResponse response);
 }

@@ -1,6 +1,7 @@
 package com.icc.qasker.board.service;
 
 import com.icc.qasker.auth.UserService;
+import com.icc.qasker.board.dto.BoardCategory;
 import com.icc.qasker.board.dto.request.PostRequest;
 import com.icc.qasker.board.dto.response.PostDetailResponse;
 import com.icc.qasker.board.dto.response.PostPageResponse;
@@ -26,12 +27,26 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class BoardService {
 
+  private static final String UPDATE_LOG_USERNAME = "운영팀";
+
   private final BoardRepository boardRepository;
   private final PostResponseMapper postResponseMapper;
   private final UserService userService;
 
-  public PostPageResponse getPosts(Pageable pageable) {
-    Page<Board> boards = boardRepository.findAll(pageable);
+  public PostPageResponse getPosts(BoardCategory category, Pageable pageable) {
+    Page<Board> boards = boardRepository.findByCategory(category, pageable);
+
+    if (category == BoardCategory.UPDATE_LOG) {
+      List<PostResponse> posts =
+          boards.map(board -> postResponseMapper.fromEntity(board, null)).getContent();
+      return new PostPageResponse(
+          posts,
+          boards.getTotalElements(),
+          boards.getTotalPages(),
+          boards.getSize(),
+          boards.getNumber());
+    }
+
     List<String> userIds = boards.stream().map(Board::getUserId).distinct().toList();
     Map<String, String> nicknames = userService.getNickNames(userIds);
 
@@ -61,8 +76,21 @@ public class BoardService {
 
     board.incrementViewCount();
 
-    List<String> replies = board.getReplies().stream().map(Reply::getContent).toList();
+    if (board.getCategory() == BoardCategory.UPDATE_LOG) {
+      return new PostDetailResponse(
+          board.getBoardId(),
+          UPDATE_LOG_USERNAME,
+          board.getTitle(),
+          board.getContent(),
+          board.getViewCount(),
+          null,
+          board.getCreatedAt(),
+          List.of(),
+          false,
+          board.getCategory().name());
+    }
 
+    List<String> replies = board.getReplies().stream().map(Reply::getContent).toList();
     boolean isWriter = Objects.equals(requestUserId, board.getUserId());
 
     return new PostDetailResponse(
@@ -74,7 +102,8 @@ public class BoardService {
         board.getStatus().name(),
         board.getCreatedAt(),
         replies,
-        isWriter);
+        isWriter,
+        board.getCategory().name());
   }
 
   @Transactional
@@ -99,6 +128,10 @@ public class BoardService {
             .findById(boardId)
             .orElseThrow(() -> new CustomException(ExceptionMessage.POST_NOT_FOUND));
 
+    if (board.getCategory() == BoardCategory.UPDATE_LOG) {
+      throw new CustomException(ExceptionMessage.NOT_ENOUGH_ACCESS);
+    }
+
     if (board.getStatus() == BoardStatus.ANSWERED) {
       throw new CustomException(ExceptionMessage.ALREADY_ANSWERED);
     }
@@ -118,6 +151,10 @@ public class BoardService {
         boardRepository
             .findById(boardId)
             .orElseThrow(() -> new CustomException(ExceptionMessage.POST_NOT_FOUND));
+
+    if (board.getCategory() == BoardCategory.UPDATE_LOG) {
+      throw new CustomException(ExceptionMessage.NOT_ENOUGH_ACCESS);
+    }
 
     if (board.getStatus() == BoardStatus.ANSWERED) {
       throw new CustomException(ExceptionMessage.ALREADY_ANSWERED);

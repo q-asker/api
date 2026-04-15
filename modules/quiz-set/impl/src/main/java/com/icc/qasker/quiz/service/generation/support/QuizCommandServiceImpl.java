@@ -29,7 +29,12 @@ public class QuizCommandServiceImpl implements QuizCommandService {
 
   @Override
   public Long initProblemSet(
-      String userId, String sessionId, String title, Integer totalQuizCount, QuizType quizType) {
+      String userId,
+      String sessionId,
+      String title,
+      Integer totalQuizCount,
+      QuizType quizType,
+      String uploadUrl) {
     ProblemSet problemSet =
         ProblemSet.builder()
             .sessionId(sessionId)
@@ -37,6 +42,7 @@ public class QuizCommandServiceImpl implements QuizCommandService {
             .userId(userId)
             .totalQuizCount(totalQuizCount)
             .quizType(quizType)
+            .fileUrl(uploadUrl)
             .build();
     ProblemSet saved = problemSetRepository.save(problemSet);
     return saved.getId();

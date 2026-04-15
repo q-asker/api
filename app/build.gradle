@@ -36,9 +36,8 @@ dependencies {
     implementation project(':quiz-make-impl')
     // 퀴즈 히스토리 구현 모듈: 퀴즈 풀이 기록 CRUD
     implementation project(':quiz-history-impl')
-    // 유틸리티 구현 모듈: 범용 헬퍼 기능
-    // 예: HealthCheckController 등이 이 모듈에 위치
-    implementation project(':util-impl')
+    // 문서 변환 모듈: PPT/DOCX → PDF 변환 (JODConverter)
+    implementation project(':document-impl')
     // AI 모듈: Google Gemini 기반 AI 기능
     // 예: AiService에서 ChatClient를 통해 Gemini API를 호출
     implementation project(':quiz-ai-impl')
@@ -46,6 +45,8 @@ dependencies {
     // 예: GlobalExceptionHandler, ApiResponse<T>, BaseEntity 등이 이 모듈에 위치
     implementation project(':global')
     implementation project(':board-impl')
+    // 관리자 모듈: 어드민 전용 API 엔드포인트
+    implementation project(':admin')
 
 
     // ────────────────────────────────
@@ -63,6 +64,9 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     // Prometheus 메트릭 엔드포인트 지원 (/actuator/prometheus)
     runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
+    // Flyway: DB 스키마 버전 관리 마이그레이션
+    implementation 'org.flywaydb:flyway-core'
+    implementation 'org.flywaydb:flyway-mysql'
     // H2: CI 환경에서 OpenAPI spec 추출 시 인메모리 DB로 사용
     runtimeOnly 'com.h2database:h2'
     // Configuration Processor: @ConfigurationProperties 클래스의 메타데이터를 자동 생성

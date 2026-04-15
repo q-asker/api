@@ -8,4 +8,5 @@ public record PostResponse(
     String title,
     Long viewCount,
     String status,
-    Instant createdAt) {}
+    Instant createdAt,
+    String category) {}

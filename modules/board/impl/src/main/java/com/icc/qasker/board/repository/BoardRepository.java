@@ -1,5 +1,6 @@
 package com.icc.qasker.board.repository;
 
+import com.icc.qasker.board.dto.BoardCategory;
 import com.icc.qasker.board.entity.Board;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
@@ -12,7 +13,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface BoardRepository extends JpaRepository<Board, Long> {
 
-  Page<Board> findAll(Pageable pageable);
+  Page<Board> findByCategory(BoardCategory category, Pageable pageable);
 
   @Query("SELECT DISTINCT b FROM Board b LEFT JOIN FETCH b.replies WHERE b.boardId = :boardId")
   Optional<Board> findByIdWithReplies(@Param("boardId") Long boardId);

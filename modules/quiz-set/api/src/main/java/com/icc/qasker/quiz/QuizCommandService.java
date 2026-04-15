@@ -7,7 +7,12 @@ import java.util.List;
 public interface QuizCommandService {
 
   Long initProblemSet(
-      String userId, String title, String sessionId, Integer totalQuizCount, QuizType quizType);
+      String userId,
+      String sessionId,
+      String title,
+      Integer totalQuizCount,
+      QuizType quizType,
+      String uploadUrl);
 
   void updateStatus(Long problemSetId, GenerationStatus status);
 

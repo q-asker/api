@@ -63,9 +63,10 @@ public class QuizHistory extends CreatedAt {
     this.title = title;
   }
 
-  public void completeQuiz(List<AnswerSnapshot> answers, Integer score) {
+  public void completeQuiz(List<AnswerSnapshot> answers, Integer score, String totalTime) {
     this.answers = answers;
     this.score = score;
+    this.totalTime = totalTime;
     this.status = QuizHistoryStatus.COMPLETED;
   }
 
