@@ -38,7 +38,7 @@ public class MultipleGuideLine {
         - code_block: 강의노트에 소스 코드가 포함된 경우
       - JSON 문자열 안에서 마크다운 서식 예시:
         - 테이블: "\\n\\n| 헤더1 | 헤더2 |\\n| :--- | :--- |\\n| 값1 | 값2 |\\n\\n"
-        - mermaid: "\\n\\n```mermaid\\ngraph TD\\n  A[시작 100%] --> B[완료]\\n```\\n\\n"
+        - mermaid: "\\n\\n```mermaid\\ngraph TD\\n  A[시작 100%] -->|처리| B[완료]\\n```\\n\\n"
         - 코드: "\\n\\n```java\\ncode here\\n```\\n\\n"
         - 인용: "\\n\\n> \\"인용 내용\\"\\n\\n"
         - 목록: "\\n\\n1. 항목1\\n2. 항목2\\n\\n"
