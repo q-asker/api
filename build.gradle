@@ -22,7 +22,7 @@ plugins {
 group = "com.icc.qasker"
 // 프로젝트 버전 (Docker 이미지 태그, 배포 아티팩트 버전에 사용)
 // 예: jib으로 빌드하면 Docker 이미지에 "1.7.0" 태그가 붙음
-version = "2.2.0"
+version = "2.2.1"
 
 // Git hooks 경로를 .githooks/로 자동 설정
 // 예: ./gradlew build 실행 시 자동으로 git config core.hooksPath .githooks 적용
