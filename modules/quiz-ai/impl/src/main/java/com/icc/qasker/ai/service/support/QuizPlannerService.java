@@ -28,7 +28,9 @@ public class QuizPlannerService {
   /** 문항별 계획 항목 */
   @JsonIgnoreProperties(ignoreUnknown = true)
   public record QuizPlanItem(
-      @JsonPropertyDescription("마크다운 서식과 활용 방안을 포함한 출제 지시 한줄") String hint) {}
+      @JsonPropertyDescription("사용할 마크다운 서식") String format,
+      @JsonPropertyDescription("문제 본문 구성 지시") String contentHint,
+      @JsonPropertyDescription("선택지 구성 지시 ") String selectionHint) {}
 
   @JsonIgnoreProperties(ignoreUnknown = true)
   record QuizPlanResponse(@JsonPropertyDescription("문항별 출제 계획 목록") List<QuizPlanItem> items) {}
@@ -98,20 +100,31 @@ public class QuizPlannerService {
       }
       QuizPlanResponse result = objectMapper.readValue(json.trim(), QuizPlanResponse.class);
 
-      if (result.items() == null || result.items().size() != quizCount) {
-        log.warn(
-            "문항 계획 응답 개수 불일치: expected={}, actual={}",
-            quizCount,
-            result.items() == null ? 0 : result.items().size());
+      if (result.items() == null) {
+        log.warn("문항 계획 응답 items가 null입니다.");
         return null;
       }
 
-      for (int i = 0; i < result.items().size(); i++) {
-        QuizPlanItem item = result.items().get(i);
-        log.info("문항[{}] 계획: hint={}", i + 1, item.hint());
+      List<QuizPlanItem> items = result.items();
+      if (items.size() != quizCount) {
+        log.info("문항 계획 개수 조정: expected={}, actual={}", quizCount, items.size());
+        if (items.size() > quizCount) {
+          items = items.subList(0, quizCount);
+        }
+        // items < quizCount인 경우 부족분은 buildChunkPlanExtras에서 null로 처리
       }
 
-      return new PlanResult(result.items(), inputTokens, outputTokens, cost);
+      for (int i = 0; i < items.size(); i++) {
+        QuizPlanItem item = items.get(i);
+        log.info(
+            "문항[{}] 계획: format={}, content={}, selection={}",
+            i + 1,
+            item.format(),
+            item.contentHint(),
+            item.selectionHint());
+      }
+
+      return new PlanResult(items, inputTokens, outputTokens, cost);
     } catch (Exception e) {
       log.warn("문항 계획 실패 (기존 파이프라인으로 폴백): {}", e.getMessage());
       return null;

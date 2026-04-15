@@ -49,7 +49,7 @@ public class OXGuideLine {
       ```
       **[정답 추론]**
       {근거와 추론 경로 — 참(O) 진술이 정답인 경우에도 '왜 참인가' 근거를 인용}
-      - 근거: [강의노트 섹션명] > "핵심 문장 인용"
+      - 근거: [강의노트 섹션명 페이지] > "핵심 문장 인용"
       ```
 
       오답 선택지 (correct=false인 O 또는 X):
@@ -79,19 +79,19 @@ public class OXGuideLine {
       ```json
       {
         "questions": [{
-          "content": "**개념 A**는 **조건 X**가 충족된 후에만 **상태 Y**로 전이되어 기능을 수행할 수 있다.",
-          "referencedPages": [3],
-          "quizExplanation": "**[자기 점검]** (중: 유사 개념 비교)\\n개념 A와 개념 B의 상태 전이 조건 차이를 비교할 수 있나요?\\n\\n**[심화 학습]**\\n조건 X가 실패할 때 발생하는 문제를 평가 수준에서 분석해 보세요. [강의노트 섹션명] 참조.",
+          "content": "**TCP**의 3-way handshake에서 **SYN 패킷**을 수신한 서버는 **SYN-ACK**를 응답한 뒤 **ESTABLISHED** 상태로 즉시 전이된다.",
+          "referencedPages": [8],
+          "quizExplanation": "**[자기 점검]** (중: TCP 상태 전이)\\nSYN_RECEIVED와 ESTABLISHED 상태의 전이 조건 차이를 설명할 수 있나요?\\n\\n**[심화 학습]**\\n3-way handshake 각 단계에서의 서버/클라이언트 상태 변화를 평가 수준에서 정리해 보세요. [TCP 연결 관리 8p] 참조.",
           "selections": [
             {
-              "content": "O",
+              "content": "X",
               "correct": true,
-              "explanation": "**[정답 추론]**\\n개념 A는 조건 X의 모든 단계가 완료된 후 상태 Y로 전이됩니다.\\n- 근거: [강의노트 섹션명] > \\"조건 X가 완료되어야 상태 Y로 전이된다\\""
+              "explanation": "**[정답 추론]**\\n서버는 SYN-ACK 응답 후 SYN_RECEIVED 상태에 머물며, 클라이언트의 ACK를 수신해야 ESTABLISHED로 전이됩니다.\\n- 근거: [TCP 연결 관리 8p] > \\"서버는 SYN-ACK 전송 후 SYN_RECEIVED 상태에서 ACK를 대기한다\\""
             },
             {
-              "content": "X",
+              "content": "O",
               "correct": false,
-              "explanation": "[사실 변조형]\\n- **진단**: 조건 X 없이도 상태 Y로 전이 가능하다는 오개념\\n- **교정**: 조건 X의 모든 단계가 완료되어야 상태 Y로 전이됨\\n- **스스로 점검**: 조건 X가 생략된 상태에서 가능한 동작은 무엇인지 확인해 보세요\\n- 복습: [강의노트 섹션명]"
+              "explanation": "[관계 변조형]\\n- **진단**: SYN-ACK 전송과 ESTABLISHED 전이를 직접 연결하는 오개념\\n- **교정**: SYN-ACK 후 SYN_RECEIVED 상태를 거치며, ACK 수신 후에야 ESTABLISHED로 전이됨\\n- **스스로 점검**: 3-way handshake의 각 단계에서 서버 상태가 어떻게 변하는지 순서를 짚어 보세요\\n- 복습: [TCP 연결 관리 8p]"
             }
           ]
         }]

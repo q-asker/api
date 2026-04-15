@@ -46,18 +46,19 @@ public class SelectionEqualizer {
   }
 
   /**
-   * 오답 선택지만 정답 길이에 맞춰 균등화한다. 정답은 전달하지 않아 편향을 원천 차단한다.
+   * 선택지 길이를 균등화한다. preserveIndex 번째 선택지는 그대로 출력하고 나머지만 길이를 맞춘다.
    *
-   * @param wrongContents 오답 선택지 텍스트 목록 (3개)
-   * @param correctLength 정답 선택지의 글자 수 (목표치)
+   * @param allContents 전체 선택지 텍스트 목록 (4개)
+   * @param preserveIndex 그대로 출력할 선택지 인덱스 (0-based)
    * @return 균등화 결과 (텍스트 + 비용), 실패 시 null
    */
-  public EqualizeResult equalize(List<String> wrongContents, int correctLength, String language) {
+  public EqualizeResult equalize(List<String> allContents, int preserveIndex, String language) {
     try {
-      int targetLength = correctLength;
+      int targetLength = allContents.get(preserveIndex).length();
 
       long startMs = System.currentTimeMillis();
-      String userPrompt = EqualizationPrompt.generate(wrongContents, targetLength, language);
+      String userPrompt =
+          EqualizationPrompt.generate(allContents, preserveIndex, targetLength, language);
 
       GoogleGenAiChatOptions.Builder optionsBuilder =
           GoogleGenAiChatOptions.builder()
@@ -98,17 +99,17 @@ public class SelectionEqualizer {
 
       EqualizedSelections result = objectMapper.readValue(json.trim(), EqualizedSelections.class);
 
-      if (result.contents() == null || result.contents().size() != wrongContents.size()) {
+      if (result.contents() == null || result.contents().size() != allContents.size()) {
         log.warn(
             "균등화 응답 개수 불일치: expected={}, actual={}",
-            wrongContents.size(),
+            allContents.size(),
             result.contents() == null ? 0 : result.contents().size());
         return null;
       }
 
       // 변경 전/후 선택지 비교
-      for (int i = 0; i < wrongContents.size(); i++) {
-        String before = wrongContents.get(i);
+      for (int i = 0; i < allContents.size(); i++) {
+        String before = allContents.get(i);
         String after = result.contents().get(i);
         log.info(
             "선택지[{}] 변경 전({}자): {} → 변경 후({}자): {}",
