@@ -46,7 +46,6 @@ public class QuizPlanPrompt {
         - table: 2개 이상 항목의 속성 비교·대조
         - quote_list: 원문 인용 + 특징/조건 나열
         - mermaid: 절차, 흐름, 인과 관계 다이어그램
-        - ordered_list: 단계, 우선순위, 랭킹
         - code_block: 강의노트에 소스 코드가 포함된 경우
 
         **formatUsage** — 선택한 서식의 활용 방안. 아래 형태 중 하나:
@@ -70,7 +69,6 @@ public class QuizPlanPrompt {
         - table: comparing attributes of 2+ items
         - quote_list: original text citation + listing features/conditions
         - mermaid: procedures, flows, cause-effect diagrams
-        - ordered_list: steps, priorities, rankings
         - code_block: when the lecture notes contain source code
 
         **formatUsage** — how to use the chosen format. One of:
