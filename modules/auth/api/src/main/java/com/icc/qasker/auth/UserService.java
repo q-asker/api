@@ -9,5 +9,7 @@ public interface UserService {
 
   void checkUserExists(String userId);
 
+  void changeNickName(String userId, String nickname);
+
   Map<String, String> getNickNames(List<String> userIds);
 }

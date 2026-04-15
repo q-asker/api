@@ -9,7 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 
 public interface QuizHistoryRepository extends JpaRepository<QuizHistory, Long> {
 
-  List<QuizHistory> findAllByUserId(String userId);
+  List<QuizHistory> findAllByUserIdOrderByCreatedAtDesc(String userId);
 
   Optional<QuizHistory> findByIdAndUserId(Long id, String userId);
 

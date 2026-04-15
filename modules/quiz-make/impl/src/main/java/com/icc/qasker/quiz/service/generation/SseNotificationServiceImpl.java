@@ -68,7 +68,7 @@ public class SseNotificationServiceImpl implements SseNotificationService {
       try {
         emitter.send(SseEmitter.event().name("connected").data("hello"));
       } catch (IOException e) {
-        log.error("클라이언트에게 연결 중 에러 사유: {}", e.getMessage());
+        log.warn("클라이언트에게 연결 중 에러 사유: {}", e.getMessage());
         emitter.completeWithError(e);
       }
     }
@@ -89,7 +89,7 @@ public class SseNotificationServiceImpl implements SseNotificationService {
         });
     emitter.onError(
         (e) -> {
-          log.error("SSE 연결 에러 발생 (Session: {}): {}", sessionId, e.getMessage());
+          log.warn("SSE 연결 에러 발생 (Session: {}): {}", sessionId, e.getMessage());
           emitterMap.remove(sessionId, emitter);
         });
     return emitter;
@@ -102,7 +102,7 @@ public class SseNotificationServiceImpl implements SseNotificationService {
       try {
         emitter.send(SseEmitter.event().id(eventId).name("created").data(data));
       } catch (IOException e) {
-        log.error("클라이언트에게 전송 중 에러 발생: {} 사유: {}", data, e.getMessage());
+        log.warn("클라이언트에게 전송 중 에러 발생: {} 사유: {}", data, e.getMessage());
         emitter.completeWithError(e);
       }
     }

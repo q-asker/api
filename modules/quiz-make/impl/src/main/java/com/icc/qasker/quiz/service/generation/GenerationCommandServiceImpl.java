@@ -69,7 +69,8 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
               request.sessionId(),
               request.title(),
               request.quizCount(),
-              request.quizType());
+              request.quizType(),
+              request.uploadedUrl());
     } catch (DataIntegrityViolationException e) {
       throw new CustomException(ExceptionMessage.AI_DUPLICATED_GENERATION);
     }

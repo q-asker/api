@@ -1,3 +1,3 @@
 package com.icc.qasker.quizhistory.entity;
 
-public record AnswerSnapshot(int number, int userAnswer) {}
+public record AnswerSnapshot(int number, int userAnswer, boolean inReview) {}

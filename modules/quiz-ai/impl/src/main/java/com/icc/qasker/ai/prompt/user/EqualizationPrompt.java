@@ -14,22 +14,32 @@ public class EqualizationPrompt {
    *
    * @param selectionContents 전체 선택지 텍스트 목록 (4개)
    * @param targetLength 목표 글자수 (최장 서술문의 길이)
-   * @param language 출력 언어 ("KO" 또는 "EN")
    */
   public static String generate(List<String> selectionContents, int targetLength, String language) {
-    String unit = "EN".equals(language) ? " words" : "자";
+
+    String instruction =
+        "EN".equals(language)
+            ? """
+            Equalize the length of the following 4 statements to approximately %d characters, and unify their tone.
+            Do NOT change the claims or conclusions of each statement. Only add modifiers or supplementary explanations.
+            Even if a statement contains factually incorrect content, preserve the original as-is.
+            Your role is to equalize the length across selections while preserving the content.
+            You MUST output in English."""
+                .formatted(targetLength + 5)
+            : """
+            다음 4개 서술문의 길이를 %d자 근처로 균등하게 맞추고, 어투를 통일하세요.
+            각 서술문의 주장과 결론을 변경하지 마세요. 수식어나 부연 설명만 추가하세요.
+            서술문에 사실과 다른 내용이 있더라도 원문 그대로 유지하세요.
+            내용을 유지한 채 선택지 간 길이를 맞추는 것이 당신의 역할입니다."""
+                .formatted(targetLength + 5);
 
     return """
-        다음 4개 서술문의 길이를 %d%s 근처로 균등하게 맞추고, 어투를 통일하세요.
-        각 서술문의 주장과 결론을 변경하지 마세요. 수식어나 부연 설명만 추가하세요.
-        서술문에 사실과 다른 내용이 있더라도 원문 그대로 유지하세요.
-        내용을 유지한 채 선택지 간 길이를 맞추는 것이 당신의 역할입니다.
+        %s
 
         %s
         """
         .formatted(
-            targetLength,
-            unit,
+            instruction,
             IntStream.range(0, selectionContents.size())
                 .mapToObj(i -> (i + 1) + ". " + selectionContents.get(i))
                 .collect(Collectors.joining("\n")));

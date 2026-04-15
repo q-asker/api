@@ -1,11 +1,10 @@
 package com.icc.qasker.board.controller;
 
+import com.icc.qasker.board.dto.BoardCategory;
 import com.icc.qasker.board.dto.request.PostRequest;
-import com.icc.qasker.board.dto.request.ReplyRequest;
 import com.icc.qasker.board.dto.response.PostDetailResponse;
 import com.icc.qasker.board.dto.response.PostPageResponse;
 import com.icc.qasker.board.service.BoardService;
-import com.icc.qasker.board.service.ReplyService;
 import com.icc.qasker.global.annotation.RateLimit;
 import com.icc.qasker.global.annotation.UserId;
 import com.icc.qasker.global.ratelimit.RateLimitTier;
@@ -22,6 +21,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @Tag(name = "Board", description = "게시글 관련 API")
@@ -31,12 +31,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class BoardController {
 
   private final BoardService boardService;
-  private final ReplyService replyService;
 
   @Operation(summary = "게시글 명단을 가져온다")
   @GetMapping
-  public ResponseEntity<PostPageResponse> getPosts(@PageableDefault Pageable pageable) {
-    return ResponseEntity.ok(boardService.getPosts(pageable));
+  public ResponseEntity<PostPageResponse> getPosts(
+      @RequestParam BoardCategory category, @PageableDefault Pageable pageable) {
+    return ResponseEntity.ok(boardService.getPosts(category, pageable));
   }
 
   @Operation(summary = "단일 게시글 내용을 가져온다")
@@ -68,15 +68,6 @@ public class BoardController {
   @DeleteMapping("/{boardId}")
   public ResponseEntity<?> deletePost(@PathVariable Long boardId, @UserId String userId) {
     boardService.deletePost(boardId, userId);
-    return ResponseEntity.ok().build();
-  }
-
-  @Operation(summary = "댓글을 단다")
-  @RateLimit(RateLimitTier.WRITE)
-  @PostMapping("/{boardId}/replies")
-  public ResponseEntity<?> reply(
-      @RequestBody ReplyRequest replyRequest, @PathVariable Long boardId, @UserId String userId) {
-    replyService.reply(boardId, userId, replyRequest.content());
     return ResponseEntity.ok().build();
   }
 }

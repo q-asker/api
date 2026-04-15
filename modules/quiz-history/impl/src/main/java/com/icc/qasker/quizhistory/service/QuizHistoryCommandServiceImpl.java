@@ -49,14 +49,21 @@ public class QuizHistoryCommandServiceImpl implements QuizHistoryCommandService 
   public String saveHistory(String userId, SaveHistoryRequest request) {
     List<AnswerSnapshot> snapshots =
         request.userAnswers().stream()
-            .map(a -> new AnswerSnapshot(a.number(), a.userAnswer()))
+            .map(a -> new AnswerSnapshot(a.number(), a.userAnswer(), a.inReview()))
             .toList();
 
     QuizHistory history =
         quizHistoryRepository
             .findByUserIdAndProblemSetId(userId, hashUtil.decode(request.problemSetId()))
-            .orElseThrow(() -> new CustomException(ExceptionMessage.QUIZ_HISTORY_NOT_FOUND));
-    history.completeQuiz(snapshots, request.score());
+            .orElseGet(
+                () ->
+                    quizHistoryRepository.save(
+                        QuizHistory.builder()
+                            .userId(userId)
+                            .problemSetId(hashUtil.decode(request.problemSetId()))
+                            .title(request.title())
+                            .build()));
+    history.completeQuiz(snapshots, request.score(), request.totalTime());
     return hashUtil.encode(history.getId());
   }
 

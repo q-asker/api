@@ -4,7 +4,7 @@ import com.google.genai.types.Content;
 import com.google.genai.types.FileData;
 import com.google.genai.types.Part;
 import com.icc.qasker.ai.GeminiCacheService;
-import com.icc.qasker.ai.prompt.system.QuizType;
+import com.icc.qasker.ai.prompt.QuizType;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import java.time.Duration;
@@ -45,7 +45,7 @@ public class GeminiCacheServiceImpl implements GeminiCacheService {
               .build();
 
       QuizType strategy = QuizType.valueOf(strategyValue);
-      String systemPrompt = strategy.getGuideLine(language);
+      String systemPrompt = strategy.getSystemGuideLine(language);
       Content systemInstruction =
           Content.builder().parts(List.of(Part.builder().text(systemPrompt).build())).build();
 

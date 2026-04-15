@@ -1,0 +1,47 @@
+plugins {
+    // java-library: api/implementation 의존성 구분을 지원하는 라이브러리 모듈용 플러그인
+    // 예: api로 선언한 의존성은 이 모듈을 사용하는 소비자에게 전이됨,
+    //     implementation으로 선언하면 내부에서만 사용되고 소비자에게 노출되지 않음
+    id 'java-library'
+}
+
+dependencies {
+
+    // ────────────────────────────────
+    // 프로젝트 모듈
+    // ────────────────────────────────
+    // global: 공통 예외 처리, 공통 응답 DTO 등 프로젝트 전역 유틸리티 모듈
+    implementation project(":global")
+    // document-api: 문서 변환 인터페이스 (ConvertService)
+    implementation project(":document-api")
+
+    // ────────────────────────────────
+    // JODConverter: LibreOffice 기반 문서 변환
+    // ────────────────────────────────
+    // 예: DocumentConverter.convert(inputFile).to(outputFile).execute()로 PPT/DOCX → PDF 변환
+    //     Spring Boot Starter가 OfficeManager, DocumentConverter 빈을 자동 등록
+    implementation "org.jodconverter:jodconverter-local-lo:4.4.9"
+    implementation "org.jodconverter:jodconverter-spring-boot-starter:4.4.9"
+
+    // ────────────────────────────────
+    // Micrometer: Prometheus 커스텀 메트릭 (문서 변환 Timer)
+    // ────────────────────────────────
+    implementation "io.micrometer:micrometer-core"
+
+    // ────────────────────────────────
+    // 스프링부트
+    // ────────────────────────────────
+    // Spring Boot: @Service, @ConditionalOnProperty 등 자동 설정 지원
+    implementation "org.springframework.boot:spring-boot-starter"
+
+    // ────────────────────────────────
+    // 테스트
+    // ────────────────────────────────
+    testImplementation "org.springframework.boot:spring-boot-starter-test"
+    testImplementation platform("org.junit:junit-bom:5.12.2")
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+}
+
+test {
+    useJUnitPlatform()
+}
