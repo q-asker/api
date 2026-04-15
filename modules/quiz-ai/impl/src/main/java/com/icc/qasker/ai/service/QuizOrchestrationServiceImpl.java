@@ -95,36 +95,98 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
               request.referencePages(), request.quizCount(), maxChunkCount);
       log.info("청크 분할 완료: {}개 청크 (maxChunkCount={})", chunks.size(), maxChunkCount);
 
-      // Step 1: 문항 계획 (MULTIPLE만)
-      List<String> chunkPlanExtras =
-          "MULTIPLE".equals(request.strategyValue())
-              ? buildChunkPlanExtras(chunks, cacheInfo.name(), request.language())
-              : chunks.stream().map(c -> (String) null).toList();
-
-      // Step 2 + 3: 청크별 병렬 파이프라인
+      // 청크별 병렬 파이프라인 (fast chunk 전략)
+      // 첫 번째 청크: plan 없이 즉시 생성 → 빠른 첫 응답
+      // 나머지 청크: plan 완료 후 병렬 생성 → 높은 품질
       AtomicInteger remainingQuota = new AtomicInteger(request.quizCount());
+      final String finalCacheName = cacheInfo.name();
+      boolean isMultiple = "MULTIPLE".equals(request.strategyValue());
 
       try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
-        final String finalCacheName = cacheInfo.name();
         List<CompletableFuture<Void>> futures = new ArrayList<>(chunks.size());
 
-        for (int chunkIndex = 0; chunkIndex < chunks.size(); chunkIndex++) {
-          final ChunkInfo chunk = chunks.get(chunkIndex);
-          final String planExtra = chunkPlanExtras.get(chunkIndex);
-
+        // Fast chunks: 첫 2개 청크 즉시 생성 (plan 없이)
+        int fastCount = Math.min(2, chunks.size());
+        for (int i = 0; i < fastCount; i++) {
+          final ChunkInfo fastChunk = chunks.get(i);
           futures.add(
               CompletableFuture.runAsync(
                   () -> {
                     try {
-                      new ChunkProcessor(chunk, finalCacheName, request, planExtra)
+                      log.info(
+                          "Fast chunk 즉시 생성: pages={}, {}문제",
+                          fastChunk.referencedPages(),
+                          fastChunk.quizCount());
+                      new ChunkProcessor(fastChunk, finalCacheName, request, null)
                           .generate()
                           .equalize()
                           .deliver(remainingQuota, totalCostAdder, firstQuizNanos, lastQuizNanos);
                     } catch (Exception e) {
                       log.error(
-                          "청크 처리 실패 (계속 진행): pages={}, error={}",
-                          chunk.referencedPages(),
+                          "Fast chunk 처리 실패: pages={}, error={}",
+                          fastChunk.referencedPages(),
                           e.getMessage());
+                    }
+                  },
+                  executor));
+        }
+
+        // 나머지 청크: plan 후 병렬 생성
+        if (chunks.size() > fastCount) {
+          List<ChunkInfo> remainingChunks = chunks.subList(fastCount, chunks.size());
+          futures.add(
+              CompletableFuture.runAsync(
+                  () -> {
+                    try {
+                      // plan 실행 (나머지 청크만)
+                      List<String> planExtras;
+                      if (isMultiple) {
+                        PlanResult planResult =
+                            quizPlannerService.plan(
+                                remainingChunks, finalCacheName, request.language());
+                        planExtras = buildChunkPlanExtras(remainingChunks, planResult);
+                        if (planResult != null) {
+                          metricsRecorder.recordPlan(
+                              planResult.inputTokens(),
+                              planResult.outputTokens(),
+                              planResult.cost());
+                          totalCostAdder.add(planResult.cost());
+                        }
+                      } else {
+                        planExtras = remainingChunks.stream().map(c -> (String) null).toList();
+                      }
+
+                      // 나머지 청크 병렬 생성
+                      List<CompletableFuture<Void>> chunkFutures =
+                          new ArrayList<>(remainingChunks.size());
+                      for (int i = 0; i < remainingChunks.size(); i++) {
+                        final ChunkInfo chunk = remainingChunks.get(i);
+                        final String planExtra = planExtras.get(i);
+                        chunkFutures.add(
+                            CompletableFuture.runAsync(
+                                () -> {
+                                  try {
+                                    new ChunkProcessor(chunk, finalCacheName, request, planExtra)
+                                        .generate()
+                                        .equalize()
+                                        .deliver(
+                                            remainingQuota,
+                                            totalCostAdder,
+                                            firstQuizNanos,
+                                            lastQuizNanos);
+                                  } catch (Exception e) {
+                                    log.error(
+                                        "청크 처리 실패 (계속 진행): pages={}, error={}",
+                                        chunk.referencedPages(),
+                                        e.getMessage());
+                                  }
+                                },
+                                executor));
+                      }
+                      CompletableFuture.allOf(chunkFutures.toArray(CompletableFuture[]::new))
+                          .join();
+                    } catch (Exception e) {
+                      log.error("Plan+생성 파이프 실패: {}", e.getMessage());
                     }
                   },
                   executor));
@@ -217,9 +279,19 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
         GeminiQuestion q = result.get(i);
         if (!isCorrectLongest(q)) continue;
 
-        List<String> contents = q.selections().stream().map(GeminiSelection::content).toList();
+        // 정답 인덱스 찾기
+        int correctIdx = -1;
+        for (int j = 0; j < q.selections().size(); j++) {
+          if (q.selections().get(j).correct()) {
+            correctIdx = j;
+            break;
+          }
+        }
+        if (correctIdx == -1) continue;
+
+        List<String> allContents = q.selections().stream().map(GeminiSelection::content).toList();
         SelectionEqualizer.EqualizeResult eqResult =
-            selectionEqualizer.equalize(contents, request.language());
+            selectionEqualizer.equalize(allContents, correctIdx, request.language());
         if (eqResult == null) continue;
 
         metricsRecorder.recordEqualization(
@@ -284,11 +356,8 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
   // ════════════════════════════════════════════════════════════════
 
   /** 1회 API 호출로 전체 문항의 마크다운 서식을 결정한다. 계획 실패 시 모든 항목이 null인 리스트를 반환한다. */
-  private List<String> buildChunkPlanExtras(
-      List<ChunkInfo> chunks, String cacheName, String language) {
+  private List<String> buildChunkPlanExtras(List<ChunkInfo> chunks, PlanResult planResult) {
     List<String> extras = new ArrayList<>(chunks.size());
-
-    PlanResult planResult = quizPlannerService.plan(chunks, cacheName, language);
 
     if (planResult == null || planResult.items() == null) {
       log.info("문항 계획 실패 — 기존 파이프라인으로 폴백");
@@ -313,9 +382,12 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
     StringBuilder sb = new StringBuilder("\n[서식 지시]");
     for (int i = 0; i < items.size(); i++) {
       QuizPlanItem item = items.get(i);
-      sb.append("\n- ").append(i + 1).append("번 문항: ").append(item.format()).append(" 서식");
-      if (item.hint() != null && !item.hint().isBlank()) {
-        sb.append(" — ").append(item.hint());
+      sb.append("\n").append(i + 1).append("번 문항:");
+      if (item.format() != null && !"none".equalsIgnoreCase(item.format())) {
+        sb.append(" [").append(item.format()).append("]");
+      }
+      if (item.formatUsage() != null && !item.formatUsage().isBlank()) {
+        sb.append(" ").append(item.formatUsage());
       }
     }
     return sb.toString();
