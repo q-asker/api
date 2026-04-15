@@ -118,7 +118,7 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
                     try {
                       new ChunkProcessor(chunk, finalCacheName, request, planExtra)
                           .generate()
-                          .equalize()
+                          //                          .equalize()
                           .deliver(remainingQuota, totalCostAdder, firstQuizNanos, lastQuizNanos);
                     } catch (Exception e) {
                       log.error(
@@ -217,9 +217,25 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
         GeminiQuestion q = result.get(i);
         if (!isCorrectLongest(q)) continue;
 
-        List<String> contents = q.selections().stream().map(GeminiSelection::content).toList();
+        // 정답 분리: 오답만 균등화하여 정답 편향 원천 차단
+        int correctIdx = -1;
+        int correctLength = 0;
+        List<String> wrongContents = new ArrayList<>();
+        List<Integer> wrongIndices = new ArrayList<>();
+        for (int j = 0; j < q.selections().size(); j++) {
+          GeminiSelection sel = q.selections().get(j);
+          if (sel.correct()) {
+            correctIdx = j;
+            correctLength = sel.content().length();
+          } else {
+            wrongContents.add(sel.content());
+            wrongIndices.add(j);
+          }
+        }
+        if (correctIdx == -1 || wrongContents.isEmpty()) continue;
+
         SelectionEqualizer.EqualizeResult eqResult =
-            selectionEqualizer.equalize(contents, request.language());
+            selectionEqualizer.equalize(wrongContents, correctLength, request.language());
         if (eqResult == null) continue;
 
         metricsRecorder.recordEqualization(
@@ -227,10 +243,13 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
         totalCost += eqResult.cost();
         equalizedCount++;
 
-        List<GeminiSelection> newSels = new ArrayList<>();
-        for (int j = 0; j < q.selections().size(); j++) {
-          GeminiSelection orig = q.selections().get(j);
-          newSels.add(
+        // 재조립: 정답은 원본 유지, 오답만 균등화 결과 적용
+        List<GeminiSelection> newSels = new ArrayList<>(q.selections());
+        for (int j = 0; j < wrongIndices.size(); j++) {
+          int idx = wrongIndices.get(j);
+          GeminiSelection orig = q.selections().get(idx);
+          newSels.set(
+              idx,
               new GeminiSelection(eqResult.contents().get(j), orig.correct(), orig.explanation()));
         }
         result.set(
@@ -313,9 +332,8 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
     StringBuilder sb = new StringBuilder("\n[서식 지시]");
     for (int i = 0; i < items.size(); i++) {
       QuizPlanItem item = items.get(i);
-      sb.append("\n- ").append(i + 1).append("번 문항: ").append(item.format()).append(" 서식");
       if (item.hint() != null && !item.hint().isBlank()) {
-        sb.append(" — ").append(item.hint());
+        sb.append("\n- ").append(i + 1).append("번 문항: ").append(item.hint());
       }
     }
     return sb.toString();

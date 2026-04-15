@@ -46,18 +46,18 @@ public class SelectionEqualizer {
   }
 
   /**
-   * 선택지 content 목록을 의미 보존하면서 길이와 어투를 균등화한다. 정답 정보는 전달하지 않는다.
+   * 오답 선택지만 정답 길이에 맞춰 균등화한다. 정답은 전달하지 않아 편향을 원천 차단한다.
    *
-   * @param selectionContents 원본 선택지 텍스트 목록 (4개)
+   * @param wrongContents 오답 선택지 텍스트 목록 (3개)
+   * @param correctLength 정답 선택지의 글자 수 (목표치)
    * @return 균등화 결과 (텍스트 + 비용), 실패 시 null
    */
-  public EqualizeResult equalize(List<String> selectionContents, String language) {
+  public EqualizeResult equalize(List<String> wrongContents, int correctLength, String language) {
     try {
-      // 최장 서술문 길이를 목표치로 사용
-      int targetLength = selectionContents.stream().mapToInt(String::length).max().orElse(0);
+      int targetLength = correctLength;
 
       long startMs = System.currentTimeMillis();
-      String userPrompt = EqualizationPrompt.generate(selectionContents, targetLength, language);
+      String userPrompt = EqualizationPrompt.generate(wrongContents, targetLength, language);
 
       GoogleGenAiChatOptions.Builder optionsBuilder =
           GoogleGenAiChatOptions.builder()
@@ -98,17 +98,17 @@ public class SelectionEqualizer {
 
       EqualizedSelections result = objectMapper.readValue(json.trim(), EqualizedSelections.class);
 
-      if (result.contents() == null || result.contents().size() != selectionContents.size()) {
+      if (result.contents() == null || result.contents().size() != wrongContents.size()) {
         log.warn(
             "균등화 응답 개수 불일치: expected={}, actual={}",
-            selectionContents.size(),
+            wrongContents.size(),
             result.contents() == null ? 0 : result.contents().size());
         return null;
       }
 
       // 변경 전/후 선택지 비교
-      for (int i = 0; i < selectionContents.size(); i++) {
-        String before = selectionContents.get(i);
+      for (int i = 0; i < wrongContents.size(); i++) {
+        String before = wrongContents.get(i);
         String after = result.contents().get(i);
         log.info(
             "선택지[{}] 변경 전({}자): {} → 변경 후({}자): {}",

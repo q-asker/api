@@ -28,10 +28,7 @@ public class QuizPlannerService {
   /** 문항별 계획 항목 */
   @JsonIgnoreProperties(ignoreUnknown = true)
   public record QuizPlanItem(
-      @JsonPropertyDescription(
-              "이 문항에 사용할 마크다운 서식 (table, quote_list, mermaid, ordered_list, code_block)")
-          String format,
-      @JsonPropertyDescription("마크다운 서식 활용 방안 가볍게 한줄로)") String hint) {}
+      @JsonPropertyDescription("마크다운 서식과 활용 방안을 포함한 출제 지시 한줄") String hint) {}
 
   @JsonIgnoreProperties(ignoreUnknown = true)
   record QuizPlanResponse(@JsonPropertyDescription("문항별 출제 계획 목록") List<QuizPlanItem> items) {}
@@ -99,8 +96,6 @@ public class QuizPlannerService {
         log.warn("문항 계획 응답이 비어있습니다.");
         return null;
       }
-      log.info("문항 힌트 수립 완료: {}", json);
-
       QuizPlanResponse result = objectMapper.readValue(json.trim(), QuizPlanResponse.class);
 
       if (result.items() == null || result.items().size() != quizCount) {
@@ -113,7 +108,7 @@ public class QuizPlannerService {
 
       for (int i = 0; i < result.items().size(); i++) {
         QuizPlanItem item = result.items().get(i);
-        log.info("문항[{}] 계획: format={}", i + 1, item.format());
+        log.info("문항[{}] 계획: hint={}", i + 1, item.hint());
       }
 
       return new PlanResult(result.items(), inputTokens, outputTokens, cost);
