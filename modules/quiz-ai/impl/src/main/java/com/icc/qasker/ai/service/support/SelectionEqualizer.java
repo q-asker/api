@@ -46,18 +46,19 @@ public class SelectionEqualizer {
   }
 
   /**
-   * 선택지 content 목록을 의미 보존하면서 길이와 어투를 균등화한다. 정답 정보는 전달하지 않는다.
+   * 선택지 길이를 균등화한다. preserveIndex 번째 선택지는 그대로 출력하고 나머지만 길이를 맞춘다.
    *
-   * @param selectionContents 원본 선택지 텍스트 목록 (4개)
+   * @param allContents 전체 선택지 텍스트 목록 (4개)
+   * @param preserveIndex 그대로 출력할 선택지 인덱스 (0-based)
    * @return 균등화 결과 (텍스트 + 비용), 실패 시 null
    */
-  public EqualizeResult equalize(List<String> selectionContents, String language) {
+  public EqualizeResult equalize(List<String> allContents, int preserveIndex, String language) {
     try {
-      // 최장 서술문 길이를 목표치로 사용
-      int targetLength = selectionContents.stream().mapToInt(String::length).max().orElse(0);
+      int targetLength = allContents.get(preserveIndex).length();
 
       long startMs = System.currentTimeMillis();
-      String userPrompt = EqualizationPrompt.generate(selectionContents, targetLength, language);
+      String userPrompt =
+          EqualizationPrompt.generate(allContents, preserveIndex, targetLength, language);
 
       GoogleGenAiChatOptions.Builder optionsBuilder =
           GoogleGenAiChatOptions.builder()
@@ -98,17 +99,17 @@ public class SelectionEqualizer {
 
       EqualizedSelections result = objectMapper.readValue(json.trim(), EqualizedSelections.class);
 
-      if (result.contents() == null || result.contents().size() != selectionContents.size()) {
+      if (result.contents() == null || result.contents().size() != allContents.size()) {
         log.warn(
             "균등화 응답 개수 불일치: expected={}, actual={}",
-            selectionContents.size(),
+            allContents.size(),
             result.contents() == null ? 0 : result.contents().size());
         return null;
       }
 
       // 변경 전/후 선택지 비교
-      for (int i = 0; i < selectionContents.size(); i++) {
-        String before = selectionContents.get(i);
+      for (int i = 0; i < allContents.size(); i++) {
+        String before = allContents.get(i);
         String after = result.contents().get(i);
         log.info(
             "선택지[{}] 변경 전({}자): {} → 변경 후({}자): {}",

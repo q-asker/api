@@ -21,16 +21,13 @@ public class QuizPlanPrompt {
 
   private static String buildChunkDescription(List<ChunkInfo> chunks) {
     StringBuilder sb = new StringBuilder();
-    int questionOffset = 1;
-    for (int i = 0; i < chunks.size(); i++) {
-      ChunkInfo chunk = chunks.get(i);
-      int from = questionOffset;
-      int to = questionOffset + chunk.quizCount() - 1;
-      sb.append(
-          "- %d~%d번 문항: %s 페이지 참조 (%d문제)"
-              .formatted(from, to, chunk.referencedPages(), chunk.quizCount()));
-      if (i < chunks.size() - 1) sb.append("\n");
-      questionOffset += chunk.quizCount();
+    int questionNumber = 1;
+    for (ChunkInfo chunk : chunks) {
+      for (int q = 0; q < chunk.quizCount(); q++) {
+        if (questionNumber > 1) sb.append("\n");
+        sb.append("- %d번 문항: %s 페이지 참조".formatted(questionNumber, chunk.referencedPages()));
+        questionNumber++;
+      }
     }
     return sb.toString();
   }
@@ -42,12 +39,20 @@ public class QuizPlanPrompt {
         [문항별 참조 페이지]
         %s
 
-        각 문항의 **format**을 결정하세요. 해당 문항이 참조하는 페이지의 내용을 가장 잘 표현할 수 있는 서식을 선택하세요.
-        - table: 속성 비교, 2개 이상 항목의 특성 대조. 예: "A와 B의 차이점을 표로 정리"
-        - quote_list: 원문 인용 + 특징/조건 나열. 예: "정의를 인용하고 핵심 특징을 목록으로 제시"
-        - mermaid: 절차, 흐름, 인과 관계 다이어그램. 예: "처리 과정을 순서도로 시각화"
-        - ordered_list: 단계, 우선순위, 랭킹. 예: "실행 순서를 번호 매겨 나열"
-        - code_block: 강의노트에 소스 코드가 포함된 경우에만. 예: "코드 스니펫을 제시하고 동작을 질문\""""
+        위 문항별 참조 페이지에 나열된 **모든 문항**에 대해 2개 필드를 작성하세요.
+
+        **format** — 사용할 마크다운 서식 1개:
+        - none: 자료 없이 서술문만으로 충분한 경우
+        - table: 2개 이상 항목의 속성 비교·대조
+        - quote_list: 원문 인용 + 특징/조건 나열
+        - mermaid: 절차, 흐름, 인과 관계 다이어그램
+        - ordered_list: 단계, 우선순위, 랭킹
+        - code_block: 강의노트에 소스 코드가 포함된 경우
+
+        **formatUsage** — 선택한 서식의 활용 방안. 아래 형태 중 하나:
+        - 질문문 활용: "질문문에서 [서식]을 ~에 배치하고 ~라는 질문을 한다"
+        - 선택지 활용: "선택지에서 [서식]을 각 선택지에 배치하고 정오답을 가려내기 위한 내용 구성으로 활용한다"
+        - 서식 없음: "서식 없이 서술문으로 구성한다\""""
         .formatted(chunkDescription);
   }
 
@@ -58,12 +63,20 @@ public class QuizPlanPrompt {
         [Question-to-page mapping]
         %s
 
-        Decide the **format** for each question. Choose the format that best represents the content of the referenced pages.
-        - table: attribute comparison, contrasting characteristics of 2+ items. e.g. "summarize differences between A and B in a table"
-        - quote_list: original text citation + listing features/conditions. e.g. "quote a definition and list key characteristics"
-        - mermaid: procedures, flows, cause-effect diagrams. e.g. "visualize a process as a flowchart"
-        - ordered_list: steps, priorities, rankings. e.g. "list execution steps in numbered order"
-        - code_block: only when the lecture notes contain source code. e.g. "present a code snippet and ask about its behavior\""""
+        Write all 2 fields for **every question** listed above.
+
+        **format** — one markdown format:
+        - none: plain text is sufficient
+        - table: comparing attributes of 2+ items
+        - quote_list: original text citation + listing features/conditions
+        - mermaid: procedures, flows, cause-effect diagrams
+        - ordered_list: steps, priorities, rankings
+        - code_block: when the lecture notes contain source code
+
+        **formatUsage** — how to use the chosen format. One of:
+        - In question: "Place [format] in the question statement for ~ and ask about ~"
+        - In selections: "Place [format] in each selection to distinguish correct from incorrect answers"
+        - No format: "Compose as plain statements\""""
         .formatted(chunkDescription);
   }
 }

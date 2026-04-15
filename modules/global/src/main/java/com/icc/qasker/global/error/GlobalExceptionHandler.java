@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
+import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
@@ -53,6 +54,13 @@ public class GlobalExceptionHandler {
 
   @ExceptionHandler({AsyncRequestNotUsableException.class, ClientAbortException.class})
   public void handleSseException() {}
+
+  @ExceptionHandler(AsyncRequestTimeoutException.class)
+  public ResponseEntity<CustomErrorResponse> handleAsyncRequestTimeoutException() {
+    log.warn("SSE 비동기 요청 타임아웃 발생");
+    return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+        .body(new CustomErrorResponse(ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR.getMessage()));
+  }
 
   @ExceptionHandler(Exception.class)
   public ResponseEntity<CustomErrorResponse> handleCustomException(Exception exception) {

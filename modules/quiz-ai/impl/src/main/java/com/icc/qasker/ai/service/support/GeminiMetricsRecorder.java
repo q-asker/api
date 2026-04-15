@@ -32,6 +32,9 @@ public class GeminiMetricsRecorder {
   private final Counter eqTokensInput;
   private final Counter eqTokensOutput;
   private final Counter eqCost;
+  private final Counter planTokensInput;
+  private final Counter planTokensOutput;
+  private final Counter planCost;
 
   public GeminiMetricsRecorder(MeterRegistry registry, QAskerAiProperties aiProperties) {
     this.registry = registry;
@@ -55,6 +58,16 @@ public class GeminiMetricsRecorder {
         Counter.builder("gemini.equalization.cost")
             .description("균등화 API 추정 비용 (USD)")
             .register(registry);
+    this.planTokensInput =
+        Counter.builder("gemini.plan.tokens.input")
+            .description("문항 계획 API 입력 토큰")
+            .register(registry);
+    this.planTokensOutput =
+        Counter.builder("gemini.plan.tokens.output")
+            .description("문항 계획 API 출력 토큰")
+            .register(registry);
+    this.planCost =
+        Counter.builder("gemini.plan.cost").description("문항 계획 API 추정 비용 (USD)").register(registry);
 
     this.chunkDuration =
         Timer.builder("gemini.chunk.duration")
@@ -134,6 +147,13 @@ public class GeminiMetricsRecorder {
   /** 선택지 균등화 검사 대상 문항 수를 기록한다. */
   public void incrementSelectionChecked(int count) {
     selectionChecked.increment(count);
+  }
+
+  /** 문항 계획 실행 + 토큰/비용을 기록한다. */
+  public void recordPlan(long inputTokens, long outputTokens, double cost) {
+    planTokensInput.increment(inputTokens);
+    planTokensOutput.increment(outputTokens);
+    planCost.increment(cost);
   }
 
   /** 선택지 길이 균등화 실행 + 토큰/비용을 기록한다. */

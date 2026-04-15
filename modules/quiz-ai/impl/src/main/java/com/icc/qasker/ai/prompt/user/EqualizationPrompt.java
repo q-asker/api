@@ -10,28 +10,31 @@ import lombok.NoArgsConstructor;
 public class EqualizationPrompt {
 
   /**
-   * 모든 선택지를 포함하여 균등화 프롬프트를 생성한다. 각 서술문에 목표 길이를 명시하여 길이와 어투를 통일한다.
+   * 선택지 균등화 프롬프트를 생성한다. preserveIndex 번째는 그대로 출력, 나머지만 길이를 맞춘다.
    *
    * @param selectionContents 전체 선택지 텍스트 목록 (4개)
-   * @param targetLength 목표 글자수 (최장 서술문의 길이)
+   * @param preserveIndex 그대로 출력할 선택지 인덱스 (0-based)
+   * @param targetLength 목표 글자수
    */
-  public static String generate(List<String> selectionContents, int targetLength, String language) {
+  public static String generate(
+      List<String> selectionContents, int preserveIndex, int targetLength, String language) {
+    int preserveNumber = preserveIndex + 1;
 
     String instruction =
         "EN".equals(language)
             ? """
-            Equalize the length of the following 4 statements to approximately %d characters, and unify their tone.
-            Do NOT change the claims or conclusions of each statement. Only add modifiers or supplementary explanations.
-            Even if a statement contains factually incorrect content, preserve the original as-is.
-            Your role is to equalize the length across selections while preserving the content.
+            Equalize the length of the following %d statements to approximately %d characters.
+            Output statement %d exactly as-is.
+            For the other statements, preserve claims, conclusions, and tone. Only add modifiers.
+            Preserve all markdown structure (```mermaid, ```code, tables, lists) exactly as-is.
             You MUST output in English."""
-                .formatted(targetLength + 5)
+                .formatted(selectionContents.size(), targetLength + 5, preserveNumber)
             : """
-            다음 4개 서술문의 길이를 %d자 근처로 균등하게 맞추고, 어투를 통일하세요.
-            각 서술문의 주장과 결론을 변경하지 마세요. 수식어나 부연 설명만 추가하세요.
-            서술문에 사실과 다른 내용이 있더라도 원문 그대로 유지하세요.
-            내용을 유지한 채 선택지 간 길이를 맞추는 것이 당신의 역할입니다."""
-                .formatted(targetLength + 5);
+            다음 %d개 서술문의 길이를 %d자 근처로 균등하게 맞추세요.
+            %d번 서술문은 원문 그대로 출력하세요.
+            나머지 서술문은 주장·결론·종결 어투를 원문 그대로 유지하고, 수식어만 추가하세요.
+            마크다운 서식(```mermaid, ```코드, 테이블, 목록)은 구조 그대로 유지하세요."""
+                .formatted(selectionContents.size(), targetLength + 5, preserveNumber);
 
     return """
         %s
