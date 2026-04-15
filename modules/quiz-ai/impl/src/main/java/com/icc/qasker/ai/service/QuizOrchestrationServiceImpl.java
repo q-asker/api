@@ -96,10 +96,17 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
       log.info("청크 분할 완료: {}개 청크 (maxChunkCount={})", chunks.size(), maxChunkCount);
 
       // Step 1: 문항 계획 (MULTIPLE만)
-      List<String> chunkPlanExtras =
-          "MULTIPLE".equals(request.strategyValue())
-              ? buildChunkPlanExtras(chunks, cacheInfo.name(), request.language())
-              : chunks.stream().map(c -> (String) null).toList();
+      List<String> chunkPlanExtras;
+      if ("MULTIPLE".equals(request.strategyValue())) {
+        PlanResult planResult =
+            quizPlannerService.plan(chunks, cacheInfo.name(), request.language());
+        chunkPlanExtras = buildChunkPlanExtras(chunks, planResult);
+        if (planResult != null) {
+          totalCostAdder.add(planResult.cost());
+        }
+      } else {
+        chunkPlanExtras = chunks.stream().map(c -> (String) null).toList();
+      }
 
       // Step 2 + 3: 청크별 병렬 파이프라인
       AtomicInteger remainingQuota = new AtomicInteger(request.quizCount());
@@ -303,11 +310,8 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
   // ════════════════════════════════════════════════════════════════
 
   /** 1회 API 호출로 전체 문항의 마크다운 서식을 결정한다. 계획 실패 시 모든 항목이 null인 리스트를 반환한다. */
-  private List<String> buildChunkPlanExtras(
-      List<ChunkInfo> chunks, String cacheName, String language) {
+  private List<String> buildChunkPlanExtras(List<ChunkInfo> chunks, PlanResult planResult) {
     List<String> extras = new ArrayList<>(chunks.size());
-
-    PlanResult planResult = quizPlannerService.plan(chunks, cacheName, language);
 
     if (planResult == null || planResult.items() == null) {
       log.info("문항 계획 실패 — 기존 파이프라인으로 폴백");
@@ -323,6 +327,8 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
       offset = end;
     }
 
+    metricsRecorder.recordPlan(
+        planResult.inputTokens(), planResult.outputTokens(), planResult.cost());
     log.info("문항 계획 완료: {}개 문항 서식 결정", planResult.items().size());
     return extras;
   }
