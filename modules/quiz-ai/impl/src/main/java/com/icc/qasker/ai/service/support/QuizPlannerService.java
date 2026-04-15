@@ -29,8 +29,7 @@ public class QuizPlannerService {
   @JsonIgnoreProperties(ignoreUnknown = true)
   public record QuizPlanItem(
       @JsonPropertyDescription("사용할 마크다운 서식") String format,
-      @JsonPropertyDescription("문제 본문 구성 지시") String contentHint,
-      @JsonPropertyDescription("선택지 구성 지시 ") String selectionHint) {}
+      @JsonPropertyDescription("마크다운 활용 방안") String formatUsage) {}
 
   @JsonIgnoreProperties(ignoreUnknown = true)
   record QuizPlanResponse(@JsonPropertyDescription("문항별 출제 계획 목록") List<QuizPlanItem> items) {}
@@ -116,12 +115,7 @@ public class QuizPlannerService {
 
       for (int i = 0; i < items.size(); i++) {
         QuizPlanItem item = items.get(i);
-        log.info(
-            "문항[{}] 계획: format={}, content={}, selection={}",
-            i + 1,
-            item.format(),
-            item.contentHint(),
-            item.selectionHint());
+        log.info("문항[{}] 계획: format={}, usage={}", i + 1, item.format(), item.formatUsage());
       }
 
       return new PlanResult(items, inputTokens, outputTokens, cost);

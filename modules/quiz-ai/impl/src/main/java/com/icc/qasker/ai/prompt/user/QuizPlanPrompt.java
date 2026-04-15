@@ -39,7 +39,7 @@ public class QuizPlanPrompt {
         [문항별 참조 페이지]
         %s
 
-        위 문항별 참조 페이지에 나열된 **모든 문항**에 대해 3개 필드를 작성하세요.
+        위 문항별 참조 페이지에 나열된 **모든 문항**에 대해 2개 필드를 작성하세요.
 
         **format** — 사용할 마크다운 서식 1개:
         - none: 자료 없이 서술문만으로 충분한 경우
@@ -49,14 +49,10 @@ public class QuizPlanPrompt {
         - ordered_list: 단계, 우선순위, 랭킹
         - code_block: 강의노트에 소스 코드가 포함된 경우
 
-        **contentHint** — format이 none이 아니면 서식 활용법을 반드시 포함한 요청문:
-        - table → "A와 B의 차이를 **표**로 비교하는 내용으로 문제 본문을 만들어주세요"
-        - mermaid → "~과정을 **순서도**로 시각화하는 내용으로 문제 본문을 만들어주세요"
-        - ordered_list → "~단계를 **번호 목록**으로 나열하는 내용으로 문제 본문을 만들어주세요"
-        - quote_list → "~정의를 **인용**하고 특징을 나열하는 내용으로 문제 본문을 만들어주세요"
-        - code_block → "~코드를 **코드 블록**으로 제시하는 내용으로 문제 본문을 만들어주세요"
-        - none → "~하는 내용으로 문제 본문을 만들어주세요"
-        **selectionHint** — "~하는 내용으로 선택지를 만들어주세요" 형태의 요청문."""
+        **formatUsage** — 선택한 서식의 활용 방안. 아래 형태 중 하나:
+        - 질문문 활용: "질문문에서 [서식]을 ~에 배치하고 ~라는 질문을 한다"
+        - 선택지 활용: "선택지에서 [서식]을 각 선택지에 배치하고 정오답을 가려내기 위한 내용 구성으로 활용한다"
+        - 서식 없음: "서식 없이 서술문으로 구성한다\""""
         .formatted(chunkDescription);
   }
 
@@ -67,7 +63,7 @@ public class QuizPlanPrompt {
         [Question-to-page mapping]
         %s
 
-        Write all 3 fields for **every question** listed above.
+        Write all 2 fields for **every question** listed above.
 
         **format** — one markdown format:
         - none: plain text is sufficient
@@ -77,14 +73,10 @@ public class QuizPlanPrompt {
         - ordered_list: steps, priorities, rankings
         - code_block: when the lecture notes contain source code
 
-        **contentHint** — if format is not none, MUST include how to use the format:
-        - table → "Please make the question body **comparing** A and B **in a table**"
-        - mermaid → "Please make the question body **visualizing** the process **as a flowchart**"
-        - ordered_list → "Please make the question body **listing** steps **in a numbered list**"
-        - quote_list → "Please make the question body **quoting** the definition and **listing** features"
-        - code_block → "Please make the question body **presenting** the code **in a code block**"
-        - none → "Please make the question body about ~"
-        **selectionHint** — a request like "Please make the selections about ~"."""
+        **formatUsage** — how to use the chosen format. One of:
+        - In question: "Place [format] in the question statement for ~ and ask about ~"
+        - In selections: "Place [format] in each selection to distinguish correct from incorrect answers"
+        - No format: "Compose as plain statements\""""
         .formatted(chunkDescription);
   }
 }

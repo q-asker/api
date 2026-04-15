@@ -6,7 +6,7 @@ import java.util.List;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record GeminiQuestion(
-    @JsonPropertyDescription("질문 본문만 포함") String content,
+    @JsonPropertyDescription("질문문") String content,
     @JsonPropertyDescription("선택지 목록") List<GeminiSelection> selections,
     @JsonPropertyDescription("문항 전체 해설") String quizExplanation,
     @JsonPropertyDescription("참조한 강의노트 페이지 번호") List<Integer> referencedPages) {
