@@ -13,6 +13,7 @@ import com.icc.qasker.quizhistory.dto.feresponse.HistoryCheckResponse;
 import com.icc.qasker.quizhistory.dto.feresponse.HistoryDetailResponse;
 import com.icc.qasker.quizhistory.dto.feresponse.HistorySummaryResponse;
 import com.icc.qasker.quizhistory.dto.feresponse.ProblemWithAnswer;
+import com.icc.qasker.quizhistory.entity.AnswerSnapshot;
 import com.icc.qasker.quizhistory.entity.QuizHistory;
 import com.icc.qasker.quizhistory.mapper.QuizHistoryMapper;
 import com.icc.qasker.quizhistory.repository.QuizHistoryRepository;
@@ -78,17 +79,21 @@ public class QuizHistoryQueryServiceImpl implements QuizHistoryQueryService {
 
     Map<Integer, Integer> answerMap =
         history.getAnswers().stream()
-            .collect(Collectors.toMap(a -> a.number(), a -> a.userAnswer()));
+            .collect(Collectors.toMap(AnswerSnapshot::number, AnswerSnapshot::userAnswer));
+
+    Map<Integer, Boolean> inReviewMap =
+        history.getAnswers().stream()
+            .collect(Collectors.toMap(AnswerSnapshot::number, AnswerSnapshot::inReview));
 
     List<ProblemWithAnswer> problemWithAnswers =
         problems.stream()
             .map(
                 p -> {
+                  boolean inReview = inReviewMap.getOrDefault(p.number(), false);
                   int userAnswer = answerMap.getOrDefault(p.number(), 0);
                   List<SelectionDetail> rawSelections = p.selections();
                   int correctIndex = findCorrectIndex(rawSelections);
                   boolean correct = userAnswer == correctIndex;
-
                   List<Selection> selections =
                       IntStream.range(0, rawSelections.size())
                           .mapToObj(
@@ -100,7 +105,7 @@ public class QuizHistoryQueryServiceImpl implements QuizHistoryQueryService {
                           .toList();
 
                   return new ProblemWithAnswer(
-                      p.number(), p.title(), userAnswer, correct, selections);
+                      p.number(), p.title(), userAnswer, correct, inReview, selections);
                 })
             .toList();
 
