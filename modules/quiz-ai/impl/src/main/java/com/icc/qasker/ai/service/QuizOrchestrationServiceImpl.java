@@ -119,7 +119,6 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
                           fastChunk.quizCount());
                       new ChunkProcessor(fastChunk, finalCacheName, request, null)
                           .generate()
-                          .sanitize()
                           .equalize()
                           .deliver(remainingQuota, totalCostAdder, firstQuizNanos, lastQuizNanos);
                     } catch (Exception e) {
@@ -263,45 +262,6 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
       }
 
       totalCost += parsed.cost();
-      return this;
-    }
-
-    /** Step 2.5: selections 번호 prefix 제거 + content 내 선택지 중복 제거 */
-    ChunkProcessor sanitize() {
-      if (stopped) return this;
-
-      List<GeminiQuestion> result = new ArrayList<>(questions.size());
-      for (GeminiQuestion q : questions) {
-        // 1. selections에서 "숫자. " prefix 제거
-        List<GeminiSelection> cleanedSels = new ArrayList<>();
-        for (GeminiSelection sel : q.selections()) {
-          String c = sel.content();
-          if (c != null) {
-            c = c.replaceFirst("^\\d+\\.\\s*", "");
-          }
-          cleanedSels.add(new GeminiSelection(c, sel.correct(), sel.explanation()));
-        }
-
-        // 2. content에서 selections과 중복되는 번호 목록 제거
-        String content = q.content();
-        if (content != null && !cleanedSels.isEmpty()) {
-          String firstSel = cleanedSels.get(0).content();
-          if (firstSel != null && content.contains(firstSel)) {
-            for (GeminiSelection sel : cleanedSels) {
-              if (sel.content() != null) {
-                content = content.replace(sel.content(), "");
-              }
-            }
-            content = content.replaceAll("\\n\\s*\\d+\\.\\s*", "\n");
-            content = content.replaceAll("\\n{3,}", "\n\n").strip();
-            log.info("content 선택지 중복 제거: {}자 → {}자", q.content().length(), content.length());
-          }
-        }
-
-        result.add(
-            new GeminiQuestion(content, cleanedSels, q.quizExplanation(), q.referencedPages()));
-      }
-      questions = result;
       return this;
     }
 

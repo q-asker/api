@@ -70,12 +70,19 @@ public class GeminiChatService {
     if (chatResponse.getMetadata().getUsage() != null) {
       var usage = chatResponse.getMetadata().getUsage();
       chunkCost = metricsRecorder.recordChunkResult(elapsedMs, usage);
+      long thinkingTokens =
+          usage instanceof GoogleGenAiUsage g && g.getThoughtsTokenCount() != null
+              ? g.getThoughtsTokenCount()
+              : 0;
       log.info(
-          "Gemini Usage - pages={}, {}ms, 토큰: {}(캐시: {}), 출력: {}, 추정 비용: ${}",
+          "Gemini Usage - pages={}, {}ms, 토큰: 입력={}(캐시: {}), 추론={}, 출력={}, 추정 비용: ${}",
           pages,
           elapsedMs,
           usage.getPromptTokens(),
-          usage instanceof GoogleGenAiUsage g ? g.getCachedContentTokenCount() : Integer.valueOf(0),
+          usage instanceof GoogleGenAiUsage g2
+              ? g2.getCachedContentTokenCount()
+              : Integer.valueOf(0),
+          thinkingTokens,
           usage.getCompletionTokens(),
           String.format("%.6f", chunkCost));
     }

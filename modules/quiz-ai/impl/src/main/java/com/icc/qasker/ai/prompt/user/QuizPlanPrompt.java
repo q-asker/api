@@ -51,7 +51,9 @@ public class QuizPlanPrompt {
         **formatUsage** — 선택한 서식의 활용 방안. 아래 형태 중 하나:
         - 질문문 활용: "질문문에서 [서식]을 ~에 배치하고 ~라는 질문을 한다"
         - 선택지 활용: "선택지에서 [서식]을 각 선택지에 배치하고 정오답을 가려내기 위한 내용 구성으로 활용한다"
-        - 서식 없음: "서식 없이 서술문으로 구성한다\""""
+        - 서식 없음: "서식 없이 서술문으로 구성한다"
+
+        **주의**: 질문문에 서식을 배치할 때, 자료(table·mermaid·quote)에 정답의 핵심 정보를 직접 포함하지 마세요. 빈칸(?)이나 불완전한 구조를 제시하고 학습자가 선택지를 통해 완성하도록 설계하세요."""
         .formatted(chunkDescription);
   }
 
@@ -74,7 +76,9 @@ public class QuizPlanPrompt {
         **formatUsage** — how to use the chosen format. One of:
         - In question: "Place [format] in the question statement for ~ and ask about ~"
         - In selections: "Place [format] in each selection to distinguish correct from incorrect answers"
-        - No format: "Compose as plain statements\""""
+        - No format: "Compose as plain statements"
+
+        **Caution**: When placing a format in the question, never include the answer's key information directly in the resource (table, mermaid, quote). Use blanks (?) or incomplete structures so learners complete them via the selections."""
         .formatted(chunkDescription);
   }
 }
