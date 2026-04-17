@@ -3,7 +3,6 @@ package com.icc.qasker.ai.service;
 import com.google.genai.types.Content;
 import com.google.genai.types.FileData;
 import com.google.genai.types.Part;
-import com.icc.qasker.ai.GeminiCacheService;
 import com.icc.qasker.ai.prompt.QuizType;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
@@ -18,20 +17,21 @@ import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
-public class GeminiCacheServiceImpl implements GeminiCacheService {
+public class GeminiCacheService {
+
+  public record CacheInfo(String name, long tokenCount) {}
 
   private static final Duration DEFAULT_TTL = Duration.ofMinutes(5);
 
   private final GoogleGenAiCachedContentService cachedContentService;
   private final String model;
 
-  public GeminiCacheServiceImpl(
+  public GeminiCacheService(
       GoogleGenAiChatProperties properties, GoogleGenAiCachedContentService cachedContentService) {
     this.model = properties.getOptions().getModel();
     this.cachedContentService = cachedContentService;
   }
 
-  @Override
   public CacheInfo createCache(String fileUri, String strategyValue, String language) {
     try {
       Content pdfContent =
@@ -79,7 +79,6 @@ public class GeminiCacheServiceImpl implements GeminiCacheService {
     }
   }
 
-  @Override
   public void deleteCache(String cacheName) {
     if (cacheName == null) {
       return;

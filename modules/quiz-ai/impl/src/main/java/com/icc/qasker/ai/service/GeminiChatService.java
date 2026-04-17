@@ -1,8 +1,9 @@
-package com.icc.qasker.ai.service.support;
+package com.icc.qasker.ai.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.icc.qasker.ai.dto.ChunkInfo;
 import com.icc.qasker.ai.prompt.QuizType;
+import com.icc.qasker.ai.service.support.GeminiMetricsRecorder;
 import com.icc.qasker.ai.structure.GeminiResponse;
 import java.util.List;
 import lombok.AllArgsConstructor;
