@@ -16,6 +16,7 @@ import com.icc.qasker.ai.service.support.GeminiMetricsRecorder;
 import com.icc.qasker.ai.service.support.QuizPlannerService;
 import com.icc.qasker.ai.service.support.QuizPlannerService.PlanResult;
 import com.icc.qasker.ai.service.support.QuizPlannerService.QuizPlanItem;
+import com.icc.qasker.ai.service.support.QuizQualityValidator;
 import com.icc.qasker.ai.service.support.SelectionEqualizer;
 import com.icc.qasker.ai.structure.GeminiQuestion;
 import com.icc.qasker.ai.structure.GeminiQuestion.GeminiSelection;
@@ -46,6 +47,7 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
   private final GeminiMetricsRecorder metricsRecorder;
   private final QuizPlannerService quizPlannerService;
   private final SelectionEqualizer selectionEqualizer;
+  private final QuizQualityValidator quizQualityValidator;
 
   public QuizOrchestrationServiceImpl(
       QAskerAiProperties aiProperties,
@@ -54,7 +56,8 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
       GeminiChatService geminiChatService,
       GeminiMetricsRecorder metricsRecorder,
       QuizPlannerService quizPlannerService,
-      SelectionEqualizer selectionEqualizer) {
+      SelectionEqualizer selectionEqualizer,
+      QuizQualityValidator quizQualityValidator) {
     this.chunkProperties = aiProperties.getChunk();
     this.geminiFileService = geminiFileService;
     this.geminiCacheService = geminiCacheService;
@@ -62,6 +65,7 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
     this.metricsRecorder = metricsRecorder;
     this.quizPlannerService = quizPlannerService;
     this.selectionEqualizer = selectionEqualizer;
+    this.quizQualityValidator = quizQualityValidator;
   }
 
   // ════════════════════════════════════════════════════════════════
@@ -74,6 +78,8 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
     AtomicLong firstQuizNanos = new AtomicLong(0);
     AtomicLong lastQuizNanos = new AtomicLong(0);
     DoubleAdder totalCostAdder = new DoubleAdder();
+    // LLM 품질 검증: 이전 청크에서 출제된 주제를 추적하여 주제중복 감지
+    StringBuilder deliveredTopics = new StringBuilder();
 
     int maxChunkCount = 0;
     CacheInfo cacheInfo = null;
@@ -117,7 +123,7 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
                           "Fast chunk 즉시 생성: pages={}, {}문제",
                           fastChunk.referencedPages(),
                           fastChunk.quizCount());
-                      new ChunkProcessor(fastChunk, finalCacheName, request, null)
+                      new ChunkProcessor(fastChunk, finalCacheName, request, null, deliveredTopics)
                           .generate()
                           .equalize()
                           .deliver(remainingQuota, totalCostAdder, firstQuizNanos, lastQuizNanos);
@@ -166,7 +172,12 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
                             CompletableFuture.runAsync(
                                 () -> {
                                   try {
-                                    new ChunkProcessor(chunk, finalCacheName, request, planExtra)
+                                    new ChunkProcessor(
+                                            chunk,
+                                            finalCacheName,
+                                            request,
+                                            planExtra,
+                                            deliveredTopics)
                                         .generate()
                                         .equalize()
                                         .deliver(
@@ -209,6 +220,7 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
       if (cacheInfo != null) {
         geminiCacheService.deleteCache(cacheInfo.name());
       }
+      // deliveredTopics는 로컬 변수이므로 별도 정리 불필요
     }
     return maxChunkCount;
   }
@@ -224,17 +236,23 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
     private final String cacheName;
     private final GenerationRequestToAI request;
     private final String planExtra;
+    private final StringBuilder deliveredTopics;
 
     private List<GeminiQuestion> questions;
     private double totalCost = 0.0;
     private boolean stopped = false;
 
     ChunkProcessor(
-        ChunkInfo chunk, String cacheName, GenerationRequestToAI request, String planExtra) {
+        ChunkInfo chunk,
+        String cacheName,
+        GenerationRequestToAI request,
+        String planExtra,
+        StringBuilder deliveredTopics) {
       this.chunk = chunk;
       this.cacheName = cacheName;
       this.request = request;
       this.planExtra = planExtra;
+      this.deliveredTopics = deliveredTopics;
     }
 
     /** Step 2: 문제 생성 + 검증 */
@@ -340,6 +358,31 @@ public class QuizOrchestrationServiceImpl implements QuizOrchestrationService {
       if (claimed < size) {
         log.info("초과 문제 {}개 제거: pages={}", size - claimed, chunk.referencedPages());
         toDeliver = questions.subList(0, claimed);
+      }
+
+      // LLM 품질 검증: 정보누출·주제중복 문항 제거 (~2-5초)
+      String previousTopics;
+      synchronized (deliveredTopics) {
+        previousTopics = deliveredTopics.toString();
+      }
+      QuizQualityValidator.ValidationResult validation =
+          quizQualityValidator.validate(toDeliver, previousTopics);
+      toDeliver = validation.passed();
+      costAdder.add(validation.cost());
+
+      if (toDeliver.isEmpty()) {
+        log.info("LLM 품질 검증 후 전달할 문제 없음: pages={}", chunk.referencedPages());
+        return;
+      }
+
+      // 통과한 문항의 주제를 기록 (다음 청크의 주제중복 감지용)
+      synchronized (deliveredTopics) {
+        for (GeminiQuestion q : toDeliver) {
+          if (q.content() != null) {
+            String summary = q.content().length() > 80 ? q.content().substring(0, 80) : q.content();
+            deliveredTopics.append(summary).append("\n");
+          }
+        }
       }
 
       AIProblemSet result = GeminiQuestionMapper.toDto(toDeliver);
