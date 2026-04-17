@@ -7,7 +7,7 @@ q-asker:
   sse:
     timeout-ms: 120000
 
-# 파일 업로드 검증
+  # 파일 업로드 검증
   file-validation:
     max-file-name-length: 255
     allowed-extensions: application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint
@@ -22,8 +22,8 @@ spring:
 
   servlet:
     multipart:
-      max-file-size: 35MB
-      max-request-size: 35MB
+      max-file-size: 50MB
+      max-request-size: 50MB
       file-size-threshold: 0
 
   threads:
