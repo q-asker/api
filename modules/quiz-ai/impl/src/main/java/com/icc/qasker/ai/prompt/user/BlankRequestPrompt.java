@@ -49,6 +49,12 @@ public class BlankRequestPrompt {
   };
 
   public static String generate(List<Integer> referencePages, int quizCount) {
+    return generate(referencePages, quizCount, null);
+  }
+
+  /** 제외 목록(exclusionExtra)을 포함한 유저 프롬프트 생성. Wave 간 중복 방지용. */
+  public static String generate(
+      List<Integer> referencePages, int quizCount, String exclusionExtra) {
     ThreadLocalRandom rng = ThreadLocalRandom.current();
     int seed = rng.nextInt(10000, 99999);
     String diversityInst = DIVERSITY_INSTRUCTIONS[rng.nextInt(DIVERSITY_INSTRUCTIONS.length)];
@@ -66,7 +72,12 @@ public class BlankRequestPrompt {
 "헐렁한", "두꺼운", "평평한" 등 형용사를 정답으로 사용하면 안 됩니다. \
 정답이 "~한/~운/~은/~된"으로 끝나면 명사가 아니므로 교체하세요.
         - 다양성 시드: %d
-        """
-        .formatted(quizCount, referencePages, diversityInst, seed);
+        %s"""
+        .formatted(
+            quizCount,
+            referencePages,
+            diversityInst,
+            seed,
+            exclusionExtra != null ? exclusionExtra : "");
   }
 }
