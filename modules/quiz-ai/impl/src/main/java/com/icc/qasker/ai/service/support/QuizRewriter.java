@@ -3,6 +3,7 @@ package com.icc.qasker.ai.service.support;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.icc.qasker.ai.properties.QAskerAiProperties;
 import com.icc.qasker.ai.structure.GeminiQuestion;
 import com.icc.qasker.ai.structure.GeminiQuestion.GeminiSelection;
 import java.util.ArrayList;
@@ -52,28 +53,29 @@ public class QuizRewriter {
 
   private static final double PRICE_INPUT_PER_1M = 0.10;
   private static final double PRICE_OUTPUT_PER_1M = 0.40;
-  private static final String MODEL = "gemini-3.1-flash-lite-preview";
 
   private static final String REWRITE_SCHEMA =
       new BeanOutputConverter<>(RewrittenQuiz.class).getJsonSchema();
 
   private final ChatModel chatModel;
   private final ObjectMapper objectMapper;
+  private final String model;
 
-  public QuizRewriter(ChatModel chatModel, ObjectMapper objectMapper) {
+  public QuizRewriter(
+      ChatModel chatModel, ObjectMapper objectMapper, QAskerAiProperties aiProperties) {
     this.chatModel = chatModel;
     this.objectMapper = objectMapper;
+    this.model = aiProperties.getEqualizationModel();
   }
 
   /**
-   * 문항 리스트를 1회 LLM 호출로 교정한다. PDF 캐시를 참조하여 강의노트 맥락에서 정보누출을 감지한다.
+   * 문항 리스트를 1회 LLM 호출로 교정한다. 선택지 균등화, 오답 매력도, Bloom's 수준을 교정한다.
    *
    * @param questions 교정할 문항 리스트
-   * @param cacheName Gemini Cached Content 이름 (PDF 참조용)
    * @param language 언어 (KO/EN)
    * @return 교정 결과
    */
-  public RewriteResult rewrite(List<GeminiQuestion> questions, String cacheName, String language) {
+  public RewriteResult rewrite(List<GeminiQuestion> questions, String language) {
     if (questions == null || questions.isEmpty()) {
       return new RewriteResult(questions, 0, 0, 0);
     }
@@ -82,13 +84,9 @@ public class QuizRewriter {
       long startMs = System.currentTimeMillis();
       String userPrompt = buildPrompt(questions, language);
 
-      // PDF 캐시를 참조하여 강의노트 맥락에서 교정
+      // 캐시 미참조 — 선택지 균등화/오답 매력도 교정은 강의노트 맥락 불필요
       GoogleGenAiChatOptions.Builder optionsBuilder =
-          GoogleGenAiChatOptions.builder().model(MODEL).responseMimeType("application/json");
-
-      if (cacheName != null && !cacheName.isBlank()) {
-        optionsBuilder.useCachedContent(true).cachedContentName(cacheName);
-      }
+          GoogleGenAiChatOptions.builder().model(model).responseMimeType("application/json");
 
       ChatResponse chatResponse = chatModel.call(new Prompt(userPrompt, optionsBuilder.build()));
       long elapsedMs = System.currentTimeMillis() - startMs;
@@ -221,7 +219,8 @@ public class QuizRewriter {
         2. [선택지 균등화] 모든 선택지의 글자수를 가장 긴 선택지의 ±20%% 이내로 맞추세요.
         3. [단순기억 상향] 강의노트의 정의를 그대로 묻는 문항은, 2개 이상 개념을 연결하여 판단을 요구하는 질문으로 재구성하세요.
         4. [오답 매력도 교정] 오답에 "항상", "모든", "전혀", "무관하게", "원천적으로", "완전히", "불가능" 같은 절대적 표현이 있으면, 구체적 조건문으로 교체하세요. 예: "항상 발생한다" → "특정 조건 X에서 발생한다"
-        5. [서식 보존] 원본 질문문에 포함된 마크다운 서식(표, mermaid, 코드블록, 인용문)은 구조 그대로 유지하세요. 서식을 제거하지 마세요.
+        5. [기준 명시 확인] 질문문에 **볼드 처리된 판단 기준이 2개 미만**이면, 강의노트에서 상충하는 기준 2개를 찾아 **볼드로** 명시하고 기준 간 트레이드오프를 묻는 형태로 질문을 재구성하세요.
+        6. [서식 보존] 원본 질문문에 포함된 마크다운 서식(표, mermaid, 코드블록, 인용문)은 구조 그대로 유지하세요. 서식을 제거하지 마세요.
 
         유지 규칙:
         - 선택지 순서와 정답 번호는 원본 그대로 유지하세요

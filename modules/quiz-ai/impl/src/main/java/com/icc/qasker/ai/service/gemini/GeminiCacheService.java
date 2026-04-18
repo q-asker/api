@@ -1,4 +1,4 @@
-package com.icc.qasker.ai.service;
+package com.icc.qasker.ai.service.gemini;
 
 import com.google.genai.types.Content;
 import com.google.genai.types.FileData;

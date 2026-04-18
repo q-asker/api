@@ -7,13 +7,12 @@ import com.icc.qasker.ai.dto.GenerationRequestToAI;
 import com.icc.qasker.ai.exception.GeminiInfraException;
 import com.icc.qasker.ai.mapper.GeminiQuestionMapper;
 import com.icc.qasker.ai.properties.QAskerAiProperties;
-import com.icc.qasker.ai.service.GeminiCacheService;
-import com.icc.qasker.ai.service.GeminiCacheService.CacheInfo;
-import com.icc.qasker.ai.service.GeminiChatService;
-import com.icc.qasker.ai.service.GeminiChatService.ParsedResult;
+import com.icc.qasker.ai.service.gemini.GeminiCacheService;
+import com.icc.qasker.ai.service.gemini.GeminiCacheService.CacheInfo;
+import com.icc.qasker.ai.service.gemini.GeminiChatService;
+import com.icc.qasker.ai.service.gemini.GeminiChatService.ParsedResult;
+import com.icc.qasker.ai.service.gemini.GeminiMetricsRecorder;
 import com.icc.qasker.ai.service.orchestration.QuizTypeOrchestrator;
-import com.icc.qasker.ai.service.support.GeminiMetricsRecorder;
-import com.icc.qasker.ai.service.support.QuizRewriter;
 import com.icc.qasker.ai.structure.GeminiQuestion;
 import com.icc.qasker.ai.util.ChunkSplitter;
 import com.icc.qasker.global.error.CustomException;
@@ -27,7 +26,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
-/** 객관식(MULTIPLE) 퀴즈 오케스트레이터. generate → rewrite → deliver 파이프라인. */
+/** 객관식(MULTIPLE) 퀴즈 오케스트레이터. generate → deliver 파이프라인. */
 @Slf4j
 @Component
 public class MultipleQuizOrchestrator implements QuizTypeOrchestrator {
@@ -39,21 +38,18 @@ public class MultipleQuizOrchestrator implements QuizTypeOrchestrator {
   private final GeminiCacheService geminiCacheService;
   private final GeminiChatService geminiChatService;
   private final GeminiMetricsRecorder metricsRecorder;
-  private final QuizRewriter quizRewriter;
 
   public MultipleQuizOrchestrator(
       QAskerAiProperties aiProperties,
       GeminiFileService geminiFileService,
       GeminiCacheService geminiCacheService,
       GeminiChatService geminiChatService,
-      GeminiMetricsRecorder metricsRecorder,
-      QuizRewriter quizRewriter) {
+      GeminiMetricsRecorder metricsRecorder) {
     this.chunkProperties = aiProperties.getChunk();
     this.geminiFileService = geminiFileService;
     this.geminiCacheService = geminiCacheService;
     this.geminiChatService = geminiChatService;
     this.metricsRecorder = metricsRecorder;
-    this.quizRewriter = quizRewriter;
   }
 
   @Override
@@ -146,6 +142,8 @@ public class MultipleQuizOrchestrator implements QuizTypeOrchestrator {
       AtomicLong firstNanos,
       AtomicLong lastNanos)
       throws Exception {
+    double cost = 0.0;
+
     // Step 1: 초안 생성
     ParsedResult parsed =
         geminiChatService.callAndParse(
@@ -164,17 +162,9 @@ public class MultipleQuizOrchestrator implements QuizTypeOrchestrator {
       log.warn("유효한 문제가 존재하지 않습니다: pages={}", chunk.referencedPages());
       return;
     }
-    double cost = parsed.cost();
+    cost += parsed.cost();
 
-    // Step 2: 리라이트 (정보누출 교정 + 선택지 균등화)
-    QuizRewriter.RewriteResult rewritten =
-        quizRewriter.rewrite(questions, cacheName, request.language());
-    if (rewritten.questions() != null && !rewritten.questions().isEmpty()) {
-      questions = rewritten.questions();
-    }
-    cost += rewritten.cost();
-
-    // Step 3: 할당량 확보 + 전달
+    // Step 2: 할당량 확보 + 전달
     totalCost.add(cost);
     int size = questions.size();
     int before = remainingQuota.getAndUpdate(r -> Math.max(0, r - size));

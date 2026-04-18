@@ -1,4 +1,4 @@
-package com.icc.qasker.ai.service.support;
+package com.icc.qasker.ai.service.gemini;
 
 import com.icc.qasker.ai.properties.QAskerAiProperties;
 import io.micrometer.core.instrument.Counter;

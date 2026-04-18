@@ -1,4 +1,4 @@
-package com.icc.qasker.ai.service;
+package com.icc.qasker.ai.service.support;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;

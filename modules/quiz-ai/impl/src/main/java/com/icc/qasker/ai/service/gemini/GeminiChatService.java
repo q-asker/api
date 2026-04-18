@@ -1,12 +1,10 @@
-package com.icc.qasker.ai.service;
+package com.icc.qasker.ai.service.gemini;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.icc.qasker.ai.dto.ChunkInfo;
 import com.icc.qasker.ai.prompt.QuizType;
-import com.icc.qasker.ai.service.support.GeminiMetricsRecorder;
 import com.icc.qasker.ai.structure.GeminiResponse;
 import java.util.List;
-import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
@@ -22,7 +20,6 @@ import org.springframework.stereotype.Component;
  */
 @Slf4j
 @Component
-@AllArgsConstructor
 public class GeminiChatService {
 
   /** 청크 처리 결과: 파싱된 응답 + 추정 비용 */
@@ -34,6 +31,13 @@ public class GeminiChatService {
   private final ChatModel chatModel;
   private final ObjectMapper objectMapper;
   private final GeminiMetricsRecorder metricsRecorder;
+
+  public GeminiChatService(
+      ChatModel chatModel, ObjectMapper objectMapper, GeminiMetricsRecorder metricsRecorder) {
+    this.chatModel = chatModel;
+    this.objectMapper = objectMapper;
+    this.metricsRecorder = metricsRecorder;
+  }
 
   /**
    * 캐시된 컨텍스트를 사용하여 Gemini API를 호출하고, 파싱된 결과를 반환한다.
@@ -53,6 +57,8 @@ public class GeminiChatService {
 
     String userPrompt = quizType.generateRequestPrompt(pages, chunk.quizCount(), planExtra);
 
+    // 캐시/JSON 설정만 Prompt-level로 전달. model, temperature, thinkingLevel 등은
+    // yml defaultOptions에서 merge로 적용됨 (Prompt-level에 설정하면 copyToTarget에서 손실)
     Prompt prompt =
         new Prompt(
             userPrompt,

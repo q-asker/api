@@ -1,4 +1,4 @@
-package com.icc.qasker.ai.service;
+package com.icc.qasker.ai.service.gemini;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
