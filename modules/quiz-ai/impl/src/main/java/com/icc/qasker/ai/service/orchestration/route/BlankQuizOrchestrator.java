@@ -32,6 +32,7 @@ import org.springframework.util.CollectionUtils;
 public class BlankQuizOrchestrator implements QuizTypeOrchestrator {
 
   private static final int MAX_SELECTION_COUNT = 4;
+  private static final String BLANK_MODEL = "gemini-3.1-flash-lite-preview";
 
   private final QAskerAiProperties.Chunk chunkProperties;
   private final GeminiFileService geminiFileService;
@@ -76,11 +77,11 @@ public class BlankQuizOrchestrator implements QuizTypeOrchestrator {
               .orElseGet(() -> geminiFileService.uploadPdf(request.fileUrl()));
       cacheInfo =
           geminiCacheService.createCache(
-              metadata.uri(), request.strategyValue(), request.language());
+              metadata.uri(), request.strategyValue(), request.language(), BLANK_MODEL);
       String cacheName = cacheInfo.name();
 
-      // 청크 분할
-      maxChunkCount = chunkProperties.pickMaxCount();
+      // 청크 분할 (BLANK: 15문항 이하 1청크, 초과 시 2청크)
+      maxChunkCount = request.quizCount() <= 15 ? 1 : 2;
       List<ChunkInfo> chunks =
           ChunkSplitter.createPageChunks(
               request.referencePages(), request.quizCount(), maxChunkCount);
@@ -142,10 +143,10 @@ public class BlankQuizOrchestrator implements QuizTypeOrchestrator {
       AtomicLong firstNanos,
       AtomicLong lastNanos)
       throws Exception {
-    // Step 1: 초안 생성
+    // Step 1: 초안 생성 (BLANK 전용 모델 사용)
     ParsedResult parsed =
         geminiChatService.callAndParse(
-            chunk, cacheName, request.strategyValue(), request.language(), null);
+            chunk, cacheName, request.strategyValue(), request.language(), null, BLANK_MODEL);
     if (parsed == null
         || parsed.response() == null
         || CollectionUtils.isEmpty(parsed.response().questions())) {

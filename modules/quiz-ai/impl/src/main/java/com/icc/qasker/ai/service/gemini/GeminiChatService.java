@@ -51,23 +51,36 @@ public class GeminiChatService {
   public ParsedResult callAndParse(
       ChunkInfo chunk, String cacheName, String strategyValue, String language, String planExtra)
       throws Exception {
+    return callAndParse(chunk, cacheName, strategyValue, language, planExtra, null);
+  }
+
+  /** 모델 오버라이드를 지원하는 버전. modelOverride가 null이 아니면 해당 모델로 캐시+호출한다. */
+  public ParsedResult callAndParse(
+      ChunkInfo chunk,
+      String cacheName,
+      String strategyValue,
+      String language,
+      String planExtra,
+      String modelOverride)
+      throws Exception {
     long startMs = System.currentTimeMillis();
     List<Integer> pages = chunk.referencedPages();
     QuizType quizType = QuizType.valueOf(strategyValue);
 
     String userPrompt = quizType.generateRequestPrompt(pages, chunk.quizCount(), planExtra);
 
-    // 캐시/JSON 설정만 Prompt-level로 전달. model, temperature, thinkingLevel 등은
-    // yml defaultOptions에서 merge로 적용됨 (Prompt-level에 설정하면 copyToTarget에서 손실)
-    Prompt prompt =
-        new Prompt(
-            userPrompt,
-            GoogleGenAiChatOptions.builder()
-                .useCachedContent(true)
-                .cachedContentName(cacheName)
-                .responseMimeType("application/json")
-                .responseSchema(RESPONSE_JSON_SCHEMA)
-                .build());
+    GoogleGenAiChatOptions.Builder optionsBuilder =
+        GoogleGenAiChatOptions.builder()
+            .useCachedContent(true)
+            .cachedContentName(cacheName)
+            .responseMimeType("application/json")
+            .responseSchema(RESPONSE_JSON_SCHEMA);
+
+    if (modelOverride != null) {
+      optionsBuilder.model(modelOverride);
+    }
+
+    Prompt prompt = new Prompt(userPrompt, optionsBuilder.build());
 
     ChatResponse chatResponse = chatModel.call(prompt);
     long elapsedMs = System.currentTimeMillis() - startMs;

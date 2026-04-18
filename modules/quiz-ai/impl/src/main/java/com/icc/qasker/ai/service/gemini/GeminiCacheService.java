@@ -33,6 +33,12 @@ public class GeminiCacheService {
   }
 
   public CacheInfo createCache(String fileUri, String strategyValue, String language) {
+    return createCache(fileUri, strategyValue, language, null);
+  }
+
+  public CacheInfo createCache(
+      String fileUri, String strategyValue, String language, String modelOverride) {
+    String cacheModel = modelOverride != null ? modelOverride : model;
     try {
       Content pdfContent =
           Content.builder()
@@ -51,7 +57,7 @@ public class GeminiCacheService {
 
       CachedContentRequest request =
           CachedContentRequest.builder()
-              .model(model)
+              .model(cacheModel)
               .systemInstruction(systemInstruction)
               .contents(List.of(pdfContent))
               .ttl(DEFAULT_TTL)

@@ -55,6 +55,10 @@ public class ChunkSplitter {
    */
   static int[] distributeQuizCounts(int totalQuizCount, int chunkCount) {
     int[] counts = new int[chunkCount];
+    if (chunkCount == 1) {
+      counts[0] = totalQuizCount;
+      return counts;
+    }
     counts[0] = 1;
     for (int i = 0; i < totalQuizCount - 1; i++) {
       counts[i % (chunkCount - 1) + 1]++;
