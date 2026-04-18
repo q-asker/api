@@ -31,11 +31,25 @@ public enum QuizType implements QuizPromptStrategy {
     public String generateRequestPrompt(List<Integer> referencePages, int quizCount) {
       return BlankRequestPrompt.generate(referencePages, quizCount);
     }
+
+    @Override
+    public String generateRequestPrompt(
+        List<Integer> referencePages, int quizCount, String planExtra) {
+      return BlankRequestPrompt.generate(referencePages, quizCount, planExtra);
+    }
   },
   OX(OXGuideLine.content) {
     @Override
     public String generateRequestPrompt(List<Integer> referencePages, int quizCount) {
       return OXRequestPrompt.generate(referencePages, quizCount);
+    }
+
+    @Override
+    public String generateRequestPrompt(
+        List<Integer> referencePages, int quizCount, String planExtra) {
+      // planExtra에 금지 소재 텍스트가 포함된 경우 유저 프롬프트 끝에 추가
+      String base = OXRequestPrompt.generate(referencePages, quizCount);
+      return planExtra != null ? base + "\n" + planExtra : base;
     }
   };
 

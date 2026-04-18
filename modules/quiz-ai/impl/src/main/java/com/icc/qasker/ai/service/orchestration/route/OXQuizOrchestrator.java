@@ -142,7 +142,6 @@ public class OXQuizOrchestrator implements QuizTypeOrchestrator {
       AtomicLong firstNanos,
       AtomicLong lastNanos)
       throws Exception {
-    // Step 1: 초안 생성
     ParsedResult parsed =
         geminiChatService.callAndParse(
             chunk, cacheName, request.strategyValue(), request.language(), null);
@@ -161,7 +160,6 @@ public class OXQuizOrchestrator implements QuizTypeOrchestrator {
       return;
     }
 
-    // Step 2: 할당량 확보 + 전달
     totalCost.add(parsed.cost());
     int size = questions.size();
     int before = remainingQuota.getAndUpdate(r -> Math.max(0, r - size));
