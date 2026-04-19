@@ -8,6 +8,7 @@ import com.icc.qasker.quizmake.properties.QAskerSseProperties;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker.State;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
+import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.io.IOException;
@@ -25,6 +26,7 @@ public class SseNotificationServiceImpl implements SseNotificationService {
   private final long sseTimeoutMs;
   private final Map<String, SseEmitter> emitterMap = new ConcurrentHashMap<>();
   private final CircuitBreakerRegistry circuitBreakerRegistry;
+  private final Counter sseTimeoutCounter;
 
   public SseNotificationServiceImpl(
       QAskerSseProperties sseProperties,
@@ -36,6 +38,10 @@ public class SseNotificationServiceImpl implements SseNotificationService {
     Gauge.builder("sse.connections.active", emitterMap, Map::size)
         .description("활성 SSE 연결 수")
         .register(registry);
+    this.sseTimeoutCounter =
+        Counter.builder("sse.connections.timeout")
+            .description("SSE 연결 타임아웃 발생 횟수")
+            .register(registry);
   }
 
   @Override
@@ -86,6 +92,7 @@ public class SseNotificationServiceImpl implements SseNotificationService {
         () -> {
           log.warn("SSE 연결 타임아웃 (Timeout): {}", sessionId);
           emitterMap.remove(sessionId, emitter);
+          sseTimeoutCounter.increment();
         });
     emitter.onError(
         (e) -> {

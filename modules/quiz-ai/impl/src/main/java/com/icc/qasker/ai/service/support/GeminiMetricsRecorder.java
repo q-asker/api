@@ -36,6 +36,8 @@ public class GeminiMetricsRecorder {
   private final Counter planTokensOutput;
   private final Counter planCost;
 
+  private static final String[] QUIZ_TYPES = {"MULTIPLE", "OX", "BLANK"};
+
   public GeminiMetricsRecorder(MeterRegistry registry, QAskerAiProperties aiProperties) {
     this.registry = registry;
     this.selectionEqualization =
@@ -83,6 +85,14 @@ public class GeminiMetricsRecorder {
             .register(registry);
     this.tokensOutput =
         Counter.builder("gemini.tokens.output").description("Gemini 출력 토큰").register(registry);
+
+    // 스트리밍 타임아웃 카운터를 퀴즈 타입별로 미리 등록
+    for (String quizType : QUIZ_TYPES) {
+      Counter.builder("gemini.streaming.timeout")
+          .description("Gemini 스트리밍 5분 타임아웃 발생 횟수")
+          .tag("quiz_type", quizType)
+          .register(registry);
+    }
 
     // 요청 단위 메트릭을 max_chunks 변형별로 미리 등록
     for (int variant : aiProperties.getChunk().getMaxCountVariants()) {
@@ -162,6 +172,15 @@ public class GeminiMetricsRecorder {
     eqTokensInput.increment(inputTokens);
     eqTokensOutput.increment(outputTokens);
     eqCost.increment(cost);
+  }
+
+  /** 스트리밍 타임아웃 발생을 기록한다. */
+  public void recordStreamingTimeout(String quizType) {
+    Counter.builder("gemini.streaming.timeout")
+        .description("Gemini 스트리밍 5분 타임아웃 발생 횟수")
+        .tag("quiz_type", quizType)
+        .register(registry)
+        .increment();
   }
 
   /**
