@@ -4,15 +4,15 @@ import com.icc.qasker.global.annotation.UserId;
 import com.icc.qasker.quizhistory.QuizHistoryQueryService;
 import com.icc.qasker.quizhistory.dto.feresponse.HistoryCheckResponse;
 import com.icc.qasker.quizhistory.dto.feresponse.HistoryDetailResponse;
-import com.icc.qasker.quizhistory.dto.feresponse.HistorySummaryResponse;
+import com.icc.qasker.quizhistory.dto.feresponse.HistoryPageResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -35,10 +35,13 @@ public class QuizHistoryQueryController {
     return ResponseEntity.ok(quizHistoryQueryService.checkHistory(userId, problemSetId));
   }
 
-  @Operation(summary = "내 퀴즈 히스토리 목록을 조회한다 (완료/미완료)")
+  @Operation(summary = "내 퀴즈 히스토리 목록을 페이지 단위로 조회한다")
   @GetMapping
-  public ResponseEntity<List<HistorySummaryResponse>> getHistoryList(@UserId String userId) {
-    return ResponseEntity.ok(quizHistoryQueryService.getHistoryList(userId));
+  public ResponseEntity<HistoryPageResponse> getHistoryList(
+      @UserId String userId,
+      @RequestParam(defaultValue = "0") int page,
+      @RequestParam(defaultValue = "20") int size) {
+    return ResponseEntity.ok(quizHistoryQueryService.getHistoryList(userId, page, size));
   }
 
   @Operation(summary = "퀴즈 히스토리 상세를 조회한다 (문제 + 답안 + 정답)")

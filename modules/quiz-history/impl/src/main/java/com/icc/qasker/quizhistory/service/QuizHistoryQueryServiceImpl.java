@@ -3,26 +3,29 @@ package com.icc.qasker.quizhistory.service;
 import com.icc.qasker.global.component.HashUtil;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
-import com.icc.qasker.quiz.ProblemSetReadService;
-import com.icc.qasker.quiz.dto.feresponse.Selection;
-import com.icc.qasker.quiz.dto.readonly.ProblemDetail;
-import com.icc.qasker.quiz.dto.readonly.ProblemSetSummary;
-import com.icc.qasker.quiz.dto.readonly.SelectionDetail;
 import com.icc.qasker.quizhistory.QuizHistoryQueryService;
 import com.icc.qasker.quizhistory.dto.feresponse.HistoryCheckResponse;
 import com.icc.qasker.quizhistory.dto.feresponse.HistoryDetailResponse;
+import com.icc.qasker.quizhistory.dto.feresponse.HistoryPageResponse;
 import com.icc.qasker.quizhistory.dto.feresponse.HistorySummaryResponse;
 import com.icc.qasker.quizhistory.dto.feresponse.ProblemWithAnswer;
 import com.icc.qasker.quizhistory.entity.AnswerSnapshot;
 import com.icc.qasker.quizhistory.entity.QuizHistory;
 import com.icc.qasker.quizhistory.mapper.QuizHistoryMapper;
 import com.icc.qasker.quizhistory.repository.QuizHistoryRepository;
+import com.icc.qasker.quizset.ProblemSetReadService;
+import com.icc.qasker.quizset.dto.feresponse.Selection;
+import com.icc.qasker.quizset.dto.readonly.ProblemDetail;
+import com.icc.qasker.quizset.dto.readonly.ProblemSetSummary;
+import com.icc.qasker.quizset.dto.readonly.SelectionDetail;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,12 +40,21 @@ public class QuizHistoryQueryServiceImpl implements QuizHistoryQueryService {
   private final QuizHistoryMapper quizHistoryMapper;
 
   @Override
-  public List<HistorySummaryResponse> getHistoryList(String userId) {
+  public HistoryPageResponse getHistoryList(String userId, int page, int size) {
 
-    // IN 쿼리 1번으로 모든 히스토리 일괄 조회
-    List<QuizHistory> histories = quizHistoryRepository.findAllByUserIdOrderByCreatedAtDesc(userId);
+    // 페이지 단위로 히스토리 조회
+    Pageable pageable = Pageable.ofSize(size).withPage(page);
+    Page<QuizHistory> historyPage =
+        quizHistoryRepository.findAllByUserIdOrderByCreatedAtDesc(userId, pageable);
+
+    List<QuizHistory> histories = historyPage.getContent();
     if (histories.isEmpty()) {
-      return List.of();
+      return new HistoryPageResponse(
+          List.of(),
+          historyPage.getTotalElements(),
+          historyPage.getTotalPages(),
+          historyPage.getNumber(),
+          historyPage.getSize());
     }
 
     // ProblemSet IN 쿼리 1번으로 일괄 조회 후 Map으로 변환
@@ -52,12 +64,20 @@ public class QuizHistoryQueryServiceImpl implements QuizHistoryQueryService {
         problemSetReadService.findProblemSetsByIds(problemSetIds).stream()
             .collect(Collectors.toMap(ProblemSetSummary::id, Function.identity()));
 
-    return histories.stream()
-        .filter(history -> problemSetMap.containsKey(history.getProblemSetId()))
-        .map(
-            history ->
-                quizHistoryMapper.toSummary(history, problemSetMap.get(history.getProblemSetId())))
-        .toList();
+    List<HistorySummaryResponse> content =
+        histories.stream()
+            .map(
+                history ->
+                    quizHistoryMapper.toSummary(
+                        history, problemSetMap.get(history.getProblemSetId())))
+            .toList();
+
+    return new HistoryPageResponse(
+        content,
+        historyPage.getTotalElements(),
+        historyPage.getTotalPages(),
+        historyPage.getNumber(),
+        historyPage.getSize());
   }
 
   @Override

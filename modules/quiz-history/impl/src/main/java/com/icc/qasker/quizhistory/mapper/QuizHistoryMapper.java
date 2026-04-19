@@ -1,9 +1,9 @@
 package com.icc.qasker.quizhistory.mapper;
 
 import com.icc.qasker.global.component.HashUtil;
-import com.icc.qasker.quiz.dto.readonly.ProblemSetSummary;
 import com.icc.qasker.quizhistory.dto.feresponse.HistorySummaryResponse;
 import com.icc.qasker.quizhistory.entity.QuizHistory;
+import com.icc.qasker.quizset.dto.readonly.ProblemSetSummary;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;

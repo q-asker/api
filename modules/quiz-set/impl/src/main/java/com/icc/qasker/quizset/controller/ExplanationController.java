@@ -1,0 +1,31 @@
+package com.icc.qasker.quizset.controller;
+
+import com.icc.qasker.global.annotation.RateLimit;
+import com.icc.qasker.global.ratelimit.RateLimitTier;
+import com.icc.qasker.quizset.ExplanationService;
+import com.icc.qasker.quizset.dto.feresponse.ExplanationResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@Tag(name = "Explanation", description = "설명 관련 API")
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/explanation")
+public class ExplanationController {
+
+  private final ExplanationService explanationService;
+
+  @Operation(summary = "설명을 가져온다")
+  @RateLimit(RateLimitTier.HEAVY)
+  @GetMapping("/{id}")
+  public ResponseEntity<ExplanationResponse> getExplanation(
+      @PathVariable("id") String problemSetId) {
+    return ResponseEntity.ok(explanationService.getExplanationByProblemSetId(problemSetId));
+  }
+}

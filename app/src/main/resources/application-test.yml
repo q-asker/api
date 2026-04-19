@@ -2,6 +2,21 @@
 # - 테스트: @ActiveProfiles("test")
 # - CI: --spring.profiles.active=test
 
+# Jasypt: CI에서 JASYPT_ENCRYPTOR_PASSWORD 없이 기동 가능하도록 더미 키 설정
+# ENC() 값은 잘못된 값으로 복호화되지만, 아래 더미 설정으로 오버라이드되므로 무관
+jasypt:
+  encryptor:
+    password: ci-dummy-jasypt-key
+
+# OCI: CI에서 ~/.oci/config 없이 기동 가능하도록 더미 설정
+oci:
+  object-storage:
+    region: ci-dummy
+    config-file-path: /dev/null
+    profile: DEFAULT
+    namespace: ci-dummy
+    bucket-name: ci-dummy
+
 spring:
   cache:
     type: simple
@@ -49,7 +64,7 @@ spring:
         chat:
           options:
             model: gemini-3-flash-preview
-            thinking-budget: -1
+            thinking-budget: 0
 
 q-asker:
   hashid:

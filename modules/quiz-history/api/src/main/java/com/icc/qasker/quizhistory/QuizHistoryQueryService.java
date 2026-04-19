@@ -2,12 +2,11 @@ package com.icc.qasker.quizhistory;
 
 import com.icc.qasker.quizhistory.dto.feresponse.HistoryCheckResponse;
 import com.icc.qasker.quizhistory.dto.feresponse.HistoryDetailResponse;
-import com.icc.qasker.quizhistory.dto.feresponse.HistorySummaryResponse;
-import java.util.List;
+import com.icc.qasker.quizhistory.dto.feresponse.HistoryPageResponse;
 
 public interface QuizHistoryQueryService {
 
-  List<HistorySummaryResponse> getHistoryList(String userId);
+  HistoryPageResponse getHistoryList(String userId, int page, int size);
 
   HistoryDetailResponse getHistoryDetail(String userId, String historyId);
 
