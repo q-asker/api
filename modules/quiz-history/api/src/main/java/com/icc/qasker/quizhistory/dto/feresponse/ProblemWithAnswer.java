@@ -1,6 +1,6 @@
 package com.icc.qasker.quizhistory.dto.feresponse;
 
-import com.icc.qasker.quiz.dto.feresponse.Selection;
+import com.icc.qasker.quizset.dto.feresponse.Selection;
 import java.util.List;
 
 public record ProblemWithAnswer(

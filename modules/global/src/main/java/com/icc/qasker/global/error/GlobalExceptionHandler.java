@@ -24,11 +24,20 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(CustomException.class)
   public ResponseEntity<CustomErrorResponse> handleCustomException(
       CustomException customException) {
-    if (customException.getContext() != null) {
-      log.error(
-          "[{}] {}", customException.getContext(), customException.getMessage(), customException);
+    if (customException.getHttpStatus().is4xxClientError()) {
+      if (customException.getContext() != null) {
+        log.warn(
+            "[{}] {}", customException.getContext(), customException.getMessage(), customException);
+      } else {
+        log.warn(customException.getMessage(), customException);
+      }
     } else {
-      log.error(customException.getMessage(), customException);
+      if (customException.getContext() != null) {
+        log.error(
+            "[{}] {}", customException.getContext(), customException.getMessage(), customException);
+      } else {
+        log.error(customException.getMessage(), customException);
+      }
     }
 
     return ResponseEntity.status(customException.getHttpStatus())

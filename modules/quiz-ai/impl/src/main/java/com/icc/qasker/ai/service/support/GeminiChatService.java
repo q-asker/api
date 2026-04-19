@@ -2,16 +2,16 @@ package com.icc.qasker.ai.service.support;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.icc.qasker.ai.dto.ChunkInfo;
-import com.icc.qasker.ai.prompt.QuizType;
+import com.icc.qasker.ai.prompt.strategy.QuizType;
 import com.icc.qasker.ai.structure.GeminiResponse;
 import java.util.List;
-import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.converter.BeanOutputConverter;
 import org.springframework.ai.google.genai.GoogleGenAiChatOptions;
+import org.springframework.ai.google.genai.common.GoogleGenAiThinkingLevel;
 import org.springframework.ai.google.genai.metadata.GoogleGenAiUsage;
 import org.springframework.stereotype.Component;
 
@@ -21,7 +21,6 @@ import org.springframework.stereotype.Component;
  */
 @Slf4j
 @Component
-@AllArgsConstructor
 public class GeminiChatService {
 
   /** 청크 처리 결과: 파싱된 응답 + 추정 비용 */
@@ -33,6 +32,13 @@ public class GeminiChatService {
   private final ChatModel chatModel;
   private final ObjectMapper objectMapper;
   private final GeminiMetricsRecorder metricsRecorder;
+
+  public GeminiChatService(
+      ChatModel chatModel, ObjectMapper objectMapper, GeminiMetricsRecorder metricsRecorder) {
+    this.chatModel = chatModel;
+    this.objectMapper = objectMapper;
+    this.metricsRecorder = metricsRecorder;
+  }
 
   /**
    * 캐시된 컨텍스트를 사용하여 Gemini API를 호출하고, 파싱된 결과를 반환한다.
@@ -46,21 +52,45 @@ public class GeminiChatService {
   public ParsedResult callAndParse(
       ChunkInfo chunk, String cacheName, String strategyValue, String language, String planExtra)
       throws Exception {
+    return callAndParse(chunk, cacheName, strategyValue, language, planExtra, null);
+  }
+
+  /**
+   * thinking-level을 오버라이드하여 Gemini API를 호출한다. Gemini 3 모델은 thinkingBudget 대신 thinkingLevel을 사용한다.
+   *
+   * @param thinkingLevel thinking 수준 (null이면 yml 기본값 사용)
+   */
+  public ParsedResult callAndParse(
+      ChunkInfo chunk,
+      String cacheName,
+      String strategyValue,
+      String language,
+      String planExtra,
+      GoogleGenAiThinkingLevel thinkingLevel)
+      throws Exception {
     long startMs = System.currentTimeMillis();
     List<Integer> pages = chunk.referencedPages();
     QuizType quizType = QuizType.valueOf(strategyValue);
 
     String userPrompt = quizType.generateRequestPrompt(pages, chunk.quizCount(), planExtra);
 
-    Prompt prompt =
-        new Prompt(
-            userPrompt,
-            GoogleGenAiChatOptions.builder()
-                .useCachedContent(true)
-                .cachedContentName(cacheName)
-                .responseMimeType("application/json")
-                .responseSchema(RESPONSE_JSON_SCHEMA)
-                .build());
+    var optionsBuilder =
+        GoogleGenAiChatOptions.builder()
+            .useCachedContent(true)
+            .cachedContentName(cacheName)
+            .responseMimeType("application/json")
+            .responseSchema(RESPONSE_JSON_SCHEMA);
+    if (thinkingLevel != null) {
+      optionsBuilder.thinkingLevel(thinkingLevel);
+    }
+    var options = optionsBuilder.build();
+    log.debug(
+        "Gemini 옵션 - model={}, thinkingLevel={}, thinkingBudget={}, temperature={}",
+        options.getModel(),
+        options.getThinkingLevel(),
+        options.getThinkingBudget(),
+        options.getTemperature());
+    Prompt prompt = new Prompt(userPrompt, options);
 
     ChatResponse chatResponse = chatModel.call(prompt);
     long elapsedMs = System.currentTimeMillis() - startMs;
@@ -70,12 +100,19 @@ public class GeminiChatService {
     if (chatResponse.getMetadata().getUsage() != null) {
       var usage = chatResponse.getMetadata().getUsage();
       chunkCost = metricsRecorder.recordChunkResult(elapsedMs, usage);
+      long thinkingTokens =
+          usage instanceof GoogleGenAiUsage g && g.getThoughtsTokenCount() != null
+              ? g.getThoughtsTokenCount()
+              : 0;
       log.info(
-          "Gemini Usage - pages={}, {}ms, 토큰: {}(캐시: {}), 출력: {}, 추정 비용: ${}",
+          "Gemini Usage - pages={}, {}ms, 토큰: 입력={}(캐시: {}), 추론={}, 출력={}, 추정 비용: ${}",
           pages,
           elapsedMs,
           usage.getPromptTokens(),
-          usage instanceof GoogleGenAiUsage g ? g.getCachedContentTokenCount() : Integer.valueOf(0),
+          usage instanceof GoogleGenAiUsage g2
+              ? g2.getCachedContentTokenCount()
+              : Integer.valueOf(0),
+          thinkingTokens,
           usage.getCompletionTokens(),
           String.format("%.6f", chunkCost));
     }

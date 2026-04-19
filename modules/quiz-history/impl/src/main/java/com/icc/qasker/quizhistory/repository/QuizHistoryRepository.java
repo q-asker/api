@@ -3,6 +3,8 @@ package com.icc.qasker.quizhistory.repository;
 import com.icc.qasker.quizhistory.entity.QuizHistory;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -10,6 +12,8 @@ import org.springframework.data.jpa.repository.Query;
 public interface QuizHistoryRepository extends JpaRepository<QuizHistory, Long> {
 
   List<QuizHistory> findAllByUserIdOrderByCreatedAtDesc(String userId);
+
+  Page<QuizHistory> findAllByUserIdOrderByCreatedAtDesc(String userId, Pageable pageable);
 
   Optional<QuizHistory> findByIdAndUserId(Long id, String userId);
 

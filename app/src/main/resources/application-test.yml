@@ -64,7 +64,7 @@ spring:
         chat:
           options:
             model: gemini-3-flash-preview
-            thinking-budget: -1
+            thinking-budget: 0
 
 q-asker:
   hashid:
