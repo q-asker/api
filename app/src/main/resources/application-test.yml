@@ -14,6 +14,8 @@ oci:
     region: ci-dummy
     config-file-path: /dev/null
     profile: DEFAULT
+    namespace: ci-dummy
+    bucket-name: ci-dummy
 
 spring:
   cache:
