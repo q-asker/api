@@ -116,7 +116,7 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
                         }
                       }
                     } else if (quizType == QuizType.OX) {
-                      // OX 선택지 정규화: X 계열이 1번이면 순서 ��전 → O가 항상 1번
+                      // OX 선택지 정규화: X 계열이 1번이면 순서 변경 → O가 항상 1번
                       for (var quiz : problemSet.getQuiz()) {
                         var sels = quiz.getSelections();
                         if (sels != null

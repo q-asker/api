@@ -152,7 +152,7 @@ public class BlankQuizOrchestrator implements QuizTypeOrchestrator {
                       String.format("%.6f", cost));
                 }
               })
-          .blockLast();
+          .blockLast(java.time.Duration.ofMinutes(5));
 
       log.info(
           "BLANK 스트리밍 생성 완료: 전달={}문항, 총 소요={}ms",
@@ -164,6 +164,17 @@ public class BlankQuizOrchestrator implements QuizTypeOrchestrator {
       metricsRecorder.recordRequestDuration(1, startNanos, first, last, totalCost.sum());
       return 1;
 
+    } catch (IllegalStateException e) {
+      // blockLast 타임아웃 — 이미 생성된 문항은 유지
+      log.warn("BLANK 스트리밍 타임아웃 (5분 초과): 생성된 문항 {}개 유지", delivered.get());
+      metricsRecorder.recordStreamingTimeout("BLANK");
+      metricsRecorder.recordRequestDuration(
+          1,
+          startNanos,
+          firstNanos.get() == 0 ? null : firstNanos.get(),
+          lastNanos.get() == 0 ? null : lastNanos.get(),
+          totalCost.sum());
+      return 1;
     } catch (CustomException e) {
       throw e;
     } catch (Exception e) {
