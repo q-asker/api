@@ -151,7 +151,7 @@ public class OXQuizOrchestrator implements QuizTypeOrchestrator {
                       String.format("%.6f", cost));
                 }
               })
-          .blockLast();
+          .blockLast(java.time.Duration.ofMinutes(5));
 
       log.info(
           "OX 스트리밍 생성 완료: 전달={}문항, 총 소요={}ms",
@@ -163,6 +163,20 @@ public class OXQuizOrchestrator implements QuizTypeOrchestrator {
       metricsRecorder.recordRequestDuration(1, startNanos, first, last, totalCost.sum());
       return 1;
 
+    } catch (IllegalStateException e) {
+      // blockLast 타임아웃 — cause가 TimeoutException인 경우만 정상 처리
+      if (!(e.getCause() instanceof java.util.concurrent.TimeoutException)) {
+        throw new GeminiInfraException("Gemini 블로킹 컨텍스트 오류", e);
+      }
+      log.warn("OX 스트리밍 타임아웃 (5분 초과): 생성된 문항 {}개 유지", delivered.get());
+      metricsRecorder.recordStreamingTimeout("OX");
+      metricsRecorder.recordRequestDuration(
+          1,
+          startNanos,
+          firstNanos.get() == 0 ? null : firstNanos.get(),
+          lastNanos.get() == 0 ? null : lastNanos.get(),
+          totalCost.sum());
+      return 1;
     } catch (CustomException e) {
       throw e;
     } catch (Exception e) {
