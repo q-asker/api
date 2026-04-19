@@ -32,7 +32,7 @@ import reactor.core.publisher.Flux;
 /**
  * 객관식(MULTIPLE) 퀴즈 오케스트레이터. 1회 호출 + 응답 스트리밍으로 문항이 완성될 때마다 즉시 SSE 전달한다.
  *
- * <p>단일 LLM 호출이므로 청크 간 중복이 원천적으로 불가능하다. 캐시 없이 PDF + 시스템 프롬프트를 직접 전달한다.
+ * <p>단일 LLM 호출이므로 청크 간 중복이 원천적으로 불가능하다. 캐시 없이 PDF를 직접 참조한다.
  */
 @Slf4j
 @Component
@@ -74,18 +74,17 @@ public class MultipleQuizOrchestrator implements QuizTypeOrchestrator {
     int quizCount = request.quizCount();
 
     try {
-      // PDF 업로드 (GCS URI 획득)
-      FileMetadata metadata =
-          geminiFileService
-              .awaitCachedFileMetadata(request.fileUrl())
-              .orElseGet(() -> geminiFileService.uploadPdf(request.fileUrl()));
-
       // 시스템 프롬프트 + 유저 프롬프트 구성
       QuizType quizType = QuizType.valueOf(request.strategyValue());
       String systemPrompt = quizType.getSystemGuideLine(request.language());
       String userPrompt = quizType.generateRequestPrompt(request.referencePages(), quizCount, null);
 
-      // PDF를 유저 메시지에 미디어로 첨부
+      // PDF 업로드 (캐시 없이 직접 참조 — 1회 호출이므로 캐시 불필요)
+      FileMetadata metadata =
+          geminiFileService
+              .awaitCachedFileMetadata(request.fileUrl())
+              .orElseGet(() -> geminiFileService.uploadPdf(request.fileUrl()));
+
       var pdfMedia =
           new Media(MimeTypeUtils.parseMimeType("application/pdf"), URI.create(metadata.uri()));
       var userMessage = UserMessage.builder().text(userPrompt).media(pdfMedia).build();

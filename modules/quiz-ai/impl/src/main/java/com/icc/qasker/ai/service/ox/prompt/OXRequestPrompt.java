@@ -65,32 +65,54 @@ public class OXRequestPrompt {
     return """
         [생성 지시]
         - 정확히 %d개의 문제를 생성하세요.
-        - %s 페이지들의 내용으로 문제를 출제하세요.
-        - 각 문항의 referencedPages에 실제 참조한 페이지 번호를 기록하세요.
+        - %s 페이지의 내용으로 문제를 출제하세요.
         - 다양성 시드: %d
+        - **주제 중복 금지**: 각 문항은 서로 다른 소재·맥락을 다뤄야 합니다.
 
-        [문항별 설계 계획]
-        아래 계획의 정답(O/X), 인지 수준, 변조 유형을 **한 글자도 바꾸지 말고** 그대로 따르세요.
-        1번에 "정답=O"이면 1번 문항은 반드시 참 진술, "정답=X"이면 반드시 거짓 진술입니다.
-
+        [문항별 설계 계획 — 한 글자도 바꾸지 말고 따르세요]
         %s
 
-        [품질 체크리스트 — 모든 문항 작성 후 아래를 순서대로 확인하세요]
-        1. **소재 중복 검사**: 25문항 전체에서 동일 소재가 2회 이상 등장하면 → 다른 소재로 교체. 같은 개념의 다른 속성도 같은 소재입니다.
-        2. **Remember 탈락 검사 (최우선)**: 각 문항에서 개념을 1개만 남겨 보세요. 그 정의만으로 풀리면 Remember → 재작성. 강의노트 원문과 1:1 대응되면 Remember → 재작성.
-        3. **O정답 품질 (가장 흔한 감점)**: O정답 문항을 하나씩 점검하세요. (a) 개념 1개의 정의·속성만 서술하는가? (b) 강의노트 문장을 그대로 옮겼는가? (c) "A는 B이다" 형태인가? → 하나라도 해당하면 2개 개념의 관계(비교·인과·조건-결과)를 포함하도록 재작성하세요.
-        4. **Apply 검증**: (a) 상황 설명을 삭제해도 O/X 판단이 가능한가? (b) 강의노트에 나온 동일 예시를 재사용하는가? → 하나라도 해당하면 새로운 상황·조건으로 재설계하세요.
-        5. **절대 표현 검사**: "모든", "항상", "절대", "반드시", "유일한", "필수적인", "필수" 등이 포함된 문항이 있는가? → 해당 표현 없이 변조를 재설계하세요.
-        6. **복합 진술 검사**: 하나의 문장에 독립 판단이 2개 이상인가? → 하나만 남기고 분리하세요.
+        [품질 체크 — 작성 후 반드시 확인]
+        1. **O정답 품질**: 볼드 개념 2개 미만이면 재작성. "A는 B이다" 형태면 재작성.
+        2. **Remember 탈락**: 개념 1개만으로 풀리면 재작성.
+        3. **복합 진술**: 독립 판단 2개↑이면 분리.
 
-        [금지 사항]
-        - 같은 소재(대상·현상)를 2문항에서 반복 사용 — 발견 즉시 교체
-        - "A는 B이다" 형태의 단순 사실 진술을 O정답으로 사용
-        - 강의노트 문장을 그대로 옮기기
-        - 상식만으로 판단 가능한 명백한 변조
-        - "모든", "항상", "절대", "반드시", "유일한", "필수적인", "필수"를 변조에 사용
-        - Apply 문항에서 강의노트에 나온 동일 예시를 그대로 재사용
-        - 하나의 문장에 독립 판단 2개 이상 포함 (복합 진술)"""
-        .formatted(quizCount, referencePages, seed, assignmentPlan);
+        [금지]
+        - 같은 소재 2문항 반복 / "A는 B이다" O정답 / 강의노트 그대로 인용
+        - 상식으로 판단 가능한 변조 / "모든·항상·절대·반드시·필수" 변조
+        - 독립 판단 2개↑ 복합 진술"""
+        .formatted(quizCount, compactPageRange(referencePages), seed, assignmentPlan);
+  }
+
+  /** 페이지 번호 목록을 연속 범위로 압축한다. 예: [1,2,3,5,8,9,10] → "1~3, 5, 8~10" */
+  private static String compactPageRange(List<Integer> pages) {
+    if (pages == null || pages.isEmpty()) return "";
+    if (pages.size() == 1) return String.valueOf(pages.get(0));
+
+    StringBuilder sb = new StringBuilder();
+    int start = pages.get(0);
+    int prev = start;
+
+    for (int i = 1; i < pages.size(); i++) {
+      int curr = pages.get(i);
+      if (curr == prev + 1) {
+        prev = curr;
+      } else {
+        appendRange(sb, start, prev);
+        sb.append(", ");
+        start = curr;
+        prev = curr;
+      }
+    }
+    appendRange(sb, start, prev);
+    return sb.toString();
+  }
+
+  private static void appendRange(StringBuilder sb, int start, int end) {
+    if (start == end) {
+      sb.append(start);
+    } else {
+      sb.append(start).append("~").append(end);
+    }
   }
 }
