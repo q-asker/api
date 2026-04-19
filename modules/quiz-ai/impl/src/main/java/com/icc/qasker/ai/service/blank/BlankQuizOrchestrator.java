@@ -165,7 +165,10 @@ public class BlankQuizOrchestrator implements QuizTypeOrchestrator {
       return 1;
 
     } catch (IllegalStateException e) {
-      // blockLast 타임아웃 — 이미 생성된 문항은 유지
+      // blockLast 타임아웃 — cause가 TimeoutException인 경우만 정상 처리
+      if (!(e.getCause() instanceof java.util.concurrent.TimeoutException)) {
+        throw new GeminiInfraException("Gemini 블로킹 컨텍스트 오류", e);
+      }
       log.warn("BLANK 스트리밍 타임아웃 (5분 초과): 생성된 문항 {}개 유지", delivered.get());
       metricsRecorder.recordStreamingTimeout("BLANK");
       metricsRecorder.recordRequestDuration(
