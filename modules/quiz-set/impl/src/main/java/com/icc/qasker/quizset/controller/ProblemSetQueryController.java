@@ -1,0 +1,27 @@
+package com.icc.qasker.quizset.controller;
+
+import com.icc.qasker.quizset.ProblemSetService;
+import com.icc.qasker.quizset.dto.feresponse.ProblemSetResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@Tag(name = "ProblemSet", description = "문제세트 관련 API")
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/problem-set")
+public class ProblemSetQueryController {
+
+  private final ProblemSetService problemSetService;
+
+  @Operation(summary = "문제세트를 가져온다")
+  @GetMapping("/{id}")
+  public ResponseEntity<ProblemSetResponse> getProblemSet(@PathVariable("id") String problemSetId) {
+    return ResponseEntity.ok(problemSetService.getProblemSet(problemSetId));
+  }
+}

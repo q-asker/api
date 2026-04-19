@@ -17,5 +17,6 @@ q-asker:
   ai:
     chat-timeout-ms: 180000
     equalization-model: gemini-2.5-flash-lite
+    ox-thinking-level: LOW
     chunk:
       max-count-variants: 5

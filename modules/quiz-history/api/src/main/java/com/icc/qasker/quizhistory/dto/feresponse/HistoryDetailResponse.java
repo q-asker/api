@@ -1,6 +1,6 @@
 package com.icc.qasker.quizhistory.dto.feresponse;
 
-import com.icc.qasker.quiz.dto.ferequest.enums.QuizType;
+import com.icc.qasker.quizset.dto.ferequest.enums.QuizType;
 import java.time.Instant;
 import java.util.List;
 

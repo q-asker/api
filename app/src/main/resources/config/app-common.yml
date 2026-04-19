@@ -5,7 +5,7 @@ q-asker:
   async:
     task-termination-timeout-ms: 10000
   sse:
-    timeout-ms: 120000
+    timeout-ms: 600000
 
   # 파일 업로드 검증
   file-validation:

@@ -1,0 +1,173 @@
+package com.icc.qasker.ai.service.multiple;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.icc.qasker.ai.GeminiFileService;
+import com.icc.qasker.ai.dto.GeminiFileUploadResponse.FileMetadata;
+import com.icc.qasker.ai.dto.GenerationRequestToAI;
+import com.icc.qasker.ai.exception.GeminiInfraException;
+import com.icc.qasker.ai.mapper.GeminiQuestionMapper;
+import com.icc.qasker.ai.prompt.strategy.QuizType;
+import com.icc.qasker.ai.service.QuizTypeOrchestrator;
+import com.icc.qasker.ai.service.support.GeminiMetricsRecorder;
+import com.icc.qasker.ai.service.support.StreamingQuestionExtractor;
+import com.icc.qasker.global.error.CustomException;
+import java.net.URI;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.DoubleAdder;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.chat.messages.SystemMessage;
+import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.ai.chat.prompt.Prompt;
+import org.springframework.ai.content.Media;
+import org.springframework.ai.converter.BeanOutputConverter;
+import org.springframework.ai.google.genai.GoogleGenAiChatOptions;
+import org.springframework.ai.google.genai.metadata.GoogleGenAiUsage;
+import org.springframework.stereotype.Component;
+import org.springframework.util.MimeTypeUtils;
+import reactor.core.publisher.Flux;
+
+/**
+ * 객관식(MULTIPLE) 퀴즈 오케스트레이터. 1회 호출 + 응답 스트리밍으로 문항이 완성될 때마다 즉시 SSE 전달한다.
+ *
+ * <p>단일 LLM 호출이므로 청크 간 중복이 원천적으로 불가능하다. 캐시 없이 PDF + 시스템 프롬프트를 직접 전달한다.
+ */
+@Slf4j
+@Component
+public class MultipleQuizOrchestrator implements QuizTypeOrchestrator {
+
+  private static final int MAX_SELECTION_COUNT = 4;
+  private static final String RESPONSE_JSON_SCHEMA =
+      new BeanOutputConverter<>(com.icc.qasker.ai.structure.GeminiResponse.class).getJsonSchema();
+
+  private final GeminiFileService geminiFileService;
+  private final ChatModel chatModel;
+  private final ObjectMapper objectMapper;
+  private final GeminiMetricsRecorder metricsRecorder;
+
+  public MultipleQuizOrchestrator(
+      GeminiFileService geminiFileService,
+      ChatModel chatModel,
+      ObjectMapper objectMapper,
+      GeminiMetricsRecorder metricsRecorder) {
+    this.geminiFileService = geminiFileService;
+    this.chatModel = chatModel;
+    this.objectMapper = objectMapper;
+    this.metricsRecorder = metricsRecorder;
+  }
+
+  @Override
+  public String getSupportedType() {
+    return "MULTIPLE";
+  }
+
+  @Override
+  public int generateQuiz(GenerationRequestToAI request) {
+    long startNanos = System.nanoTime();
+
+    DoubleAdder totalCost = new DoubleAdder();
+    AtomicLong firstNanos = new AtomicLong(0);
+    AtomicLong lastNanos = new AtomicLong(0);
+    AtomicInteger delivered = new AtomicInteger(0);
+    int quizCount = request.quizCount();
+
+    try {
+      // PDF 업로드 (GCS URI 획득)
+      FileMetadata metadata =
+          geminiFileService
+              .awaitCachedFileMetadata(request.fileUrl())
+              .orElseGet(() -> geminiFileService.uploadPdf(request.fileUrl()));
+
+      // 시스템 프롬프트 + 유저 프롬프트 구성
+      QuizType quizType = QuizType.valueOf(request.strategyValue());
+      String systemPrompt = quizType.getSystemGuideLine(request.language());
+      String userPrompt = quizType.generateRequestPrompt(request.referencePages(), quizCount, null);
+
+      // PDF를 유저 메시지에 미디어로 첨부
+      var pdfMedia =
+          new Media(MimeTypeUtils.parseMimeType("application/pdf"), URI.create(metadata.uri()));
+      var userMessage = UserMessage.builder().text(userPrompt).media(pdfMedia).build();
+      var systemMessage = new SystemMessage(systemPrompt);
+
+      var options =
+          GoogleGenAiChatOptions.builder()
+              .responseMimeType("application/json")
+              .responseSchema(RESPONSE_JSON_SCHEMA)
+              .build();
+
+      Prompt prompt = new Prompt(List.of(systemMessage, userMessage), options);
+      log.info("MULTIPLE 스트리밍 생성 시작: 목표={}문항 (캐시 미사용)", quizCount);
+
+      // 스트리밍 파서: 문항 객체가 완성될 때마다 즉시 SSE 전달
+      StreamingQuestionExtractor extractor =
+          new StreamingQuestionExtractor(
+              objectMapper,
+              question -> {
+                if (delivered.get() >= quizCount) return;
+                if (question.selections() != null
+                    && question.selections().size() > MAX_SELECTION_COUNT) return;
+
+                int count = delivered.incrementAndGet();
+                request.questionsConsumer().accept(GeminiQuestionMapper.toDto(List.of(question)));
+
+                long now = System.nanoTime();
+                firstNanos.compareAndSet(0, now);
+                lastNanos.updateAndGet(prev -> Math.max(prev, now));
+
+                if (count == 1) {
+                  long ttfqMs = (now - startNanos) / 1_000_000;
+                  log.info("TTFQ (Time To First Question): {}ms", ttfqMs);
+                }
+              });
+
+      // 스트리밍 실행
+      Flux<org.springframework.ai.chat.model.ChatResponse> stream = chatModel.stream(prompt);
+      stream
+          .doOnNext(
+              response -> {
+                response.getResult();
+                response.getResult();
+                if (response.getResult().getOutput().getText() != null) {
+                  extractor.feed(response.getResult().getOutput().getText());
+                }
+
+                // 메트릭 (마지막 청크에 usage 포함)
+                if (response.getMetadata().getUsage() != null
+                    && response.getMetadata().getUsage().getCompletionTokens() > 0) {
+                  var usage = response.getMetadata().getUsage();
+                  long elapsedMs = (System.nanoTime() - startNanos) / 1_000_000;
+                  double cost = metricsRecorder.recordChunkResult(elapsedMs, usage);
+                  totalCost.add(cost);
+                  long thinkingTokens =
+                      usage instanceof GoogleGenAiUsage g && g.getThoughtsTokenCount() != null
+                          ? g.getThoughtsTokenCount()
+                          : 0;
+                  log.info(
+                      "Gemini Usage - streaming, 토큰: 입력={}, 추론={}, 출력={}, 비용=${}",
+                      usage.getPromptTokens(),
+                      thinkingTokens,
+                      usage.getCompletionTokens(),
+                      String.format("%.6f", cost));
+                }
+              })
+          .blockLast();
+
+      log.info(
+          "MULTIPLE 스트리밍 생성 완료: 전달={}문항, 총 소요={}ms",
+          delivered.get(),
+          (System.nanoTime() - startNanos) / 1_000_000);
+
+      Long first = firstNanos.get() == 0 ? null : firstNanos.get();
+      Long last = lastNanos.get() == 0 ? null : lastNanos.get();
+      metricsRecorder.recordRequestDuration(1, startNanos, first, last, totalCost.sum());
+      return 1;
+
+    } catch (CustomException e) {
+      throw e;
+    } catch (Exception e) {
+      throw new GeminiInfraException("Gemini 인프라 장애", e);
+    }
+  }
+}
