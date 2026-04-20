@@ -67,6 +67,10 @@ spring:
             thinking-budget: 0
 
 q-asker:
+  ai:
+    gcs:
+      bucket-name: ci-dummy
+
   hashid:
     salt: ci-dummy-salt
     min-length: 8
