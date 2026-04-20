@@ -11,7 +11,7 @@ management:
         gemini.request.total.duration: true
         gemini.request.spread.duration: true
   server:
-    port: -1
+    port: 9090
   endpoints:
     web:
       exposure:
