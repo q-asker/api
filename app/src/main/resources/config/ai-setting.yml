@@ -12,6 +12,8 @@ spring:
             top-p: 0.6
             model: gemini-3-flash-preview
             thinking-budget: 0
+            max-output-tokens: 65536
+            
 
 q-asker:
   ai:
