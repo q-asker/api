@@ -30,7 +30,7 @@ EOF
 # ==============================================================================
 MAX_RETRIES=36
 SLEEP_TIME=5
-SHUTDOWN_TIMEOUT=60
+SHUTDOWN_TIMEOUT=250
 PULL_TIMEOUT=120
 BLUE_PORT="${1:?BLUE_PORT is required}"
 GREEN_PORT="${2:?GREEN_PORT is required}"
