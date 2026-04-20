@@ -27,7 +27,8 @@ public class OciObjectStorageServiceImpl implements ObjectStorageService {
   private final CdnProperties cdnProperties;
   private final OciObjectStorageProperties ociProperties;
   private final UploadManager uploadManager;
-  private final Timer uploadTimer;
+  private final Timer pdfUploadTimer;
+  private final Timer imageUploadTimer;
 
   public OciObjectStorageServiceImpl(
       CdnProperties cdnProperties,
@@ -37,16 +38,22 @@ public class OciObjectStorageServiceImpl implements ObjectStorageService {
     this.cdnProperties = cdnProperties;
     this.ociProperties = ociProperties;
     this.uploadManager = uploadManager;
-    this.uploadTimer =
+    this.pdfUploadTimer =
         Timer.builder("file.upload.oci.duration")
-            .description("OCI Object Storage 파일 업로드 소요 시간")
+            .description("OCI Object Storage PDF 업로드 소요 시간")
+            .tag("type", "pdf")
+            .register(registry);
+    this.imageUploadTimer =
+        Timer.builder("file.upload.oci.duration")
+            .description("OCI Object Storage 이미지 업로드 소요 시간")
+            .tag("type", "image")
             .register(registry);
   }
 
   @Override
   public String uploadImage(
       InputStream inputStream, long contentLength, String contentType, String originalFileName) {
-    return uploadTimer.record(
+    return imageUploadTimer.record(
         () -> {
           String extension = originalFileName.substring(originalFileName.lastIndexOf("."));
           String objectName = "images/" + UUID.randomUUID() + extension;
@@ -77,7 +84,7 @@ public class OciObjectStorageServiceImpl implements ObjectStorageService {
 
   @Override
   public String uploadPdf(Path pdfFile, String originalFileName) {
-    return uploadTimer.record(
+    return pdfUploadTimer.record(
         () -> {
           String uuid = UUID.randomUUID().toString();
           String objectName = uuid + ".pdf";

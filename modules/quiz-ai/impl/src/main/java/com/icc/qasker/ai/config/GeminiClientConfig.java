@@ -18,11 +18,21 @@ public class GeminiClientConfig {
   private final QAskerAiProperties aiProperties;
 
   @Bean
+  @org.springframework.context.annotation.Profile("!test")
   public Client googleGenAiClient(GoogleGenAiConnectionProperties properties) {
     return Client.builder()
         .project(properties.getProjectId())
         .location(properties.getLocation())
         .vertexAI(true)
+        .httpOptions(HttpOptions.builder().timeout(aiProperties.getChatTimeoutMs()).build())
+        .build();
+  }
+
+  @Bean
+  @org.springframework.context.annotation.Profile("test")
+  public Client googleGenAiClientTest() {
+    return Client.builder()
+        .apiKey("ci-dummy-key")
         .httpOptions(HttpOptions.builder().timeout(aiProperties.getChatTimeoutMs()).build())
         .build();
   }

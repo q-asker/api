@@ -38,7 +38,7 @@ import reactor.core.publisher.Flux;
 @Component
 public class OXQuizOrchestrator implements QuizTypeOrchestrator {
 
-  private static final int MAX_SELECTION_COUNT = 4;
+  private static final int MAX_SELECTION_COUNT = 2;
   private static final String RESPONSE_JSON_SCHEMA =
       new BeanOutputConverter<>(com.icc.qasker.ai.structure.GeminiResponse.class).getJsonSchema();
 
