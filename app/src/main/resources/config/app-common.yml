@@ -18,7 +18,7 @@ server:
 
 spring:
   lifecycle:
-    timeout-per-shutdown-phase: 60s
+    timeout-per-shutdown-phase: 300s
 
   servlet:
     multipart:
