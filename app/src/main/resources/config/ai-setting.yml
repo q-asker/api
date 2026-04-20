@@ -13,12 +13,10 @@ spring:
             model: gemini-3-flash-preview
             thinking-budget: 0
             max-output-tokens: 65536
-            
+
 
 q-asker:
   ai:
     chat-timeout-ms: 180000
-    equalization-model: gemini-2.5-flash-lite
-    ox-thinking-level: LOW
     chunk:
       max-count-variants: 5
