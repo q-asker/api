@@ -10,6 +10,7 @@ spring:
             temperature: 1.0
             model: gemini-3-flash-preview
             max-output-tokens: 20000
+            thinking-level: low
 
 q-asker:
   ai:
