@@ -83,7 +83,9 @@ public class OXQuizOrchestrator implements QuizTypeOrchestrator {
       // 시스템 프롬프트 + PDF Media + 유저 프롬프트 구성
       QuizType quizType = QuizType.valueOf(request.strategyValue());
       String systemGuideLine = quizType.getSystemGuideLine(request.language());
-      String userPrompt = quizType.generateRequestPrompt(request.referencePages(), quizCount, null);
+      String userPrompt =
+          quizType.generateRequestPrompt(
+              request.referencePages(), quizCount, request.customInstruction());
 
       SystemMessage systemMessage = new SystemMessage(systemGuideLine);
       Media pdfMedia =
@@ -151,7 +153,7 @@ public class OXQuizOrchestrator implements QuizTypeOrchestrator {
                       String.format("%.6f", cost));
                 }
               })
-          .blockLast(java.time.Duration.ofMinutes(5));
+          .blockLast(java.time.Duration.ofMinutes(6));
 
       log.info(
           "OX 스트리밍 생성 완료: 전달={}문항, 총 소요={}ms",
@@ -168,7 +170,7 @@ public class OXQuizOrchestrator implements QuizTypeOrchestrator {
       if (!(e.getCause() instanceof java.util.concurrent.TimeoutException)) {
         throw new GeminiInfraException("Gemini 블로킹 컨텍스트 오류", e);
       }
-      log.warn("OX 스트리밍 타임아웃 (5분 초과): 생성된 문항 {}개 유지", delivered.get());
+      log.warn("OX 스트리밍 타임아웃 (6분 초과): 생성된 문항 {}개 유지", delivered.get());
       metricsRecorder.recordStreamingTimeout("OX");
       metricsRecorder.recordRequestDuration(
           1,
@@ -180,6 +182,17 @@ public class OXQuizOrchestrator implements QuizTypeOrchestrator {
     } catch (CustomException e) {
       throw e;
     } catch (Exception e) {
+      if (delivered.get() > 0) {
+        log.warn("OX 스트리밍 중 오류 발생이나 {}개 문항은 전달됨. 부분 성공 처리.", delivered.get(), e);
+        metricsRecorder.recordStreamingTimeout("OX");
+        metricsRecorder.recordRequestDuration(
+            1,
+            startNanos,
+            firstNanos.get() == 0 ? null : firstNanos.get(),
+            lastNanos.get() == 0 ? null : lastNanos.get(),
+            totalCost.sum());
+        return 1;
+      }
       throw new GeminiInfraException("Gemini 인프라 장애", e);
     }
   }

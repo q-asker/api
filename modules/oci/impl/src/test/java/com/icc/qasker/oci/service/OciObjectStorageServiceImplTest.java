@@ -12,7 +12,9 @@ import com.oracle.bmc.objectstorage.transfer.UploadManager;
 import com.oracle.bmc.objectstorage.transfer.UploadManager.UploadRequest;
 import com.oracle.bmc.objectstorage.transfer.UploadManager.UploadResponse;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,6 +39,29 @@ class OciObjectStorageServiceImplTest {
     service =
         new OciObjectStorageServiceImpl(
             cdnProperties, ociProperties, uploadManager, new SimpleMeterRegistry());
+  }
+
+  @Test
+  @DisplayName("이미지 업로드 시 OCI에 저장하고 CDN URL을 반환한다")
+  void uploadImage_inputStream_returnsCdnUrl() {
+    // Given: 테스트용 이미지 데이터를 생성한다
+    byte[] content = "dummy image content".getBytes();
+    InputStream inputStream = new ByteArrayInputStream(content);
+    String contentType = "image/png";
+    String originalFileName = "test.png";
+
+    // UploadManager.upload 호출 시 성공 응답을 반환하도록 모킹한다
+    when(uploadManager.upload(any(UploadRequest.class))).thenReturn(mock(UploadResponse.class));
+
+    // When: 이미지 업로드를 실행한다
+    String cdnUrl = service.uploadImage(inputStream, content.length, contentType, originalFileName);
+
+    // Then: CDN 도메인으로 시작하고 .png로 끝나야 한다
+    assertThat(cdnUrl).startsWith("https://files.test.com/images/");
+    assertThat(cdnUrl).endsWith(".png");
+
+    // Then: UploadManager.upload()이 호출되었는지 검증한다
+    verify(uploadManager).upload(any(UploadRequest.class));
   }
 
   @Test

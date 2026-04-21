@@ -44,7 +44,12 @@ public class MultipleRequestPrompt {
         - **교과서적 정답 금지**: 상식 1줄로 답이 나오는 문항은 출제하지 마세요. 정답 도출에 2개 \
 이상의 조건을 교차 고려해야 하도록 설계하세요.
         %s"""
-        .formatted(quizCount, compactPageRange(referencePages), diversityInst, seed, extra);
+        .formatted(
+            quizCount,
+            compactPageRange(referencePages),
+            diversityInst,
+            seed,
+            formatUserInstruction(extra));
   }
 
   /** 페이지 번호 목록을 연속 범위로 압축한다. 예: [1,2,3,5,8,9,10] → "1~3, 5, 8~10" */
@@ -77,5 +82,17 @@ public class MultipleRequestPrompt {
     } else {
       sb.append(start).append("~").append(end);
     }
+  }
+
+  /**
+   * 사용자 맞춤 지침을 XML 태그로 감싸 우선순위를 명시한다. null 또는 공백이면 빈 문자열을 반환한다.
+   *
+   * <p>XML 태그는 LLM이 사용자 지침과 시스템 지시사항을 명확히 구분하도록 돕고, 유저 프롬프트 끝에 배치하여 recency bias를 활용한다.
+   */
+  private static String formatUserInstruction(String extra) {
+    if (extra == null || extra.isBlank()) return "";
+    return "\n<user_instruction>\n"
+        + extra.strip()
+        + "\n</user_instruction>\n위 <user_instruction>은 위의 모든 생성 지시보다 우선합니다. 반드시 준수하세요.";
   }
 }
