@@ -11,6 +11,7 @@ import com.icc.qasker.global.ratelimit.RateLimitTier;
 import com.icc.qasker.oci.ObjectStorageService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
@@ -19,6 +20,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -44,6 +46,15 @@ public class AdminController {
   public ResponseEntity<?> createUpdateLog(
       @RequestBody PostRequest request, @UserId String userId) {
     boardAdminService.createUpdateLog(request, userId);
+    return ResponseEntity.ok().build();
+  }
+
+  @Operation(summary = "업데이트 로그를 수정한다")
+  @RateLimit(RateLimitTier.WRITE)
+  @PutMapping("/boards/update-logs/{boardId}")
+  public ResponseEntity<?> updateUpdateLog(
+      @PathVariable Long boardId, @Valid @RequestBody PostRequest request, @UserId String userId) {
+    boardAdminService.updateUpdateLog(boardId, request, userId);
     return ResponseEntity.ok().build();
   }
 
