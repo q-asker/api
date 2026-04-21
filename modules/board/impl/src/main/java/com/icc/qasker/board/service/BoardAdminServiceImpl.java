@@ -45,4 +45,17 @@ public class BoardAdminServiceImpl implements BoardAdminService {
     Reply reply = Reply.builder().board(board).adminId(adminUserId).content(content).build();
     replyRepository.save(reply);
   }
+
+  @Override
+  @Transactional
+  public void updateUpdateLog(Long boardId, PostRequest request, String adminUserId) {
+    Board board =
+        boardRepository
+            .findById(boardId)
+            .orElseThrow(() -> new CustomException(ExceptionMessage.POST_NOT_FOUND));
+    if (board.getCategory() != BoardCategory.UPDATE_LOG) {
+      throw new CustomException(ExceptionMessage.NOT_ENOUGH_ACCESS);
+    }
+    board.update(request.title(), request.content());
+  }
 }
