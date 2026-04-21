@@ -14,6 +14,25 @@ public class OXRequestPrompt {
 
   private static final String[] DISTORTION_TYPES = {"사실 변조형", "관계 변조형", "조건 변조형"};
 
+  /** customInstruction이 있으면 XML 태그로 감싸 유저 프롬프트 끝에 우선 삽입한다. */
+  public static String generateWithUserInstruction(
+      List<Integer> referencePages, int quizCount, String customInstruction) {
+    String base = generate(referencePages, quizCount);
+    return base + formatUserInstruction(customInstruction);
+  }
+
+  /**
+   * 사용자 맞춤 지침을 XML 태그로 감싸 우선순위를 명시한다. null 또는 공백이면 빈 문자열을 반환한다.
+   *
+   * <p>XML 태그는 LLM이 사용자 지침과 시스템 지시사항을 명확히 구분하도록 돕고, 유저 프롬프트 끝에 배치하여 recency bias를 활용한다.
+   */
+  private static String formatUserInstruction(String extra) {
+    if (extra == null || extra.isBlank()) return "";
+    return "\n<user_instruction>\n"
+        + extra.strip()
+        + "\n</user_instruction>\n위 <user_instruction>은 위의 모든 생성 지시보다 우선합니다. 반드시 준수하세요.";
+  }
+
   public static String generate(List<Integer> referencePages, int quizCount) {
     Random random = new Random();
 

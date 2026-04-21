@@ -51,7 +51,19 @@ public class BlankRequestPrompt {
             diversityInst,
             bloomsAssignment,
             seed,
-            exclusionExtra != null ? exclusionExtra : "");
+            formatUserInstruction(exclusionExtra));
+  }
+
+  /**
+   * 사용자 맞춤 지침을 XML 태그로 감싸 우선순위를 명시한다. null 또는 공백이면 빈 문자열을 반환한다.
+   *
+   * <p>XML 태그는 LLM이 사용자 지침과 시스템 지시사항을 명확히 구분하도록 돕고, 유저 프롬프트 끝에 배치하여 recency bias를 활용한다.
+   */
+  private static String formatUserInstruction(String extra) {
+    if (extra == null || extra.isBlank()) return "";
+    return "\n<user_instruction>\n"
+        + extra.strip()
+        + "\n</user_instruction>\n위 <user_instruction>은 위의 모든 생성 지시보다 우선합니다. 반드시 준수하세요.";
   }
 
   /**

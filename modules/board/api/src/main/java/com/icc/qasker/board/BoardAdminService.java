@@ -10,4 +10,7 @@ public interface BoardAdminService {
 
   /** 게시글에 관리자 답변(댓글)을 단다. */
   void reply(Long boardId, String adminUserId, String content);
+
+  /** 업데이트 로그 게시글을 수정한다. */
+  void updateUpdateLog(Long boardId, PostRequest request, String adminUserId);
 }

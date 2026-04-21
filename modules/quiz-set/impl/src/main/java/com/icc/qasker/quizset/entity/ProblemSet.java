@@ -59,6 +59,9 @@ public class ProblemSet extends CreatedAt {
   @Column(nullable = false)
   private String fileUrl;
 
+  @Column(columnDefinition = "TEXT")
+  private String customInstruction;
+
   // 이하 헬퍼 함수
   public void updateStatus(GenerationStatus status) {
     if (status == null) {

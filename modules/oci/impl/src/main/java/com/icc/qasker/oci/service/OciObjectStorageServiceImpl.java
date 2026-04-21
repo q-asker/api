@@ -8,10 +8,9 @@ import com.oracle.bmc.objectstorage.transfer.UploadManager;
 import com.oracle.bmc.objectstorage.transfer.UploadManager.UploadRequest;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
-import java.io.IOException;
+import java.io.BufferedInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
@@ -69,8 +68,12 @@ public class OciObjectStorageServiceImpl implements ObjectStorageService {
                   .opcMeta(java.util.Map.of("original-filename", encodedFileName))
                   .build();
 
+          // stream does not support mark/reset 워닝 방지를 위해 BufferedInputStream으로 래핑
+          InputStream bufferedInputStream =
+              inputStream.markSupported() ? inputStream : new BufferedInputStream(inputStream);
+
           UploadRequest uploadRequest =
-              UploadRequest.builder(inputStream, contentLength)
+              UploadRequest.builder(bufferedInputStream, contentLength)
                   .allowOverwrite(true)
                   .build(putObjectRequest);
 
@@ -100,19 +103,11 @@ public class OciObjectStorageServiceImpl implements ObjectStorageService {
                   .opcMeta(java.util.Map.of("original-filename", encodedFileName))
                   .build();
 
-          try {
-            long contentLength = Files.size(pdfFile);
-            InputStream inputStream = Files.newInputStream(pdfFile);
+          // File 객체를 직접 전달하면 OCI SDK가 스트림 mark/reset 워닝 없이 멀티파트 업로드 처리
+          UploadRequest uploadRequest =
+              UploadRequest.builder(pdfFile.toFile()).allowOverwrite(true).build(putObjectRequest);
 
-            UploadRequest uploadRequest =
-                UploadRequest.builder(inputStream, contentLength)
-                    .allowOverwrite(true)
-                    .build(putObjectRequest);
-
-            uploadManager.upload(uploadRequest);
-          } catch (IOException e) {
-            throw new RuntimeException("OCI Object Storage 업로드 실패: " + originalFileName, e);
-          }
+          uploadManager.upload(uploadRequest);
 
           String finalUrl = cdnProperties.baseUrl() + "/" + objectName;
           log.info("PDF OCI 업로드 완료: {} -> {}", originalFileName, finalUrl);

@@ -12,7 +12,8 @@ public interface QuizCommandService {
       String title,
       Integer totalQuizCount,
       QuizType quizType,
-      String uploadUrl);
+      String uploadUrl,
+      String customInstruction);
 
   void updateStatus(Long problemSetId, GenerationStatus status);
 

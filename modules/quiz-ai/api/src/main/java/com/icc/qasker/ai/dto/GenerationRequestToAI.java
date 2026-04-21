@@ -11,4 +11,5 @@ public record GenerationRequestToAI(
     String language,
     int quizCount,
     List<Integer> referencePages,
-    Consumer<AIProblemSet> questionsConsumer) {}
+    Consumer<AIProblemSet> questionsConsumer,
+    String customInstruction) {}

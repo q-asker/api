@@ -47,9 +47,8 @@ public enum QuizType implements QuizPromptStrategy {
     @Override
     public String generateRequestPrompt(
         List<Integer> referencePages, int quizCount, String planExtra) {
-      // planExtra에 금지 소재 텍스트가 포함된 경우 유저 프롬프트 끝에 추가
-      String base = OXRequestPrompt.generate(referencePages, quizCount);
-      return planExtra != null ? base + "\n" + planExtra : base;
+      // customInstruction이 있으면 XML 태그로 감싸 유저 프롬프트 끝에 우선 삽입
+      return OXRequestPrompt.generateWithUserInstruction(referencePages, quizCount, planExtra);
     }
   };
 
