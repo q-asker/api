@@ -7,16 +7,12 @@ spring:
       genai:
         chat:
           options:
-            temperature: 0.0
-            top-k: 10
-            top-p: 0.6
+            temperature: 1.0
             model: gemini-3-flash-preview
-            thinking-budget: 0
-            max-output-tokens: 25000
-
+            max-output-tokens: 20000
 
 q-asker:
   ai:
-    chat-timeout-ms: 180000
+    chat-timeout-ms: 360000
     chunk:
       max-count-variants: 5

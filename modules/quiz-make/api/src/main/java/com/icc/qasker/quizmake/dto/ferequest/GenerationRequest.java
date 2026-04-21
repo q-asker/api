@@ -9,9 +9,11 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.util.List;
 import java.util.Set;
+import org.hibernate.validator.constraints.Length;
 import org.hibernate.validator.constraints.UUID;
 
 public record GenerationRequest(
+    @Length(max = 600) String customInstruction,
     @NotNull(message = "sessionId가 null입니다.") @UUID(message = "sessionId가 유효한 UUID 형식이 아닙니다.")
         String sessionId,
     @NotBlank(message = "url이 존재하지 않습니다.") String uploadedUrl,
@@ -27,7 +29,7 @@ public record GenerationRequest(
             pageNumbers,
     Language language) {
 
-  private static final Set<Integer> ALLOWED_QUIZ_COUNTS = Set.of(5, 10, 15, 20, 25);
+  private static final Set<Integer> ALLOWED_QUIZ_COUNTS = Set.of(5, 10, 15, 20);
 
   public GenerationRequest {
     if (!ALLOWED_QUIZ_COUNTS.contains(quizCount)) {

@@ -71,16 +71,17 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
               request.title(),
               request.quizCount(),
               request.quizType(),
-              request.uploadedUrl());
+              request.uploadedUrl(),
+              request.customInstruction());
     } catch (DataIntegrityViolationException e) {
       throw new CustomException(ExceptionMessage.AI_DUPLICATED_GENERATION);
     }
 
     Thread.ofVirtual()
-        .start(() -> processAsyncGeneration(request.sessionId(), problemSetId, request));
+        .start(() -> processGenerationAsync(request.sessionId(), problemSetId, request));
   }
 
-  private void processAsyncGeneration(
+  private void processGenerationAsync(
       String sessionId, Long problemSetId, GenerationRequest request) {
 
     AtomicInteger atomicGeneratedCount = new AtomicInteger(0);
@@ -94,6 +95,7 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
             .language(request.language().name())
             .quizCount(request.quizCount())
             .referencePages(request.pageNumbers())
+            .customInstruction(request.customInstruction())
             .questionsConsumer(
                 aiProblemSet -> {
                   consumerLock.lock();
