@@ -39,7 +39,8 @@ class OciObjectStorageServiceImplTest {
             "~/.oci/config",
             "DEFAULT");
 
-    CdnProperties cdnProperties = new CdnProperties("https://files.test.com");
+    CdnProperties cdnProperties =
+        new CdnProperties("https://files.test.com", "https://files.test.com");
 
     service =
         new OciObjectStorageServiceImpl(
