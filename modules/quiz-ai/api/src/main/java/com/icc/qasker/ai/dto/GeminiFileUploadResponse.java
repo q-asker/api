@@ -23,5 +23,6 @@ public record GeminiFileUploadResponse(FileMetadata file) {
       String createTime,
       String updateTime,
       String state,
-      String uri) {}
+      String uri,
+      java.util.List<Integer> sourcePages) {}
 }
