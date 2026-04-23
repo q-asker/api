@@ -75,11 +75,14 @@ public class BlankQuizOrchestrator implements QuizTypeOrchestrator {
     int quizCount = request.quizCount();
 
     try {
-      // GCS에 PDF 업로드 (캐시 없이 GCS URI 직접 사용)
+      // PDF 업로드 (페이지가 지정되면 슬라이싱하여 업로드)
+      String cacheKey =
+          geminiFileService.generateCacheKey(request.fileUrl(), request.referencePages());
       FileMetadata metadata =
           geminiFileService
-              .awaitCachedFileMetadata(request.fileUrl())
-              .orElseGet(() -> geminiFileService.uploadPdf(request.fileUrl()));
+              .awaitCachedFileMetadata(cacheKey)
+              .orElseGet(
+                  () -> geminiFileService.uploadPdf(request.fileUrl(), request.referencePages()));
 
       // 시스템 프롬프트 + PDF Media + 유저 프롬프트 구성
       QuizType quizType = QuizType.valueOf(request.strategyValue());
@@ -112,7 +115,9 @@ public class BlankQuizOrchestrator implements QuizTypeOrchestrator {
                     && question.selections().size() > MAX_SELECTION_COUNT) return;
 
                 int count = delivered.incrementAndGet();
-                request.questionsConsumer().accept(GeminiQuestionMapper.toDto(List.of(question)));
+                request
+                    .questionsConsumer()
+                    .accept(GeminiQuestionMapper.toDto(List.of(question), metadata.sourcePages()));
 
                 long now = System.nanoTime();
                 firstNanos.compareAndSet(0, now);

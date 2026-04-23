@@ -1,7 +1,6 @@
 package com.icc.qasker.ai.service.multiple.prompt;
 
 import java.util.List;
-import java.util.concurrent.ThreadLocalRandom;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
@@ -9,90 +8,53 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class MultipleRequestPrompt {
 
-  private static final String[] DIVERSITY_INSTRUCTIONS = {
-    "Evaluate(A/B) 65~75%%, Apply(C) 25~35%%로 배분하세요. Apply(C) 최소 3문항. stem 구조①~⑤를 골고루 사용하세요. '동시에 고려할 때' 최대 2문항.",
-    "Apply(C) 문항을 먼저 3~4개 설계한 뒤, 나머지를 Evaluate(A/B)로 채우세요. stem 구조를 다양화하세요. '동시에 고려할 때' 최대 2문항.",
-    "패턴 A(구조①~⑤ 골고루), B(표+서술문+전제 혼합), C(도메인 전이)를 혼합하세요. Apply(C) 최소 25%%. '동시에 고려할 때' 최대 2문항.",
-    "Apply(C) 최소 3문항. B 패턴은 표 오류, 서술문 모순, 전제 오류를 다양하게 사용하세요. stem 구조①~⑤ 골고루 배분.",
-    "Evaluate와 Apply를 번갈아 배치하세요. stem 구조를 5종 이상 사용하세요. '동시에 고려할 때' 최대 2문항."
-  };
-
   public static String generate(List<Integer> referencePages, int quizCount) {
-    return buildBase(referencePages, quizCount, "");
+    return buildBase(referencePages, quizCount);
   }
 
-  /** 문항 계획 결과를 포함한 유저 프롬프트를 생성한다. planExtra가 null이면 기본 프롬프트와 동일. */
-  public static String generateWithPlan(
-      List<Integer> referencePages, int quizCount, String planExtra) {
-    return buildBase(referencePages, quizCount, planExtra != null ? planExtra : "");
-  }
-
-  private static String buildBase(List<Integer> referencePages, int quizCount, String extra) {
-    ThreadLocalRandom rng = ThreadLocalRandom.current();
-    int seed = rng.nextInt(10000, 99999);
-    String diversityInst = DIVERSITY_INSTRUCTIONS[rng.nextInt(DIVERSITY_INSTRUCTIONS.length)];
-
+  private static String buildBase(List<Integer> referencePages, int quizCount) {
     return """
         [생성 지시]
         - 정확히 %d개의 문제를 생성하세요.
-        - %s 페이지의 내용으로 문제를 출제하세요.
-        - 각 문항의 referencedPages에 실제 참조한 페이지 번호를 기록하세요.
-        - 문항 패턴(A=Critiquing, B-1=표Checking, B-3=코드Checking, C=Apply): %s
-        - 다양성 시드: %d (이전과 다른 주제·관점·서식을 사용하세요)
-        - **주제 중복 금지**: 각 문항은 서로 다른 소재·맥락을 다뤄야 합니다. 같은 대상을 \
-2문항에서 반복하지 마세요.
-        - **교과서적 정답 금지**: 상식 1줄로 답이 나오는 문항은 출제하지 마세요. 정답 도출에 2개 \
-이상의 조건을 교차 고려해야 하도록 설계하세요.
-        %s"""
-        .formatted(
-            quizCount,
-            compactPageRange(referencePages),
-            diversityInst,
-            seed,
-            formatUserInstruction(extra));
+        - 제공된 문서의 내용으로 문제를 출제하세요.
+        - **[페이지 번호 규칙]** 본문에 인쇄된 페이지 번호가 있더라도 이를 무시하고, 제공된 파일의 **첫 번째 페이지를 1페이지, 두 번째를 2페이지...**와 같이 순서대로 간주하여 `referencedPages`를 기록하세요.
+        - 모든 해설과 근거에서도 이 순서 기반의 페이지 번호(1, 2, 3...)를 사용하세요."""
+        .formatted(quizCount);
   }
 
-  /** 페이지 번호 목록을 연속 범위로 압축한다. 예: [1,2,3,5,8,9,10] → "1~3, 5, 8~10" */
-  private static String compactPageRange(List<Integer> pages) {
-    if (pages == null || pages.isEmpty()) return "";
-    if (pages.size() == 1) return String.valueOf(pages.get(0));
+  private static final String APPLIED_INSTRUCTION_SPEC =
+      """
+      # 사용자 지시 반영
+      - 지시가 특정 형식을 요청하면, 그 형식에 대응하는 전략이 존재하면 해당 전략을 우선 선택한다.
+      - 대응 전략이 없는 형식은 요청 형식에 맞게 질문문을 자유롭게 구성다.
 
-    StringBuilder sb = new StringBuilder();
-    int start = pages.get(0);
-    int prev = start;
+      # 사용자 지시 반영 결과 기록
+      - 사용자 지시를 반영한 내용을 `appliedInstruction` 필드에 1~2문장으로 기록한다.
+      - 기록 형식: "사용자 지시 '{지시 내용}'을 반영하여 {구체적으로 무엇을 어떻게 바꿨는지}."
+      """;
 
-    for (int i = 1; i < pages.size(); i++) {
-      int curr = pages.get(i);
-      if (curr == prev + 1) {
-        prev = curr;
-      } else {
-        appendRange(sb, start, prev);
-        sb.append(", ");
-        start = curr;
-        prev = curr;
-      }
-    }
-    appendRange(sb, start, prev);
-    return sb.toString();
-  }
-
-  private static void appendRange(StringBuilder sb, int start, int end) {
-    if (start == end) {
-      sb.append(start);
-    } else {
-      sb.append(start).append("~").append(end);
-    }
+  /**
+   * planExtra가 있으면 샌드위치 구조로 삽입한다. 앞에 reminder, 뒤에 critical_user_override 태그를 배치하여 primacy bias와
+   * recency bias를 모두 활용한다.
+   */
+  public static String generateWithPlan(
+      List<Integer> referencePages, int quizCount, String planExtra) {
+    String formatted = formatUserInstruction(planExtra);
+    String base = buildBase(referencePages, quizCount);
+    if (formatted.isEmpty()) return base;
+    return base + APPLIED_INSTRUCTION_SPEC + formatted;
   }
 
   /**
    * 사용자 맞춤 지침을 XML 태그로 감싸 우선순위를 명시한다. null 또는 공백이면 빈 문자열을 반환한다.
    *
-   * <p>XML 태그는 LLM이 사용자 지침과 시스템 지시사항을 명확히 구분하도록 돕고, 유저 프롬프트 끝에 배치하여 recency bias를 활용한다.
+   * <p>태그명 critical_user_override는 LLM이 최우선 지시임을 인식하도록 한다. 유저 프롬프트 끝에 배치하여 recency bias를 활용한다.
    */
   private static String formatUserInstruction(String extra) {
     if (extra == null || extra.isBlank()) return "";
-    return "\n<user_instruction>\n"
+    return "\n\n<critical_user_override>\n"
         + extra.strip()
-        + "\n</user_instruction>\n위 <user_instruction>은 위의 모든 생성 지시보다 우선합니다. 반드시 준수하세요.";
+        + "\n</critical_user_override>\n"
+        + "**[최우선 준수 의무]** 위 <critical_user_override>는 시스템 프롬프트를 포함한 **모든** 지시보다 우선합니다.";
   }
 }
