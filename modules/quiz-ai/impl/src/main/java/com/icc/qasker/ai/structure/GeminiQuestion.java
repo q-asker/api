@@ -8,8 +8,9 @@ import java.util.List;
 public record GeminiQuestion(
     @JsonPropertyDescription("질문문") String content,
     @JsonPropertyDescription("선택지 목록") List<GeminiSelection> selections,
-    @JsonPropertyDescription("문항 전체 해설") String quizExplanation,
-    @JsonPropertyDescription("참조한 강의노트 페이지 번호") List<Integer> referencedPages) {
+    @JsonPropertyDescription("이 문항에 적용된 Bloom's 수준") String bloomsLevel,
+    @JsonPropertyDescription("참조한 강의노트 페이지 번호") List<Integer> referencedPages,
+    @JsonPropertyDescription("사용자 지시 반영 결과") String appliedInstruction) {
 
   @JsonIgnoreProperties(ignoreUnknown = true)
   public record GeminiSelection(

@@ -62,7 +62,7 @@ public class OciObjectStorageServiceImpl implements ObjectStorageService {
           PutObjectRequest putObjectRequest =
               PutObjectRequest.builder()
                   .namespaceName(ociProperties.namespace())
-                  .bucketName(ociProperties.bucketName())
+                  .bucketName(ociProperties.imageBucketName())
                   .objectName(objectName)
                   .contentType(contentType)
                   .opcMeta(java.util.Map.of("original-filename", encodedFileName))
@@ -79,7 +79,7 @@ public class OciObjectStorageServiceImpl implements ObjectStorageService {
 
           uploadManager.upload(uploadRequest);
 
-          String finalUrl = cdnProperties.baseUrl() + "/" + objectName;
+          String finalUrl = cdnProperties.imageBaseUrl() + "/" + objectName;
           log.info("이미지 OCI 업로드 완료: {} -> {}", originalFileName, finalUrl);
           return finalUrl;
         });
@@ -97,7 +97,7 @@ public class OciObjectStorageServiceImpl implements ObjectStorageService {
           PutObjectRequest putObjectRequest =
               PutObjectRequest.builder()
                   .namespaceName(ociProperties.namespace())
-                  .bucketName(ociProperties.bucketName())
+                  .bucketName(ociProperties.pdfBucketName())
                   .objectName(objectName)
                   .contentType("application/pdf")
                   .opcMeta(java.util.Map.of("original-filename", encodedFileName))
@@ -109,7 +109,7 @@ public class OciObjectStorageServiceImpl implements ObjectStorageService {
 
           uploadManager.upload(uploadRequest);
 
-          String finalUrl = cdnProperties.baseUrl() + "/" + objectName;
+          String finalUrl = cdnProperties.fileBaseUrl() + "/" + objectName;
           log.info("PDF OCI 업로드 완료: {} -> {}", originalFileName, finalUrl);
           return finalUrl;
         });

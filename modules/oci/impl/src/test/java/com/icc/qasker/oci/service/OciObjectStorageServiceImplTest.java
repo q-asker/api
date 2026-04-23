@@ -32,9 +32,15 @@ class OciObjectStorageServiceImplTest {
 
     OciObjectStorageProperties ociProperties =
         new OciObjectStorageProperties(
-            "test-namespace", "test-bucket", "ap-chuncheon-1", "~/.oci/config", "DEFAULT");
+            "test-namespace",
+            "test-image-bucket",
+            "test-pdf-bucket",
+            "ap-chuncheon-1",
+            "~/.oci/config",
+            "DEFAULT");
 
-    CdnProperties cdnProperties = new CdnProperties("https://files.test.com");
+    CdnProperties cdnProperties =
+        new CdnProperties("https://files.test.com", "https://files.test.com");
 
     service =
         new OciObjectStorageServiceImpl(

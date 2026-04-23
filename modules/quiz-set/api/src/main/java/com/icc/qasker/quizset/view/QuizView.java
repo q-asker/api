@@ -15,6 +15,7 @@ public class QuizView {
   private int userAnswer;
   private boolean check;
   private List<SelectionView> selections;
+  private String appliedInstruction;
 
   @Getter
   @NoArgsConstructor

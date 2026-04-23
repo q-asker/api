@@ -16,6 +16,7 @@
 | 인증 | JWT (Auth0 java-jwt 4.5.0) + OAuth2 Client | - |
 | 클라우드 | OCI Java SDK (Object Storage) + Cloudflare CDN + Google Cloud Storage | 3.80.3 |
 | 문서변환 | JODConverter (LibreOffice) | 4.4.9 |
+| PDF 처리 | Apache PDFBox | 3.0.3 |
 | 모니터링 | Micrometer + Prometheus + Actuator | (Boot BOM) |
 | 장애격리 | Resilience4j (Circuit Breaker) | 2.3.0 |
 | Rate Limiting | Bucket4j + Caffeine | 8.16.1 |
@@ -108,7 +109,7 @@ q-asker/api/
 - 프로파일: `local` (개발), `prod` (운영)
 - Actuator 포트: 9090 (서비스 포트와 분리)
 - Virtual Threads 활성화 (`spring.threads.virtual.enabled: true`)
-- OCI Object Storage: `~/.oci/config` 파일 기반 인증, `OCI_NAMESPACE`/`OCI_BUCKET_NAME` 환경변수
+- OCI Object Storage: `~/.oci/config` 파일 기반 인증, `OCI_NAMESPACE`, `OCI_IMAGE_BUCKET_NAME`, `OCI_PDF_BUCKET_NAME` 환경변수
 - Google Cloud: Vertex AI + GCS (ADC 인증)
   - `spring.ai.google.genai.project-id`: GCP 프로젝트 ID
   - `spring.ai.google.genai.location`: GCP 엔드포인트 (현재: `global`)

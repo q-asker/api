@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 /**
  * 셔플된 선택지 순서에 맞춰 최종 해설 마크다운을 조립한다.
  *
- * <p>quizExplanation(문항 전체 해설)과 각 selection의 explanation(해설 본문)을 조합한다. 정답/오답 헤더와 선택지 내용은
+ * <p>bloomsLevel(Bloom's 수준 태그)과 각 selection의 explanation(해설 본문)을 조합한다. 정답/오답 헤더와 선택지 내용은
  * selection.isCorrect()와 selection.getContent()에서 코드로 주입한다.
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
@@ -18,7 +18,7 @@ public class ExplanationMarkdownBuilder {
   /**
    * 셔플된 선택지 순서로 병합된 해설 마크다운을 조립한다.
    *
-   * @param quiz 문제 (셔플된 selections + quizExplanation)
+   * @param quiz 문제 (셔플된 selections + bloomsLevel)
    * @return 병합된 마크다운 문자열
    */
   public static String build(QuizGeneratedFromAI quiz, Language language) {
@@ -27,9 +27,10 @@ public class ExplanationMarkdownBuilder {
 
     StringBuilder sb = new StringBuilder();
 
-    // 1. 문항 전체 해설 (자기 점검 + 심화 학습)
-    if (hasText(quiz.getQuizExplanation())) {
-      sb.append(quiz.getQuizExplanation().strip());
+    // 1. Bloom's 수준 태그 + 설명
+    if (hasText(quiz.getBloomsLevel())) {
+      String raw = quiz.getBloomsLevel().strip();
+      sb.append("- **평가 수준**: ").append(raw);
       sb.append("\n\n---\n\n");
     }
 
