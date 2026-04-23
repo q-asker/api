@@ -50,10 +50,17 @@ public class Problem extends CreatedAt {
   @Builder.Default
   private List<Integer> referencedPages = new ArrayList<>();
 
+  @Column(columnDefinition = "TEXT")
+  private String appliedInstruction;
+
   // Phase 1: 문제 생성 시 선택지와 참조 페이지를 바인딩
   public void bindQuizData(List<Selection> selections, List<Integer> referencedPages) {
     this.selections = selections == null ? List.of() : List.copyOf(selections);
     this.referencedPages = referencedPages == null ? List.of() : List.copyOf(referencedPages);
+  }
+
+  public void updateAppliedInstruction(String appliedInstruction) {
+    this.appliedInstruction = appliedInstruction;
   }
 
   // Phase 2: 해설 후속 저장 시 호출

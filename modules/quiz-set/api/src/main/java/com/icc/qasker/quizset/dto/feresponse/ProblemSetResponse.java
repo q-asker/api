@@ -14,7 +14,12 @@ public record ProblemSetResponse(
     List<QuizForFe> quiz) {
 
   public record QuizForFe(
-      int number, String title, int userAnswer, boolean check, List<SelectionForFE> selections) {
+      int number,
+      String title,
+      int userAnswer,
+      boolean check,
+      List<SelectionForFE> selections,
+      String appliedInstruction) {
 
     public record SelectionForFE(int id, String content, boolean correct) {}
   }

@@ -22,7 +22,7 @@ public class ExplanationController {
   private final ExplanationService explanationService;
 
   @Operation(summary = "설명을 가져온다")
-  @RateLimit(RateLimitTier.HEAVY)
+  @RateLimit(RateLimitTier.READ)
   @GetMapping("/{id}")
   public ResponseEntity<ExplanationResponse> getExplanation(
       @PathVariable("id") String problemSetId) {

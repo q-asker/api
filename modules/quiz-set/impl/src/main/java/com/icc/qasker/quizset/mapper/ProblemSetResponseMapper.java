@@ -29,7 +29,13 @@ public final class ProblemSetResponseMapper {
                 })
             .toList();
 
-    return new QuizForFe(problem.getId().getNumber(), problem.getTitle(), 0, false, selections);
+    return new QuizForFe(
+        problem.getId().getNumber(),
+        problem.getTitle(),
+        0,
+        false,
+        selections,
+        problem.getAppliedInstruction());
   }
 
   public ProblemSetResponse fromEntity(ProblemSet problemSet) {
