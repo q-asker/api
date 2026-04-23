@@ -19,6 +19,12 @@ public class QuizViewToQuizForFeMapper {
                 })
             .toList();
 
-    return new QuizForFe(quizView.getNumber(), quizView.getTitle(), 0, false, selections);
+    return new QuizForFe(
+        quizView.getNumber(),
+        quizView.getTitle(),
+        0,
+        false,
+        selections,
+        quizView.getAppliedInstruction());
   }
 }

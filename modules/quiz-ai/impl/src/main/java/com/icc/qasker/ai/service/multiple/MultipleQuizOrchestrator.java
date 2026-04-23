@@ -20,6 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.content.Media;
 import org.springframework.ai.converter.BeanOutputConverter;
@@ -81,11 +82,14 @@ public class MultipleQuizOrchestrator implements QuizTypeOrchestrator {
           quizType.generateRequestPrompt(
               request.referencePages(), quizCount, request.customInstruction());
 
-      // PDF 업로드 (캐시 없이 직접 참조 — 1회 호출이므로 캐시 불필요)
+      // PDF 업로드 (페이지가 지정되면 슬라이싱하여 업로드)
+      String cacheKey =
+          geminiFileService.generateCacheKey(request.fileUrl(), request.referencePages());
       FileMetadata metadata =
           geminiFileService
-              .awaitCachedFileMetadata(request.fileUrl())
-              .orElseGet(() -> geminiFileService.uploadPdf(request.fileUrl()));
+              .awaitCachedFileMetadata(cacheKey)
+              .orElseGet(
+                  () -> geminiFileService.uploadPdf(request.fileUrl(), request.referencePages()));
 
       var pdfMedia =
           new Media(MimeTypeUtils.parseMimeType("application/pdf"), URI.create(metadata.uri()));
@@ -111,7 +115,9 @@ public class MultipleQuizOrchestrator implements QuizTypeOrchestrator {
                     && question.selections().size() > MAX_SELECTION_COUNT) return;
 
                 int count = delivered.incrementAndGet();
-                request.questionsConsumer().accept(GeminiQuestionMapper.toDto(List.of(question)));
+                request
+                    .questionsConsumer()
+                    .accept(GeminiQuestionMapper.toDto(List.of(question), metadata.sourcePages()));
 
                 long now = System.nanoTime();
                 firstNanos.compareAndSet(0, now);
@@ -124,7 +130,7 @@ public class MultipleQuizOrchestrator implements QuizTypeOrchestrator {
               });
 
       // 스트리밍 실행
-      Flux<org.springframework.ai.chat.model.ChatResponse> stream = chatModel.stream(prompt);
+      Flux<ChatResponse> stream = chatModel.stream(prompt);
       stream
           .doOnNext(
               response -> {

@@ -22,6 +22,12 @@ public class ProblemToQuizViewMapper {
                 })
             .toList();
 
-    return new QuizView(problem.getId().getNumber(), problem.getTitle(), 0, false, selections);
+    return new QuizView(
+        problem.getId().getNumber(),
+        problem.getTitle(),
+        0,
+        false,
+        selections,
+        problem.getAppliedInstruction());
   }
 }

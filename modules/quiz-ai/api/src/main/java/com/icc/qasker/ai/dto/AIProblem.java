@@ -4,6 +4,7 @@ import java.util.List;
 
 public record AIProblem(
     String content,
-    String quizExplanation,
+    String bloomsLevel,
     List<AISelection> selections,
-    List<Integer> referencedPages) {}
+    List<Integer> referencedPages,
+    String appliedInstruction) {}

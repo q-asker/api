@@ -29,7 +29,7 @@ public class MockOciClientConfig {
         } catch (InterruptedException e) {
           throw new RuntimeException(e);
         }
-        return cdnProperties.baseUrl() + "/" + UUID.randomUUID() + ".pdf";
+        return cdnProperties.fileBaseUrl() + "/" + UUID.randomUUID() + ".pdf";
       }
 
       @Override
@@ -40,7 +40,7 @@ public class MockOciClientConfig {
           String originalFileName) {
         log.info("Mock OCI Image Upload: {}", originalFileName);
         String ext = originalFileName.substring(originalFileName.lastIndexOf("."));
-        return cdnProperties.baseUrl() + "/images/" + UUID.randomUUID() + ext;
+        return cdnProperties.imageBaseUrl() + "/images/" + UUID.randomUUID() + ext;
       }
     };
   }

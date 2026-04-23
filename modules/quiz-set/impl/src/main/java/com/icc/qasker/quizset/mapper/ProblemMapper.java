@@ -37,6 +37,7 @@ public final class ProblemMapper {
 
     problem.bindQuizData(selections, referencedPages);
     problem.updateExplanation(quizDto.getExplanation());
+    problem.updateAppliedInstruction(quizDto.getAppliedInstruction());
     return problem;
   }
 }

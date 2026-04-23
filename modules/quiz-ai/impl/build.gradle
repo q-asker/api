@@ -28,6 +28,9 @@ dependencies {
     // Google Cloud Storage: Vertex AI 컨텍스트 캐싱을 위한 PDF 임시 저장소
     implementation "com.google.cloud:google-cloud-storage"
 
+    // Apache PDFBox: PDF 페이지 추출 (Slicing) 기능 제공
+    implementation "org.apache.pdfbox:pdfbox:3.0.3"
+
     // ────────────────────────────────
     // 테스트
     // ────────────────────────────────

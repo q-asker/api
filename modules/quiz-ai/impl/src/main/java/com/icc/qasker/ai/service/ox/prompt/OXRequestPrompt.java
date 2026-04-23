@@ -4,47 +4,52 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
-import java.util.concurrent.ThreadLocalRandom;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
-/** OX 퀴즈 전용 유저 프롬프트. Understand/Apply 번호 배분 + O/X 정답 배분 + 변조 유형 배분. */
+/** OX 퀴즈 전용 유저 프롬프트. */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class OXRequestPrompt {
 
-  private static final String[] DISTORTION_TYPES = {"사실 변조형", "관계 변조형", "조건 변조형"};
+  private static final String APPLIED_INSTRUCTION_SPEC =
+      """
+    # 사용자 지시 반영
+    - 지시가 특정 형식을 요청하면, 그 형식에 대응하는 전략이 존재하면 해당 전략을 우선 선택한다.
+    - 대응 전략이 없는 형식은 요청 형식에 맞게 질문문을 자유롭게 구성다.
 
-  /** customInstruction이 있으면 XML 태그로 감싸 유저 프롬프트 끝에 우선 삽입한다. */
+    # 사용자 지시 반영 결과 기록
+    - 사용자 지시를 반영한 내용을 `appliedInstruction` 필드에 1~2문장으로 기록한다.
+    """;
+
+  /**
+   * customInstruction이 있으면 샌드위치 구조로 삽입한다. 앞에 reminder, 뒤에 critical_user_override 태그를 배치하여 primacy
+   * bias와 recency bias를 모두 활용한다.
+   */
   public static String generateWithUserInstruction(
       List<Integer> referencePages, int quizCount, String customInstruction) {
-    String base = generate(referencePages, quizCount);
-    return base + formatUserInstruction(customInstruction);
+    String formatted = formatUserInstruction(customInstruction);
+    if (formatted.isEmpty()) return generate(referencePages, quizCount);
+    String reminder = "⚠️ [사용자 최우선 지시 존재] 이 프롬프트 끝의 <critical_user_override>를 반드시 준수하세요.\n\n";
+    return reminder + generate(referencePages, quizCount) + APPLIED_INSTRUCTION_SPEC + formatted;
   }
 
   /**
    * 사용자 맞춤 지침을 XML 태그로 감싸 우선순위를 명시한다. null 또는 공백이면 빈 문자열을 반환한다.
    *
-   * <p>XML 태그는 LLM이 사용자 지침과 시스템 지시사항을 명확히 구분하도록 돕고, 유저 프롬프트 끝에 배치하여 recency bias를 활용한다.
+   * <p>태그명 critical_user_override는 LLM이 최우선 지시임을 인식하도록 한다. 유저 프롬프트 끝에 배치하여 recency bias를 활용한다.
    */
   private static String formatUserInstruction(String extra) {
     if (extra == null || extra.isBlank()) return "";
-    return "\n<user_instruction>\n"
+    return "\n\n<critical_user_override>\n"
         + extra.strip()
-        + "\n</user_instruction>\n위 <user_instruction>은 위의 모든 생성 지시보다 우선합니다. 반드시 준수하세요.";
+        + "\n</critical_user_override>\n"
+        + "**[최우선 준수 의무]** 위 <critical_user_override>는 시스템 프롬프트를 포함한 **모든** 지시보다 우선합니다.";
   }
 
   public static String generate(List<Integer> referencePages, int quizCount) {
     Random random = new Random();
 
-    // 1) Understand/Apply 번호 배분 (Understand 50~60%, Apply 40~50%)
-    int applyCount = Math.max(1, (int) Math.round(quizCount * (0.4 + random.nextDouble() * 0.1)));
-    List<String> levels = new ArrayList<>();
-    for (int i = 0; i < quizCount; i++) {
-      levels.add(i < applyCount ? "Apply" : "Understand");
-    }
-    Collections.shuffle(levels, random);
-
-    // 2) O/X 정답 배분 — 확정적 균등 배분
+    // O/X 정답 배분 — 확정적 균등 배분
     int oCount = quizCount / 2;
     int xCount = quizCount - oCount;
     if (oCount == 0) {
@@ -60,47 +65,23 @@ public class OXRequestPrompt {
     for (int i = 0; i < xCount; i++) answers.add("X");
     Collections.shuffle(answers, random);
 
-    // 3) X 문항에 변조 유형 배분 (골고루)
-    int distortionIdx = random.nextInt(DISTORTION_TYPES.length);
-
     StringBuilder plan = new StringBuilder();
     for (int i = 0; i < quizCount; i++) {
-      plan.append(i + 1).append("번: ").append(levels.get(i)).append(", 정답=").append(answers.get(i));
-      if ("X".equals(answers.get(i))) {
-        plan.append(", 변조=").append(DISTORTION_TYPES[distortionIdx % DISTORTION_TYPES.length]);
-        distortionIdx++;
-      }
+      plan.append(i + 1).append(", 정답=").append(answers.get(i));
       plan.append("\n");
     }
-
-    return buildBase(referencePages, quizCount, plan.toString());
-  }
-
-  private static String buildBase(
-      List<Integer> referencePages, int quizCount, String assignmentPlan) {
-    ThreadLocalRandom rng = ThreadLocalRandom.current();
-    int seed = rng.nextInt(10000, 99999);
 
     return """
         [생성 지시]
         - 정확히 %d개의 문제를 생성하세요.
-        - %s 페이지의 내용으로 문제를 출제하세요.
-        - 다양성 시드: %d
-        - **주제 중복 금지**: 각 문항은 서로 다른 소재·맥락을 다뤄야 합니다.
+        - 제공된 문서의 내용으로 문제를 출제하세요.
+        - **[페이지 번호 규칙]** 본문에 인쇄된 페이지 번호가 있더라도 이를 무시하고, 제공된 파일의 **첫 번째 페이지를 1페이지, 두 번째를 2페이지...**와 같이 순서대로 간주하여 `referencedPages`를 기록하세요.
+        - 모든 해설과 근거에서도 이 순서 기반의 페이지 번호(1, 2, 3...)를 사용하세요.
 
-        [문항별 설계 계획 — 한 글자도 바꾸지 말고 따르세요]
+        [문항별 상세 계획]
         %s
-
-        [품질 체크 — 작성 후 반드시 확인]
-        1. **O정답 품질**: 볼드 개념 2개 미만이면 재작성. "A는 B이다" 형태면 재작성.
-        2. **Remember 탈락**: 개념 1개만으로 풀리면 재작성.
-        3. **복합 진술**: 독립 판단 2개↑이면 분리.
-
-        [금지]
-        - 같은 소재 2문항 반복 / "A는 B이다" O정답 / 강의노트 그대로 인용
-        - 상식으로 판단 가능한 변조 / "모든·항상·절대·반드시·필수" 변조
-        - 독립 판단 2개↑ 복합 진술"""
-        .formatted(quizCount, compactPageRange(referencePages), seed, assignmentPlan);
+        - **[계획 엄수]** 위 계획에 명시된 문항별 정답(O/X)과 수준(Understand/Apply), 그리고 X 문항의 변조 유형을 반드시 준수하여 생성하세요."""
+        .formatted(quizCount, plan.toString().strip());
   }
 
   /** 페이지 번호 목록을 연속 범위로 압축한다. 예: [1,2,3,5,8,9,10] → "1~3, 5, 8~10" */

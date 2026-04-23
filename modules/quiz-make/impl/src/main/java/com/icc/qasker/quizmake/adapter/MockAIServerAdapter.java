@@ -46,7 +46,8 @@ public class MockAIServerAdapter extends AIServerAdapter {
                     new AISelection("Option B", "Mock explanation B", false),
                     new AISelection("Option C", "Mock explanation C", false),
                     new AISelection("Option D", "Mock explanation D", false)),
-                pages));
+                pages,
+                null));
       }
       request.questionsConsumer().accept(new AIProblemSet(problems));
 

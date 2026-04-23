@@ -1,11 +1,6 @@
 package com.icc.qasker.ai.service.blank.prompt;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
@@ -13,79 +8,55 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class BlankRequestPrompt {
 
-  /** MULTIPLE에서 검증된 패턴: 5개 랜덤 변이가 단일 지시보다 다양성 +0.67. 매 생성마다 다른 전략이 선택되어 같은 PDF에서도 다른 세트가 나옴. */
-  private static final String[] DIVERSITY_INSTRUCTIONS = {
-    "Remember 70~80%%, Understand 20~30%%로 배분하세요. Understand 최소 5문항. "
-        + "정의·명칭, 분류·유형, 원인·결과, 비교·대조 유형을 골고루 포함하세요.",
-    "Understand 문항을 먼저 5~6개 설계한 뒤, 나머지를 Remember로 채우세요. " + "강의노트 전반부와 후반부에서 균등하게 출제하세요.",
-    "빈칸 유형을 다양화하세요: 정의형('~를 ___라고 한다'), 비교형('A와 달리 ___는'), "
-        + "원인형('~때문에 ___가 발생한다'). 한 유형에 50%%이상 편중 금지.",
-    "Understand 최소 5문항. 서술문에 비교/인과/분류 문맥을 반드시 포함하세요. " + "정의형만 반복하지 마세요. 고유명사·사례명도 빈칸으로 활용하세요.",
-    "Remember와 Understand를 번갈아 배치하세요. 같은 하위 주제에서 3문항 이상 출제하지 마세요. " + "강의노트의 핵심 표·다이어그램에서도 출제하세요."
-  };
+  private static final String APPLIED_INSTRUCTION_SPEC =
+      """
+      # 사용자 지시 반영
+      - 지시가 특정 형식을 요청하면, 그 형식에 대응하는 전략이 존재하면 해당 전략을 우선 선택한다.
+      - 대응 전략이 없는 형식은 요청 형식에 맞게 질문문을 자유롭게 구성다.
+
+      # 사용자 지시 반영 결과 기록
+      - 사용자 지시를 반영한 내용을 `appliedInstruction` 필드에 1~2문장으로 기록한다.
+      - 기록 형식: "사용자 지시 '{지시 내용}'을 반영하여 {구체적으로 무엇을 어떻게 바꿨는지}."
+      """;
 
   public static String generate(List<Integer> referencePages, int quizCount) {
     return generate(referencePages, quizCount, null);
   }
 
+  /**
+   * exclusionExtra가 있으면 샌드위치 구조로 삽입한다. 앞에 reminder, 뒤에 critical_user_override 태그를 배치하여 primacy
+   * bias와 recency bias를 모두 활용한다.
+   */
   public static String generate(
       List<Integer> referencePages, int quizCount, String exclusionExtra) {
-    ThreadLocalRandom rng = ThreadLocalRandom.current();
-    int seed = rng.nextInt(10000, 99999);
-    String diversityInst = DIVERSITY_INSTRUCTIONS[rng.nextInt(DIVERSITY_INSTRUCTIONS.length)];
-    String bloomsAssignment = buildBloomsAssignment(quizCount);
+    String formatted = formatUserInstruction(exclusionExtra);
+    String base = buildBase(referencePages, quizCount);
+    if (formatted.isEmpty()) return base;
+    String reminder = "⚠️ [사용자 최우선 지시 존재] 이 프롬프트 끝의 <critical_user_override>를 반드시 준수하세요.\n\n";
+    return reminder + base + APPLIED_INSTRUCTION_SPEC + formatted;
+  }
 
+  private static String buildBase(List<Integer> referencePages, int quizCount) {
     return """
         [생성 지시]
         - 정확히 %d개의 문제를 생성하세요.
-        - %s 페이지들의 내용으로 문제를 출제하세요.
-        - 각 문항의 referencedPages에 실제 참조한 페이지 번호를 기록하세요.
-        - 문항 배분: %s
-        - %s
-        - 다양성 시드: %d (이전과 다른 주제·관점을 사용하세요)
-        - **주제 중복 금지**: 같은 정답 용어가 2회 이상 등장하면 안 됩니다.
-        %s"""
-        .formatted(
-            quizCount,
-            compactPageRange(referencePages),
-            diversityInst,
-            bloomsAssignment,
-            seed,
-            formatUserInstruction(exclusionExtra));
+        - 제공된 문서의 내용으로 문제를 출제하세요.
+        - **[페이지 번호 규칙]** 본문에 인쇄된 페이지 번호가 있더라도 이를 무시하고, 제공된 파일의 **첫 번째 페이지를 1페이지, 두 번째를 2페이지...**와 같이 순서대로 간주하여 `referencedPages`를 기록하세요.
+        - 모든 해설과 근거에서도 이 순서 기반의 페이지 번호(1, 2, 3...)를 사용하세요."""
+        .formatted(quizCount);
   }
 
   /**
    * 사용자 맞춤 지침을 XML 태그로 감싸 우선순위를 명시한다. null 또는 공백이면 빈 문자열을 반환한다.
    *
-   * <p>XML 태그는 LLM이 사용자 지침과 시스템 지시사항을 명확히 구분하도록 돕고, 유저 프롬프트 끝에 배치하여 recency bias를 활용한다.
+   * <p>태그명 critical_user_override는 LLM이 최우선 지시임을 인식하도록 한다. 유저 프롬프트 끝에 배치하여 recency bias를 활용한다.
    */
   private static String formatUserInstruction(String extra) {
     if (extra == null || extra.isBlank()) return "";
-    return "\n<user_instruction>\n"
+    return "\n\n<critical_user_override>\n"
         + extra.strip()
-        + "\n</user_instruction>\n위 <user_instruction>은 위의 모든 생성 지시보다 우선합니다. 반드시 준수하세요.";
-  }
-
-  /**
-   * Bloom's 수준을 문항 번호별로 명시 할당한다. Remember 70~80%, Understand 20~30%. 매 생성 요청마다 다른 번호가 선택되어 다양성 확보.
-   */
-  private static String buildBloomsAssignment(int quizCount) {
-    int understandCount = Math.max(1, (int) Math.round(quizCount * 0.25));
-    List<Integer> indices =
-        IntStream.rangeClosed(1, quizCount)
-            .boxed()
-            .collect(Collectors.toCollection(ArrayList::new));
-    Collections.shuffle(indices);
-    String nums =
-        indices.subList(0, Math.min(understandCount, indices.size())).stream()
-            .sorted()
-            .map(String::valueOf)
-            .collect(Collectors.joining(", "));
-    return "**Bloom's 수준 할당**: 문항 "
-        + nums
-        + "번은 반드시 **Understand(이해)** 수준으로 출제하세요. "
-        + "Understand 문항은 반드시 '~와 달리', '~에 비해', '~때문에' 등 비교/인과/분류 문맥을 포함해야 합니다. "
-        + "나머지 문항은 Remember(기억) 수준으로 출제하세요.";
+        + "\n</critical_user_override>\n"
+        + "**[최우선 준수 의무]** 위 <critical_user_override>는 시스템 프롬프트를 포함한 **모든** 지시보다 우선합니다.";
   }
 
   /** 페이지 번호 목록을 연속 범위로 압축한다. [1,2,3,5,8,9,10] → "1~3, 5, 8~10" */

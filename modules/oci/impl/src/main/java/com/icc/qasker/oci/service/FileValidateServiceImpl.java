@@ -17,7 +17,8 @@ public class FileValidateServiceImpl implements FileValidateService {
 
   @Override
   public void checkCdnUrlWithThrowing(String url) {
-    if (!url.startsWith(cdnProperties.baseUrl())) {
+    if (!url.startsWith(cdnProperties.imageBaseUrl())
+        && !url.startsWith(cdnProperties.fileBaseUrl())) {
       throw new CustomException(ExceptionMessage.INVALID_URL_REQUEST);
     }
   }
