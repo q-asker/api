@@ -91,7 +91,7 @@ public class MultipleGuideLine {
     - 타겟 분할: 논리적 오류를 발생시키는 2개의 상호 배타적/대칭적 변수나 연산 방향(예: left 조작 vs right 조작, 증가 vs 감소)을 타겟으로 삼는다.
     - 구성: [방향 A(예: left)를 수정하는 선지 2개] + [방향 B(예: right)를 수정하는 선지 2개]
     **문제 본문 및 선택지 예시**
-    - content: 다음은 정렬된 배열에서 목표 값을 찾는 이진 탐색 코드이다.\\n\\n```python\\ndef binary_search(arr, target):\\n    left, right = 0, len(arr) - 1\\n    while left <= right:\\n        mid = (left + right) // 2\\n        if arr[mid] == target:\\n            return mid\\n        elif arr[mid] < target:\\n            left = mid        # ← 이 줄에 주목\\n        else:\\n            right = mid - 1\\n    return -1\\n```\\n\\n위 코드에서 **논리적 오류**를 찾아 수정한 것으로 가장 적절한 것은?
+    - content: 다음은 정렬된 배열에서 목표 값을 찾는 이진 탐색 코드이다.\\n\\n```python\\ndef binary_search(arr, target):\\n    left, right = 0, len(arr) - 1\\n    while left <= right:\\n        mid = (left + right) // 2\\n        if arr[mid] == target:\\n            return mid\\n        elif arr[mid] < target:\\n            left = mid\\n        else:\\n            right = mid - 1\\n    return -1\\n```\\n\\n위 코드에서 **논리적 오류**를 찾아 수정한 것으로 가장 적절한 것은?
     - selection.content 1 (정답): `left = mid`를 `left = mid + 1`로 수정한다 — mid는 정답이 될 수 없으므로 탐색 범위에서 제외해야 한다
     - selection.content 2 (오답): `left = mid`를 `left = mid - 1`로 수정한다 — 탐색 방향을 왼쪽으로 역전시켜 누락된 값을 재탐색해야 한다
     - selection.content 3 (오답): `right = mid - 1`을 `right = mid`로 수정한다 — mid 값이 정답일 가능성을 대비해 탐색 범위에 남겨두어야 한다
