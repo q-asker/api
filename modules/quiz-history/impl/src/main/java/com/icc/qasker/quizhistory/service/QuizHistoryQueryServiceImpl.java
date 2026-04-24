@@ -4,14 +4,21 @@ import com.icc.qasker.global.component.HashUtil;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.quizhistory.QuizHistoryQueryService;
+import com.icc.qasker.quizhistory.dto.feresponse.EssayHistoryDetailResponse;
+import com.icc.qasker.quizhistory.dto.feresponse.EssayHistoryDetailResponse.ElementScoreDetail;
+import com.icc.qasker.quizhistory.dto.feresponse.EssayHistoryDetailResponse.EssayProblemWithGrade;
+import com.icc.qasker.quizhistory.dto.feresponse.EssayHistoryDetailResponse.EssaySelection;
+import com.icc.qasker.quizhistory.dto.feresponse.EssayHistoryDetailResponse.GradeResult;
 import com.icc.qasker.quizhistory.dto.feresponse.HistoryCheckResponse;
 import com.icc.qasker.quizhistory.dto.feresponse.HistoryDetailResponse;
 import com.icc.qasker.quizhistory.dto.feresponse.HistoryPageResponse;
 import com.icc.qasker.quizhistory.dto.feresponse.HistorySummaryResponse;
 import com.icc.qasker.quizhistory.dto.feresponse.ProblemWithAnswer;
 import com.icc.qasker.quizhistory.entity.AnswerSnapshot;
+import com.icc.qasker.quizhistory.entity.EssayGradeLog;
 import com.icc.qasker.quizhistory.entity.QuizHistory;
 import com.icc.qasker.quizhistory.mapper.QuizHistoryMapper;
+import com.icc.qasker.quizhistory.repository.EssayGradeLogRepository;
 import com.icc.qasker.quizhistory.repository.QuizHistoryRepository;
 import com.icc.qasker.quizset.ProblemSetReadService;
 import com.icc.qasker.quizset.dto.feresponse.Selection;
@@ -35,6 +42,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class QuizHistoryQueryServiceImpl implements QuizHistoryQueryService {
 
   private final QuizHistoryRepository quizHistoryRepository;
+  private final EssayGradeLogRepository essayGradeLogRepository;
   private final ProblemSetReadService problemSetReadService;
   private final HashUtil hashUtil;
   private final QuizHistoryMapper quizHistoryMapper;
@@ -105,6 +113,11 @@ public class QuizHistoryQueryServiceImpl implements QuizHistoryQueryService {
         history.getAnswers().stream()
             .collect(Collectors.toMap(AnswerSnapshot::number, AnswerSnapshot::inReview));
 
+    Map<Integer, String> textAnswerMap =
+        history.getAnswers().stream()
+            .filter(a -> a.textAnswer() != null)
+            .collect(Collectors.toMap(AnswerSnapshot::number, AnswerSnapshot::textAnswer));
+
     List<ProblemWithAnswer> problemWithAnswers =
         problems.stream()
             .map(
@@ -124,8 +137,9 @@ public class QuizHistoryQueryServiceImpl implements QuizHistoryQueryService {
                                       rawSelections.get(i).correct()))
                           .toList();
 
+                  String textAnswer = textAnswerMap.get(p.number());
                   return new ProblemWithAnswer(
-                      p.number(), p.title(), userAnswer, correct, inReview, selections);
+                      p.number(), p.title(), userAnswer, correct, inReview, selections, textAnswer);
                 })
             .toList();
 
@@ -138,6 +152,89 @@ public class QuizHistoryQueryServiceImpl implements QuizHistoryQueryService {
         history.getTotalTime(),
         history.getCreatedAt(),
         problemWithAnswers);
+  }
+
+  @Override
+  public EssayHistoryDetailResponse getEssayHistoryDetail(String userId, String historyId) {
+    long id = hashUtil.decode(historyId);
+    QuizHistory history =
+        quizHistoryRepository
+            .findById(id)
+            .filter(h -> h.getUserId().equals(userId))
+            .orElseThrow(() -> new CustomException(ExceptionMessage.QUIZ_HISTORY_NOT_FOUND));
+
+    Long problemSetId = history.getProblemSetId();
+    ProblemSetSummary problemSet =
+        problemSetReadService
+            .findProblemSetById(problemSetId)
+            .orElseThrow(() -> new CustomException(ExceptionMessage.PROBLEM_SET_NOT_FOUND));
+
+    List<ProblemDetail> problems = problemSetReadService.findProblemsByProblemSetId(problemSetId);
+
+    // 답안 스냅샷 매핑
+    Map<Integer, String> textAnswerMap =
+        history.getAnswers().stream()
+            .filter(a -> a.textAnswer() != null)
+            .collect(Collectors.toMap(AnswerSnapshot::number, AnswerSnapshot::textAnswer));
+    Map<Integer, Boolean> inReviewMap =
+        history.getAnswers().stream()
+            .collect(Collectors.toMap(AnswerSnapshot::number, AnswerSnapshot::inReview));
+
+    // 문제별 최신 채점 결과 조회
+    Map<Integer, EssayGradeLog> gradeLogMap =
+        essayGradeLogRepository.findLatestByUserIdAndProblemSetId(userId, problemSetId).stream()
+            .collect(Collectors.toMap(EssayGradeLog::getProblemNumber, Function.identity()));
+
+    List<EssayProblemWithGrade> essayProblems =
+        problems.stream()
+            .map(
+                p -> {
+                  // selections (id, content만 노출)
+                  List<EssaySelection> selections =
+                      IntStream.range(0, p.selections().size())
+                          .mapToObj(i -> new EssaySelection(i + 1, p.selections().get(i).content()))
+                          .toList();
+
+                  // 채점 결과 변환
+                  EssayGradeLog gradeLog = gradeLogMap.get(p.number());
+                  GradeResult gradeResult = toGradeResult(gradeLog);
+
+                  return new EssayProblemWithGrade(
+                      p.number(),
+                      p.title(),
+                      textAnswerMap.get(p.number()),
+                      inReviewMap.getOrDefault(p.number(), false),
+                      selections,
+                      gradeResult);
+                })
+            .toList();
+
+    return new EssayHistoryDetailResponse(
+        hashUtil.encode(history.getId()),
+        hashUtil.encode(problemSetId),
+        problemSet.quizType(),
+        problemSet.totalQuizCount(),
+        history.getTotalTime(),
+        history.getCreatedAt(),
+        essayProblems);
+  }
+
+  private GradeResult toGradeResult(EssayGradeLog gradeLog) {
+    if (gradeLog == null) {
+      return null;
+    }
+    List<ElementScoreDetail> elementScores =
+        gradeLog.getElementScores().stream()
+            .map(
+                e ->
+                    new ElementScoreDetail(
+                        e.element(), e.maxPoints(), e.earnedPoints(), e.level(), e.feedback()))
+            .toList();
+    return new GradeResult(
+        gradeLog.getTotalScore(),
+        gradeLog.getMaxScore(),
+        gradeLog.getOverallFeedback(),
+        elementScores);
   }
 
   @Override

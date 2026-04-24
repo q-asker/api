@@ -35,8 +35,14 @@ public class GeminiMetricsRecorder {
   private final Counter planTokensInput;
   private final Counter planTokensOutput;
   private final Counter planCost;
+  private final Timer gradingDuration;
+  private final Counter gradingTokensInput;
+  private final Counter gradingTokensOutput;
+  private final Counter gradingCost;
+  private final Counter gradingCount;
+  private final Counter gradingFailure;
 
-  private static final String[] QUIZ_TYPES = {"MULTIPLE", "OX", "BLANK"};
+  private static final String[] QUIZ_TYPES = {"MULTIPLE", "OX", "BLANK", "ESSAY"};
 
   public GeminiMetricsRecorder(MeterRegistry registry, QAskerAiProperties aiProperties) {
     this.registry = registry;
@@ -70,6 +76,26 @@ public class GeminiMetricsRecorder {
             .register(registry);
     this.planCost =
         Counter.builder("gemini.plan.cost").description("문항 계획 API 추정 비용 (USD)").register(registry);
+    this.gradingDuration =
+        Timer.builder("gemini.grading.duration")
+            .description("ESSAY 채점 API 응답 시간")
+            .register(registry);
+    this.gradingTokensInput =
+        Counter.builder("gemini.grading.tokens.input")
+            .description("ESSAY 채점 API 입력 토큰")
+            .register(registry);
+    this.gradingTokensOutput =
+        Counter.builder("gemini.grading.tokens.output")
+            .description("ESSAY 채점 API 출력 토큰")
+            .register(registry);
+    this.gradingCost =
+        Counter.builder("gemini.grading.cost")
+            .description("ESSAY 채점 API 추정 비용 (USD)")
+            .register(registry);
+    this.gradingCount =
+        Counter.builder("gemini.grading.count").description("ESSAY 채점 요청 횟수").register(registry);
+    this.gradingFailure =
+        Counter.builder("gemini.grading.failure").description("ESSAY 채점 실패 횟수").register(registry);
 
     this.chunkDuration =
         Timer.builder("gemini.chunk.duration")
@@ -172,6 +198,20 @@ public class GeminiMetricsRecorder {
     eqTokensInput.increment(inputTokens);
     eqTokensOutput.increment(outputTokens);
     eqCost.increment(cost);
+  }
+
+  /** ESSAY 채점 완료 메트릭을 기록한다. */
+  public void recordGrading(long elapsedMs, long inputTokens, long outputTokens, double cost) {
+    gradingDuration.record(elapsedMs, TimeUnit.MILLISECONDS);
+    gradingTokensInput.increment(inputTokens);
+    gradingTokensOutput.increment(outputTokens);
+    gradingCost.increment(cost);
+    gradingCount.increment();
+  }
+
+  /** ESSAY 채점 실패를 기록한다. */
+  public void recordGradingFailure() {
+    gradingFailure.increment();
   }
 
   /** 스트리밍 타임아웃 발생을 기록한다. */
