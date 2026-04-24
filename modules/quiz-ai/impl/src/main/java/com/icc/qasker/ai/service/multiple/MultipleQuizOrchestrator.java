@@ -10,6 +10,7 @@ import com.icc.qasker.ai.prompt.strategy.QuizType;
 import com.icc.qasker.ai.service.QuizTypeOrchestrator;
 import com.icc.qasker.ai.service.support.GeminiMetricsRecorder;
 import com.icc.qasker.ai.service.support.StreamingQuestionExtractor;
+import com.icc.qasker.ai.structure.GeminiResponseSchema;
 import com.icc.qasker.global.error.CustomException;
 import java.net.URI;
 import java.util.List;
@@ -23,7 +24,6 @@ import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.content.Media;
-import org.springframework.ai.converter.BeanOutputConverter;
 import org.springframework.ai.google.genai.GoogleGenAiChatOptions;
 import org.springframework.ai.google.genai.metadata.GoogleGenAiUsage;
 import org.springframework.stereotype.Component;
@@ -40,8 +40,6 @@ import reactor.core.publisher.Flux;
 public class MultipleQuizOrchestrator implements QuizTypeOrchestrator {
 
   private static final int MAX_SELECTION_COUNT = 4;
-  private static final String RESPONSE_JSON_SCHEMA =
-      new BeanOutputConverter<>(com.icc.qasker.ai.structure.GeminiResponse.class).getJsonSchema();
 
   private final GeminiFileService geminiFileService;
   private final ChatModel chatModel;
@@ -96,10 +94,11 @@ public class MultipleQuizOrchestrator implements QuizTypeOrchestrator {
       var userMessage = UserMessage.builder().text(userPrompt).media(pdfMedia).build();
       var systemMessage = new SystemMessage(systemPrompt);
 
+      String responseSchema = GeminiResponseSchema.forInstruction(request.customInstruction());
       var options =
           GoogleGenAiChatOptions.builder()
               .responseMimeType("application/json")
-              .responseSchema(RESPONSE_JSON_SCHEMA)
+              .responseSchema(responseSchema)
               .build();
 
       Prompt prompt = new Prompt(List.of(systemMessage, userMessage), options);

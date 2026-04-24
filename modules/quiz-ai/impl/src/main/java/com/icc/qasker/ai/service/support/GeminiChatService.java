@@ -4,12 +4,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.icc.qasker.ai.dto.ChunkInfo;
 import com.icc.qasker.ai.prompt.strategy.QuizType;
 import com.icc.qasker.ai.structure.GeminiResponse;
+import com.icc.qasker.ai.structure.GeminiResponseSchema;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
-import org.springframework.ai.converter.BeanOutputConverter;
 import org.springframework.ai.google.genai.GoogleGenAiChatOptions;
 import org.springframework.ai.google.genai.common.GoogleGenAiThinkingLevel;
 import org.springframework.ai.google.genai.metadata.GoogleGenAiUsage;
@@ -25,9 +25,6 @@ public class GeminiChatService {
 
   /** 청크 처리 결과: 파싱된 응답 + 추정 비용 */
   public record ParsedResult(GeminiResponse response, double cost) {}
-
-  private static final String RESPONSE_JSON_SCHEMA =
-      new BeanOutputConverter<>(GeminiResponse.class).getJsonSchema();
 
   private final ChatModel chatModel;
   private final ObjectMapper objectMapper;
@@ -74,12 +71,13 @@ public class GeminiChatService {
 
     String userPrompt = quizType.generateRequestPrompt(pages, chunk.quizCount(), planExtra);
 
+    String responseSchema = GeminiResponseSchema.forInstruction(planExtra);
     var optionsBuilder =
         GoogleGenAiChatOptions.builder()
             .useCachedContent(true)
             .cachedContentName(cacheName)
             .responseMimeType("application/json")
-            .responseSchema(RESPONSE_JSON_SCHEMA);
+            .responseSchema(responseSchema);
     if (thinkingLevel != null) {
       optionsBuilder.thinkingLevel(thinkingLevel);
     }
