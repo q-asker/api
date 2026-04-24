@@ -10,6 +10,7 @@ import com.icc.qasker.ai.prompt.strategy.QuizType;
 import com.icc.qasker.ai.service.QuizTypeOrchestrator;
 import com.icc.qasker.ai.service.support.GeminiMetricsRecorder;
 import com.icc.qasker.ai.service.support.StreamingQuestionExtractor;
+import com.icc.qasker.ai.structure.GeminiResponseSchema;
 import com.icc.qasker.global.error.CustomException;
 import java.net.URI;
 import java.util.List;
@@ -22,7 +23,6 @@ import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.content.Media;
-import org.springframework.ai.converter.BeanOutputConverter;
 import org.springframework.ai.google.genai.GoogleGenAiChatOptions;
 import org.springframework.ai.google.genai.metadata.GoogleGenAiUsage;
 import org.springframework.stereotype.Component;
@@ -39,8 +39,6 @@ import reactor.core.publisher.Flux;
 public class OXQuizOrchestrator implements QuizTypeOrchestrator {
 
   private static final int MAX_SELECTION_COUNT = 2;
-  private static final String RESPONSE_JSON_SCHEMA =
-      new BeanOutputConverter<>(com.icc.qasker.ai.structure.GeminiResponse.class).getJsonSchema();
 
   private final GeminiFileService geminiFileService;
   private final ChatModel chatModel;
@@ -95,10 +93,11 @@ public class OXQuizOrchestrator implements QuizTypeOrchestrator {
           new Media(MimeTypeUtils.parseMimeType("application/pdf"), URI.create(metadata.uri()));
       UserMessage userMessage = UserMessage.builder().text(userPrompt).media(pdfMedia).build();
 
+      String responseSchema = GeminiResponseSchema.forInstruction(request.customInstruction());
       var options =
           GoogleGenAiChatOptions.builder()
               .responseMimeType("application/json")
-              .responseSchema(RESPONSE_JSON_SCHEMA)
+              .responseSchema(responseSchema)
               .build();
 
       Prompt prompt = new Prompt(List.of(systemMessage, userMessage), options);
@@ -133,14 +132,13 @@ public class OXQuizOrchestrator implements QuizTypeOrchestrator {
       stream
           .doOnNext(
               response -> {
-                if (response.getResult() != null
-                    && response.getResult().getOutput() != null
+                response.getResult();
+                if (response.getResult().getOutput() != null
                     && response.getResult().getOutput().getText() != null) {
                   extractor.feed(response.getResult().getOutput().getText());
                 }
 
-                if (response.getMetadata() != null
-                    && response.getMetadata().getUsage() != null
+                if (response.getMetadata().getUsage() != null
                     && response.getMetadata().getUsage().getCompletionTokens() > 0) {
                   var usage = response.getMetadata().getUsage();
                   long elapsedMs = (System.nanoTime() - startNanos) / 1_000_000;

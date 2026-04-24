@@ -75,7 +75,6 @@ public class GeminiQuestionMapper {
 
         if (index >= 0 && index < sourcePages.size()) {
           // [원본p] > 형태로 교체하여 추가
-          log.info("페이지 교체 수행-슬라이싱: {}p, 원본: {}p", index, sourcePages.get(index));
           sb.append("[").append(sourcePages.get(index)).append("p] >");
         } else {
           // 범위를 벗어나면 원본 매칭 텍스트(예: [1p] >) 그대로 유지
