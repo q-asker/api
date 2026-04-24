@@ -85,7 +85,8 @@ q-asker/api/
 │   ├── quiz-make/(api + impl)    # 퀴즈 생성 흐름 (파일업로드, SSE, 생성결과)
 │   ├── quiz-set/ (api + impl)    # 퀴즈 세트 CRUD
 │   ├── quiz-history/(api + impl) # 풀이 히스토리
-│   └── util/     (api + impl)    # 유틸리티 (문서변환)
+│   ├── document/ (api + impl)    # 문서 변환 (PPT/DOCX → PDF)
+│   └── admin/                    # 관리자 전용 API
 ├── infra/
 │   ├── monitoring/               # Grafana Alloy 설정
 │   ├── mysql/                    # MySQL Docker 설정
