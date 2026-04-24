@@ -3,6 +3,8 @@ package com.icc.qasker.ai.prompt.strategy;
 import com.icc.qasker.ai.i18n.ENGLISH;
 import com.icc.qasker.ai.service.blank.prompt.BlankGuideLine;
 import com.icc.qasker.ai.service.blank.prompt.BlankRequestPrompt;
+import com.icc.qasker.ai.service.essay.prompt.EssayGuideLine;
+import com.icc.qasker.ai.service.essay.prompt.EssayRequestPrompt;
 import com.icc.qasker.ai.service.multiple.prompt.MultipleGuideLine;
 import com.icc.qasker.ai.service.multiple.prompt.MultipleRequestPrompt;
 import com.icc.qasker.ai.service.ox.prompt.OXGuideLine;
@@ -49,6 +51,18 @@ public enum QuizType implements QuizPromptStrategy {
         List<Integer> referencePages, int quizCount, String planExtra) {
       // customInstruction이 있으면 XML 태그로 감싸 유저 프롬프트 끝에 우선 삽입
       return OXRequestPrompt.generateWithUserInstruction(referencePages, quizCount, planExtra);
+    }
+  },
+  ESSAY(EssayGuideLine.content) {
+    @Override
+    public String generateRequestPrompt(List<Integer> referencePages, int quizCount) {
+      return EssayRequestPrompt.generate(referencePages, quizCount);
+    }
+
+    @Override
+    public String generateRequestPrompt(
+        List<Integer> referencePages, int quizCount, String planExtra) {
+      return EssayRequestPrompt.generate(referencePages, quizCount, planExtra);
     }
   };
 

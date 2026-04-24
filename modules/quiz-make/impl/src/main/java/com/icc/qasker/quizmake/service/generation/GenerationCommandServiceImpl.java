@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -84,8 +85,10 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
   private void processGenerationAsync(
       String sessionId, Long problemSetId, GenerationRequest request) {
 
+    long startNanos = System.nanoTime();
     AtomicInteger atomicGeneratedCount = new AtomicInteger(0);
     AtomicInteger numberCounter = new AtomicInteger(1);
+    AtomicLong firstConsumerNanos = new AtomicLong(0);
     ReentrantLock consumerLock = new ReentrantLock();
 
     GenerationRequestToAI requestToAI =
@@ -172,6 +175,7 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
                             quizForFeList));
 
                     atomicGeneratedCount.addAndGet(quizViews.size());
+                    firstConsumerNanos.compareAndSet(0, System.nanoTime());
                   } finally {
                     consumerLock.unlock();
                   }
@@ -193,6 +197,8 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
 
     int generatedCount = atomicGeneratedCount.get();
     int quizCount = request.quizCount();
+    long ttfqMs =
+        firstConsumerNanos.get() > 0 ? (firstConsumerNanos.get() - startNanos) / 1_000_000 : -1;
 
     // 요청/생성/실패 문제 수 메트릭 기록 (finalize 결과와 무관하게 항상 실행)
     resultRecorder.recordQuizCounts(request.quizType(), quizCount, generatedCount, maxChunkCount);
@@ -204,25 +210,30 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
           request.quizType(),
           ExceptionMessage.AI_GENERATION_FAILED.getMessage());
     } else if (generatedCount == quizCount) {
-      finalizeSuccess(sessionId, problemSetId, request.quizType(), generatedCount);
+      finalizeSuccess(sessionId, problemSetId, request.quizType(), generatedCount, ttfqMs);
     } else {
       finalizePartialSuccess(
-          sessionId, problemSetId, request.quizType(), generatedCount, quizCount);
+          sessionId, problemSetId, request.quizType(), generatedCount, quizCount, ttfqMs);
     }
   }
 
   private void finalizeSuccess(
-      String sessionId, Long problemSetId, QuizType quizType, long generatedCount) {
+      String sessionId, Long problemSetId, QuizType quizType, long generatedCount, long ttfqMs) {
     quizCommandService.updateStatus(problemSetId, COMPLETED);
     notificationService.sendComplete(sessionId);
-    resultRecorder.recordSuccess(problemSetId, quizType, generatedCount);
+    resultRecorder.recordSuccess(problemSetId, quizType, generatedCount, ttfqMs);
   }
 
   private void finalizePartialSuccess(
-      String sessionId, Long problemSetId, QuizType quizType, long generatedCount, long quizCount) {
+      String sessionId,
+      Long problemSetId,
+      QuizType quizType,
+      long generatedCount,
+      long quizCount,
+      long ttfqMs) {
     quizCommandService.updateStatus(problemSetId, COMPLETED);
     notificationService.sendComplete(sessionId);
-    resultRecorder.recordPartialSuccess(problemSetId, quizType, generatedCount, quizCount);
+    resultRecorder.recordPartialSuccess(problemSetId, quizType, generatedCount, quizCount, ttfqMs);
   }
 
   private void finalizeError(

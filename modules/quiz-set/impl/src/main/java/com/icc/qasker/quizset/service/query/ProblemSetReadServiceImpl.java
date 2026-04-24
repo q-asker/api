@@ -47,6 +47,7 @@ public class ProblemSetReadServiceImpl implements ProblemSetReadService {
   private ProblemDetail toDetail(Problem p) {
     List<SelectionDetail> selections =
         p.getSelections().stream().map(s -> new SelectionDetail(s.content(), s.correct())).toList();
-    return new ProblemDetail(p.getId().getNumber(), p.getTitle(), selections);
+    return new ProblemDetail(
+        p.getId().getNumber(), p.getTitle(), selections, p.getExplanationContent());
   }
 }

@@ -2,6 +2,7 @@ package com.icc.qasker.quizhistory.controller;
 
 import com.icc.qasker.global.annotation.UserId;
 import com.icc.qasker.quizhistory.QuizHistoryQueryService;
+import com.icc.qasker.quizhistory.dto.feresponse.EssayHistoryDetailResponse;
 import com.icc.qasker.quizhistory.dto.feresponse.HistoryCheckResponse;
 import com.icc.qasker.quizhistory.dto.feresponse.HistoryDetailResponse;
 import com.icc.qasker.quizhistory.dto.feresponse.HistoryPageResponse;
@@ -49,5 +50,12 @@ public class QuizHistoryQueryController {
   public ResponseEntity<HistoryDetailResponse> getHistoryDetail(
       @UserId String userId, @PathVariable String historyId) {
     return ResponseEntity.ok(quizHistoryQueryService.getHistoryDetail(userId, historyId));
+  }
+
+  @Operation(summary = "ESSAY 히스토리 상세를 조회한다 (문제 + 답안 + 최신 채점 결과)")
+  @GetMapping("/{historyId}/essay")
+  public ResponseEntity<EssayHistoryDetailResponse> getEssayHistoryDetail(
+      @UserId String userId, @PathVariable String historyId) {
+    return ResponseEntity.ok(quizHistoryQueryService.getEssayHistoryDetail(userId, historyId));
   }
 }

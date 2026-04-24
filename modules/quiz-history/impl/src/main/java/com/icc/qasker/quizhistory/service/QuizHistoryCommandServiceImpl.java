@@ -49,7 +49,7 @@ public class QuizHistoryCommandServiceImpl implements QuizHistoryCommandService 
   public String saveHistory(String userId, SaveHistoryRequest request) {
     List<AnswerSnapshot> snapshots =
         request.userAnswers().stream()
-            .map(a -> new AnswerSnapshot(a.number(), a.userAnswer(), a.inReview()))
+            .map(a -> new AnswerSnapshot(a.number(), a.userAnswer(), a.inReview(), a.textAnswer()))
             .toList();
 
     QuizHistory history =
