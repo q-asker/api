@@ -105,6 +105,11 @@ public class QuizHistoryQueryServiceImpl implements QuizHistoryQueryService {
         history.getAnswers().stream()
             .collect(Collectors.toMap(AnswerSnapshot::number, AnswerSnapshot::inReview));
 
+    Map<Integer, String> textAnswerMap =
+        history.getAnswers().stream()
+            .filter(a -> a.textAnswer() != null)
+            .collect(Collectors.toMap(AnswerSnapshot::number, AnswerSnapshot::textAnswer));
+
     List<ProblemWithAnswer> problemWithAnswers =
         problems.stream()
             .map(
@@ -124,8 +129,9 @@ public class QuizHistoryQueryServiceImpl implements QuizHistoryQueryService {
                                       rawSelections.get(i).correct()))
                           .toList();
 
+                  String textAnswer = textAnswerMap.get(p.number());
                   return new ProblemWithAnswer(
-                      p.number(), p.title(), userAnswer, correct, inReview, selections);
+                      p.number(), p.title(), userAnswer, correct, inReview, selections, textAnswer);
                 })
             .toList();
 

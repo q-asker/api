@@ -15,7 +15,8 @@ public class GenerationSlackNotifier {
   private final HashUtil hashUtil;
   private final QAskerProperties qAskerProperties;
 
-  public void notifySuccess(Long problemSetId, QuizType quizType, long generatedCount) {
+  public void notifySuccess(
+      Long problemSetId, QuizType quizType, long generatedCount, long ttfqMs) {
     String encodedId = hashUtil.encode(problemSetId);
     String quizUrl = buildQuizUrl(encodedId);
     slackNotifier.asyncNotifyText(
@@ -24,12 +25,13 @@ public class GenerationSlackNotifier {
         ProblemSetId: <%s|%s>
         퀴즈 타입: %s
         문제 수: %d
+        TTFQ: %s
         """
-            .formatted(quizUrl, encodedId, quizType, generatedCount));
+            .formatted(quizUrl, encodedId, quizType, generatedCount, formatTtfq(ttfqMs)));
   }
 
   public void notifyPartialSuccess(
-      Long problemSetId, QuizType quizType, long generatedCount, long quizCount) {
+      Long problemSetId, QuizType quizType, long generatedCount, long quizCount, long ttfqMs) {
     String encodedId = hashUtil.encode(problemSetId);
     String quizUrl = buildQuizUrl(encodedId);
     slackNotifier.asyncNotifyText(
@@ -38,8 +40,10 @@ public class GenerationSlackNotifier {
         ProblemSetId: <%s|%s>
         퀴즈 타입: %s
         생성된 문제 수: %d개 / 총 문제 수: %d개
+        TTFQ: %s
         """
-            .formatted(quizUrl, encodedId, quizType, generatedCount, quizCount));
+            .formatted(
+                quizUrl, encodedId, quizType, generatedCount, quizCount, formatTtfq(ttfqMs)));
   }
 
   public void notifyError(Long problemSetId, String errorMessage) {
@@ -56,5 +60,12 @@ public class GenerationSlackNotifier {
 
   private String buildQuizUrl(String encodedId) {
     return qAskerProperties.getFrontendDeployUrl() + "/quiz/" + encodedId;
+  }
+
+  private String formatTtfq(long ttfqMs) {
+    if (ttfqMs < 0) {
+      return "N/A";
+    }
+    return ttfqMs >= 1000 ? String.format("%.1f초", ttfqMs / 1000.0) : ttfqMs + "ms";
   }
 }

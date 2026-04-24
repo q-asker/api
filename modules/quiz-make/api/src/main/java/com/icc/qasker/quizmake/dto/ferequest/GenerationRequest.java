@@ -1,6 +1,5 @@
 package com.icc.qasker.quizmake.dto.ferequest;
 
-import com.icc.qasker.quizmake.dto.ferequest.enums.DifficultyType;
 import com.icc.qasker.quizmake.dto.ferequest.enums.Language;
 import com.icc.qasker.quizset.dto.ferequest.enums.QuizType;
 import jakarta.validation.constraints.Min;
@@ -20,7 +19,6 @@ public record GenerationRequest(
     @NotBlank(message = "title이 존재하지 않습니다.") String title,
     int quizCount,
     @NotNull(message = "quizType이 null입니다.") QuizType quizType,
-    @NotNull(message = "difficultyType가 null입니다.") DifficultyType difficultyType,
     @NotNull(message = "pageNumbers가 null입니다.")
         @Size(min = 1, max = 150, message = "pageNumbers는 1개 이상 150 이하이어야 합니다.")
         List<

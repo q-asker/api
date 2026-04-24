@@ -13,6 +13,8 @@ dependencies {
     implementation project(":quiz-history-api")
     // quiz-api: 퀴즈 관련 인터페이스·DTO (ProblemSetReadService 등)
     implementation project(":quiz-set-api")
+    // quiz-ai-api: AI 채점 서비스 인터페이스 (EssayGradingService)
+    implementation project(":quiz-ai-api")
 
     // ────────────────────────────────
     // 스프링부트 Web & JPA
