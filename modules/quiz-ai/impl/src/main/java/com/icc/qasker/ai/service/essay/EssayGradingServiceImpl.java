@@ -36,8 +36,8 @@ import org.springframework.stereotype.Service;
 public class EssayGradingServiceImpl implements EssayGradingService {
 
   private static final String GRADING_MODEL = "gemini-3.1-flash-lite-preview";
-  private static final double PRICE_INPUT_PER_1M = 0.075;
-  private static final double PRICE_OUTPUT_PER_1M = 0.30;
+  private static final double PRICE_INPUT_PER_1M = 0.25;
+  private static final double PRICE_OUTPUT_PER_1M = 1.50;
 
   private final ChatModel chatModel;
   private final ObjectMapper objectMapper;
