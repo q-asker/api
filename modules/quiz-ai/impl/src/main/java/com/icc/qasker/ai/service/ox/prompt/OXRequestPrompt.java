@@ -14,8 +14,7 @@ public class OXRequestPrompt {
   private static final String APPLIED_INSTRUCTION_SPEC =
       """
     # 사용자 지시 반영
-    - 지시가 특정 형식을 요청하면, 그 형식에 대응하는 전략이 존재하면 해당 전략을 우선 선택한다.
-    - 대응 전략이 없는 형식은 요청 형식에 맞게 질문문을 자유롭게 구성다.
+    - 사용자 지시에 맞는 패턴과 지식 유형을 Step 1-2의 테이블에서 찾아 해당 few-shot을 따른다. 대응 패턴이 없으면 자유롭게 구성한다.
 
     # 사용자 지시 반영 결과 기록
     - 사용자 지시를 반영한 내용을 `appliedInstruction` 필드에 1~2문장으로 기록한다.
