@@ -117,7 +117,7 @@ public class GeminiChatService {
 
     String json = chatResponse.getResult().getOutput().getText();
     if (json == null || json.isBlank()) {
-      log.error("응답이 비어있습니다: pages={}", pages);
+      log.error("[AI 응답 오류] Gemini 응답이 비어있음 pages={}", pages);
       return new ParsedResult(null, chunkCost);
     }
 

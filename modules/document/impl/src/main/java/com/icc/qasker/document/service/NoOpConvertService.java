@@ -21,7 +21,7 @@ public class NoOpConvertService implements ConvertService {
 
   @Override
   public Path convertToPdf(Path inputFile) {
-    log.warn("문서 변환 서비스가 비활성화 상태입니다. LibreOffice가 설치되지 않은 환경입니다.");
+    log.warn("[문서 변환 비활성화] LibreOffice 미설치 환경에서 변환 요청 수신");
     throw new UnsupportedOperationException("문서 변환이 비활성화된 환경입니다.");
   }
 }

@@ -77,7 +77,7 @@ public class EssayGradingServiceImpl implements EssayGradingService {
       try {
         pass1 = extractEvidence(question, rubric, studentAnswer);
       } catch (Exception e) {
-        log.warn("Pass 1 (증거 추출) 실패, 1-pass fallback 시도", e);
+        log.warn("[채점 Pass1 실패] 증거 추출 실패, 1-pass fallback 시도", e);
         return fallbackSinglePass(
             question, modelAnswer, rubric, studentAnswer, attemptCount, startMs);
       }
@@ -279,7 +279,7 @@ public class EssayGradingServiceImpl implements EssayGradingService {
     try {
       return objectMapper.writeValueAsString(evidence);
     } catch (JsonProcessingException e) {
-      log.warn("증거 JSON 직렬화 실패", e);
+      log.warn("[채점 직렬화 실패] 증거 JSON 직렬화 실패", e);
       return null;
     }
   }

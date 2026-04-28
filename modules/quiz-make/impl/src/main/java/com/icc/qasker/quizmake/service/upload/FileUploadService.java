@@ -94,7 +94,7 @@ public class FileUploadService {
                   (metadata, ex) -> {
                     deleteQuietly(geminiCopy);
                     if (ex != null) {
-                      log.warn("Gemini 백그라운드 업로드 실패 (퀴즈 생성 시 재시도): {}", ex.getMessage());
+                      log.warn("[Gemini 업로드 실패] 백그라운드 업로드 실패, 퀴즈 생성 시 재시도", ex);
                     } else {
                       log.info("Gemini 백그라운드 업로드 완료: name={}", metadata.name());
                     }
@@ -136,7 +136,7 @@ public class FileUploadService {
       try {
         Files.deleteIfExists(path);
       } catch (Exception e) {
-        log.warn("임시 파일 삭제 실패: {}", path, e);
+        log.warn("[파일 정리 실패] 임시 파일 삭제 실패 path={}", path, e);
       }
     }
   }

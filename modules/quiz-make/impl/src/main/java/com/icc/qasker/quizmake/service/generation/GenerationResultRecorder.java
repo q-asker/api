@@ -54,14 +54,20 @@ public class GenerationResultRecorder {
   }
 
   public void recordSuccess(
-      Long problemSetId, QuizType quizType, long generatedCount, long ttfqMs) {
-    slackNotifier.notifySuccess(problemSetId, quizType, generatedCount, ttfqMs);
+      Long problemSetId, QuizType quizType, long generatedCount, long ttfqMs, long ttlqMs) {
+    slackNotifier.notifySuccess(problemSetId, quizType, generatedCount, ttfqMs, ttlqMs);
     incrementOutcome("success", quizType);
   }
 
   public void recordPartialSuccess(
-      Long problemSetId, QuizType quizType, long generatedCount, long quizCount, long ttfqMs) {
-    slackNotifier.notifyPartialSuccess(problemSetId, quizType, generatedCount, quizCount, ttfqMs);
+      Long problemSetId,
+      QuizType quizType,
+      long generatedCount,
+      long quizCount,
+      long ttfqMs,
+      long ttlqMs) {
+    slackNotifier.notifyPartialSuccess(
+        problemSetId, quizType, generatedCount, quizCount, ttfqMs, ttlqMs);
     incrementOutcome("partial", quizType);
   }
 

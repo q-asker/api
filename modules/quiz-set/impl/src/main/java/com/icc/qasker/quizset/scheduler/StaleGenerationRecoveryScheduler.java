@@ -34,7 +34,7 @@ public class StaleGenerationRecoveryScheduler {
 
     if (!staleList.isEmpty()) {
       problemSetRepository.deleteAll(staleList);
-      log.warn("방치된 ProblemSet {}건 삭제 (FAILED + GENERATING 10분 초과)", staleList.size());
+      log.warn("[방치 ProblemSet 정리] FAILED/GENERATING 10분 초과 삭제 count={}", staleList.size());
     }
   }
 }

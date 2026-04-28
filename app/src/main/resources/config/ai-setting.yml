@@ -17,3 +17,5 @@ q-asker:
     chat-timeout-ms: 360000
     chunk:
       max-count-variants: 5
+    multiple:
+      chunk-mode: 1  # 1: 단일 호출, 2: 멀티턴 순차 (A→B→C 중복방지), 3: 패턴별 병렬 (A/B/C)
