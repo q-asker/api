@@ -74,7 +74,7 @@ public class SseNotificationServiceImpl implements SseNotificationService {
       try {
         emitter.send(SseEmitter.event().name("connected").data("hello"));
       } catch (IOException e) {
-        log.warn("클라이언트에게 연결 중 에러 사유: {}", e.getMessage());
+        log.warn("[SSE 연결 실패] 클라이언트 연결 중 에러 발생", e);
         emitter.completeWithError(e);
       }
     }
@@ -90,13 +90,13 @@ public class SseNotificationServiceImpl implements SseNotificationService {
         });
     emitter.onTimeout(
         () -> {
-          log.warn("SSE 연결 타임아웃 (Timeout): {}", sessionId);
+          log.warn("[SSE 타임아웃] SSE 연결 타임아웃 sessionId={}", sessionId);
           emitterMap.remove(sessionId, emitter);
           sseTimeoutCounter.increment();
         });
     emitter.onError(
         (e) -> {
-          log.warn("SSE 연결 에러 발생 (Session: {}): {}", sessionId, e.getMessage());
+          log.warn("[SSE 연결 에러] SSE 연결 중 에러 발생 sessionId={}", sessionId);
           emitterMap.remove(sessionId, emitter);
         });
     return emitter;
@@ -109,7 +109,7 @@ public class SseNotificationServiceImpl implements SseNotificationService {
       try {
         emitter.send(SseEmitter.event().id(eventId).name("created").data(data));
       } catch (IOException e) {
-        log.warn("클라이언트에게 전송 중 에러 발생: {} 사유: {}", data, e.getMessage());
+        log.warn("[SSE 전송 실패] 클라이언트에게 데이터 전송 중 에러 발생", e);
         emitter.completeWithError(e);
       }
     }

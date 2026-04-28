@@ -175,7 +175,7 @@ public class BlankQuizOrchestrator implements QuizTypeOrchestrator {
       if (!(e.getCause() instanceof java.util.concurrent.TimeoutException)) {
         throw new GeminiInfraException("Gemini 블로킹 컨텍스트 오류", e);
       }
-      log.warn("BLANK 스트리밍 타임아웃 (6분 초과): 생성된 문항 {}개 유지", delivered.get());
+      log.warn("[BLANK 스트리밍 타임아웃] 6분 초과, 생성된 문항 유지 deliveredCount={}", delivered.get());
       metricsRecorder.recordStreamingTimeout("BLANK");
       metricsRecorder.recordRequestDuration(
           1,
@@ -188,7 +188,7 @@ public class BlankQuizOrchestrator implements QuizTypeOrchestrator {
       throw e;
     } catch (Exception e) {
       if (delivered.get() > 0) {
-        log.warn("BLANK 스트리밍 중 오류 발생이나 {}개 문항은 전달됨. 부분 성공 처리.", delivered.get(), e);
+        log.warn("[BLANK 부분 성공] 스트리밍 중 오류 발생이나 문항 전달됨 deliveredCount={}", delivered.get(), e);
         metricsRecorder.recordStreamingTimeout("BLANK");
         metricsRecorder.recordRequestDuration(
             1,
