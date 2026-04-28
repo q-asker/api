@@ -50,7 +50,7 @@ public class SlackNotifier {
           .retrieve()
           .toBodilessEntity();
     } catch (Exception e) {
-      log.warn("Slack 알림 실패: {}", e.toString());
+      log.warn("[Slack 알림 실패] 웹훅 전송 실패", e);
     }
   }
 }

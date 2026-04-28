@@ -24,7 +24,7 @@ public class HashUtil {
       throw new CustomException(ExceptionMessage.PROBLEM_SET_NOT_FOUND);
     }
     if (decoded.length > 1) {
-      log.error("중복된 ID가 발견되었습니다: {}", hashId);
+      log.error("[해시 디코딩 이상] 중복된 ID 발견 hashId={}", hashId);
     }
     return decoded[decoded.length - 1];
   }

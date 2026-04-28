@@ -125,7 +125,7 @@ public class EssayGradeService {
             essayGradeLogRepository.save(log);
           } catch (Exception e) {
             log.warn(
-                "서술형 채점 로그 저장 실패: problemSetId={}, problemNumber={}",
+                "[채점 로그 저장 실패] 서술형 채점 로그 저장 실패 problemSetId={} problemNumber={}",
                 problemSetId,
                 problemNumber,
                 e);

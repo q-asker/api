@@ -16,7 +16,7 @@ public class GenerationSlackNotifier {
   private final QAskerProperties qAskerProperties;
 
   public void notifySuccess(
-      Long problemSetId, QuizType quizType, long generatedCount, long ttfqMs) {
+      Long problemSetId, QuizType quizType, long generatedCount, long ttfqMs, long ttlqMs) {
     String encodedId = hashUtil.encode(problemSetId);
     String quizUrl = buildQuizUrl(encodedId);
     slackNotifier.asyncNotifyText(
@@ -26,12 +26,24 @@ public class GenerationSlackNotifier {
         퀴즈 타입: %s
         문제 수: %d
         TTFQ: %s
+        TTLQ: %s
         """
-            .formatted(quizUrl, encodedId, quizType, generatedCount, formatTtfq(ttfqMs)));
+            .formatted(
+                quizUrl,
+                encodedId,
+                quizType,
+                generatedCount,
+                formatTime(ttfqMs),
+                formatTime(ttlqMs)));
   }
 
   public void notifyPartialSuccess(
-      Long problemSetId, QuizType quizType, long generatedCount, long quizCount, long ttfqMs) {
+      Long problemSetId,
+      QuizType quizType,
+      long generatedCount,
+      long quizCount,
+      long ttfqMs,
+      long ttlqMs) {
     String encodedId = hashUtil.encode(problemSetId);
     String quizUrl = buildQuizUrl(encodedId);
     slackNotifier.asyncNotifyText(
@@ -41,9 +53,16 @@ public class GenerationSlackNotifier {
         퀴즈 타입: %s
         생성된 문제 수: %d개 / 총 문제 수: %d개
         TTFQ: %s
+        TTLQ: %s
         """
             .formatted(
-                quizUrl, encodedId, quizType, generatedCount, quizCount, formatTtfq(ttfqMs)));
+                quizUrl,
+                encodedId,
+                quizType,
+                generatedCount,
+                quizCount,
+                formatTime(ttfqMs),
+                formatTime(ttlqMs)));
   }
 
   public void notifyError(Long problemSetId, String errorMessage) {
@@ -62,7 +81,7 @@ public class GenerationSlackNotifier {
     return qAskerProperties.getFrontendDeployUrl() + "/quiz/" + encodedId;
   }
 
-  private String formatTtfq(long ttfqMs) {
+  private String formatTime(long ttfqMs) {
     if (ttfqMs < 0) {
       return "N/A";
     }

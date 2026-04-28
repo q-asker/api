@@ -14,8 +14,7 @@ public class OXRequestPrompt {
   private static final String APPLIED_INSTRUCTION_SPEC =
       """
     # 사용자 지시 반영
-    - 지시가 특정 형식을 요청하면, 그 형식에 대응하는 전략이 존재하면 해당 전략을 우선 선택한다.
-    - 대응 전략이 없는 형식은 요청 형식에 맞게 질문문을 자유롭게 구성다.
+    - 사용자 지시에 맞는 패턴과 지식 유형을 Step 1-2의 테이블에서 찾아 해당 few-shot을 따른다. 대응 패턴이 없으면 자유롭게 구성한다.
 
     # 사용자 지시 반영 결과 기록
     - 사용자 지시를 반영한 내용을 `appliedInstruction` 필드에 1~2문장으로 기록한다.
@@ -80,7 +79,7 @@ public class OXRequestPrompt {
 
         [문항별 상세 계획]
         %s
-        - **[계획 엄수]** 위 계획에 명시된 문항별 정답(O/X)과 수준(Understand/Apply), 그리고 X 문항의 변조 유형을 반드시 준수하여 생성하세요."""
+        - **[계획 엄수]** 위 계획에 명시된 문항별 정답(O/X)을 반드시 준수하여 생성하세요. 정답이 O인 문항은 참 진술문을, X인 문항은 거짓 진술문을 작성하세요."""
         .formatted(quizCount, plan.toString().strip());
   }
 

@@ -84,17 +84,17 @@ public class StreamingEssayQuestionExtractor {
       question = objectMapper.readValue(json, GeminiEssayQuestion.class);
     } catch (Exception e) {
       log.warn(
-          "ESSAY JSON 파싱 실패: {} | JSON 길이: {} | JSON 앞 300자: {}",
-          e.getMessage(),
+          "[ESSAY JSON 파싱 실패] 문항 JSON 역직렬화 실패 jsonLength={} jsonPreview={}",
           json.length(),
-          json.length() > 300 ? json.substring(0, 300) : json);
+          json.length() > 300 ? json.substring(0, 300) : json,
+          e);
       return;
     }
     try {
       questionCount++;
       questionConsumer.accept(question);
     } catch (Exception e) {
-      log.warn("ESSAY 문항 처리 실패: {}", e.getMessage(), e);
+      log.warn("[ESSAY 문항 처리 실패] 문항 소비자 호출 중 오류 발생", e);
     }
   }
 }

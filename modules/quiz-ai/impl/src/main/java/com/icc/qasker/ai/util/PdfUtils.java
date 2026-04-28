@@ -61,12 +61,13 @@ public class PdfUtils {
             targetDoc.addPage(sourceDoc.getPage(pageNum - 1));
             successPages.add(pageNum);
           } else {
-            log.warn("유효하지 않은 페이지 번호 무시: {} (총 페이지: {})", pageNum, totalPages);
+            log.warn(
+                "[PDF 페이지 범위 초과] 유효하지 않은 페이지 번호 무시 pageNum={} totalPages={}", pageNum, totalPages);
           }
         }
 
         if (targetDoc.getNumberOfPages() == 0) {
-          log.warn("추출된 페이지가 없어 원본을 그대로 반환합니다.");
+          log.warn("[PDF 추출 실패] 추출된 페이지가 없어 원본 반환");
           return new SlicedPdf(sourcePdf, List.of());
         }
 
@@ -90,7 +91,7 @@ public class PdfUtils {
         log.debug("임시 파일 삭제 완료: {}", tempFile);
       }
     } catch (IOException e) {
-      log.warn("임시파일 삭제 실패: {} - {}", tempFile, e.getMessage());
+      log.warn("[파일 정리 실패] 임시파일 삭제 실패 path={}", tempFile, e);
     }
   }
 }

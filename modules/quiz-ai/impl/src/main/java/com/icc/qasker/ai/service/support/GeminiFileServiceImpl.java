@@ -148,7 +148,7 @@ public class GeminiFileServiceImpl implements GeminiFileService {
       return Optional.of(metadata);
     } catch (CompletionException e) {
       uploadFutureCache.invalidate(cacheKey);
-      log.warn("캐시된 GCS 업로드 실패, 캐시 제거: key={}, error={}", cacheKey, e.getMessage());
+      log.warn("[GCS 캐시 실패] 캐시된 업로드 실패, 캐시 제거 key={}", cacheKey, e);
       return Optional.empty();
     }
   }
@@ -189,10 +189,10 @@ public class GeminiFileServiceImpl implements GeminiFileService {
       if (deleted) {
         log.info("GCS 파일 삭제 완료: name={}", fileName);
       } else {
-        log.warn("GCS 파일 삭제 대상 없음: name={}", fileName);
+        log.warn("[GCS 파일 삭제] 삭제 대상 없음 name={}", fileName);
       }
     } catch (Exception e) {
-      log.warn("GCS 파일 삭제 실패 (무시): name={}, error={}", fileName, e.getMessage());
+      log.warn("[GCS 파일 삭제 실패] 파일 삭제 실패 name={}", fileName, e);
     }
   }
 
