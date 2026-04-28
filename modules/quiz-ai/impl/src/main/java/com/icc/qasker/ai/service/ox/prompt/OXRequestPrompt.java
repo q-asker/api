@@ -79,7 +79,7 @@ public class OXRequestPrompt {
 
         [문항별 상세 계획]
         %s
-        - **[계획 엄수]** 위 계획에 명시된 문항별 정답(O/X)과 수준(Understand/Apply), 그리고 X 문항의 변조 유형을 반드시 준수하여 생성하세요."""
+        - **[계획 엄수]** 위 계획에 명시된 문항별 정답(O/X)을 반드시 준수하여 생성하세요. 정답이 O인 문항은 참 진술문을, X인 문항은 거짓 진술문을 작성하세요."""
         .formatted(quizCount, plan.toString().strip());
   }
 
