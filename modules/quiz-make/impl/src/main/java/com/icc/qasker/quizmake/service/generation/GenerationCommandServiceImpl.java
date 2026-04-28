@@ -89,6 +89,7 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
     AtomicInteger atomicGeneratedCount = new AtomicInteger(0);
     AtomicInteger numberCounter = new AtomicInteger(1);
     AtomicLong firstConsumerNanos = new AtomicLong(0);
+    AtomicLong lastConsumerNanos = new AtomicLong(0);
     ReentrantLock consumerLock = new ReentrantLock();
 
     GenerationRequestToAI requestToAI =
@@ -106,7 +107,7 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
                     // 1. 전송용 DTO로 변환
                     ProblemSetGeneratedEvent problemSet = AIProblemSetMapper.toEvent(aiProblemSet);
                     if (CollectionUtils.isEmpty(problemSet.getQuiz())) {
-                      log.warn("빈 배치 수신, 건너뜀: sessionId={}", sessionId);
+                      log.warn("[AI 생성 스킵] 빈 배치 수신 sessionId={}", sessionId);
                       return;
                     }
 
@@ -176,6 +177,7 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
 
                     atomicGeneratedCount.addAndGet(quizViews.size());
                     firstConsumerNanos.compareAndSet(0, System.nanoTime());
+                    lastConsumerNanos.set(System.nanoTime());
                   } finally {
                     consumerLock.unlock();
                   }
@@ -186,7 +188,7 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
     try {
       maxChunkCount = aiServerAdapter.streamRequest(requestToAI);
     } catch (Exception e) {
-      log.error("생성 중 오류 발생: sessionId={}", sessionId, e);
+      log.error("[AI 생성 실패] 퀴즈 생성 중 오류 발생 sessionId={}", sessionId, e);
       finalizeError(
           sessionId,
           problemSetId,
@@ -199,6 +201,8 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
     int quizCount = request.quizCount();
     long ttfqMs =
         firstConsumerNanos.get() > 0 ? (firstConsumerNanos.get() - startNanos) / 1_000_000 : -1;
+    long ttlqMs =
+        lastConsumerNanos.get() > 0 ? (lastConsumerNanos.get() - startNanos) / 1_000_000 : -1;
 
     // 요청/생성/실패 문제 수 메트릭 기록 (finalize 결과와 무관하게 항상 실행)
     resultRecorder.recordQuizCounts(request.quizType(), quizCount, generatedCount, maxChunkCount);
@@ -210,18 +214,23 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
           request.quizType(),
           ExceptionMessage.AI_GENERATION_FAILED.getMessage());
     } else if (generatedCount == quizCount) {
-      finalizeSuccess(sessionId, problemSetId, request.quizType(), generatedCount, ttfqMs);
+      finalizeSuccess(sessionId, problemSetId, request.quizType(), generatedCount, ttfqMs, ttlqMs);
     } else {
       finalizePartialSuccess(
-          sessionId, problemSetId, request.quizType(), generatedCount, quizCount, ttfqMs);
+          sessionId, problemSetId, request.quizType(), generatedCount, quizCount, ttfqMs, ttlqMs);
     }
   }
 
   private void finalizeSuccess(
-      String sessionId, Long problemSetId, QuizType quizType, long generatedCount, long ttfqMs) {
+      String sessionId,
+      Long problemSetId,
+      QuizType quizType,
+      long generatedCount,
+      long ttfqMs,
+      long ttlqMs) {
     quizCommandService.updateStatus(problemSetId, COMPLETED);
     notificationService.sendComplete(sessionId);
-    resultRecorder.recordSuccess(problemSetId, quizType, generatedCount, ttfqMs);
+    resultRecorder.recordSuccess(problemSetId, quizType, generatedCount, ttfqMs, ttlqMs);
   }
 
   private void finalizePartialSuccess(
@@ -230,10 +239,12 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
       QuizType quizType,
       long generatedCount,
       long quizCount,
-      long ttfqMs) {
+      long ttfqMs,
+      long ttlqMs) {
     quizCommandService.updateStatus(problemSetId, COMPLETED);
     notificationService.sendComplete(sessionId);
-    resultRecorder.recordPartialSuccess(problemSetId, quizType, generatedCount, quizCount, ttfqMs);
+    resultRecorder.recordPartialSuccess(
+        problemSetId, quizType, generatedCount, quizCount, ttfqMs, ttlqMs);
   }
 
   private void finalizeError(
