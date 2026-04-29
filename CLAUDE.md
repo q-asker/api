@@ -116,6 +116,7 @@ q-asker/api/
   - `spring.ai.google.genai.location`: GCP 엔드포인트 (현재: `global`)
   - `GCS_BUCKET_NAME`: GCS 버킷 이름 (기본값: `q-asker-ai-files`)
   - 로컬: `gcloud auth application-default login`, 프로덕션: 서비스 계정
+- 로컬 MySQL: 프로덕션 설정과 정렬 (`innodb-buffer-pool-size=4G`, `innodb-buffer-pool-instances=4`, `innodb-flush-log-at-trx-commit=1`, `max-connections=200`, `innodb-io-capacity=625`, `innodb-io-capacity-max=10000`, `innodb-read-io-threads=1`, `innodb-write-io-threads=4`, `infra/mysql/docker-compose.yml`)
 - DDoS 방어: Cloudflare Free (`api.q-asker.com`만 프록시 활성화)
 - SSL/HTTPS: Cloudflare (Universal SSL) → Nginx (Origin CA TLS), Full (Strict) 모드
   - Origin 인증서: Cloudflare Origin CA (15년 유효)

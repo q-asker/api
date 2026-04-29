@@ -53,7 +53,7 @@ public class MockAIServerAdapter extends AIServerAdapter {
 
       if (range != ranges[ranges.length - 1]) {
         try {
-          Thread.sleep(10_000);
+          Thread.sleep(10);
         } catch (InterruptedException e) {
           Thread.currentThread().interrupt();
           return 3;

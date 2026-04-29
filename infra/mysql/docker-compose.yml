@@ -3,6 +3,15 @@ services:
     image: mysql:latest
     container_name: q-asker-db
     restart: no
+    command: >
+      --innodb-buffer-pool-size=4G
+      --innodb-buffer-pool-instances=4
+      --innodb-flush-log-at-trx-commit=1
+      --max-connections=200
+      --innodb-io-capacity=625
+      --innodb-io-capacity-max=10000
+      --innodb-read-io-threads=1
+      --innodb-write-io-threads=4
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE}
@@ -17,3 +26,5 @@ services:
 
 volumes:
   q-asker-db:
+    external: true
+    name: api_q-asker-db
