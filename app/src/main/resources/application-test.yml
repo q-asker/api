@@ -83,7 +83,8 @@ q-asker:
     frontend-deploy-url: http://localhost:3000
 
 cdn:
-  base-url: http://localhost
+  image-base-url: http://localhost
+  file-base-url: http://localhost
 
 jodconverter:
   local:
