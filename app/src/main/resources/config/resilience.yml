@@ -5,18 +5,43 @@ resilience4j:
   circuitbreaker:
     instances:
       aiServer:
-        sliding-window-type: COUNT_BASED
-        minimum-number-of-calls: 3
-        sliding-window-size: 10
-        failure-rate-threshold: 60
+        # ────────────────────────────────────────────────────────────
+        # 측정 단위: 첫 퀴즈 응답까지의 시간(TTFQ).
+        # AIServerAdapter가 programmatic API + firstResponseNanos 추적으로 generateQuiz 전체가 아닌
+        # 첫 응답까지의 시간만 서킷브레이커에 보고한다 (코드는 ICC-332 브랜치, 배포 후 적용 예정).
+        # 임계값은 TTFQ 분포(p50 13.6s, p95 27.4s, p99 ≥30s 절단, max 119s, 2026-05-03 mon.q-asker.com)에 맞춰 산정.
+        # ※ 배포 전까지 resilience4j_circuitbreaker_calls_seconds 메트릭은 이전 구현(@CircuitBreaker annotation
+        #   기반)으로 측정되어 TTLQ(평균 ~59.5s)를 기록 중. 배포 후 TTFQ로 전환되면 분포 재검증 필요.
+        # ────────────────────────────────────────────────────────────
+        # 슬라이딩 윈도우: 시간 기반 (윈도우 채우는 데 시간이 너무 오래 걸려 장애 반응성 저하 → TIME_BASED 채택)
+        sliding-window-type: TIME_BASED
+        # 윈도우 720초(12분): 몰리는 구간 트래픽 실측 분포 max값 (PromQL 검증 2026-05-01)
+        sliding-window-size: 720
+        # OPEN 60초 유지: Google Cloud 권장
+        # Google Cloud Blog 공식 backoff max: wait_random_exponential(multiplier=1, max=60)
         wait-duration-in-open-state:
-          seconds: 10
-        permitted-number-of-calls-in-half-open-state: 2
-        automatic-transition-from-open-to-half-open-enabled: true
-        event-consumer-buffer-size: 10
+          seconds: 60
+        # Slow call 임계값 60초: TTFQ 분포 기반 — 추정 p99(38s, Log-normal 외삽) × 1.5 마진
+        # 실측 TTFQ(gemini_request_first_quiz_duration_seconds): p50 13.6s, p95 27.4s, p99 ≥30s(절단), max 119s
+        # Google Cloud / AWS / Microsoft 권장 30~60s 상한과 정합 (LLM 자연 long-tail 인정)
+        # FP 완화는 slow-call-rate 70% + min-calls 5로 흡수 (5건 중 4건 slow에서 트리거 → 단순 변동 통과)
+        # ※ actuator histogram maximum-expected-value=3m 적용 후 TTFQ p99/p99.9 정밀 측정 → 임계 재평가 예정
         slow-call-duration-threshold:
           seconds: 60
-        slow-call-rate-threshold: 100
+        automatic-transition-from-open-to-half-open-enabled: true
+
+        permitted-number-of-calls-in-half-open-state: 3
+        event-consumer-buffer-size: 10
+
+        slow-call-rate-threshold: 70
+        # 최소 5건: 작은 표본 노이즈 흡수 (3건은 1 slow → 33% 즉시 트리거 위험)
+        # 실측 burst 활동분 mean 5.8 / max 11과 부합 → burst 내 도달 가능
+        # 1 slow→20%, 2 slow→40%, 3 slow→60%, 4 slow→80% 단계적 평가
+        minimum-number-of-calls: 5
+        # 실패율 30% 이상이면 OPEN: GeminiInfraException 진성 장애만 카운트되어 빠른 감지 가치
+        # 30일 실측 max 20% (50% 임계 도달 0회) → 50%는 사실상 죽은 트리거, 30%로 인프라 장애 즉응
+        # min-calls 5 기준 2/5(40%) 또는 3/5(60%)에서 트리거 → 1건 우연 실패는 통과
+        failure-rate-threshold: 30
         record-exceptions:
           - com.icc.qasker.ai.exception.GeminiInfraException
     metrics:

@@ -5,6 +5,7 @@ import com.icc.qasker.ai.dto.AIProblem;
 import com.icc.qasker.ai.dto.AIProblemSet;
 import com.icc.qasker.ai.dto.AISelection;
 import com.icc.qasker.ai.dto.GenerationRequestToAI;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.context.annotation.Primary;
@@ -17,8 +18,10 @@ import org.springframework.util.CollectionUtils;
 @Profile("mock")
 public class MockAIServerAdapter extends AIServerAdapter {
 
-  public MockAIServerAdapter(QuizOrchestrationService quizOrchestrationService) {
-    super(quizOrchestrationService);
+  public MockAIServerAdapter(
+      QuizOrchestrationService quizOrchestrationService,
+      CircuitBreakerRegistry circuitBreakerRegistry) {
+    super(quizOrchestrationService, circuitBreakerRegistry);
   }
 
   @Override

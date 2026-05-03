@@ -10,6 +10,16 @@ management:
         gemini.request.first-quiz.duration: true
         gemini.request.total.duration: true
         gemini.request.spread.duration: true
+        gemini.grading.duration: true
+      # 히스토그램 버킷 상한 명시
+      # Micrometer 기본 maximumExpectedValue=30s는 LLM 스트리밍 응답시간 분포에 부족 (절단 발생).
+      # 실측 분포 기반 상한 설정으로 p99/p99.9 정확한 측정 가능.
+      maximum-expected-value:
+        gemini.request.first-quiz.duration: 3m   # TTFQ observed max 70s → 3분 마진
+        gemini.request.total.duration: 10m       # generateQuiz 전체, 스트리밍 6분 타임아웃 + 마진
+        gemini.chunk.duration: 2m                # 청크 평균 53s → 2분
+        gemini.request.spread.duration: 5m       # 첫~마지막 응답 분산
+        gemini.grading.duration: 3m              # ESSAY 채점 응답시간
   server:
     port: 9090
   endpoints:

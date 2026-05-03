@@ -2,7 +2,20 @@
 spring:
   ai:
     retry:
-      max-attempts: 1
+      max-attempts: 2
+      backoff:
+        initial-interval: 1000ms
+      on-client-errors: false
+      # ┌ 화이트리스트: Vertex AI 공식 retryable 코드만 명시
+      # ├ 503 UNAVAILABLE이 가장 빈출 (Google 점검/과부하)
+      # ├ 500 INTERNAL은 입력 크기 문제 가능성 → retry 후 동일 실패 시 GeminiInfraException으로 전파
+      # └ 408/504는 타임아웃 — q-asker chat-timeout-ms(360000) 내 발생 시만 의미
+      on-http-codes: [ 408, 429, 500, 502, 503, 504 ]
+      # ┌ 명시적 블랙리스트 (방어적 — on-http-codes로 이미 화이트리스트지만 안전)
+      # ├ 400/401/403/404: 영구 실패, 입력/인증/권한 문제
+      # └ 499: 클라이언트 취소 (사용자 SSE 연결 끊음) → retry 의미 없음
+      exclude-on-http-codes: [ 400, 401, 403, 404, 499 ]
+
     google:
       genai:
         chat:
@@ -17,5 +30,3 @@ q-asker:
     chat-timeout-ms: 360000
     chunk:
       max-count-variants: 5
-    multiple:
-      chunk-mode: 1  # 1: 단일 호출, 2: 멀티턴 순차 (A→B→C 중복방지), 3: 패턴별 병렬 (A/B/C)
