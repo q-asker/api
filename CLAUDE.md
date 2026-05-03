@@ -64,18 +64,19 @@
 q-asker/api/
 ├── app/                          # 진입점 (Spring Boot Application)
 │   └── src/main/resources/
-│       ├── application.yml       # 설정 진입점 (config/ import)
-│       ├── application-secrets.yml  # 암호화된 시크릿
-│       └── config/               # 분리된 설정 파일들
-│           ├── server.yml        # 서버, DB, JPA, 캐시
-│           ├── ai.yml            # Google Gemini AI 설정
-│           ├── security.yml      # JWT, OAuth2, CORS
-│           ├── aws.yml           # OCI Object Storage, CDN
-│           ├── jodconverter.yml  # LibreOffice 문서변환
-│           ├── monitoring.yml    # Actuator, Prometheus
-│           ├── q-asker.yml       # 앱 커스텀 설정
-│           ├── resilience4j.yml  # Circuit Breaker
-│           └── springdoc.yml     # Swagger/OpenAPI
+│       ├── application.yml         # 설정 진입점 (config/ import)
+│       ├── application-test.yml    # 테스트 프로파일 설정
+│       ├── application-secrets.yml # 암호화된 시크릿 (Jasypt ENC)
+│       └── config/                 # 분리된 설정 파일들
+│           ├── database-config.yml   # DataSource, JPA, Hibernate
+│           ├── ai-setting.yml        # Google Gemini AI 설정
+│           ├── spring-security.yml   # JWT, OAuth2, CORS
+│           ├── oci-bucket-config.yml # OCI Object Storage, CDN
+│           ├── jodconverter.yml      # LibreOffice 문서변환
+│           ├── actuator.yml          # Actuator, Prometheus
+│           ├── app-common.yml        # 앱 커스텀 설정 (q-asker)
+│           ├── resilience.yml        # Circuit Breaker
+│           └── spring-doc.yml        # Swagger/OpenAPI
 ├── modules/
 │   ├── global/                   # 공통 (BaseEntity, ApiResponse, GlobalExceptionHandler)
 │   ├── auth/     (api + impl)    # 인증 (JWT, OAuth2, RateLimitFilter)
@@ -95,6 +96,7 @@ q-asker/api/
 │       ├── gcp/                  # GCP 인프라 (GCS, IAM, Vertex AI)
 │       └── oci/                  # OCI 인프라 (NSG Cloudflare 인바운드 규칙)
 ├── docs/                         # 문서, 분석 자료
+├── k6/                           # k6 부하테스트 (scripts, data, results)
 ├── .githooks/                    # Git 훅 (pre-commit, pre-push, prepare-commit-msg)
 └── .github/workflows/            # CI/CD
     ├── cd-prod_deploy.yml
