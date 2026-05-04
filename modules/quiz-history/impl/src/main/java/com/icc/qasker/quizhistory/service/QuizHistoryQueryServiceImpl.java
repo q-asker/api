@@ -27,6 +27,7 @@ import com.icc.qasker.quizset.dto.readonly.ProblemSetSummary;
 import com.icc.qasker.quizset.dto.readonly.SelectionDetail;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -76,8 +77,11 @@ public class QuizHistoryQueryServiceImpl implements QuizHistoryQueryService {
         histories.stream()
             .map(
                 history ->
-                    quizHistoryMapper.toSummary(
-                        history, problemSetMap.get(history.getProblemSetId())))
+                    problemSetMap.get(history.getProblemSetId()) == null
+                        ? null
+                        : quizHistoryMapper.toSummary(
+                            history, problemSetMap.get(history.getProblemSetId())))
+            .filter(Objects::nonNull)
             .toList();
 
     return new HistoryPageResponse(
