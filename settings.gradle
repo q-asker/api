@@ -1,3 +1,11 @@
+// Foojay 툴체인 리졸버
+// 예: Gradle Daemon JVM Criteria(toolchain-version)와 자바 toolchain이 요구하는 JDK가
+//     로컬에 없을 때 https://api.foojay.io 에서 자동으로 적합한 JDK를 다운로드하여 사용
+//     (별도 설치 없이 프로젝트가 요구하는 JDK 버전을 보장)
+plugins {
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '0.8.0'
+}
+
 rootProject.name = 'q-asker'
 
 include ':app', ':global', ':admin',
