@@ -15,10 +15,38 @@ resilience4j:
         # ────────────────────────────────────────────────────────────
         # 슬라이딩 윈도우: 시간 기반 (윈도우 채우는 데 시간이 너무 오래 걸려 장애 반응성 저하 → TIME_BASED 채택)
         sliding-window-type: TIME_BASED
-        # 윈도우 720초(12분): 몰리는 구간 트래픽 실측 분포 max값 (PromQL 검증 2026-05-01)
-        sliding-window-size: 720
-        # OPEN 60초 유지: Google Cloud 권장
-        # Google Cloud Blog 공식 backoff max: wait_random_exponential(multiplier=1, max=60)
+        # 윈도우 1080초(18분): 도메인 특화 결정 (sparse + burst 혼재 환경)
+        # ⚠️ 일반 모범사례는 10~60s (지속 트래픽 가정). 본 값은 q-asker 도메인 특수성 반영.
+        #
+        # 도메인 특수성:
+        #   - 평시 트래픽 sparse (RPS ≈ 0.0002), 시험기간 burst만 운영 critical
+        #   - 일반 권고(10s window)면 burst 시 sample 1~2건으로 false positive 위험
+        #
+        # 산정 기준 (max burst cover):
+        #   - 몰리는 구간 트래픽 실측 분포 max값 = 17분 (PromQL 검증 2026-05-07, 30d 누적)
+        #   - window ≥ max burst 길이여야 "단일 burst = 한 번의 안정된 평가" 보장
+        #   - window < burst면 한 burst 안에서 OPEN↔HALF_OPEN 사이클이 반복돼 false positive
+        #   - 평균 burst(6분)가 아닌 max(17분)인 이유: 평균을 잡으면 긴 burst의 절반이 분열에 노출
+        #   - max × 2 이상은 비권장: 회복 후에도 과거 trigger 메모리 잔존 → 회복 지연
+        #   - 1080s = max(17분) + 약 1분 마진
+        #
+        # 재산정 트리거: max burst 길이가 변하면 window 갱신 필요 (대시보드 #25 추적)
+        # 변경 이력:
+        #   - 2026-05-01: 720s (max burst 12분 기준)
+        #   - 2026-05-07: 1080s (max burst 17분 측정 → 상향)
+        sliding-window-size: 1080
+        # OPEN 60초 유지: 4중 외부 표준 합의값
+        #   ① Google Cloud Blog 공식 LLM backoff max: wait_random_exponential(multiplier=1, max=60)
+        #   ② Vertex AI quota window (RPM) 리셋 주기와 정확히 일치 — 핵심 타깃
+        #   ③ Resilience4j 기본값
+        #   ④ AWS/Microsoft Architecture Center 권장 상한 (30~60s 영역)
+        #
+        # 회복 시간 분포 (Google Cloud Status, Vertex Gemini 18개월 인시던트):
+        #   - 짧은 hiccup: 수 초 / 429 quota 리셋: 60초 (← 60s wait의 핵심 타깃)
+        #   - 503 모델 과부하: 30~60분 / 인프라 인시던트: 1시간~수일
+        # 한계: 503/인시던트엔 60s 부족 → OPEN/HALF_OPEN 플래핑 발생.
+        #       exponential backoff 미적용 상태에서 산업 표준 max 채택이 보수적 합리해.
+        #       permitted-half-open=1과 결합 시 플래핑이 사용자 영향 최소화로 흡수됨.
         wait-duration-in-open-state:
           seconds: 60
         # Slow call 임계값 60초: TTFQ 분포 기반 — 추정 p99(38s, Log-normal 외삽) × 1.5 마진

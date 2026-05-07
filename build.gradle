@@ -298,7 +298,7 @@ subprojects {
     spotless {
         java {
             // Google Java Format: Google 코딩 스타일에 맞춰 자동 포맷팅
-            googleJavaFormat("1.25.2")
+            googleJavaFormat("1.35.0")
             // import 순서 제거 후 Google 스타일로 재정렬
             removeUnusedImports()
             // 파일 끝에 개행 추가
