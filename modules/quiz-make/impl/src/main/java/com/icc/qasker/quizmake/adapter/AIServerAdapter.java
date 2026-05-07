@@ -23,8 +23,8 @@ import org.springframework.stereotype.Component;
  * <p>인프라 장애(파일 업로드, 캐시 생성/삭제 실패)는 GeminiInfraException으로 전파되어 서킷브레이커 카운트 대상이 된다. 다만 첫 응답이 정상 도달한 후
  * 발생한 인프라 장애는 카운트하지 않는다 (이미 사용자에게 첫 응답이 전달되었으므로 인프라는 정상으로 간주).
  *
- * <p>참고: 사용자 체감 TTFQ는 별도 메트릭 {@code gemini_request_first_quiz_duration_seconds}로도 측정된다 (p50 13.6s, p95
- * 27.4s, p99 ≥30s actuator 버킷 절단, max 119s — 2026-05-03 실측).
+ * <p>참고: 사용자 체감 TTFQ는 별도 메트릭 {@code gemini_request_first_quiz_duration_seconds}로도 측정된다 (p50 13.6s,
+ * p95 27.4s, p99 ≥30s actuator 버킷 절단, max 119s — 2026-05-03 실측).
  */
 @Component
 public class AIServerAdapter {
