@@ -3,7 +3,7 @@ package com.icc.qasker.ai.service.support;
 import com.google.genai.types.Content;
 import com.google.genai.types.FileData;
 import com.google.genai.types.Part;
-import com.icc.qasker.ai.prompt.strategy.QuizType;
+import com.icc.qasker.ai.strategy.QuizType;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import java.time.Duration;

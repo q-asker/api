@@ -1,4 +1,4 @@
-package com.icc.qasker.ai.prompt.strategy;
+package com.icc.qasker.ai.strategy;
 
 import com.icc.qasker.ai.i18n.ENGLISH;
 import com.icc.qasker.ai.service.blank.prompt.BlankGuideLine;

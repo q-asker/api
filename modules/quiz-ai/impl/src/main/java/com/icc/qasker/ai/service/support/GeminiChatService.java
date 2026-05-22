@@ -2,7 +2,7 @@ package com.icc.qasker.ai.service.support;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.icc.qasker.ai.dto.ChunkInfo;
-import com.icc.qasker.ai.prompt.strategy.QuizType;
+import com.icc.qasker.ai.strategy.QuizType;
 import com.icc.qasker.ai.structure.GeminiResponse;
 import com.icc.qasker.ai.structure.GeminiResponseSchema;
 import java.util.List;
