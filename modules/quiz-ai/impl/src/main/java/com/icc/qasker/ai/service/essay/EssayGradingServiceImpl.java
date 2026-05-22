@@ -11,7 +11,6 @@ import com.icc.qasker.ai.service.essay.prompt.EssayGradingGuideLine;
 import com.icc.qasker.ai.service.essay.prompt.EssayGradingRequestPrompt;
 import com.icc.qasker.ai.service.support.GeminiMetricsRecorder;
 import com.icc.qasker.ai.structure.GeminiEvidenceExtractionResponse;
-import com.icc.qasker.ai.structure.GeminiFirstAttemptGradingResponse;
 import com.icc.qasker.ai.structure.GeminiGradingResponse;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
@@ -43,8 +42,7 @@ public class EssayGradingServiceImpl implements EssayGradingService {
   private final ObjectMapper objectMapper;
   private final GeminiMetricsRecorder metricsRecorder;
   private final String evidenceSchema;
-  private final String firstAttemptSchema;
-  private final String defaultSchema;
+  private final String gradingSchema;
 
   /** Pass 결과를 ChatResponse와 함께 전달하기 위한 내부 record. */
   private record PassResult<T>(T result, ChatResponse chatResponse) {}
@@ -56,9 +54,7 @@ public class EssayGradingServiceImpl implements EssayGradingService {
     this.metricsRecorder = metricsRecorder;
     this.evidenceSchema =
         new BeanOutputConverter<>(GeminiEvidenceExtractionResponse.class).getJsonSchema();
-    this.firstAttemptSchema =
-        new BeanOutputConverter<>(GeminiFirstAttemptGradingResponse.class).getJsonSchema();
-    this.defaultSchema = new BeanOutputConverter<>(GeminiGradingResponse.class).getJsonSchema();
+    this.gradingSchema = new BeanOutputConverter<>(GeminiGradingResponse.class).getJsonSchema();
   }
 
   @Override
@@ -157,9 +153,6 @@ public class EssayGradingServiceImpl implements EssayGradingService {
       String rubric,
       GeminiEvidenceExtractionResponse evidence,
       int attemptCount) {
-    boolean isFirstAttempt = attemptCount == 1;
-    String schema = isFirstAttempt ? firstAttemptSchema : defaultSchema;
-
     SystemMessage systemMessage = new SystemMessage(EssayGradingGuideLine.of(attemptCount));
     UserMessage userMessage =
         new UserMessage(
@@ -170,15 +163,14 @@ public class EssayGradingServiceImpl implements EssayGradingService {
         GoogleGenAiChatOptions.builder()
             .model(GRADING_MODEL)
             .responseMimeType("application/json")
-            .responseSchema(schema)
+            .responseSchema(gradingSchema)
             .build();
 
     Prompt prompt = new Prompt(List.of(systemMessage, userMessage), options);
     ChatResponse chatResponse = chatModel.call(prompt);
     String responseText = chatResponse.getResult().getOutput().getText();
 
-    EssayGradingResult result =
-        isFirstAttempt ? parseFirstAttempt(responseText) : parseDefault(responseText);
+    EssayGradingResult result = parseGradingResponse(responseText);
 
     return new PassResult<>(result, chatResponse);
   }
@@ -191,9 +183,6 @@ public class EssayGradingServiceImpl implements EssayGradingService {
       String studentAnswer,
       int attemptCount,
       long startMs) {
-    boolean isFirstAttempt = attemptCount == 1;
-    String schema = isFirstAttempt ? firstAttemptSchema : defaultSchema;
-
     SystemMessage systemMessage = new SystemMessage(EssayGradingGuideLine.of(attemptCount));
     UserMessage userMessage =
         new UserMessage(
@@ -204,7 +193,7 @@ public class EssayGradingServiceImpl implements EssayGradingService {
         GoogleGenAiChatOptions.builder()
             .model(GRADING_MODEL)
             .responseMimeType("application/json")
-            .responseSchema(schema)
+            .responseSchema(gradingSchema)
             .build();
 
     Prompt prompt = new Prompt(List.of(systemMessage, userMessage), options);
@@ -219,8 +208,7 @@ public class EssayGradingServiceImpl implements EssayGradingService {
             + outputTokens * PRICE_OUTPUT_PER_1M / 1_000_000;
     metricsRecorder.recordGrading(elapsedMs, nonCachedInput, outputTokens, cost);
 
-    EssayGradingResult result =
-        isFirstAttempt ? parseFirstAttempt(responseText) : parseDefault(responseText);
+    EssayGradingResult result = parseGradingResponse(responseText);
 
     log.info(
         "ESSAY 채점 완료 (fallback 1-pass): 총점={}/{}, 소요={}ms",
@@ -241,24 +229,8 @@ public class EssayGradingServiceImpl implements EssayGradingService {
     return Math.max(0, inputTokens - cachedTokens);
   }
 
-  /** 1차 시도 응답 파싱. feedback 필드 없이 빈 문자열로 채운다. */
-  private static EssayGradingResult parseFirstAttempt(String responseText) {
-    var converter = new BeanOutputConverter<>(GeminiFirstAttemptGradingResponse.class);
-    GeminiFirstAttemptGradingResponse response = converter.convert(responseText);
-
-    List<EssayGradingResult.ElementScore> scores =
-        response.elementScores().stream()
-            .map(
-                e ->
-                    new EssayGradingResult.ElementScore(
-                        e.element(), e.maxPoints(), e.earnedPoints(), e.level(), ""))
-            .toList();
-
-    return new EssayGradingResult(scores, response.totalScore(), response.maxScore(), "", null);
-  }
-
-  /** 2차 이후 응답 파싱. 요소별 feedback 포함. */
-  private static EssayGradingResult parseDefault(String responseText) {
+  /** 채점 응답 파싱. 요소별 feedback과 종합 feedback을 포함한다. */
+  private static EssayGradingResult parseGradingResponse(String responseText) {
     var converter = new BeanOutputConverter<>(GeminiGradingResponse.class);
     GeminiGradingResponse response = converter.convert(responseText);
 

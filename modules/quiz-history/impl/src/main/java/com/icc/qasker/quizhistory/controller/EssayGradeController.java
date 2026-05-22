@@ -1,10 +1,10 @@
 package com.icc.qasker.quizhistory.controller;
 
+import com.icc.qasker.ai.dto.EssayGradingResult;
 import com.icc.qasker.global.annotation.RateLimit;
 import com.icc.qasker.global.annotation.UserId;
 import com.icc.qasker.global.ratelimit.RateLimitTier;
 import com.icc.qasker.quizhistory.dto.ferequest.EssayGradeRequest;
-import com.icc.qasker.quizhistory.dto.feresponse.EssayGradeResponse;
 import com.icc.qasker.quizhistory.service.EssayGradeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -29,12 +29,12 @@ public class EssayGradeController {
   @Operation(summary = "서술형 문제를 채점한다")
   @RateLimit(RateLimitTier.WRITE)
   @PostMapping("/problem-sets/{problemSetId}/problems/{problemNumber}/grade")
-  public ResponseEntity<EssayGradeResponse> gradeEssay(
+  public ResponseEntity<EssayGradingResult> gradeEssay(
       @UserId String userId,
       @PathVariable String problemSetId,
       @PathVariable int problemNumber,
       @Valid @RequestBody EssayGradeRequest request) {
-    EssayGradeResponse response =
+    EssayGradingResult response =
         essayGradeService.grade(
             userId, problemSetId, problemNumber, request.textAnswer(), request.attemptCount());
     return ResponseEntity.ok(response);
