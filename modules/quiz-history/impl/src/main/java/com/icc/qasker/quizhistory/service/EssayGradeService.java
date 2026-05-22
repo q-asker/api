@@ -5,10 +5,7 @@ import com.icc.qasker.ai.dto.EssayGradingResult;
 import com.icc.qasker.global.component.HashUtil;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
-import com.icc.qasker.quizhistory.dto.feresponse.EssayGradeResponse;
-import com.icc.qasker.quizhistory.dto.feresponse.EssayGradeResponse.ElementScoreResponse;
 import com.icc.qasker.quizhistory.entity.EssayGradeLog;
-import com.icc.qasker.quizhistory.entity.EssayGradeLog.ElementScoreSnapshot;
 import com.icc.qasker.quizhistory.repository.EssayGradeLogRepository;
 import com.icc.qasker.quizset.ProblemSetReadService;
 import com.icc.qasker.quizset.dto.readonly.ProblemDetail;
@@ -30,7 +27,7 @@ public class EssayGradeService {
   private final EssayGradeLogRepository essayGradeLogRepository;
   private final HashUtil hashUtil;
 
-  public EssayGradeResponse grade(
+  public EssayGradingResult grade(
       String userId, String problemSetId, int problemNumber, String textAnswer, int attemptCount) {
     Long decodedProblemSetId = hashUtil.decode(problemSetId);
 
@@ -71,17 +68,7 @@ public class EssayGradeService {
         attemptCount,
         result);
 
-    // 응답 변환
-    List<ElementScoreResponse> responseScores =
-        result.elementScores().stream()
-            .map(
-                e ->
-                    new ElementScoreResponse(
-                        e.element(), e.maxPoints(), e.earnedPoints(), e.level(), e.feedback()))
-            .toList();
-
-    return new EssayGradeResponse(
-        responseScores, result.totalScore(), result.maxScore(), result.overallFeedback());
+    return result;
   }
 
   private void saveLogAsync(
@@ -95,18 +82,6 @@ public class EssayGradeService {
     CompletableFuture.runAsync(
         () -> {
           try {
-            List<ElementScoreSnapshot> snapshots =
-                result.elementScores().stream()
-                    .map(
-                        e ->
-                            new ElementScoreSnapshot(
-                                e.element(),
-                                e.maxPoints(),
-                                e.earnedPoints(),
-                                e.level(),
-                                e.feedback()))
-                    .toList();
-
             EssayGradeLog log =
                 EssayGradeLog.builder()
                     .userId(userId)
@@ -117,7 +92,7 @@ public class EssayGradeService {
                     .attemptCount(attemptCount)
                     .totalScore(result.totalScore())
                     .maxScore(result.maxScore())
-                    .elementScores(snapshots)
+                    .elementScores(result.elementScores())
                     .overallFeedback(result.overallFeedback())
                     .evidenceJson(result.evidenceJson())
                     .build();
