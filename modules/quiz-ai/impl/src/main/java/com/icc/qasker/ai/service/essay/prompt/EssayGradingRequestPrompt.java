@@ -22,7 +22,7 @@ public class EssayGradingRequestPrompt {
       String question, String modelAnswer, String rubric, String studentAnswer, int attemptCount) {
     String instruction =
         attemptCount == 1
-            ? "위 분석적 루브릭의 각 요소별로 채점하세요."
+            ? "위 분석적 루브릭의 각 요소별로 채점하고, 요소별 feedback은 경미한 방향성 힌트(1문장 이내)만 작성하세요. overallFeedback은 빈 문자열로 둡니다."
             : "위 분석적 루브릭의 각 요소별로 채점하고, 요소별 피드백과 종합 피드백을 작성하세요.";
 
     return """
@@ -73,7 +73,7 @@ public class EssayGradingRequestPrompt {
       int attemptCount) {
     String instruction =
         attemptCount == 1
-            ? "위 분석적 루브릭의 각 요소별로, 추출된 증거에 근거하여 채점하세요."
+            ? "위 분석적 루브릭의 각 요소별로, 추출된 증거에 근거하여 채점하고, 요소별 feedback은 경미한 방향성 힌트(1문장 이내)만 작성하세요. overallFeedback은 빈 문자열로 둡니다."
             : "위 분석적 루브릭의 각 요소별로, 추출된 증거에 근거하여 채점하고, 요소별 피드백과 종합 피드백을 작성하세요.";
 
     StringBuilder evidenceSection = new StringBuilder();

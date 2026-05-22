@@ -1,14 +1,15 @@
 package com.icc.qasker.ai.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.util.List;
 
-/** ESSAY 채점 결과 DTO. quiz-ai 모듈 경계를 넘어 채점 결과를 전달한다. */
+/** ESSAY 채점 결과 DTO. AI 서비스 결과·FE 응답·DB 스냅샷을 단일 record로 통일한다. */
 public record EssayGradingResult(
     List<ElementScore> elementScores,
     int totalScore,
     int maxScore,
     String overallFeedback,
-    String evidenceJson) {
+    @JsonIgnore String evidenceJson) {
 
   public record ElementScore(
       String element, int maxPoints, int earnedPoints, String level, String feedback) {}

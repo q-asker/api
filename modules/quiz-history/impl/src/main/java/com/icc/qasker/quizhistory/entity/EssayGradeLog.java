@@ -1,5 +1,6 @@
 package com.icc.qasker.quizhistory.entity;
 
+import com.icc.qasker.ai.dto.EssayGradingResult;
 import com.icc.qasker.global.entity.CreatedAt;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -54,14 +55,11 @@ public class EssayGradeLog extends CreatedAt {
 
   @JdbcTypeCode(SqlTypes.JSON)
   @Column(nullable = false, columnDefinition = "JSON")
-  private List<ElementScoreSnapshot> elementScores;
+  private List<EssayGradingResult.ElementScore> elementScores;
 
   @Column(columnDefinition = "TEXT")
   private String overallFeedback;
 
   @Column(columnDefinition = "JSON")
   private String evidenceJson;
-
-  public record ElementScoreSnapshot(
-      String element, int maxPoints, int earnedPoints, String level, String feedback) {}
 }
