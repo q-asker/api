@@ -11,9 +11,15 @@ import com.icc.qasker.ai.service.support.GeminiMetricsRecorder;
 import com.icc.qasker.ai.service.support.StreamingQuestionExtractor;
 import com.icc.qasker.ai.strategy.QuizType;
 import com.icc.qasker.ai.structure.GeminiResponseSchema;
+import com.icc.qasker.cost.AiCostRecorder;
+import com.icc.qasker.cost.dto.AiInvocationCommand;
+import com.icc.qasker.cost.dto.InvocationStatus;
 import com.icc.qasker.global.error.CustomException;
 import java.net.URI;
+import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.DoubleAdder;
@@ -25,6 +31,7 @@ import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.content.Media;
 import org.springframework.ai.google.genai.GoogleGenAiChatOptions;
 import org.springframework.ai.google.genai.metadata.GoogleGenAiUsage;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.util.MimeTypeUtils;
 import reactor.core.publisher.Flux;
@@ -44,16 +51,22 @@ public class OXQuizOrchestrator implements QuizTypeOrchestrator {
   private final ChatModel chatModel;
   private final ObjectMapper objectMapper;
   private final GeminiMetricsRecorder metricsRecorder;
+  private final AiCostRecorder aiCostRecorder;
+  private final String configuredModel;
 
   public OXQuizOrchestrator(
       GeminiFileService geminiFileService,
       ChatModel chatModel,
       ObjectMapper objectMapper,
-      GeminiMetricsRecorder metricsRecorder) {
+      GeminiMetricsRecorder metricsRecorder,
+      AiCostRecorder aiCostRecorder,
+      @Value("${spring.ai.google.genai.chat.options.model}") String configuredModel) {
     this.geminiFileService = geminiFileService;
     this.chatModel = chatModel;
     this.objectMapper = objectMapper;
     this.metricsRecorder = metricsRecorder;
+    this.aiCostRecorder = aiCostRecorder;
+    this.configuredModel = configuredModel;
   }
 
   @Override
@@ -64,6 +77,11 @@ public class OXQuizOrchestrator implements QuizTypeOrchestrator {
   @Override
   public int generateQuiz(GenerationRequestToAI request) {
     long startNanos = System.nanoTime();
+
+    // AI 호출 1회당 멱등 키 — multi-chunk usage·재시도로 인한 원장 중복(이중 과금)을 막는다(같은 키 재적재는 DB가 차단)
+    String requestId = UUID.randomUUID().toString();
+    // 비용 적재 완료 여부 — 성공 적재 후 실패 경로의 중복 적재를 막는다
+    AtomicBoolean costRecorded = new AtomicBoolean(false);
 
     DoubleAdder totalCost = new DoubleAdder();
     AtomicLong firstNanos = new AtomicLong(0);
@@ -154,6 +172,37 @@ public class OXQuizOrchestrator implements QuizTypeOrchestrator {
                       thinkingTokens,
                       usage.getCompletionTokens(),
                       String.format("%.6f", cost));
+
+                  // AI 비용 이벤트 발행 (사이드카) — 실패해도 생성 흐름에는 절대 영향 주지 않는다
+                  try {
+                    long cachedTokens =
+                        usage instanceof GoogleGenAiUsage gc
+                                && gc.getCachedContentTokenCount() != null
+                            ? gc.getCachedContentTokenCount()
+                            : 0;
+                    long nonCachedInput = Math.max(0, usage.getPromptTokens() - cachedTokens);
+                    aiCostRecorder.record(
+                        new AiInvocationCommand(
+                            requestId,
+                            request.userId(),
+                            request.quizSetId(),
+                            configuredModel,
+                            response.getMetadata().getModel(),
+                            nonCachedInput,
+                            cachedTokens,
+                            thinkingTokens,
+                            usage.getCompletionTokens(),
+                            elapsedMs,
+                            InvocationStatus.SUCCESS,
+                            null,
+                            Instant.now()));
+                    costRecorded.set(true);
+                  } catch (Exception costError) {
+                    log.warn(
+                        "[AI 비용 기록 실패] quizSetId={} — 생성 흐름에는 영향 없음",
+                        request.quizSetId(),
+                        costError);
+                  }
                 }
               })
           .blockLast(java.time.Duration.ofMinutes(6));
@@ -171,8 +220,10 @@ public class OXQuizOrchestrator implements QuizTypeOrchestrator {
     } catch (IllegalStateException e) {
       // blockLast 타임아웃 — cause가 TimeoutException인 경우만 정상 처리
       if (!(e.getCause() instanceof java.util.concurrent.TimeoutException)) {
+        recordFailure(requestId, request, costRecorded, "INFRA", startNanos);
         throw new GeminiInfraException("Gemini 블로킹 컨텍스트 오류", e);
       }
+      recordFailure(requestId, request, costRecorded, "TIMEOUT", startNanos);
       log.warn("[OX 스트리밍 타임아웃] 6분 초과, 생성된 문항 유지 deliveredCount={}", delivered.get());
       metricsRecorder.recordStreamingTimeout("OX");
       metricsRecorder.recordRequestDuration(
@@ -186,6 +237,7 @@ public class OXQuizOrchestrator implements QuizTypeOrchestrator {
       throw e;
     } catch (Exception e) {
       if (delivered.get() > 0) {
+        recordFailure(requestId, request, costRecorded, "PARTIAL", startNanos);
         log.warn("[OX 부분 성공] 스트리밍 중 오류 발생이나 문항 전달됨 deliveredCount={}", delivered.get(), e);
         metricsRecorder.recordStreamingTimeout("OX");
         metricsRecorder.recordRequestDuration(
@@ -196,7 +248,38 @@ public class OXQuizOrchestrator implements QuizTypeOrchestrator {
             totalCost.sum());
         return 1;
       }
+      recordFailure(requestId, request, costRecorded, "INFRA", startNanos);
       throw new GeminiInfraException("Gemini 인프라 장애", e);
+    }
+  }
+
+  /** AI 호출 실패를 원장/Outbox에 기록한다(토큰 0, status=ERROR). 이미 성공 적재됐으면 건너뛴다. B-1: 부분 토큰 정밀 집계는 추후 개선. */
+  private void recordFailure(
+      String requestId,
+      GenerationRequestToAI request,
+      AtomicBoolean costRecorded,
+      String errorCode,
+      long startNanos) {
+    if (costRecorded.get()) return;
+    try {
+      aiCostRecorder.record(
+          new AiInvocationCommand(
+              requestId,
+              request.userId(),
+              request.quizSetId(),
+              configuredModel,
+              null,
+              0L,
+              0L,
+              0L,
+              0L,
+              (System.nanoTime() - startNanos) / 1_000_000,
+              InvocationStatus.ERROR,
+              errorCode,
+              Instant.now()));
+      costRecorded.set(true);
+    } catch (Exception costError) {
+      log.warn("[AI 비용 실패기록 실패] quizSetId={} — 생성 흐름 영향 없음", request.quizSetId(), costError);
     }
   }
 }

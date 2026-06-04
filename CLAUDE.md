@@ -19,6 +19,7 @@
 | PDF 처리 | Apache PDFBox | 3.0.3 |
 | 모니터링 | Micrometer + Prometheus + Actuator | (Boot BOM) |
 | 장애격리 | Resilience4j (Circuit Breaker) | 2.3.0 |
+| 메시징 | Apache Kafka (KRaft) + Spring for Apache Kafka | 3.9.0 / (Boot BOM) |
 | Rate Limiting | Bucket4j + Caffeine | 8.16.1 |
 | API 문서 | SpringDoc OpenAPI (Swagger UI) | 2.8.8 |
 | 암호화 | Jasypt | 3.0.5 |
@@ -75,6 +76,8 @@ q-asker/api/
 │           ├── monitoring.yml    # Actuator, Prometheus
 │           ├── q-asker.yml       # 앱 커스텀 설정
 │           ├── resilience4j.yml  # Circuit Breaker
+│           ├── ai-cost.yml       # AI 비용 단가표 (UnitPriceTable)
+│           ├── kafka.yml         # Kafka 발행 설정 (ai.cost.raw)
 │           └── springdoc.yml     # Swagger/OpenAPI
 ├── modules/
 │   ├── global/                   # 공통 (BaseEntity, ApiResponse, GlobalExceptionHandler)
@@ -84,6 +87,7 @@ q-asker/api/
 │   ├── quiz-ai/  (api + impl)    # AI 퀴즈 생성 (Gemini 호출, 메트릭)
 │   ├── quiz-make/(api + impl)    # 퀴즈 생성 흐름 (파일업로드, SSE, 생성결과)
 │   ├── quiz-set/ (api + impl)    # 퀴즈 세트 CRUD
+│   ├── quiz-cost/(api + impl)    # AI 비용 과금 (원장 + Transactional Outbox + Kafka 발행)
 │   ├── quiz-history/(api + impl) # 풀이 히스토리
 │   ├── document/ (api + impl)    # 문서 변환 (PPT/DOCX → PDF)
 │   └── admin/                    # 관리자 전용 API
@@ -116,6 +120,9 @@ q-asker/api/
   - `spring.ai.google.genai.location`: GCP 엔드포인트 (현재: `global`)
   - `GCS_BUCKET_NAME`: GCS 버킷 이름 (기본값: `q-asker-ai-files`)
   - 로컬: `gcloud auth application-default login`, 프로덕션: 서비스 계정
+- Kafka (AI 비용 이벤트): bootstrap 주소는 `config/kafka.yml`에 로컬 기본값(`localhost:9092`), 운영(prod)은 `application-secrets.yml`의 `spring.kafka.bootstrap-servers`에 Jasypt `ENC()`로 암호화한 멀티노드 broker 주소로 override. 토픽 `ai.cost.raw`
+  - 발행 설정: `ai.cost.kafka.*` (topic·relay-batch-size). 비용/통화 추적은 제거됨(토큰 사용량만 적재)
+  - broker 인프라는 별도 디렉토리(api 레포 바깥): `../broker` — 운영 KRaft 멀티노드 3대(`broker-1..3/`, RF=3, min.insync.replicas=2) + 로컬 단일노드(`local/`, RF=1)
 - DDoS 방어: Cloudflare Free (`api.q-asker.com`만 프록시 활성화)
 - SSL/HTTPS: Cloudflare (Universal SSL) → Nginx (Origin CA TLS), Full (Strict) 모드
   - Origin 인증서: Cloudflare Origin CA (15년 유효)

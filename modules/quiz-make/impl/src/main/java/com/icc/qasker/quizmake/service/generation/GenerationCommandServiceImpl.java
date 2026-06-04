@@ -78,13 +78,27 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
       throw new CustomException(ExceptionMessage.AI_DUPLICATED_GENERATION);
     }
 
-    Thread.ofVirtual()
-        .start(() -> processGenerationAsync(request.sessionId(), problemSetId, request));
+    // AI 비용 과금 주체: 로그인 사용자는 userId, 비로그인은 FE가 보낸 clientId(UUID).
+    // 둘 다 없으면(예외적) 무손실 기록을 위해 임시 UUID로 대체한다.
+    String costPrincipal = resolveCostPrincipal(userId, request.clientId());
+
+    Thread.ofVirtual().start(() -> processGenerationAsync(costPrincipal, problemSetId, request));
+  }
+
+  private String resolveCostPrincipal(String userId, String clientId) {
+    if (userId != null && !userId.isBlank()) {
+      return userId;
+    }
+    if (clientId != null && !clientId.isBlank()) {
+      return clientId;
+    }
+    return "anon:" + java.util.UUID.randomUUID();
   }
 
   private void processGenerationAsync(
-      String sessionId, Long problemSetId, GenerationRequest request) {
+      String costPrincipal, Long problemSetId, GenerationRequest request) {
 
+    String sessionId = request.sessionId();
     long startNanos = System.nanoTime();
     AtomicInteger atomicGeneratedCount = new AtomicInteger(0);
     AtomicInteger numberCounter = new AtomicInteger(1);
@@ -100,6 +114,8 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
             .quizCount(request.quizCount())
             .referencePages(request.pageNumbers())
             .customInstruction(request.customInstruction())
+            .userId(costPrincipal)
+            .quizSetId(problemSetId)
             .questionsConsumer(
                 aiProblemSet -> {
                   consumerLock.lock();

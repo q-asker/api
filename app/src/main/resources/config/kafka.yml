@@ -1,0 +1,24 @@
+# Kafka 발행 설정 (AI 비용 이벤트 ai.cost.raw)
+# 운영은 멀티노드 KRaft 3대(RF=3, min.insync.replicas=2). producer 재시도 + Outbox가 유실 안전망 역할을 한다.
+# Outbox payload는 이미 JSON 문자열이므로 value도 StringSerializer로 그대로 발행한다(이중 인코딩 방지).
+spring:
+  kafka:
+    # 로컬 기본값. 운영(prod) broker 주소는 application-secrets.yml에서 암호화된 값(ENC)으로 override 된다.
+    bootstrap-servers: localhost:9092
+    producer:
+      # acks=all: 모든 in-sync replica가 받아야 성공 처리 (RF=3·min.insync=2 → 리더+팔로워 최소 2대)
+      acks: all
+      # 멱등 프로듀서: 재시도로 인한 중복/순서 꼬임 방지
+      retries: 3
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      properties:
+        enable.idempotence: true
+
+# AI 비용 발행 토픽/릴레이 설정
+ai:
+  cost:
+    kafka:
+      topic: ai.cost.raw
+      # MessageRelay 1회 폴링 배치 크기
+      relay-batch-size: 100

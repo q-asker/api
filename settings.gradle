@@ -16,6 +16,7 @@ include ':app', ':global', ':admin',
     ':quiz-history-api', ':quiz-history-impl',
     ':quiz-make-api', ':quiz-make-impl',
     ':quiz-set-api', ':quiz-set-impl',
+    ':quiz-cost-api', ':quiz-cost-impl',
     ':document-api', ':document-impl'
 
 
@@ -43,6 +44,9 @@ project(':quiz-make-impl').projectDir = file('modules/quiz-make/impl')
 
 project(':quiz-set-api').projectDir = file('modules/quiz-set/api')
 project(':quiz-set-impl').projectDir = file('modules/quiz-set/impl')
+
+project(':quiz-cost-api').projectDir = file('modules/quiz-cost/api')
+project(':quiz-cost-impl').projectDir = file('modules/quiz-cost/impl')
 
 project(':document-api').projectDir = file('modules/document/api')
 project(':document-impl').projectDir = file('modules/document/impl')

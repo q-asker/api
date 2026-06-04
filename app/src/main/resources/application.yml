@@ -5,6 +5,7 @@ spring:
     import:
       - config/database-config.yml
       - config/ai-setting.yml
+      - config/kafka.yml
       - config/spring-security.yml
       - config/oci-bucket-config.yml
       - config/jodconverter.yml

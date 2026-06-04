@@ -15,6 +15,8 @@ public record GenerationRequest(
     @Length(max = 600) String customInstruction,
     @NotNull(message = "sessionId가 null입니다.") @UUID(message = "sessionId가 유효한 UUID 형식이 아닙니다.")
         String sessionId,
+    // 비로그인 사용자 식별용 클라이언트 UUID (FE가 localStorage 등에 보관하여 전송). 로그인 사용자는 null일 수 있다.
+    @UUID(message = "clientId가 유효한 UUID 형식이 아닙니다.") String clientId,
     @NotBlank(message = "url이 존재하지 않습니다.") String uploadedUrl,
     @NotBlank(message = "title이 존재하지 않습니다.") String title,
     int quizCount,

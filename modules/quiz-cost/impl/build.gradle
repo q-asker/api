@@ -1,0 +1,57 @@
+plugins {
+    // java-library: api/implementation 의존성 구분을 지원하는 라이브러리 모듈용 플러그인
+    id 'java-library'
+}
+
+dependencies {
+
+    // ────────────────────────────────
+    // 프로젝트 모듈
+    // ────────────────────────────────
+    // global: 공통 예외 처리, BaseEntity 등 전역 유틸리티 모듈
+    // 예: AiInvocation 엔티티가 global의 BaseEntity를 상속하여 created_at을 관리
+    implementation project(":global")
+    // quiz-cost-api: AI 비용 발행 측 계약(AiCostRecorder 인터페이스, 이벤트 DTO, enum)
+    // 예: AiCostRecorderImpl이 quiz-cost-api의 AiCostRecorder를 구현 (impl→api 의존 방향 준수)
+    implementation project(":quiz-cost-api")
+
+    // ────────────────────────────────
+    // 스프링부트 JPA
+    // ────────────────────────────────
+    // Spring Data JPA: ai_invocation 원장 + ai_cost_outbox 엔티티 매핑 및 Repository 자동 생성
+    // 예: public interface AiCostOutboxRepository extends JpaRepository<AiCostOutbox, Long>
+    implementation "org.springframework.boot:spring-boot-starter-data-jpa"
+    // MySQL JDBC 드라이버: 런타임 DB 연결 시 사용 (컴파일 시에는 불필요)
+    runtimeOnly "com.mysql:mysql-connector-j"
+
+    // ────────────────────────────────
+    // 메시징 브로커 연동 (Apache Kafka)
+    // ────────────────────────────────
+    // Spring for Apache Kafka: Outbox에 적재된 AI 비용 이벤트를 KafkaTemplate으로 ai.cost.raw에 발행
+    // 예: MessageRelay가 1초 주기로 PENDING 행을 조회하여 KafkaTemplate.send(topic, key, payload)
+    implementation 'org.springframework.kafka:spring-kafka'
+
+    // Jackson: AiCostEventPayload를 Outbox payload(JSON)로 직렬화
+    // 예: AiCostRecorderImpl이 ObjectMapper로 이벤트를 직렬화하여 ai_cost_outbox.payload에 저장
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+
+    // ────────────────────────────────
+    // 설정 메타데이터
+    // ────────────────────────────────
+    // Configuration Processor: @ConfigurationProperties(prefix = "ai.cost.kafka") 메타데이터 자동 생성
+    // 예: IDE에서 ai.cost.kafka.* (topic·relay-batch-size) 속성을 자동완성·타입 검증
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+
+    // ────────────────────────────────
+    // 테스트
+    // ────────────────────────────────
+    testImplementation "org.springframework.boot:spring-boot-starter-test"
+    testImplementation platform("org.junit:junit-bom:5.12.2")
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+    // Instant 등 Java 8 시간 타입 직렬화 검증용 (테스트에서 실제 ObjectMapper 구성)
+    testImplementation "com.fasterxml.jackson.datatype:jackson-datatype-jsr310"
+}
+
+test {
+    useJUnitPlatform()
+}

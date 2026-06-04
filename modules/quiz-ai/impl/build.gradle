@@ -14,6 +14,9 @@ dependencies {
     implementation project(":global")
     implementation project(":oci-api")
     implementation project(":quiz-ai-api")
+    // quiz-cost-api: AI 호출 비용 발행 계약(AiCostRecorder). 오케스트레이터가 호출 직후 비용 이벤트를 적재한다.
+    // impl→api 의존 방향 준수 (quiz-cost-impl은 참조하지 않음)
+    implementation project(":quiz-cost-api")
 
     // ────────────────────────────────
     // Spring AI

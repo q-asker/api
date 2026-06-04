@@ -32,6 +32,8 @@ dependencies {
     implementation project(':oci-impl')
     // 퀴즈 데이터 관리 모듈: 문제세트 CRUD, 조회, 해설
     implementation project(':quiz-set-impl')
+    // AI 비용 과금 모듈: AI 호출 비용 원장 적재 + Transactional Outbox + Kafka(ai.cost.raw) 발행
+    implementation project(':quiz-cost-impl')
     // 퀴즈 생성 모듈: AI 기반 문제 생성, 파일 업로드, SSE 알림
     implementation project(':quiz-make-impl')
     // 퀴즈 히스토리 구현 모듈: 퀴즈 풀이 기록 CRUD
