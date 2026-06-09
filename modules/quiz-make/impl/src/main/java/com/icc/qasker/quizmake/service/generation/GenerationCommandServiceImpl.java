@@ -95,7 +95,7 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
     GenerationRequestToAI requestToAI =
         GenerationRequestToAI.builder()
             .fileUrl(request.uploadedUrl())
-            .strategyValue(request.quizType().name())
+            .strategyValue(request.quizType().toAiStrategyName())
             .language(request.language().name())
             .quizCount(request.quizCount())
             .referencePages(request.pageNumbers())
@@ -113,7 +113,9 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
 
                     // 2. 선택지 셔플
                     QuizType quizType = request.quizType();
-                    if (quizType == QuizType.MULTIPLE || quizType == QuizType.BLANK) {
+                    if (quizType == QuizType.MULTIPLE
+                        || quizType == QuizType.BLANK
+                        || quizType == QuizType.REAL_BLANK) {
                       for (var quiz : problemSet.getQuiz()) {
                         if (!CollectionUtils.isEmpty(quiz.getSelections())) {
                           List<SelectionsOfAI> shuffled = new ArrayList<>(quiz.getSelections());
