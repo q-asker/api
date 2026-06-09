@@ -20,4 +20,15 @@ dependencies {
     // Spring WebMVC: SseEmitter 등 웹 관련 타입 제공
     // 예: GenerationService 인터페이스에서 SseEmitter 반환 타입 사용
     implementation "org.springframework:spring-webmvc"
+
+    // ────────────────────────────────
+    // 테스트
+    // ────────────────────────────────
+    testImplementation "org.springframework.boot:spring-boot-starter-test"
+    testImplementation platform("org.junit:junit-bom:5.12.2")
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+}
+
+test {
+    useJUnitPlatform()
 }
