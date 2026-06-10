@@ -28,6 +28,7 @@ public class AiCostMessageRelay {
   private final AiCostOutboxRepository outboxRepository;
   private final AiCostKafkaProducer producer;
   private final AiCostKafkaProperties properties;
+  private final OutboxTracePropagator tracePropagator;
 
   @Scheduled(fixedDelay = 1000)
   @Transactional
@@ -38,9 +39,15 @@ public class AiCostMessageRelay {
 
     for (AiCostOutbox outbox : pending) {
       try {
-        producer.send(outbox.getAggregateKey(), outbox.getPayload());
-        // 영속 상태 엔티티의 변경은 트랜잭션 커밋 시점에 flush된다(dirty checking)
-        outbox.markSent();
+        // 적재 시 저장한 요청 trace 컨텍스트를 복원한 scope에서 발행 →
+        // producer span이 원래 요청 trace에 연결되고, traceparent 헤더로 consumer까지 이어진다.
+        tracePropagator.runInRestoredContext(
+            outbox.getTraceParent(),
+            () -> {
+              producer.send(outbox.getAggregateKey(), outbox.getPayload());
+              // 영속 상태 엔티티의 변경은 트랜잭션 커밋 시점에 flush된다(dirty checking)
+              outbox.markSent();
+            });
       } catch (Exception e) {
         // PENDING 유지 → 다음 폴링에서 재시도 (at-least-once)
         log.warn("[AI 비용 이벤트 발행 실패] requestId={} — 다음 폴링 재시도", outbox.getRequestId(), e);

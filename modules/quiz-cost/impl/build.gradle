@@ -31,6 +31,11 @@ dependencies {
     // 예: MessageRelay가 1초 주기로 PENDING 행을 조회하여 KafkaTemplate.send(topic, key, payload)
     implementation 'org.springframework.kafka:spring-kafka'
 
+    // 분산 추적 API: Outbox 구간의 trace 컨텍스트를 캡처/복원한다(Tracer, Propagator)
+    // 예: OutboxTracePropagator가 발행 시 원래 요청 trace를 복원하여 end-to-end 추적을 잇는다.
+    //     실제 구현체(OTel 브릿지)는 app 모듈이 런타임에 제공한다(impl은 API만 컴파일 의존)
+    implementation 'io.micrometer:micrometer-tracing'
+
     // Jackson: AiCostEventPayload를 Outbox payload(JSON)로 직렬화
     // 예: AiCostRecorderImpl이 ObjectMapper로 이벤트를 직렬화하여 ai_cost_outbox.payload에 저장
     implementation 'com.fasterxml.jackson.core:jackson-databind'

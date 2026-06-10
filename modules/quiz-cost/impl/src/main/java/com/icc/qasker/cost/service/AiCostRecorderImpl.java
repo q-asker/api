@@ -8,6 +8,7 @@ import com.icc.qasker.cost.entity.AiCostOutbox;
 import com.icc.qasker.cost.entity.AiInvocation;
 import com.icc.qasker.cost.entity.OutboxStatus;
 import com.icc.qasker.cost.event.AiCostEventPayload;
+import com.icc.qasker.cost.kafka.OutboxTracePropagator;
 import com.icc.qasker.cost.repository.AiCostOutboxRepository;
 import com.icc.qasker.cost.repository.AiInvocationRepository;
 import java.util.UUID;
@@ -29,6 +30,7 @@ public class AiCostRecorderImpl implements AiCostRecorder {
   private final AiInvocationRepository invocationRepository;
   private final AiCostOutboxRepository outboxRepository;
   private final ObjectMapper objectMapper;
+  private final OutboxTracePropagator tracePropagator;
 
   @Override
   @Transactional
@@ -87,12 +89,16 @@ public class AiCostRecorderImpl implements AiCostRecorder {
       throw new IllegalStateException("AI 비용 이벤트 직렬화 실패: requestId=" + requestId, e);
     }
 
+    // 발행 구간(별도 스레드)에서 복원할 현재 요청 trace 컨텍스트 캡처 (추적 비활성 시 null)
+    String traceParent = tracePropagator.capture();
+
     // Outbox 적재 (PENDING) — 동일 트랜잭션
     AiCostOutbox outbox =
         AiCostOutbox.builder()
             .requestId(requestId)
             .aggregateKey(command.userId())
             .payload(json)
+            .traceParent(traceParent)
             .status(OutboxStatus.PENDING)
             .build();
     outboxRepository.save(outbox);

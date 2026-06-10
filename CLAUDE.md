@@ -18,6 +18,7 @@
 | 문서변환 | JODConverter (LibreOffice) | 4.4.9 |
 | PDF 처리 | Apache PDFBox | 3.0.3 |
 | 모니터링 | Micrometer + Prometheus + Actuator | (Boot BOM) |
+| 분산추적 | Micrometer Tracing + OpenTelemetry (OTLP exporter) | (Boot BOM) |
 | 장애격리 | Resilience4j (Circuit Breaker) | 2.3.0 |
 | 메시징 | Apache Kafka (KRaft) + Spring for Apache Kafka | 3.9.0 / (Boot BOM) |
 | Rate Limiting | Bucket4j + Caffeine | 8.16.1 |
@@ -123,6 +124,10 @@ q-asker/api/
 - Kafka (AI 비용 이벤트): bootstrap 주소는 `config/kafka.yml`에 로컬 기본값(`localhost:9092`), 운영(prod)은 `application-secrets.yml`의 `spring.kafka.bootstrap-servers`에 Jasypt `ENC()`로 암호화한 멀티노드 broker 주소로 override. 토픽 `ai.cost.raw`
   - 발행 설정: `ai.cost.kafka.*` (topic·relay-batch-size). 비용/통화 추적은 제거됨(토큰 사용량만 적재)
   - broker 인프라는 별도 디렉토리(api 레포 바깥): `../broker` — 운영 KRaft 멀티노드 3대(`broker-1..3/`, RF=3, min.insync.replicas=2) + 로컬 단일노드(`local/`, RF=1)
+- 분산 추적 (OpenTelemetry): api·db-consumer 양쪽에 적용. `client → producer(api) → Kafka → db-consumer`가 단일 trace로 연결됨
+  - `OTEL_EXPORTER_OTLP_ENDPOINT`: OTLP trace 수집처 (기본값 `http://localhost:4318/v1/traces`). 미설정/미가용 시 export만 실패하고 앱 동작에는 영향 없음
+  - `OTEL_TRACES_SAMPLER_ARG`: 샘플링 비율 (기본값 `1.0`). 설정: `management.tracing.*` + `management.otlp.tracing.*`
+  - Outbox 발행은 별도 스레드라 trace가 끊기므로, `ai_cost_outbox.trace_parent`(W3C traceparent)에 요청 컨텍스트를 저장했다가 발행 시 복원(`OutboxTracePropagator`). Kafka 전파는 producer/consumer Observation(`observation-enabled: true`)이 담당
 - DDoS 방어: Cloudflare Free (`api.q-asker.com`만 프록시 활성화)
 - SSL/HTTPS: Cloudflare (Universal SSL) → Nginx (Origin CA TLS), Full (Strict) 모드
   - Origin 인증서: Cloudflare Origin CA (15년 유효)

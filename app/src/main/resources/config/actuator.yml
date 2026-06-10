@@ -23,3 +23,11 @@ management:
     metrics:
       export:
         enabled: true
+  # 분산 추적(OpenTelemetry) — 샘플링 비율과 OTLP 수집처를 env로 주입한다.
+  # 미설정 시 localhost:4318로 내보내며, 수집처가 없어도 앱 동작에는 영향이 없다(export 실패만 로깅).
+  tracing:
+    sampling:
+      probability: ${OTEL_TRACES_SAMPLER_ARG:1.0}
+  otlp:
+    tracing:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318/v1/traces}

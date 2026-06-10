@@ -14,6 +14,7 @@ import com.icc.qasker.cost.entity.AiCostOutbox;
 import com.icc.qasker.cost.entity.OutboxStatus;
 import com.icc.qasker.cost.repository.AiCostOutboxRepository;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -30,7 +31,10 @@ class AiCostMessageRelayTest {
     outboxRepository = mock(AiCostOutboxRepository.class);
     producer = mock(AiCostKafkaProducer.class);
     AiCostKafkaProperties properties = new AiCostKafkaProperties("ai.cost.raw", 100);
-    relay = new AiCostMessageRelay(outboxRepository, producer, properties);
+    // 추적 비활성 no-op: runInRestoredContext는 전달된 발행 action을 그대로 실행한다
+    OutboxTracePropagator tracePropagator =
+        new OutboxTracePropagator(Optional.empty(), Optional.empty());
+    relay = new AiCostMessageRelay(outboxRepository, producer, properties, tracePropagator);
   }
 
   private AiCostOutbox pendingRow(String requestId, String key, String payload) {

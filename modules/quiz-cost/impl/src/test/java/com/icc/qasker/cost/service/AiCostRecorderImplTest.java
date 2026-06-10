@@ -16,9 +16,11 @@ import com.icc.qasker.cost.dto.InvocationStatus;
 import com.icc.qasker.cost.entity.AiCostOutbox;
 import com.icc.qasker.cost.entity.AiInvocation;
 import com.icc.qasker.cost.entity.OutboxStatus;
+import com.icc.qasker.cost.kafka.OutboxTracePropagator;
 import com.icc.qasker.cost.repository.AiCostOutboxRepository;
 import com.icc.qasker.cost.repository.AiInvocationRepository;
 import java.time.Instant;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -40,7 +42,14 @@ class AiCostRecorderImplTest {
     invocationRepository = mock(AiInvocationRepository.class);
     outboxRepository = mock(AiCostOutboxRepository.class);
     objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
-    recorder = new AiCostRecorderImpl(invocationRepository, outboxRepository, objectMapper);
+    recorder =
+        new AiCostRecorderImpl(
+            invocationRepository, outboxRepository, objectMapper, noopPropagator());
+  }
+
+  // 추적 비활성(Tracer/Propagator 부재) no-op 인스턴스 — capture()는 null 반환
+  private OutboxTracePropagator noopPropagator() {
+    return new OutboxTracePropagator(Optional.empty(), Optional.empty());
   }
 
   private AiInvocationCommand command(String requestId) {
@@ -103,7 +112,7 @@ class AiCostRecorderImplTest {
     ObjectMapper failing = mock(ObjectMapper.class);
     when(failing.writeValueAsString(any())).thenThrow(new JsonProcessingException("boom") {});
     AiCostRecorderImpl failingRecorder =
-        new AiCostRecorderImpl(invocationRepository, outboxRepository, failing);
+        new AiCostRecorderImpl(invocationRepository, outboxRepository, failing, noopPropagator());
 
     assertThatThrownBy(() -> failingRecorder.record(command(null)))
         .isInstanceOf(IllegalStateException.class);

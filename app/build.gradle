@@ -66,6 +66,11 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     // Prometheus 메트릭 엔드포인트 지원 (/actuator/prometheus)
     runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
+    // 분산 추적: Micrometer Observation → OpenTelemetry 브릿지 + OTLP trace exporter
+    // 예: Spring Kafka producer/listener Observation이 traceparent 헤더로 trace를 전파하고,
+    //     수집된 span은 management.otlp.tracing.endpoint(OTLP)로 내보낸다
+    implementation 'io.micrometer:micrometer-tracing-bridge-otel'
+    implementation 'io.opentelemetry:opentelemetry-exporter-otlp'
     // Flyway: DB 스키마 버전 관리 마이그레이션
     implementation 'org.flywaydb:flyway-core'
     implementation 'org.flywaydb:flyway-mysql'

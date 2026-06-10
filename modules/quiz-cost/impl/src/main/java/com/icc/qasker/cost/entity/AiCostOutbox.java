@@ -44,6 +44,10 @@ public class AiCostOutbox extends CreatedAt {
   @Column(nullable = false, columnDefinition = "LONGTEXT")
   private String payload;
 
+  /** 발행 시 복원할 분산 추적 컨텍스트(W3C traceparent). 추적 비활성이면 null. */
+  @Column(length = 64)
+  private String traceParent;
+
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
   private OutboxStatus status;
