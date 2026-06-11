@@ -8,23 +8,22 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class EssayGradingRequestPrompt {
 
+  private static final String INSTRUCTION = "위 분석적 루브릭의 각 요소별로 채점하고, 요소별 피드백과 종합 피드백을 작성하세요.";
+
+  private static final String INSTRUCTION_WITH_EVIDENCE =
+      "위 분석적 루브릭의 각 요소별로, 추출된 증거에 근거하여 채점하고, 요소별 피드백과 종합 피드백을 작성하세요.";
+
   /**
-   * 채점 유저 프롬프트를 생성한다.
+   * 채점 유저 프롬프트를 생성한다. (1-pass fallback용)
    *
    * @param question 질문문
    * @param modelAnswer 모범답안 (핵심 요소 포함)
    * @param rubric 분석적 루브릭 (explanation 필드에서 추출)
    * @param studentAnswer 학생이 제출한 답안
-   * @param attemptCount 시도 횟수 (1차: 채점만, 2차+: 피드백 포함)
    * @return 조합된 유저 프롬프트
    */
   public static String generate(
-      String question, String modelAnswer, String rubric, String studentAnswer, int attemptCount) {
-    String instruction =
-        attemptCount == 1
-            ? "위 분석적 루브릭의 각 요소별로 채점하고, 요소별 feedback은 경미한 방향성 힌트(1문장 이내)만 작성하세요. overallFeedback은 빈 문자열로 둡니다."
-            : "위 분석적 루브릭의 각 요소별로 채점하고, 요소별 피드백과 종합 피드백을 작성하세요.";
-
+      String question, String modelAnswer, String rubric, String studentAnswer) {
     return """
         [채점 요청]
         아래의 질문문, 모범답안, 분석적 루브릭, 학생 답안을 참고하여 채점하세요.
@@ -52,7 +51,7 @@ public class EssayGradingRequestPrompt {
         ---
 
         %s"""
-        .formatted(question, modelAnswer, rubric, studentAnswer, instruction);
+        .formatted(question, modelAnswer, rubric, studentAnswer, INSTRUCTION);
   }
 
   /**
@@ -62,20 +61,13 @@ public class EssayGradingRequestPrompt {
    * @param modelAnswer 모범답안
    * @param rubric 분석적 루브릭
    * @param evidence Pass 1에서 추출된 증거
-   * @param attemptCount 시도 횟수
    * @return 조합된 유저 프롬프트
    */
   public static String generateWithEvidence(
       String question,
       String modelAnswer,
       String rubric,
-      GeminiEvidenceExtractionResponse evidence,
-      int attemptCount) {
-    String instruction =
-        attemptCount == 1
-            ? "위 분석적 루브릭의 각 요소별로, 추출된 증거에 근거하여 채점하고, 요소별 feedback은 경미한 방향성 힌트(1문장 이내)만 작성하세요. overallFeedback은 빈 문자열로 둡니다."
-            : "위 분석적 루브릭의 각 요소별로, 추출된 증거에 근거하여 채점하고, 요소별 피드백과 종합 피드백을 작성하세요.";
-
+      GeminiEvidenceExtractionResponse evidence) {
     StringBuilder evidenceSection = new StringBuilder();
     for (var e : evidence.elements()) {
       evidenceSection.append("### ").append(e.element()).append("\n");
@@ -117,6 +109,7 @@ public class EssayGradingRequestPrompt {
         ---
 
         %s"""
-        .formatted(question, modelAnswer, rubric, evidenceSection.toString(), instruction);
+        .formatted(
+            question, modelAnswer, rubric, evidenceSection.toString(), INSTRUCTION_WITH_EVIDENCE);
   }
 }

@@ -37,21 +37,8 @@ public class EssayGradingGuideLine {
       - maxScore는 각 요소의 maxPoints 합계입니다. 루브릭의 배점 합계와 반드시 일치해야 합니다.
       """;
 
-  // 1차 시도: 경미한 힌트만 제공 (방향성만, 정답 키워드 노출 금지)
+  // 1차 시도: 구체적 안내 (모범답안 키워드 노출 금지)
   private static final String FEEDBACK_ATTEMPT_1 =
-      """
-
-      ## 3. 피드백 원칙 (경미한 힌트만 제시)
-      - 각 요소별 feedback은 **1문장 이내의 짧은 방향성 힌트**로만 작성합니다.
-      - **충족**: 잘 작성된 점을 한 문장으로 짧게 인정합니다. (예: "핵심을 잘 짚었어요.")
-      - **부분 충족**: 어떤 부분을 더 보완해야 하는지 **개략적 방향만** 한 문장으로 제시합니다. 구체적 키워드·표현·정답 내용은 노출하지 마세요. (예: "이 개념의 작동 원리를 한 단계 더 풀어 써 보세요.")
-      - **미충족**: 해당 요소를 답안에서 다루지 않았음을 짧게 알리고, 다시 생각해볼 수 있도록 가볍게 유도합니다. (예: "이 요소가 답안에 거의 드러나지 않아요. 강의노트의 관련 부분을 다시 살펴보세요.")
-      - 종합 피드백(overallFeedback)은 **빈 문자열("")**로 둡니다.
-      - 모범답안에 등장하는 구체 용어·수치·핵심 키워드를 직접 노출하지 마세요. 1차 시도는 **'다시 생각해보게 하는 가벼운 푸시'** 수준에 머물러야 합니다.
-      """;
-
-  // 2차 시도: 구체적 안내
-  private static final String FEEDBACK_ATTEMPT_2 =
       """
 
       ## 3. 피드백 원칙 (구체적 안내)
@@ -63,8 +50,8 @@ public class EssayGradingGuideLine {
       - overallFeedback은 잘한 점 → 부족한 점 → 개선 방향 순서로 작성합니다.
       """;
 
-  // 3~4차 시도: 모범답안 힌트 포함
-  private static final String FEEDBACK_ATTEMPT_3 =
+  // 2차 시도 이상: 정답 근접 가이드 (모범답안 핵심 키워드 힌트로 노출)
+  private static final String FEEDBACK_ATTEMPT_2 =
       """
 
       ## 3. 피드백 원칙 (정답 근접 가이드)
@@ -86,12 +73,7 @@ public class EssayGradingGuideLine {
 
   /** 시도 횟수에 따라 피드백 수준이 차등 적용된 시스템 프롬프트를 반환한다. */
   public static String of(int attemptCount) {
-    String feedbackSection =
-        switch (attemptCount) {
-          case 1 -> FEEDBACK_ATTEMPT_1;
-          case 2 -> FEEDBACK_ATTEMPT_2;
-          default -> FEEDBACK_ATTEMPT_3;
-        };
+    String feedbackSection = attemptCount == 1 ? FEEDBACK_ATTEMPT_1 : FEEDBACK_ATTEMPT_2;
     return COMMON_PREFIX + feedbackSection + COMMON_SUFFIX;
   }
 }
