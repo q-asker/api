@@ -3,8 +3,8 @@
 # Outbox payload는 이미 JSON 문자열이므로 value도 StringSerializer로 그대로 발행한다(이중 인코딩 방지).
 spring:
   kafka:
-    # 로컬 기본값. 운영(prod) broker 주소는 application-secrets.yml에서 암호화된 값(ENC)으로 override 된다.
-    bootstrap-servers: localhost:9092
+    #    # 로컬 기본값. 운영(prod) broker 주소는 application-secrets.yml에서 암호화된 값(ENC)으로 override 된다.
+    #    bootstrap-servers: localhost:9092
     template:
       # producer span 생성 + traceparent 헤더 자동 주입 (분산 추적 전파)
       observation-enabled: true
