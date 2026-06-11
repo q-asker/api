@@ -103,7 +103,7 @@ public class EssayGradingServiceImpl implements EssayGradingService {
               gradingOnly.elementScores(),
               gradingOnly.totalScore(),
               gradingOnly.maxScore(),
-              gradingOnly.overallFeedback(),
+              composeOverallFeedback(attemptCount, modelAnswer, gradingOnly.overallFeedback()),
               evJson);
       log.info(
           "ESSAY 채점 완료 (2-pass): 총점={}/{}, 소요={}ms, 토큰: 입력={}, 출력={}, 비용=${}",
@@ -157,7 +157,7 @@ public class EssayGradingServiceImpl implements EssayGradingService {
     UserMessage userMessage =
         new UserMessage(
             EssayGradingRequestPrompt.generateWithEvidence(
-                question, modelAnswer, rubric, evidence, attemptCount));
+                question, modelAnswer, rubric, evidence));
 
     var options =
         GoogleGenAiChatOptions.builder()
@@ -186,8 +186,7 @@ public class EssayGradingServiceImpl implements EssayGradingService {
     SystemMessage systemMessage = new SystemMessage(EssayGradingGuideLine.of(attemptCount));
     UserMessage userMessage =
         new UserMessage(
-            EssayGradingRequestPrompt.generate(
-                question, modelAnswer, rubric, studentAnswer, attemptCount));
+            EssayGradingRequestPrompt.generate(question, modelAnswer, rubric, studentAnswer));
 
     var options =
         GoogleGenAiChatOptions.builder()
@@ -208,7 +207,14 @@ public class EssayGradingServiceImpl implements EssayGradingService {
             + outputTokens * PRICE_OUTPUT_PER_1M / 1_000_000;
     metricsRecorder.recordGrading(elapsedMs, nonCachedInput, outputTokens, cost);
 
-    EssayGradingResult result = parseGradingResponse(responseText);
+    EssayGradingResult parsed = parseGradingResponse(responseText);
+    EssayGradingResult result =
+        new EssayGradingResult(
+            parsed.elementScores(),
+            parsed.totalScore(),
+            parsed.maxScore(),
+            composeOverallFeedback(attemptCount, modelAnswer, parsed.overallFeedback()),
+            parsed.evidenceJson());
 
     log.info(
         "ESSAY 채점 완료 (fallback 1-pass): 총점={}/{}, 소요={}ms",
@@ -254,5 +260,15 @@ public class EssayGradingServiceImpl implements EssayGradingService {
       log.warn("[채점 직렬화 실패] 증거 JSON 직렬화 실패", e);
       return null;
     }
+  }
+
+  /** LLM이 작성한 종합 평가 앞에 항상 `## 힌트` 헤더를 붙이고, 시도 3차 이상에서는 그 뒤에 `## 모범답안` 헤더와 모범답안 본문을 첨부한다. */
+  private static String composeOverallFeedback(
+      int attemptCount, String modelAnswer, String llmOverallFeedback) {
+    String hintSection = "## 힌트\n\n" + llmOverallFeedback;
+    if (attemptCount < 3) {
+      return hintSection;
+    }
+    return hintSection + "\n\n## 모범답안\n\n" + modelAnswer;
   }
 }
