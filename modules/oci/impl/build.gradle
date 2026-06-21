@@ -44,7 +44,7 @@ dependencies {
     // 테스트
     // ────────────────────────────────
     testImplementation "org.springframework.boot:spring-boot-starter-test"
-    testImplementation platform("org.junit:junit-bom:5.12.2")
+    testImplementation platform("org.junit:junit-bom:5.14.4")
     testRuntimeOnly "org.junit.platform:junit-platform-launcher"
 }
 
