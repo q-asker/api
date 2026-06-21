@@ -24,6 +24,7 @@ jobs:
       contents: read           # 코드 읽기
       pull-requests: write     # PR 코멘트 작성
       issues: write            # PR 코멘트는 issue 권한으로 처리됨
+      id-token: write          # OIDC 토큰 발급 (Claude Code Action 내부에서 사용, 필수)
 
     steps:
       - name: Checkout PR
@@ -39,9 +40,10 @@ jobs:
           # Max 구독으로 인증 (API 키 대신 OAuth 토큰 사용 → 별도 청구 없음)
           # 토큰 발급: 로컬에서 `claude setup-token` 실행 후 출력 토큰을 Secrets에 등록
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          # 분석에 적합한 모델 (Sonnet 4.6 — 코드 이해 충분 + 빠름)
+          # 분석에 적합한 모델 지정 (Sonnet 4.6 — 코드 이해 충분 + 빠름)
           # 더 정밀한 분석이 필요하면 'claude-opus-4-7'로 변경 가능
-          model: claude-sonnet-4-6
+          # 참고: claude-code-action은 model 파라미터 미지원, claude_args로 CLI 인자 전달
+          claude_args: "--model claude-sonnet-4-6"
           prompt: |
             너는 q-asker 백엔드 의존성 업데이트의 영향도를 분석하는 시니어 엔지니어다.
             아래 절차에 따라 한국어로 분석 보고서를 작성하고, PR에 코멘트로 게시해라.
