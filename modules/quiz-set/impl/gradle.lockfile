@@ -3,7 +3,7 @@
 # This file is expected to be part of source control.
 ch.qos.logback:logback-classic:1.5.32=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
 ch.qos.logback:logback-core:1.5.32=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
-com.bucket4j:bucket4j_jdk17-core:8.16.1=runtimeClasspath,testRuntimeClasspath
+com.bucket4j:bucket4j_jdk17-core:8.19.0=runtimeClasspath,testRuntimeClasspath
 com.fasterxml.jackson.core:jackson-annotations:2.21=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
 com.fasterxml.jackson.core:jackson-core:2.21.1=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
 com.fasterxml.jackson.core:jackson-databind:2.21.1=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
