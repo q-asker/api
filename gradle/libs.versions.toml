@@ -15,7 +15,7 @@ foojay = "0.8.0"
 # ── Libraries ───────────────────────────────────────────
 jasypt = "3.0.5"
 springdoc = "2.8.8"
-auth0-jwt = "4.5.0"
+auth0-jwt = "4.5.2"
 bucket4j = "8.16.1"
 jodconverter = "4.4.9"
 hashids = "1.0.3"
