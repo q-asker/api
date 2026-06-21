@@ -1,0 +1,104 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":dependencyDashboard",
+    ":semanticCommitsDisabled"
+  ],
+  "baseBranches": ["develop"],
+  "timezone": "Asia/Seoul",
+  "schedule": ["before 10am on monday"],
+  "prHourlyLimit": 0,
+  "prConcurrentLimit": 5,
+  "labels": ["dependencies", "renovate"],
+  "rebaseWhen": "behind-base-branch",
+  "commitMessagePrefix": "chore(deps):",
+  "separateMajorMinor": true,
+  "separateMinorPatch": false,
+  "packageRules": [
+    {
+      "matchUpdateTypes": ["major"],
+      "addLabels": ["major-update"],
+      "minimumReleaseAge": "7 days"
+    },
+    {
+      "matchUpdateTypes": ["minor", "patch"],
+      "minimumReleaseAge": "3 days"
+    },
+    {
+      "groupName": "spring",
+      "matchPackagePatterns": [
+        "^org\\.springframework",
+        "^io\\.spring"
+      ]
+    },
+    {
+      "groupName": "google-cloud",
+      "matchPackagePatterns": [
+        "^com\\.google\\.cloud",
+        "^com\\.google\\.api",
+        "^com\\.google\\.auth",
+        "^com\\.google\\.protobuf"
+      ]
+    },
+    {
+      "groupName": "oracle-cloud",
+      "matchPackagePatterns": ["^com\\.oracle\\.oci\\.sdk"]
+    },
+    {
+      "groupName": "observability",
+      "matchPackagePatterns": [
+        "^io\\.micrometer",
+        "^io\\.prometheus"
+      ]
+    },
+    {
+      "groupName": "resilience",
+      "matchPackagePatterns": ["^io\\.github\\.resilience4j"]
+    },
+    {
+      "groupName": "rate-limit",
+      "matchPackagePatterns": [
+        "^com\\.bucket4j",
+        "^com\\.github\\.ben-manes\\.caffeine"
+      ]
+    },
+    {
+      "groupName": "document-processing",
+      "matchPackagePatterns": [
+        "^org\\.apache\\.pdfbox",
+        "^org\\.jodconverter"
+      ]
+    },
+    {
+      "groupName": "testing",
+      "matchPackagePatterns": [
+        "^org\\.junit",
+        "^org\\.mockito",
+        "^org\\.assertj"
+      ]
+    },
+    {
+      "groupName": "lombok",
+      "matchPackageNames": ["org.projectlombok:lombok"]
+    },
+    {
+      "groupName": "github-actions",
+      "matchManagers": ["github-actions"],
+      "pinDigests": true
+    },
+    {
+      "groupName": "gradle-wrapper",
+      "matchManagers": ["gradle-wrapper"]
+    },
+    {
+      "matchDepTypes": ["plugin"],
+      "groupName": "gradle-plugins"
+    }
+  ],
+  "vulnerabilityAlerts": {
+    "labels": ["security"],
+    "minimumReleaseAge": null,
+    "schedule": ["at any time"]
+  }
+}
