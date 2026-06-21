@@ -6,7 +6,7 @@ plugins {
     // Jib: Docker 데몬 없이 컨테이너 이미지를 빌드·푸시하는 Google 제공 플러그인
     // 예: ./gradlew jib → Dockerfile 없이 Docker Hub에 이미지를 빌드·푸시,
     //     ./gradlew jibDockerBuild → 로컬 Docker 데몬에 이미지를 빌드
-    id "com.google.cloud.tools.jib" version "3.4.0"
+    alias(libs.plugins.jib)
 }
 
 // 루트 프로젝트의 version·group을 상속받아 일관된 아티팩트 좌표 유지
@@ -57,7 +57,7 @@ dependencies {
     implementation "org.springframework.boot:spring-boot-starter-web"
     // Jasypt: application.yml의 민감한 값(DB 비밀번호, API 키 등)을 ENC()로 암호화하여 Git 커밋 가능하게 함
     // 예: password: ENC(2kd9fj3k...) → Spring Boot 기동 시 자동 복호화
-    implementation "com.github.ulisesbocchio:jasypt-spring-boot-starter:3.0.5"
+    implementation libs.jasypt.spring.boot.starter
     // Spring Data JPA: JPA 기반 리포지토리 자동 생성, 엔티티 매핑 지원
     // 예: spring.jpa.hibernate.ddl-auto=validate 설정으로 엔티티와 DB 스키마 일치 여부를 검증
     implementation "org.springframework.boot:spring-boot-starter-data-jpa"

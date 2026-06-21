@@ -96,6 +96,9 @@ q-asker/api/
 │       ├── gcp/                  # GCP 인프라 (GCS, IAM, Vertex AI)
 │       └── oci/                  # OCI 인프라 (NSG Cloudflare 인바운드 규칙)
 ├── docs/                         # 문서, 분석 자료
+├── gradle/
+│   ├── libs.versions.toml        # Version Catalog: 모든 의존성/플러그인 버전 SSOT
+│   └── wrapper/                  # Gradle Wrapper
 ├── .githooks/                    # Git 훅 (pre-commit, pre-push, prepare-commit-msg)
 └── .github/workflows/            # CI/CD
     ├── cd-prod_deploy.yml
@@ -128,12 +131,21 @@ q-asker/api/
 
 - **빌드**: Gradle 8.14.3 (Groovy DSL)
 - **JDK**: 21 (Gradle Toolchain 자동 관리)
+- **Version Catalog**: `gradle/libs.versions.toml`이 모든 의존성·플러그인 버전의 SSOT
+    - 모듈 build.gradle에서는 `libs.xxx` 참조로 사용
+    - 새 의존성/버전 변경은 반드시 catalog에서 시작
+    - `settings.gradle`의 foojay 플러그인도 catalog TOML을 직접 파싱하여 일관성 유지
+- **Dependency Locking**: 모든 모듈에 `gradle.lockfile` 적용, transitive 의존성까지 박제
+    - `./gradlew resolveAndLockAll --write-locks` — lockfile 일괄 재생성
+    - `compileJava` 등 빌드 시 자동 검증, drift 발생 시 빌드 실패
+    - pre-commit hook이 의존성 파일 변경 감지 시 자동 재생성·staging
+- **Renovate**: `renovate.json`으로 의존성 업데이트 PR 자동 생성 (월요일 오전 KST 스케줄, 그룹핑 적용)
 - **포맷터**: Spotless + Google Java Format 1.25.2
     - `./gradlew spotlessApply` — 포맷 적용
     - `./gradlew spotlessCheck` — 포맷 검증
 - **Git Hooks** (`.githooks/`)
     - `prepare-commit-msg` — 브랜치에서 JIRA 티켓(`[A-Z]+-[0-9]+`) 감지하여 커밋 메시지 접두사 자동 추가
-    - `pre-commit` — `spotlessCheck` 실행, 위반 시 커밋 차단
+    - `pre-commit` — `spotlessCheck` + 의존성 lockfile 자동 동기화(`build.gradle`/`settings.gradle`/`libs.versions.toml` 변경 감지 시 `resolveAndLockAll` 실행 후 `gradle.lockfile` 자동 staging) + `application-secrets.yml` 암호화 검증
     - `pre-push` — `spotlessCheck` 실행, 위반 시 푸시 차단
 - **CI/CD**: GitHub Actions
     - `ci-check-code-convention.yml` — PR 포맷 검증
