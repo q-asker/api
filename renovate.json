@@ -5,7 +5,9 @@
     ":dependencyDashboard",
     ":semanticCommitsDisabled"
   ],
-  "baseBranches": ["develop"],
+  "baseBranchPatterns": [
+    "develop"
+  ],
   "timezone": "Asia/Seoul",
   "schedule": ["before 10am on monday"],
   "prHourlyLimit": 0,
@@ -27,55 +29,59 @@
     },
     {
       "groupName": "spring",
-      "matchPackagePatterns": [
-        "^org\\.springframework",
-        "^io\\.spring"
+      "matchPackageNames": [
+        "/^org\\.springframework/",
+        "/^io\\.spring/"
       ]
     },
     {
       "groupName": "google-cloud",
-      "matchPackagePatterns": [
-        "^com\\.google\\.cloud",
-        "^com\\.google\\.api",
-        "^com\\.google\\.auth",
-        "^com\\.google\\.protobuf"
+      "matchPackageNames": [
+        "/^com\\.google\\.cloud/",
+        "/^com\\.google\\.api/",
+        "/^com\\.google\\.auth/",
+        "/^com\\.google\\.protobuf/"
       ]
     },
     {
       "groupName": "oracle-cloud",
-      "matchPackagePatterns": ["^com\\.oracle\\.oci\\.sdk"]
+      "matchPackageNames": [
+        "/^com\\.oracle\\.oci\\.sdk/"
+      ]
     },
     {
       "groupName": "observability",
-      "matchPackagePatterns": [
-        "^io\\.micrometer",
-        "^io\\.prometheus"
+      "matchPackageNames": [
+        "/^io\\.micrometer/",
+        "/^io\\.prometheus/"
       ]
     },
     {
       "groupName": "resilience",
-      "matchPackagePatterns": ["^io\\.github\\.resilience4j"]
+      "matchPackageNames": [
+        "/^io\\.github\\.resilience4j/"
+      ]
     },
     {
       "groupName": "rate-limit",
-      "matchPackagePatterns": [
-        "^com\\.bucket4j",
-        "^com\\.github\\.ben-manes\\.caffeine"
+      "matchPackageNames": [
+        "/^com\\.bucket4j/",
+        "/^com\\.github\\.ben-manes\\.caffeine/"
       ]
     },
     {
       "groupName": "document-processing",
-      "matchPackagePatterns": [
-        "^org\\.apache\\.pdfbox",
-        "^org\\.jodconverter"
+      "matchPackageNames": [
+        "/^org\\.apache\\.pdfbox/",
+        "/^org\\.jodconverter/"
       ]
     },
     {
       "groupName": "testing",
-      "matchPackagePatterns": [
-        "^org\\.junit",
-        "^org\\.mockito",
-        "^org\\.assertj"
+      "matchPackageNames": [
+        "/^org\\.junit/",
+        "/^org\\.mockito/",
+        "/^org\\.assertj/"
       ]
     },
     {
