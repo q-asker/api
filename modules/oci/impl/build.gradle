@@ -22,9 +22,9 @@ dependencies {
     // ────────────────────────────────
     // OCI Object Storage 클라이언트: 버킷 파일 업로드
     // 예: uploadManager.upload(request)로 멀티파트 병렬 업로드
-    implementation "com.oracle.oci.sdk:oci-java-sdk-objectstorage:3.80.3"
+    implementation "com.oracle.oci.sdk:oci-java-sdk-objectstorage:3.90.0"
     // OCI SDK HTTP 클라이언트 (Spring Boot 3.x Jakarta 호환, Jersey3 사용)
-    implementation "com.oracle.oci.sdk:oci-java-sdk-common-httpclient-jersey3:3.80.3"
+    implementation "com.oracle.oci.sdk:oci-java-sdk-common-httpclient-jersey3:3.90.0"
 
     // ────────────────────────────────
     // Micrometer: Prometheus 커스텀 메트릭 (OCI 업로드 Timer)
