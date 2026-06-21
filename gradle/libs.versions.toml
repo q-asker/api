@@ -20,7 +20,7 @@ bucket4j = "8.16.1"
 jodconverter = "4.4.9"
 hashids = "1.0.3"
 resilience4j = "2.3.0"
-oci = "3.80.3"
+oci = "3.90.0"
 pdfbox = "3.0.3"
 httpclient5 = "5.3.1"
 
