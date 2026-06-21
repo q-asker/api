@@ -7,11 +7,11 @@ plugins {
     // 예: app/build.gradle에서 id 'org.springframework.boot'로 활성화하면
     //     bootJar, bootRun 등 부트 전용 태스크가 생성됨
     //     루트에 apply true로 두면 라이브러리 모듈에도 bootJar가 생겨 불필요한 실행 JAR이 만들어짐
-    id "org.springframework.boot" version "3.5.8" apply false
+    id "org.springframework.boot" version "4.1.0" apply false
     // Spotless: 코드 포맷팅 자동화 플러그인
     // 예: ./gradlew spotlessApply → 전체 소스 코드를 Google Java Format으로 자동 정렬
     //     ./gradlew spotlessCheck → CI에서 포맷 위반 여부를 검증
-    id "com.diffplug.spotless" version "7.0.4" apply false
+    id "com.diffplug.spotless" version "8.6.0" apply false
     // 모듈 간 의존성 그래프 시각화 플러그인
     // 예: ./gradlew generateDependencyGraph → build/reports/dependency-graph/ 에 PNG/SVG 생성
     id "com.vanniktech.dependency.graph.generator" version "0.8.0"
