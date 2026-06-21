@@ -28,7 +28,7 @@ dependencies {
     // ────────────────────────────────
     // SpringDoc OpenAPI: API 문서화 어노테이션(@Operation, @Schema) + Swagger UI 제공
     // 예: 서버 기동 후 /swagger-ui/index.html 접속하면 API 목록·테스트 UI가 제공됨
-    implementation "org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.8"
+    implementation "org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.3"
 
     // ────────────────────────────────
     // 유틸리티 & 장애 대응
