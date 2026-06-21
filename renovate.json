@@ -5,7 +5,9 @@
     ":dependencyDashboard",
     ":semanticCommitsDisabled"
   ],
-  "baseBranches": ["develop"],
+  "baseBranchPatterns": [
+    "develop"
+  ],
   "timezone": "Asia/Seoul",
   "schedule": ["before 10am on monday"],
   "prHourlyLimit": 0,
