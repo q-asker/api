@@ -17,83 +17,97 @@
   "separateMinorPatch": false,
   "packageRules": [
     {
+      "description": "Major updates: 7-day cooldown + label",
       "matchUpdateTypes": ["major"],
       "addLabels": ["major-update"],
       "minimumReleaseAge": "7 days"
     },
     {
+      "description": "Minor/patch updates: 3-day cooldown",
       "matchUpdateTypes": ["minor", "patch"],
       "minimumReleaseAge": "3 days"
     },
     {
-      "groupName": "spring",
-      "matchPackagePatterns": [
-        "^org\\.springframework",
-        "^io\\.spring"
-      ]
-    },
-    {
-      "groupName": "google-cloud",
-      "matchPackagePatterns": [
-        "^com\\.google\\.cloud",
-        "^com\\.google\\.api",
-        "^com\\.google\\.auth",
-        "^com\\.google\\.protobuf"
-      ]
-    },
-    {
-      "groupName": "oracle-cloud",
-      "matchPackagePatterns": ["^com\\.oracle\\.oci\\.sdk"]
-    },
-    {
-      "groupName": "observability",
-      "matchPackagePatterns": [
-        "^io\\.micrometer",
-        "^io\\.prometheus"
-      ]
-    },
-    {
-      "groupName": "resilience",
-      "matchPackagePatterns": ["^io\\.github\\.resilience4j"]
-    },
-    {
-      "groupName": "rate-limit",
-      "matchPackagePatterns": [
-        "^com\\.bucket4j",
-        "^com\\.github\\.ben-manes\\.caffeine"
-      ]
-    },
-    {
-      "groupName": "document-processing",
-      "matchPackagePatterns": [
-        "^org\\.apache\\.pdfbox",
-        "^org\\.jodconverter"
-      ]
-    },
-    {
-      "groupName": "testing",
-      "matchPackagePatterns": [
-        "^org\\.junit",
-        "^org\\.mockito",
-        "^org\\.assertj"
-      ]
-    },
-    {
-      "groupName": "lombok",
-      "matchPackageNames": ["org.projectlombok:lombok"]
-    },
-    {
+      "description": "GitHub Actions: pin to SHA digest",
       "groupName": "github-actions",
       "matchManagers": ["github-actions"],
       "pinDigests": true
     },
     {
+      "description": "Gradle wrapper",
       "groupName": "gradle-wrapper",
       "matchManagers": ["gradle-wrapper"]
     },
     {
-      "matchDepTypes": ["plugin"],
-      "groupName": "gradle-plugins"
+      "description": "Gradle plugins (depType=plugin). Specific groups below override this.",
+      "groupName": "gradle-plugins",
+      "matchDepTypes": ["plugin"]
+    },
+    {
+      "description": "Spring ecosystem (overrides gradle-plugins for spring-boot plugin)",
+      "groupName": "spring",
+      "matchPackageNames": [
+        "/^org\\.springframework/",
+        "/^io\\.spring/"
+      ]
+    },
+    {
+      "description": "Google Cloud",
+      "groupName": "google-cloud",
+      "matchPackageNames": [
+        "/^com\\.google\\.cloud/",
+        "/^com\\.google\\.api/",
+        "/^com\\.google\\.auth/",
+        "/^com\\.google\\.protobuf/"
+      ]
+    },
+    {
+      "description": "Oracle Cloud SDK",
+      "groupName": "oracle-cloud",
+      "matchPackageNames": ["/^com\\.oracle\\.oci\\.sdk/"]
+    },
+    {
+      "description": "Observability (Micrometer / Prometheus)",
+      "groupName": "observability",
+      "matchPackageNames": [
+        "/^io\\.micrometer/",
+        "/^io\\.prometheus/"
+      ]
+    },
+    {
+      "description": "Resilience4j",
+      "groupName": "resilience",
+      "matchPackageNames": ["/^io\\.github\\.resilience4j/"]
+    },
+    {
+      "description": "Rate limiting (Bucket4j + Caffeine)",
+      "groupName": "rate-limit",
+      "matchPackageNames": [
+        "/^com\\.bucket4j/",
+        "/^com\\.github\\.ben-manes\\.caffeine/"
+      ]
+    },
+    {
+      "description": "Document processing (PDFBox + JODConverter)",
+      "groupName": "document-processing",
+      "matchPackageNames": [
+        "/^org\\.apache\\.pdfbox/",
+        "/^org\\.jodconverter/"
+      ]
+    },
+    {
+      "description": "Testing frameworks (JUnit / Mockito / AssertJ)",
+      "groupName": "testing",
+      "matchPackageNames": [
+        "/^org\\.junit/",
+        "/^org\\.mockito/",
+        "/^org\\.assertj/"
+      ]
+    },
+    {
+      "description": "Lombok",
+      "groupName": "lombok",
+      "matchPackageNames": ["org.projectlombok:lombok"]
     }
   ],
   "vulnerabilityAlerts": {
