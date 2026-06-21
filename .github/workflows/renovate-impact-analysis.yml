@@ -47,9 +47,19 @@ jobs:
           # Claude Code Action 기본 정책: 봇이 트리거한 워크플로우는 차단 (무한 루프/남용 방지)
           # 우리는 의도적으로 Renovate 봇 PR만 분석 대상이므로 명시적 허용 필요
           allowed_bots: "renovate[bot]"
+          # 분석 결과를 PR에 단일 코멘트로 자동 게시 (재실행 시 갱신)
+          # → Claude가 직접 'gh pr comment' 호출할 필요 없음, 액션이 처리
+          use_sticky_comment: true
+          # 분석 진행 상태도 코멘트로 노출 (디버깅에 도움, 안정화 후 false로 전환)
+          track_progress: true
+          # 디버깅용 — Claude SDK 전체 출력을 액션 로그에 표시
+          # 운영 안정화 후 토큰/민감정보 노출 우려로 false로 되돌릴 것
+          show_full_output: true
           prompt: |
             너는 q-asker 백엔드 의존성 업데이트의 영향도를 분석하는 시니어 엔지니어다.
-            아래 절차에 따라 한국어로 분석 보고서를 작성하고, PR에 코멘트로 게시해라.
+            아래 절차에 따라 한국어로 분석 보고서를 작성하라.
+            너의 최종 응답은 자동으로 PR 코멘트로 게시되므로, 추가로 'gh pr comment' 같은
+            명령을 호출하지 말고 응답 본문에 보고서를 그대로 작성하면 된다.
 
             ## 분석 절차
 
@@ -70,7 +80,7 @@ jobs:
                - 🟡 MEDIUM: minor 업데이트, 사용처 다수, 동작 변화 가능성 있음
                - 🔴 HIGH: major 업데이트, 핵심 모듈 영향, breaking change 명시
 
-            ## 출력 형식 (반드시 이 마크다운 구조로 PR 코멘트 작성)
+            ## 출력 형식 (반드시 이 마크다운 구조로 최종 응답 작성)
 
             ```markdown
             ## 🤖 Claude 의존성 영향도 분석
