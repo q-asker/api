@@ -27,6 +27,6 @@ dependencies {
     // API 문서 (Swagger)
     // ────────────────────────────────
     // SpringDoc OpenAPI: API 문서화 어노테이션(@Operation, @Schema) + Swagger UI 제공
-    implementation "org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.8"
+    implementation "org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.17"
 
 }
