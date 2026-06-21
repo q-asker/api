@@ -6,7 +6,7 @@ plugins {
     // Jib: Docker 데몬 없이 컨테이너 이미지를 빌드·푸시하는 Google 제공 플러그인
     // 예: ./gradlew jib → Dockerfile 없이 Docker Hub에 이미지를 빌드·푸시,
     //     ./gradlew jibDockerBuild → 로컬 Docker 데몬에 이미지를 빌드
-    id "com.google.cloud.tools.jib" version "3.4.0"
+    id "com.google.cloud.tools.jib" version "3.5.3"
 }
 
 // 루트 프로젝트의 version·group을 상속받아 일관된 아티팩트 좌표 유지
