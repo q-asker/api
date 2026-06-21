@@ -44,6 +44,9 @@ jobs:
           # 더 정밀한 분석이 필요하면 'claude-opus-4-7'로 변경 가능
           # 참고: claude-code-action은 model 파라미터 미지원, claude_args로 CLI 인자 전달
           claude_args: "--model claude-sonnet-4-6"
+          # Claude Code Action 기본 정책: 봇이 트리거한 워크플로우는 차단 (무한 루프/남용 방지)
+          # 우리는 의도적으로 Renovate 봇 PR만 분석 대상이므로 명시적 허용 필요
+          allowed_bots: "renovate[bot]"
           prompt: |
             너는 q-asker 백엔드 의존성 업데이트의 영향도를 분석하는 시니어 엔지니어다.
             아래 절차에 따라 한국어로 분석 보고서를 작성하고, PR에 코멘트로 게시해라.
