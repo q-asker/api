@@ -14,20 +14,20 @@ jobs:
 
     steps:
       - name: 코드 체크아웃
-        uses: actions/checkout@v4
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
 
       - name: 환경변수들 등록
         run: |
           echo "${{ env.GRADLE_PROPERTIES }}" > app/gradle.properties
 
       - name: JDK 21 설정
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5
         with:
           distribution: "temurin"
           java-version: "21"
 
       - name: Gradle 설정
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6
 
       - name: Jib로 Docker 이미지 빌드 및 푸시
         run: ./gradlew jib --build-cache --parallel
@@ -74,7 +74,7 @@ jobs:
 
 
       - name: 코드 체크아웃
-        uses: actions/checkout@v4
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
 
       - name: build.gradle 버전 추출
         run: |
@@ -92,7 +92,7 @@ jobs:
           echo "DOCKER_IMAGE_NAME=${{ env.DOCKER_ID }}/${{ env.DOCKER_IMAGE_NAME }}:$VERSION" >> $GITHUB_ENV
 
       - name: 배포 파일(Docker Compose, Script, Nginx) 전송
-        uses: appleboy/scp-action@v0.1.7
+        uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345 # v1.0.0
         with:
           host: ${{ env.EC2_HOST }}
           username: ${{ env.EC2_USER }}
@@ -102,7 +102,7 @@ jobs:
           strip_components: 2
 
       - name: EC2에 배포
-        uses: appleboy/ssh-action@v0.1.7
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         with:
           host: ${{ env.EC2_HOST }}
           username: ${{ env.EC2_USER }}
