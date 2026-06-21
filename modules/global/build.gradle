@@ -28,7 +28,7 @@ dependencies {
     // ────────────────────────────────
     // SpringDoc OpenAPI: API 문서화 어노테이션(@Operation, @Schema) + Swagger UI 제공
     // 예: 서버 기동 후 /swagger-ui/index.html 접속하면 API 목록·테스트 UI가 제공됨
-    implementation "org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.8"
+    implementation libs.springdoc.openapi.starter.webmvc.ui
 
     // ────────────────────────────────
     // 유틸리티 & 장애 대응
@@ -36,16 +36,16 @@ dependencies {
     // Hashids: 숫자 ID를 짧은 고유 문자열로 인코딩/디코딩 (URL-safe ID 난독화)
     // 예: hashids.encode(123) → "YDx" / hashids.decode("YDx") → [123]
     //     DB의 auto-increment PK를 URL에 노출하지 않고 난독화된 문자열로 변환
-    implementation "org.hashids:hashids:1.0.3"
+    implementation libs.hashids
     // Resilience4j: Circuit Breaker, Retry, Rate Limiter 등 장애 격리 패턴 제공
     // 예: @CircuitBreaker(name = "externalApi") → 외부 API 연속 실패 시 자동으로 호출을 차단하고
     //     일정 시간 후 half-open 상태로 전환하여 복구 여부를 확인
-    implementation "io.github.resilience4j:resilience4j-spring-boot3:2.3.0"
+    implementation libs.resilience4j.spring.boot3
 
     // ────────────────────────────────
     // Rate Limiting
     // ────────────────────────────────
     // Bucket4j: Token Bucket 알고리즘 기반 요청 속도 제한
     // 예: 사용자별/엔드포인트별 차등 Rate Limit 적용, 버스트 트래픽 허용 + 평균 속도 제한
-    implementation "com.bucket4j:bucket4j_jdk17-core:8.16.1"
+    implementation libs.bucket4j.jdk17.core
 }
