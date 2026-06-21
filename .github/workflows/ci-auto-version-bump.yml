@@ -15,14 +15,14 @@ jobs:
 
     steps:
       - name: 토큰 발급
-        uses: actions/create-github-app-token@v1
+        uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1
         id: app-token
         with:
           app-id: ${{ vars.VERSION_BUMPER_APPID }}
           private-key: ${{ secrets.VERSION_BUMPER_SECRET }}
 
       - name: Checkout Source Branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           # 중요: PR의 머지된 코드가 아니라, 소스 브랜치(develop) 자체를 체크아웃해야 푸시 가능
           ref: ${{ github.head_ref }}
