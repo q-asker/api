@@ -20,8 +20,8 @@ dependencies {
     // ────────────────────────────────
     // 예: DocumentConverter.convert(inputFile).to(outputFile).execute()로 PPT/DOCX → PDF 변환
     //     Spring Boot Starter가 OfficeManager, DocumentConverter 빈을 자동 등록
-    implementation "org.jodconverter:jodconverter-local-lo:4.4.9"
-    implementation "org.jodconverter:jodconverter-spring-boot-starter:4.4.9"
+    implementation "org.jodconverter:jodconverter-local-lo:4.4.11"
+    implementation "org.jodconverter:jodconverter-spring-boot-starter:4.4.11"
 
     // ────────────────────────────────
     // Micrometer: Prometheus 커스텀 메트릭 (문서 변환 Timer)

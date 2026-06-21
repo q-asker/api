@@ -29,7 +29,7 @@ dependencies {
     implementation "com.google.cloud:google-cloud-storage"
 
     // Apache PDFBox: PDF 페이지 추출 (Slicing) 기능 제공
-    implementation "org.apache.pdfbox:pdfbox:3.0.3"
+    implementation "org.apache.pdfbox:pdfbox:3.0.7"
 
     // ────────────────────────────────
     // 테스트
