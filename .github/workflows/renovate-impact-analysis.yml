@@ -1,0 +1,118 @@
+name: Renovate PR Impact Analysis
+
+# Renovate가 생성한 의존성 업데이트 PR에 대해 Claude가 한국어로 영향도를 분석하고
+# PR 코멘트로 자동 게시한다. Max 구독 OAuth 토큰을 사용해 별도 API 비용 발생 없음.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  analyze:
+    # 조건 3가지를 모두 만족할 때만 실행:
+    # 1) PR이 'dependencies' 라벨을 가짐 (Renovate가 자동 부여)
+    # 2) 작성자가 renovate[bot] (다른 사람이 의존성 라벨 붙여도 분석 안 함 — 토큰 보호)
+    # 3) fork에서 온 PR이 아님 (secrets 노출 방지)
+    if: >-
+      contains(github.event.pull_request.labels.*.name, 'dependencies') &&
+      github.event.pull_request.user.login == 'renovate[bot]' &&
+      github.event.pull_request.head.repo.fork == false
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    permissions:
+      contents: read           # 코드 읽기
+      pull-requests: write     # PR 코멘트 작성
+      issues: write            # PR 코멘트는 issue 권한으로 처리됨
+      id-token: write          # OIDC 토큰 발급 (Claude Code Action 내부에서 사용, 필수)
+
+    steps:
+      - name: Checkout PR
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          # PR의 머지 결과 상태로 체크아웃하여 변경된 lockfile diff 직접 확인 가능
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0       # base와의 diff 분석을 위해 전체 히스토리 필요
+
+      - name: Run Claude impact analysis
+        uses: anthropics/claude-code-action@2fee15510437d71399d9139ed60433470484a8fb # v1
+        with:
+          # Max 구독으로 인증 (API 키 대신 OAuth 토큰 사용 → 별도 청구 없음)
+          # 토큰 발급: 로컬에서 `claude setup-token` 실행 후 출력 토큰을 Secrets에 등록
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # 분석에 적합한 모델 지정 (Sonnet 4.6 — 코드 이해 충분 + 빠름)
+          # 더 정밀한 분석이 필요하면 'claude-opus-4-7'로 변경 가능
+          # 참고: claude-code-action은 model 파라미터 미지원, claude_args로 CLI 인자 전달
+          claude_args: "--model claude-sonnet-4-6"
+          # Claude Code Action 기본 정책: 봇이 트리거한 워크플로우는 차단 (무한 루프/남용 방지)
+          # 우리는 의도적으로 Renovate 봇 PR만 분석 대상이므로 명시적 허용 필요
+          allowed_bots: "renovate[bot]"
+          # 분석 결과를 PR에 단일 코멘트로 자동 게시 (재실행 시 갱신)
+          # → Claude가 직접 'gh pr comment' 호출할 필요 없음, 액션이 처리
+          use_sticky_comment: true
+          # 분석 진행 상태도 코멘트로 노출 (디버깅에 도움, 안정화 후 false로 전환)
+          track_progress: true
+          # 디버깅용 — Claude SDK 전체 출력을 액션 로그에 표시
+          # 운영 안정화 후 토큰/민감정보 노출 우려로 false로 되돌릴 것
+          show_full_output: true
+          prompt: |
+            너는 q-asker 백엔드 의존성 업데이트의 영향도를 분석하는 시니어 엔지니어다.
+            아래 절차에 따라 한국어로 분석 보고서를 작성하라.
+            너의 최종 응답은 자동으로 PR 코멘트로 게시되므로, 추가로 'gh pr comment' 같은
+            명령을 호출하지 말고 응답 본문에 보고서를 그대로 작성하면 된다.
+
+            ## 분석 절차
+
+            1. **컨텍스트 파악**
+               - CLAUDE.md를 먼저 읽어 q-asker 프로젝트 구조와 기술 스택 이해
+               - PR 제목과 본문(release notes)을 읽고 어떤 라이브러리가 어떤 버전으로 바뀌는지 파악
+               - PR diff에서 다음 파일을 우선 확인:
+                 - `gradle/libs.versions.toml` (직접 의존성 버전 변화)
+                 - `**/gradle.lockfile` (transitive 의존성 변화)
+
+            2. **q-asker 코드 사용처 분석**
+               - 변경된 라이브러리/패키지를 q-asker 코드에서 grep으로 검색
+               - 어느 모듈의 어느 클래스가 사용 중인지 파악
+               - import 문, 어노테이션, 설정 파일(application.yml 등) 모두 확인
+
+            3. **위험도 판단 기준**
+               - 🟢 LOW: patch 업데이트, 사용처 없음/적음, breaking change 없음
+               - 🟡 MEDIUM: minor 업데이트, 사용처 다수, 동작 변화 가능성 있음
+               - 🔴 HIGH: major 업데이트, 핵심 모듈 영향, breaking change 명시
+
+            ## 출력 형식 (반드시 이 마크다운 구조로 최종 응답 작성)
+
+            ```markdown
+            ## 🤖 Claude 의존성 영향도 분석
+
+            ### 📦 변경점 요약
+            - **라이브러리명** `이전버전 → 새버전` (patch/minor/major)
+            - 핵심 변경 내용 (release notes에서 추출, 한국어로 풀어쓰기)
+            - 주요 transitive 의존성 변화 (lockfile diff에서 추출)
+
+            ### 🎯 Q-Asker 영향도: {🟢 LOW | 🟡 MEDIUM | 🔴 HIGH}
+
+            **사용처:**
+            - `modules/xxx/...` — 어떻게 쓰이는지 한 줄 설명
+            - `modules/yyy/...` — 어떻게 쓰이는지 한 줄 설명
+
+            **예상 영향:**
+            - 구체적으로 어떤 동작이 바뀔 수 있는지
+            - 우리 코드가 의존하는 API가 영향받는지
+
+            ### ✅ 권장 액션
+            - [ ] CI green 확인
+            - [ ] (해당 시) 로컬 `./gradlew bootRun` 후 핵심 시나리오 동작 확인
+            - [ ] (major인 경우) 별도 마이그레이션 티켓 생성 검토
+
+            ### 📋 참고
+            - Release Notes: PR 본문 참조
+            - 분석 모델: claude-sonnet-4-6
+            ```
+
+            ## 작성 원칙
+            - 추측 금지. **코드에서 실제로 확인된 사용처만** 언급
+            - 사용처 없으면 "현재 코드에서 직접 사용 안 함 (transitive only)" 명시
+            - Release notes가 부실하면 "release notes 정보 부족, 수동 검토 권장" 명시
+            - 한국어 자연스럽게, 영어 라이브러리/클래스명은 그대로
+            - 보고서는 간결하게. 불필요한 사족 금지

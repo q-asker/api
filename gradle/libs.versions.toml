@@ -1,0 +1,54 @@
+[versions]
+# ── BOMs ────────────────────────────────────────────────
+spring-boot = "3.5.8"
+spring-ai = "1.1.2"
+google-cloud = "26.67.0"
+junit = "5.14.4"
+
+# ── Plugins ─────────────────────────────────────────────
+spotless = "7.0.4"
+google-java-format = "1.25.2"
+dependency-graph-generator = "0.8.0"
+jib = "3.4.0"
+foojay = "0.8.0"
+
+# ── Libraries ───────────────────────────────────────────
+jasypt = "3.0.5"
+springdoc = "2.8.17"
+auth0-jwt = "4.5.0"
+bucket4j = "8.19.0"
+jodconverter = "4.4.9"
+hashids = "1.0.3"
+resilience4j = "2.3.0"
+oci = "3.90.0"
+pdfbox = "3.0.3"
+httpclient5 = "5.6.1"
+
+[libraries]
+# ── BOMs ────────────────────────────────────────────────
+spring-boot-bom = { module = "org.springframework.boot:spring-boot-dependencies", version.ref = "spring-boot" }
+spring-ai-bom = { module = "org.springframework.ai:spring-ai-bom", version.ref = "spring-ai" }
+google-cloud-bom = { module = "com.google.cloud:libraries-bom", version.ref = "google-cloud" }
+junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
+
+# ── Libraries ───────────────────────────────────────────
+jasypt-spring-boot-starter = { module = "com.github.ulisesbocchio:jasypt-spring-boot-starter", version.ref = "jasypt" }
+springdoc-openapi-starter-webmvc-ui = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc" }
+auth0-jwt = { module = "com.auth0:java-jwt", version.ref = "auth0-jwt" }
+bucket4j-jdk17-core = { module = "com.bucket4j:bucket4j_jdk17-core", version.ref = "bucket4j" }
+jodconverter-local-lo = { module = "org.jodconverter:jodconverter-local-lo", version.ref = "jodconverter" }
+jodconverter-spring-boot-starter = { module = "org.jodconverter:jodconverter-spring-boot-starter", version.ref = "jodconverter" }
+hashids = { module = "org.hashids:hashids", version.ref = "hashids" }
+resilience4j-spring-boot3 = { module = "io.github.resilience4j:resilience4j-spring-boot3", version.ref = "resilience4j" }
+oci-objectstorage = { module = "com.oracle.oci.sdk:oci-java-sdk-objectstorage", version.ref = "oci" }
+oci-httpclient-jersey3 = { module = "com.oracle.oci.sdk:oci-java-sdk-common-httpclient-jersey3", version.ref = "oci" }
+pdfbox = { module = "org.apache.pdfbox:pdfbox", version.ref = "pdfbox" }
+httpclient5 = { module = "org.apache.httpcomponents.client5:httpclient5", version.ref = "httpclient5" }
+
+[plugins]
+spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }
+spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
+dependency-graph-generator = { id = "com.vanniktech.dependency.graph.generator", version.ref = "dependency-graph-generator" }
+jib = { id = "com.google.cloud.tools.jib", version.ref = "jib" }
+# settings.gradle에서 직접 alias를 쓸 수 없어 marker로만 등록 (Renovate가 이 항목을 보고 업데이트 PR 생성)
+foojay-resolver-convention = { id = "org.gradle.toolchains.foojay-resolver-convention", version.ref = "foojay" }

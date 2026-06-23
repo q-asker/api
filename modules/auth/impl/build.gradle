@@ -38,7 +38,7 @@ dependencies {
     // Auth0 Java JWT: JWT 토큰 생성·파싱·검증 라이브러리
     // 예: JWT.create().withSubject(userId).sign(algorithm)으로 토큰 발급,
     //     JWT.require(algorithm).build().verify(token)으로 토큰 검증
-    implementation "com.auth0:java-jwt:4.5.0"
+    implementation libs.auth0.jwt
     // Spring OAuth2 Client: 소셜 로그인 OAuth2 인증 흐름 지원
     // 예: Google/Kakao 로그인 시 authorization code → access token 교환,
     //     사용자 프로필 조회까지의 흐름을 자동으로 처리
@@ -48,7 +48,7 @@ dependencies {
     // Rate Limiting
     // ────────────────────────────────
     // Bucket4j: Token Bucket 알고리즘 기반 요청 속도 제한 (RateLimitFilter에서 사용)
-    implementation "com.bucket4j:bucket4j_jdk17-core:8.16.1"
+    implementation libs.bucket4j.jdk17.core
     // Caffeine: 인메모리 캐시 (버킷 인스턴스 관리)
     implementation "com.github.ben-manes.caffeine:caffeine"
     // Micrometer: Rate Limit 메트릭 (잔여 토큰, 소비/차단 카운터) 수집
@@ -58,5 +58,5 @@ dependencies {
     // API 문서 (Swagger)
     // ────────────────────────────────
     // SpringDoc OpenAPI: API 문서화 어노테이션(@Operation, @Schema) + Swagger UI 제공
-    implementation "org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.8"
+    implementation libs.springdoc.openapi.starter.webmvc.ui
 }

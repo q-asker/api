@@ -9,6 +9,28 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
+# Gradle dependency lock 자동 동기화
+# build.gradle / settings.gradle / libs.versions.toml 변경 감지 시 lockfile 재생성 후 자동 staging
+DEP_CHANGES=$(git diff --cached --name-only | grep -E '(^|/)(build|settings)\.gradle$|^gradle/libs\.versions\.toml$')
+if [ -n "$DEP_CHANGES" ]; then
+  echo "의존성 파일 변경 감지 — gradle.lockfile 재생성 중..."
+  ./gradlew resolveAndLockAll --write-locks -q 2>/dev/null
+  if [ $? -ne 0 ]; then
+    echo ""
+    echo "[ERROR] resolveAndLockAll 실패. 의존성 해석 오류일 수 있습니다."
+    echo "./gradlew resolveAndLockAll --write-locks 를 직접 실행해 원인을 확인하세요."
+    exit 1
+  fi
+  UPDATED_LOCKS=$(git diff --name-only | grep 'gradle\.lockfile$')
+  if [ -n "$UPDATED_LOCKS" ]; then
+    echo "$UPDATED_LOCKS" | xargs git add
+    echo "갱신된 lockfile이 자동으로 staging 되었습니다:"
+    echo "$UPDATED_LOCKS" | sed 's/^/  /'
+  else
+    echo "lockfile 변경 없음."
+  fi
+fi
+
 # application-secrets.yml 암호화 검증 — 평문 값 커밋 차단
 SECRETS_FILE="app/src/main/resources/application-secrets.yml"
 if git diff --cached --name-only | grep -qF "$SECRETS_FILE"; then
