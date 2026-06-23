@@ -15,13 +15,13 @@
 | ORM           | Spring Data JPA + Hibernate                                           | (Boot BOM)     |
 | DB            | MySQL                                                                 | -              |
 | 인증            | JWT (Auth0 java-jwt 4.5.0) + OAuth2 Client                            | -              |
-| 클라우드          | OCI Java SDK (Object Storage) + Cloudflare CDN + Google Cloud Storage | 3.80.3         |
+| 클라우드          | OCI Java SDK (Object Storage) + Cloudflare CDN + Google Cloud Storage | 3.90.0         |
 | 문서변환          | JODConverter (LibreOffice)                                            | 4.4.9          |
 | PDF 처리        | Apache PDFBox                                                         | 3.0.3          |
 | 모니터링          | Micrometer + Prometheus + Actuator                                    | (Boot BOM)     |
 | 장애격리          | Resilience4j (Circuit Breaker)                                        | 2.3.0          |
-| Rate Limiting | Bucket4j + Caffeine                                                   | 8.16.1         |
-| API 문서        | SpringDoc OpenAPI (Swagger UI)                                        | 2.8.8          |
+| Rate Limiting | Bucket4j + Caffeine                                                   | 8.19.0         |
+| API 문서        | SpringDoc OpenAPI (Swagger UI)                                        | 2.8.17         |
 | 암호화           | Jasypt                                                                | 3.0.5          |
 | ID 난독화        | Hashids                                                               | 1.0.3          |
 | 빌드            | Gradle (Groovy DSL)                                                   | 8.14.3         |

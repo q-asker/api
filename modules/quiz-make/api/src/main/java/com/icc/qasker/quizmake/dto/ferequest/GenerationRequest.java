@@ -27,12 +27,15 @@ public record GenerationRequest(
             pageNumbers,
     Language language) {
 
-  private static final Set<Integer> ALLOWED_QUIZ_COUNTS = Set.of(5, 10, 15, 20);
+  private static final Set<Integer> ESSAY_ALLOWED_COUNTS = Set.of(5, 10);
+  private static final Set<Integer> DEFAULT_ALLOWED_COUNTS = Set.of(5, 10, 15, 20, 25, 30);
 
   public GenerationRequest {
-    if (!ALLOWED_QUIZ_COUNTS.contains(quizCount)) {
+    Set<Integer> allowed =
+        quizType == QuizType.ESSAY ? ESSAY_ALLOWED_COUNTS : DEFAULT_ALLOWED_COUNTS;
+    if (!allowed.contains(quizCount)) {
       throw new IllegalArgumentException(
-          "quizCount는 " + ALLOWED_QUIZ_COUNTS + " 중 하나여야 합니다. 입력값: " + quizCount);
+          "quizCount는 " + quizType + " 타입에서 " + allowed + " 중 하나여야 합니다. 입력값: " + quizCount);
     }
     if (language == null) {
       language = Language.KO;
