@@ -29,7 +29,7 @@ public final class ProblemMapper {
         quizDto.getSelections() == null
             ? new ArrayList<>()
             : quizDto.getSelections().stream()
-                .map(s -> new Selection(s.getContent(), s.isCorrect()))
+                .map(s -> new Selection(s.getContent(), s.getExplanation(), s.isCorrect()))
                 .collect(toList());
 
     List<Integer> referencedPages =

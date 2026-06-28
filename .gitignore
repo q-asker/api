@@ -56,9 +56,10 @@ monitor_downtime.sh
 shrimp-rules.md
 .mcp.json
 .claude
+.specify
+/specs
 shrimp_data
 docs
-.gstack/
 
 # Gemini CLI
 .gemini

@@ -15,7 +15,10 @@ public class QuizViewToQuizForFeMapper {
             .map(
                 selectionView -> {
                   return new SelectionForFE(
-                      selectionView.getId(), selectionView.getContent(), selectionView.isCorrect());
+                      selectionView.getId(),
+                      selectionView.getContent(),
+                      null,
+                      selectionView.isCorrect());
                 })
             .toList();
 
@@ -25,6 +28,7 @@ public class QuizViewToQuizForFeMapper {
         0,
         false,
         selections,
+        null,
         quizView.getAppliedInstruction());
   }
 }
