@@ -104,7 +104,8 @@ q-asker/api/
     ├── cd-prod_deploy.yml
     ├── ci-auto-version-bump.yml
     ├── ci-check-code-convention.yml
-    └── ci-update-api-docs.yml
+    ├── ci-update-api-docs.yml
+    └── renovate-impact-analysis.yml
 ```
 
 ## 환경 변수
@@ -151,4 +152,10 @@ q-asker/api/
     - `ci-check-code-convention.yml` — PR 포맷 검증
     - `ci-auto-version-bump.yml` — 자동 버전 범프
     - `ci-update-api-docs.yml` — OpenAPI 스펙 자동 갱신
+    - `renovate-impact-analysis.yml` — Renovate PR 영향 분석
     - `cd-prod_deploy.yml` — 운영 배포
+
+<!-- SPECKIT START -->
+For additional context about technologies to be used, project structure,
+shell commands, and other important information, read the current plan
+<!-- SPECKIT END -->

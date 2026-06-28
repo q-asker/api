@@ -19,8 +19,9 @@ public record ProblemSetResponse(
       int userAnswer,
       boolean check,
       List<SelectionForFE> selections,
+      String explanation,
       String appliedInstruction) {
 
-    public record SelectionForFE(int id, String content, boolean correct) {}
+    public record SelectionForFE(int id, String content, String explanation, boolean correct) {}
   }
 }

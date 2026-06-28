@@ -2,17 +2,21 @@ package com.icc.qasker.ai.service.ox;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.icc.qasker.ai.GeminiFileService;
+import com.icc.qasker.ai.dto.AIProblem;
 import com.icc.qasker.ai.dto.GeminiFileUploadResponse.FileMetadata;
 import com.icc.qasker.ai.dto.GenerationRequestToAI;
 import com.icc.qasker.ai.exception.GeminiInfraException;
 import com.icc.qasker.ai.mapper.GeminiQuestionMapper;
+import com.icc.qasker.ai.properties.QAskerAiProperties;
 import com.icc.qasker.ai.service.QuizTypeOrchestrator;
 import com.icc.qasker.ai.service.support.GeminiMetricsRecorder;
+import com.icc.qasker.ai.service.support.PreviousGenerationContext;
 import com.icc.qasker.ai.service.support.StreamingQuestionExtractor;
 import com.icc.qasker.ai.strategy.QuizType;
 import com.icc.qasker.ai.structure.GeminiResponseSchema;
 import com.icc.qasker.global.error.CustomException;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -21,6 +25,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.content.Media;
 import org.springframework.ai.google.genai.GoogleGenAiChatOptions;
@@ -30,9 +35,9 @@ import org.springframework.util.MimeTypeUtils;
 import reactor.core.publisher.Flux;
 
 /**
- * OX 퀴즈 오케스트레이터. 1회 호출 + 응답 스트리밍으로 문항이 완성될 때마다 즉시 SSE 전달한다.
+ * OX 퀴즈 오케스트레이터. N문항 요청을 chunk-size 단위로 분할 호출하고, 청크 K(K≥2)에는 직전 누적 문항 요약을 시스템 프롬프트에 주입한다.
  *
- * <p>단일 LLM 호출이므로 청크 간 소재 중복이 원천적으로 불가능하다. 캐시 없이 PDF를 직접 참조한다.
+ * <p>한 청크가 실패해도 직전 청크까지의 산출물은 보존된다(PRD S3.1).
  */
 @Slf4j
 @Component
@@ -44,16 +49,19 @@ public class OXQuizOrchestrator implements QuizTypeOrchestrator {
   private final ChatModel chatModel;
   private final ObjectMapper objectMapper;
   private final GeminiMetricsRecorder metricsRecorder;
+  private final QAskerAiProperties aiProperties;
 
   public OXQuizOrchestrator(
       GeminiFileService geminiFileService,
       ChatModel chatModel,
       ObjectMapper objectMapper,
-      GeminiMetricsRecorder metricsRecorder) {
+      GeminiMetricsRecorder metricsRecorder,
+      QAskerAiProperties aiProperties) {
     this.geminiFileService = geminiFileService;
     this.chatModel = chatModel;
     this.objectMapper = objectMapper;
     this.metricsRecorder = metricsRecorder;
+    this.aiProperties = aiProperties;
   }
 
   @Override
@@ -71,132 +79,195 @@ public class OXQuizOrchestrator implements QuizTypeOrchestrator {
     AtomicInteger delivered = new AtomicInteger(0);
     int quizCount = request.quizCount();
 
+    QuizType quizType = QuizType.valueOf(request.strategyValue());
+    String baseSystemPrompt = quizType.getSystemGuideLine(request.language());
+
+    String cacheKey =
+        geminiFileService.generateCacheKey(request.fileUrl(), request.referencePages());
+    FileMetadata metadata;
     try {
-      // PDF 업로드 (페이지가 지정되면 슬라이싱하여 업로드)
-      String cacheKey =
-          geminiFileService.generateCacheKey(request.fileUrl(), request.referencePages());
-      FileMetadata metadata =
+      metadata =
           geminiFileService
               .awaitCachedFileMetadata(cacheKey)
               .orElseGet(
                   () -> geminiFileService.uploadPdf(request.fileUrl(), request.referencePages()));
-
-      // 시스템 프롬프트 + PDF Media + 유저 프롬프트 구성
-      QuizType quizType = QuizType.valueOf(request.strategyValue());
-      String systemGuideLine = quizType.getSystemGuideLine(request.language());
-      String userPrompt =
-          quizType.generateRequestPrompt(
-              request.referencePages(), quizCount, request.customInstruction());
-
-      SystemMessage systemMessage = new SystemMessage(systemGuideLine);
-      Media pdfMedia =
-          new Media(MimeTypeUtils.parseMimeType("application/pdf"), URI.create(metadata.uri()));
-      UserMessage userMessage = UserMessage.builder().text(userPrompt).media(pdfMedia).build();
-
-      String responseSchema = GeminiResponseSchema.forInstruction(request.customInstruction());
-      var options =
-          GoogleGenAiChatOptions.builder()
-              .responseMimeType("application/json")
-              .responseSchema(responseSchema)
-              .build();
-
-      Prompt prompt = new Prompt(List.of(systemMessage, userMessage), options);
-      log.info("OX 스트리밍 생성 시작: 목표={}문항", quizCount);
-
-      // 스트리밍 파서: 문항 객체가 완성될 때마다 즉시 SSE 전달
-      StreamingQuestionExtractor extractor =
-          new StreamingQuestionExtractor(
-              objectMapper,
-              question -> {
-                if (delivered.get() >= quizCount) return;
-                if (question.selections() != null
-                    && question.selections().size() > MAX_SELECTION_COUNT) return;
-
-                int count = delivered.incrementAndGet();
-                request
-                    .questionsConsumer()
-                    .accept(GeminiQuestionMapper.toDto(List.of(question), metadata.sourcePages()));
-
-                long now = System.nanoTime();
-                firstNanos.compareAndSet(0, now);
-                lastNanos.updateAndGet(prev -> Math.max(prev, now));
-
-                if (count == 1) {
-                  long ttfqMs = (now - startNanos) / 1_000_000;
-                  log.info("TTFQ (Time To First Question): {}ms", ttfqMs);
-                }
-              });
-
-      // 스트리밍 실행
-      Flux<org.springframework.ai.chat.model.ChatResponse> stream = chatModel.stream(prompt);
-      stream
-          .doOnNext(
-              response -> {
-                response.getResult();
-                if (response.getResult().getOutput() != null
-                    && response.getResult().getOutput().getText() != null) {
-                  extractor.feed(response.getResult().getOutput().getText());
-                }
-
-                if (response.getMetadata().getUsage() != null
-                    && response.getMetadata().getUsage().getCompletionTokens() > 0) {
-                  var usage = response.getMetadata().getUsage();
-                  long elapsedMs = (System.nanoTime() - startNanos) / 1_000_000;
-                  double cost = metricsRecorder.recordChunkResult(elapsedMs, usage);
-                  totalCost.add(cost);
-                  long thinkingTokens =
-                      usage instanceof GoogleGenAiUsage g && g.getThoughtsTokenCount() != null
-                          ? g.getThoughtsTokenCount()
-                          : 0;
-                  log.info(
-                      "Gemini Usage - streaming, 토큰: 입력={}, 추론={}, 출력={}, 비용=${}",
-                      usage.getPromptTokens(),
-                      thinkingTokens,
-                      usage.getCompletionTokens(),
-                      String.format("%.6f", cost));
-                }
-              })
-          .blockLast(java.time.Duration.ofMinutes(6));
-
-      log.info(
-          "OX 스트리밍 생성 완료: 전달={}문항, 총 소요={}ms",
-          delivered.get(),
-          (System.nanoTime() - startNanos) / 1_000_000);
-
-      Long first = firstNanos.get() == 0 ? null : firstNanos.get();
-      Long last = lastNanos.get() == 0 ? null : lastNanos.get();
-      metricsRecorder.recordRequestDuration(1, startNanos, first, last, totalCost.sum());
-      return 1;
-
-    } catch (IllegalStateException e) {
-      // blockLast 타임아웃 — cause가 TimeoutException인 경우만 정상 처리
-      if (!(e.getCause() instanceof java.util.concurrent.TimeoutException)) {
-        throw new GeminiInfraException("Gemini 블로킹 컨텍스트 오류", e);
-      }
-      log.warn("[OX 스트리밍 타임아웃] 6분 초과, 생성된 문항 유지 deliveredCount={}", delivered.get());
-      metricsRecorder.recordStreamingTimeout("OX");
-      metricsRecorder.recordRequestDuration(
-          1,
-          startNanos,
-          firstNanos.get() == 0 ? null : firstNanos.get(),
-          lastNanos.get() == 0 ? null : lastNanos.get(),
-          totalCost.sum());
-      return 1;
     } catch (CustomException e) {
       throw e;
     } catch (Exception e) {
-      if (delivered.get() > 0) {
-        log.warn("[OX 부분 성공] 스트리밍 중 오류 발생이나 문항 전달됨 deliveredCount={}", delivered.get(), e);
-        metricsRecorder.recordStreamingTimeout("OX");
-        metricsRecorder.recordRequestDuration(
-            1,
+      throw new GeminiInfraException("PDF 업로드 실패", e);
+    }
+
+    List<Integer> chunkPlan = aiProperties.getChunk().planChunks(quizCount);
+    log.info(
+        "OX 청크 분할: 요청={}문항, chunk-size={}, 청크={}개",
+        quizCount,
+        aiProperties.getChunk().getChunkSize(),
+        chunkPlan.size());
+
+    List<AIProblem> accumulated = new ArrayList<>();
+    int chunksDone = 0;
+
+    try {
+      for (int chunkIndex = 0; chunkIndex < chunkPlan.size(); chunkIndex++) {
+        int chunkSize = chunkPlan.get(chunkIndex);
+        if (delivered.get() >= quizCount) break;
+
+        String systemPrompt = buildSystemPrompt(baseSystemPrompt, accumulated, chunkIndex);
+        String userPrompt =
+            quizType.generateRequestPrompt(
+                request.referencePages(), chunkSize, request.customInstruction());
+
+        runChunk(
+            chunkIndex,
+            systemPrompt,
+            userPrompt,
+            metadata,
+            request,
+            quizCount,
+            chunkSize,
             startNanos,
-            firstNanos.get() == 0 ? null : firstNanos.get(),
-            lastNanos.get() == 0 ? null : lastNanos.get(),
-            totalCost.sum());
-        return 1;
+            delivered,
+            firstNanos,
+            lastNanos,
+            totalCost,
+            accumulated);
+        chunksDone++;
       }
-      throw new GeminiInfraException("Gemini 인프라 장애", e);
+    } catch (CustomException e) {
+      if (delivered.get() == 0) throw e;
+      log.warn(
+          "OX 청크 도중 비즈니스 오류. {}/{} 청크, {}문항 보존.", chunksDone, chunkPlan.size(), delivered.get(), e);
+    } catch (Exception e) {
+      if (delivered.get() == 0) throw new GeminiInfraException("Gemini 인프라 장애", e);
+      log.warn(
+          "OX 청크 도중 인프라 오류. {}/{} 청크, {}문항 보존.", chunksDone, chunkPlan.size(), delivered.get(), e);
+      metricsRecorder.recordStreamingTimeout("OX");
+    }
+
+    log.info(
+        "OX 청크 루프 완료: 전달={}문항(목표 {}), 청크 완료={}/{}, 총 소요={}ms",
+        delivered.get(),
+        quizCount,
+        chunksDone,
+        chunkPlan.size(),
+        (System.nanoTime() - startNanos) / 1_000_000);
+
+    Long first = firstNanos.get() == 0 ? null : firstNanos.get();
+    Long last = lastNanos.get() == 0 ? null : lastNanos.get();
+    metricsRecorder.recordRequestDuration(chunksDone, startNanos, first, last, totalCost.sum());
+    return chunksDone == 0 ? 1 : chunksDone;
+  }
+
+  private void runChunk(
+      int chunkIndex,
+      String systemPrompt,
+      String userPrompt,
+      FileMetadata metadata,
+      GenerationRequestToAI request,
+      int quizCount,
+      int chunkSize,
+      long startNanos,
+      AtomicInteger delivered,
+      AtomicLong firstNanos,
+      AtomicLong lastNanos,
+      DoubleAdder totalCost,
+      List<AIProblem> accumulated) {
+
+    var pdfMedia =
+        new Media(MimeTypeUtils.parseMimeType("application/pdf"), URI.create(metadata.uri()));
+    var userMessage = UserMessage.builder().text(userPrompt).media(pdfMedia).build();
+    var systemMessage = new SystemMessage(systemPrompt);
+
+    String responseSchema = GeminiResponseSchema.forInstruction(request.customInstruction());
+    var options =
+        GoogleGenAiChatOptions.builder()
+            .responseMimeType("application/json")
+            .responseSchema(responseSchema)
+            .build();
+
+    Prompt prompt = new Prompt(List.of(systemMessage, userMessage), options);
+    log.info(
+        "OX 청크 #{} 시작: 청크 목표={}문항, 누적={}/{}", chunkIndex, chunkSize, delivered.get(), quizCount);
+
+    StreamingQuestionExtractor extractor =
+        new StreamingQuestionExtractor(
+            objectMapper,
+            question -> {
+              if (delivered.get() >= quizCount) return;
+              if (question.selections() != null
+                  && question.selections().size() > MAX_SELECTION_COUNT) return;
+
+              int count = delivered.incrementAndGet();
+              var dtoSet = GeminiQuestionMapper.toDto(List.of(question), metadata.sourcePages());
+              if (dtoSet.quiz() != null) {
+                accumulated.addAll(dtoSet.quiz());
+              }
+              request.questionsConsumer().accept(dtoSet);
+
+              long now = System.nanoTime();
+              firstNanos.compareAndSet(0, now);
+              lastNanos.updateAndGet(prev -> Math.max(prev, now));
+
+              if (count == 1) {
+                long ttfqMs = (now - startNanos) / 1_000_000;
+                log.info("TTFQ (Time To First Question): {}ms", ttfqMs);
+              }
+            });
+
+    Flux<ChatResponse> stream = chatModel.stream(prompt);
+    stream
+        .doOnNext(
+            response -> {
+              if (response.getResult() != null
+                  && response.getResult().getOutput() != null
+                  && response.getResult().getOutput().getText() != null) {
+                extractor.feed(response.getResult().getOutput().getText());
+              }
+
+              if (response.getMetadata().getUsage() != null
+                  && response.getMetadata().getUsage().getCompletionTokens() > 0) {
+                var usage = response.getMetadata().getUsage();
+                long elapsedMs = (System.nanoTime() - startNanos) / 1_000_000;
+                double cost = metricsRecorder.recordChunkResult(elapsedMs, usage);
+                totalCost.add(cost);
+                long thinkingTokens =
+                    usage instanceof GoogleGenAiUsage g && g.getThoughtsTokenCount() != null
+                        ? g.getThoughtsTokenCount()
+                        : 0;
+                log.info(
+                    "Gemini Usage - OX chunk #{}, 토큰: 입력={}, 추론={}, 출력={}, 비용=${}",
+                    chunkIndex,
+                    usage.getPromptTokens(),
+                    thinkingTokens,
+                    usage.getCompletionTokens(),
+                    String.format("%.6f", cost));
+              }
+            })
+        .blockLast(java.time.Duration.ofMinutes(6));
+  }
+
+  private String buildSystemPrompt(
+      String baseSystemPrompt, List<AIProblem> accumulated, int chunkIndex) {
+    if (chunkIndex == 0 || accumulated.isEmpty()) return baseSystemPrompt;
+
+    PreviousGenerationContext ctx = PreviousGenerationContext.from(accumulated);
+    if (ctx.isEmpty()) return baseSystemPrompt;
+
+    String summaryJson = serializeContext(ctx);
+    return baseSystemPrompt
+        + "\n\n# 직전 청크 누적 문항 요약 (중복 회피용)\n"
+        + summaryJson
+        + "\n\n> **CRITICAL RULE**: 위 직전 문항 목록과 주제·표현·정답(O/X 분포)이 겹치지 않게 이번 청크 문항을 작성한다."
+        + " stemSummary와 동일·유사한 진술은 다른 각도(다른 강의노트 페이지, 다른 개념 차원)로 재구성하고,"
+        + " 정답(answerIndex)이 직전 청크와 한쪽으로 쏠리지 않게 분산한다.";
+  }
+
+  private String serializeContext(PreviousGenerationContext ctx) {
+    try {
+      return objectMapper.writeValueAsString(ctx);
+    } catch (Exception e) {
+      log.warn("직전 컨텍스트 직렬화 실패. 컨텍스트 주입 생략.", e);
+      return "[]";
     }
   }
 }
