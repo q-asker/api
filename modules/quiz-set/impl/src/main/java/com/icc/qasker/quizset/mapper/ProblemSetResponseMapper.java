@@ -25,7 +25,7 @@ public final class ProblemSetResponseMapper {
             .mapToObj(
                 i -> {
                   Selection sel = problem.getSelections().get(i);
-                  return new SelectionForFE(i + 1, sel.content(), sel.correct());
+                  return new SelectionForFE(i + 1, sel.content(), sel.explanation(), sel.correct());
                 })
             .toList();
 
@@ -35,6 +35,7 @@ public final class ProblemSetResponseMapper {
         0,
         false,
         selections,
+        problem.getExplanationContent(),
         problem.getAppliedInstruction());
   }
 
