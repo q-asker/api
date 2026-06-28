@@ -28,7 +28,7 @@ jobs:
 
     steps:
       - name: Checkout PR
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
           # PR의 머지 결과 상태로 체크아웃하여 변경된 lockfile diff 직접 확인 가능
           ref: ${{ github.event.pull_request.head.sha }}
