@@ -94,7 +94,7 @@ q-asker/api/
 │   ├── base-image/               # Docker 베이스 이미지
 │   └── terraform/
 │       ├── gcp/                  # GCP 인프라 (GCS, IAM, Vertex AI)
-│       └── oci/                  # OCI 인프라 (NSG Cloudflare 인바운드 규칙)
+│       └── oci/                  # OCI 인프라 (NSG Cloudflare 인바운드, MySQL HeatWave 백업/PITR)
 ├── docs/                         # 문서, 분석 자료
 ├── gradle/
 │   ├── libs.versions.toml        # Version Catalog: 모든 의존성/플러그인 버전 SSOT
