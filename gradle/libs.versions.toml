@@ -17,11 +17,11 @@ jasypt = "3.0.5"
 springdoc = "2.8.17"
 auth0-jwt = "4.5.0"
 bucket4j = "8.19.0"
-jodconverter = "4.4.9"
+jodconverter = "4.4.11"
 hashids = "1.0.3"
 resilience4j = "2.3.0"
 oci = "3.90.0"
-pdfbox = "3.0.3"
+pdfbox = "3.0.7"
 httpclient5 = "5.6.1"
 
 [libraries]
