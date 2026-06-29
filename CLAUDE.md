@@ -120,7 +120,7 @@ q-asker/api/
 - Google Cloud: Vertex AI + GCS (ADC 인증)
     - `spring.ai.google.genai.project-id`: GCP 프로젝트 ID
     - `spring.ai.google.genai.location`: GCP 엔드포인트 (현재: `global`)
-    - `GCS_BUCKET_NAME`: GCS 버킷 이름 (기본값: `q-asker-ai-files`)
+    - `q-asker.ai.gcs.bucket-name`: GCS 버킷 이름 (application-secrets.yml에 ENC로 주입)
     - 로컬: `gcloud auth application-default login`, 프로덕션: 서비스 계정
 - DDoS 방어: Cloudflare Free (`api.q-asker.com`만 프록시 활성화)
 - SSL/HTTPS: Cloudflare (Universal SSL) → Nginx (Origin CA TLS), Full (Strict) 모드
