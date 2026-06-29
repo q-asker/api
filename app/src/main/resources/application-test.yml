@@ -15,7 +15,8 @@ oci:
     config-file-path: /dev/null
     profile: DEFAULT
     namespace: ci-dummy
-    bucket-name: ci-dummy
+    image-bucket-name: ci-dummy
+    pdf-bucket-name: ci-dummy
 
 spring:
   cache:
@@ -83,7 +84,8 @@ q-asker:
     frontend-deploy-url: http://localhost:3000
 
 cdn:
-  base-url: http://localhost
+  image-base-url: http://localhost
+  file-base-url: http://localhost
 
 jodconverter:
   local:

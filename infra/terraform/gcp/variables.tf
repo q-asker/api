@@ -1,7 +1,7 @@
 variable "project_id" {
   description = "GCP 프로젝트 ID"
   type        = string
-  default     = "project-e9d67c94-3157-456d-83b"
+  default     = "project-568b4cc1-9e5e-4d68-91d"
 }
 
 variable "region" {
@@ -13,7 +13,7 @@ variable "region" {
 variable "gcs_bucket_name" {
   description = "Vertex AI 컨텍스트 캐싱용 PDF 임시 저장 버킷"
   type        = string
-  default     = "q-asker-ai-files"
+  default     = "q-asker-ai-files-v2"
 }
 
 variable "service_account_id" {

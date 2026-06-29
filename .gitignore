@@ -41,6 +41,8 @@ out/
 *.tfstate
 *.tfstate.backup
 .terraform/
+# 로컬 롤백용 state 백업 폴더 (state 마이그레이션 시 생성)
+**/.backup-old-project-*/
 
 ### Custom ###
 **/src/main/resources/application-**

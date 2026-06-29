@@ -67,6 +67,8 @@ q-asker/api/
 │   └── src/main/resources/
 │       ├── application.yml       # 설정 진입점 (config/ import)
 │       ├── application-secrets.yml  # 암호화된 시크릿
+│       ├── application-test.yml  # test 프로파일 (CI/JUnit, H2 + 더미 Jasypt/OCI)
+│       ├── db/migration/         # Flyway 마이그레이션 SQL (V1~V13)
 │       └── config/               # 분리된 설정 파일들
 │           ├── database-config.yml   # 서버, DB, JPA, 캐시
 │           ├── ai-setting.yml        # Google Gemini AI 설정
@@ -94,7 +96,7 @@ q-asker/api/
 │   ├── base-image/               # Docker 베이스 이미지
 │   └── terraform/
 │       ├── gcp/                  # GCP 인프라 (GCS, IAM, Vertex AI)
-│       └── oci/                  # OCI 인프라 (NSG Cloudflare 인바운드 규칙)
+│       └── oci/                  # OCI 인프라 (NSG Cloudflare 인바운드, MySQL HeatWave 백업/PITR)
 ├── docs/                         # 문서, 분석 자료
 ├── gradle/
 │   ├── libs.versions.toml        # Version Catalog: 모든 의존성/플러그인 버전 SSOT
@@ -112,7 +114,7 @@ q-asker/api/
 
 - 민감한 값은 `application-secrets.yml`에 Jasypt `ENC()`로 암호화하여 관리
 - Jasypt 복호화 키: `JASYPT_PASSWORD` 환경변수 또는 JVM 옵션으로 전달
-- 프로파일: `local` (개발), `prod` (운영)
+- 프로파일: `local` (개발), `prod` (운영), `test` (CI/JUnit)
 - Actuator 포트: 9090 (서비스 포트와 분리)
 - Virtual Threads 활성화 (`spring.threads.virtual.enabled: true`)
 - OCI Object Storage: `~/.oci/config` 파일 기반 인증, `OCI_NAMESPACE`, `OCI_IMAGE_BUCKET_NAME`,
@@ -120,7 +122,7 @@ q-asker/api/
 - Google Cloud: Vertex AI + GCS (ADC 인증)
     - `spring.ai.google.genai.project-id`: GCP 프로젝트 ID
     - `spring.ai.google.genai.location`: GCP 엔드포인트 (현재: `global`)
-    - `GCS_BUCKET_NAME`: GCS 버킷 이름 (기본값: `q-asker-ai-files`)
+    - `q-asker.ai.gcs.bucket-name`: GCS 버킷 이름 (application-secrets.yml에 ENC로 주입)
     - 로컬: `gcloud auth application-default login`, 프로덕션: 서비스 계정
 - DDoS 방어: Cloudflare Free (`api.q-asker.com`만 프록시 활성화)
 - SSL/HTTPS: Cloudflare (Universal SSL) → Nginx (Origin CA TLS), Full (Strict) 모드
