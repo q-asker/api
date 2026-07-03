@@ -76,6 +76,8 @@ dependencies {
 
     // 테스트
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    // 부팅 회귀 테스트(ApplicationContextBootTest)에서 CircuitBreakerRegistry를 주입받기 위해 필요
+    testImplementation libs.resilience4j.spring.boot3
 }
 
 springBoot {

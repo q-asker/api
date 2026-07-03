@@ -1,6 +1,5 @@
 package com.icc.qasker.ai.service.essay;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.icc.qasker.ai.GeminiFileService;
 import com.icc.qasker.ai.dto.GeminiFileUploadResponse.FileMetadata;
 import com.icc.qasker.ai.dto.GenerationRequestToAI;
@@ -29,6 +28,7 @@ import org.springframework.ai.google.genai.metadata.GoogleGenAiUsage;
 import org.springframework.stereotype.Component;
 import org.springframework.util.MimeTypeUtils;
 import reactor.core.publisher.Flux;
+import tools.jackson.databind.ObjectMapper;
 
 /** 서술형(ESSAY) 퀴즈 오케스트레이터. 캐시 없이 1회 호출 + 응답 스트리밍으로 문항이 완성될 때마다 즉시 SSE 전달한다. */
 @Slf4j

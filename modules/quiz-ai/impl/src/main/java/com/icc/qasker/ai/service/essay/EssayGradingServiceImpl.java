@@ -1,7 +1,5 @@
 package com.icc.qasker.ai.service.essay;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.icc.qasker.ai.EssayGradingService;
 import com.icc.qasker.ai.dto.EssayGradingResult;
 import com.icc.qasker.ai.exception.GeminiInfraException;
@@ -25,6 +23,8 @@ import org.springframework.ai.google.genai.GoogleGenAiChatOptions;
 import org.springframework.ai.google.genai.metadata.GoogleGenAiUsage;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * ESSAY 답안 채점 서비스. 2-pass 파이프라인으로 채점한다.
@@ -263,7 +263,7 @@ public class EssayGradingServiceImpl implements EssayGradingService {
   private String serializeEvidence(GeminiEvidenceExtractionResponse evidence) {
     try {
       return objectMapper.writeValueAsString(evidence);
-    } catch (JsonProcessingException e) {
+    } catch (JacksonException e) {
       log.warn("[채점 직렬화 실패] 증거 JSON 직렬화 실패", e);
       return null;
     }

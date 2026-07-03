@@ -1,6 +1,5 @@
 package com.icc.qasker.ai.service.blank;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.icc.qasker.ai.GeminiFileService;
 import com.icc.qasker.ai.dto.AIProblem;
 import com.icc.qasker.ai.dto.GeminiFileUploadResponse.FileMetadata;
@@ -33,6 +32,7 @@ import org.springframework.ai.google.genai.metadata.GoogleGenAiUsage;
 import org.springframework.stereotype.Component;
 import org.springframework.util.MimeTypeUtils;
 import reactor.core.publisher.Flux;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * 빈칸채우기(BLANK) 퀴즈 오케스트레이터. N문항 요청을 chunk-size 단위로 분할 호출하고, 청크 K(K≥2)에는 직전 누적 문항 요약을 시스템 프롬프트에 주입한다.
