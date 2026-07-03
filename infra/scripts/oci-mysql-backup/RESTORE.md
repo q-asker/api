@@ -1,6 +1,19 @@
-# `restore.sh` 사용법
+# 복구 가이드 (`restore.sh` 사용법 + 실제 재해 복구)
 
-L2 백업 객체를 Docker 격리 환경에 복구하고 T7 헬스체크까지 자동 수행하는 단일 명령 스크립트.
+이 문서는 두 시나리오를 다룬다:
+
+| 시나리오 | 대상 | 진입점 | 서비스 다운타임 |
+|---|---|---|---|
+| **격리 검증 · GameDay 훈련** | Docker 격리 컨테이너 | `restore.sh` (자동, 45초) | 없음 |
+| **실제 재해 복구** | 실 HeatWave 인스턴스 | 수동 절차 (아래 §실제 재해 복구) | 있음 (endpoint 전환 시) |
+
+**중요**: `restore.sh`는 **격리 검증 전용**이다. 실제 운영 데이터를 되돌리려면 아래 "§실제 재해 복구" 섹션의 수동 절차를 따른다.
+
+문서 앞부분은 `restore.sh` 사용법(격리 검증), 문서 뒷부분(§실제 재해 복구)은 HeatWave 인스턴스 실제 복원 절차.
+
+---
+
+## Part 1 · 격리 검증 (`restore.sh`)
 
 ## 5분 안의 첫 명령 (spec SC-006)
 
@@ -254,6 +267,215 @@ mysql -h 127.0.0.1 -P $HOST_PORT -uroot qaskerdb -e 'SELECT COUNT(*) FROM user;'
   systemctl status oci-mysql-backup.service
   # 실행 중이면 완료 대기 (수 분) 후 재시도
   ```
+
+---
+
+## Part 2 · 실제 재해 복구 (HeatWave 인스턴스 복원)
+
+**격리 검증(`restore.sh`)과 별개로**, 운영 서비스에 실제 데이터를 되돌리는 절차. 자동화 스크립트가 없고 **사람이 수동으로 수행**한다. 이유:
+
+- 새 인스턴스 프로비저닝 파라미터(shape·subnet·admin pwd) 판단 필요
+- 애플리케이션 endpoint 전환 · 롤백 여유 확보 판단 필요
+- 다운타임·데이터 정확도 트레이드오프 판단 필요
+
+### 사고 판정 트리
+
+```
+사고 감지 → 사고 발생 후 몇 시간 경과?
+             ├─ ≤ 24h → 경로 A · L1 매니지드 백업 (권장, 콘솔 클릭)
+             └─ > 24h → 경로 B · L2 외부 사본 (수동 다단계)
+```
+
+Always Free 매니지드 백업의 retention이 1일이라 24시간이 경계.
+
+### 경로 A · L1 매니지드 백업에서 복원
+
+**전제**: 사고 후 24시간 이내에 대응 시작.
+
+#### 콘솔 방식 (가장 빠름, 3~5분)
+1. OCI Console → **MySQL** → **DB Systems** → 원본 인스턴스 선택
+2. **Backups** 탭 → 자동 백업(`SYSTEM_BACKUP-YYYYMMDDT...`) 중 원하는 시점 선택
+3. **Restore** 클릭
+4. 새 DB System 이름 지정 (예: `qasker-restored-YYYYMMDD`)
+5. 3~5분 대기 → 새 인스턴스 상태 `ACTIVE`
+6. 새 endpoint 확인 → 아래 §Part 3 endpoint 전환 진행
+
+#### CLI 방식
+```bash
+# 매니지드 백업 목록에서 복원 대상 선택
+oci mysql backup list \
+  --db-system-id <원본_DB_SYSTEM_OCID> \
+  --creation-type AUTOMATIC \
+  --sort-by TIME_CREATED --sort-order DESC \
+  --output table
+
+# 새 인스턴스 생성 (복원)
+oci mysql db-system create \
+  --source-details '{"sourceType":"BACKUP","backupId":"<선택한_BACKUP_OCID>"}' \
+  --display-name "qasker-restored-$(date +%Y%m%d)" \
+  --shape-name MySQL.Free \
+  --compartment-id <COMPARTMENT_OCID> \
+  --subnet-id <SUBNET_OCID> \
+  --wait-for-state ACTIVE
+
+# 새 endpoint 조회
+oci mysql db-system get --db-system-id <NEW_OCID> \
+  --query 'data.endpoints[0].hostname' --raw-output
+```
+
+**특징**:
+- 관리형 스키마·설정 완전 보존
+- 원본 UUID/GTID 히스토리 그대로 복사 (신원 이식)
+- 원본 인스턴스 그대로 유지 → 롤백 여유
+
+### 경로 B · L2 외부 사본에서 실제 복원
+
+**전제**: 사고 후 24시간 초과 or L1 매니지드 영역 자체 손상.
+
+#### Step 0 · 격리 검증 (필수)
+
+**실제 복원 전 반드시 격리 컨테이너에서 무결성 확인**. 이 문서 Part 1의 `restore.sh` 사용.
+
+```bash
+sshmon
+sudo /opt/oci-mysql-backup/restore.sh --latest
+# healthcheck: PASS 확인 후 진행
+```
+
+FAIL 나오면 이전 백업으로 재시도:
+```bash
+sudo /opt/oci-mysql-backup/restore.sh --list
+sudo /opt/oci-mysql-backup/restore.sh <이전_객체_키>
+```
+
+#### Step 1 · 대상 HeatWave 인스턴스 준비
+
+**옵션 1** — 신규 인스턴스 생성 (권장, 원본 유지):
+```bash
+oci mysql db-system create \
+  --display-name "qasker-l2-restored-$(date +%Y%m%d)" \
+  --shape-name MySQL.Free \
+  --admin-username admin \
+  --admin-password '<NEW_STRONG_PWD>' \
+  --data-storage-size-in-gbs 50 \
+  --compartment-id <COMPARTMENT_OCID> \
+  --subnet-id <SUBNET_OCID> \
+  --wait-for-state ACTIVE
+
+# endpoint 조회
+NEW_ENDPOINT=$(oci mysql db-system get \
+  --db-system-id <NEW_OCID> \
+  --query 'data.endpoints[0].hostname' --raw-output)
+```
+
+**옵션 2** — 기존 인스턴스에 wipe + 재로드 (비상, 위험, 롤백 불가):
+```sql
+-- admin으로 접속 후
+DROP DATABASE IF EXISTS qaskerdb;
+CREATE DATABASE qaskerdb;
+```
+
+#### Step 2 · mon 서버에서 dump 다운로드 · 검증
+
+```bash
+sshmon
+
+# 복원 대상 객체 선택 (기본: 최신)
+BACKUP=$(sudo /opt/oci-mysql-backup/restore.sh --list | grep sql.gz | tail -1)
+echo "선택된 백업: $BACKUP"
+
+# 3종 다운로드
+oci --profile BACKUP_READER os object get \
+  -bn qasker-mysql-backup --name "$BACKUP" \
+  --file /tmp/prod-restore.sql.gz
+
+oci --profile BACKUP_READER os object get \
+  -bn qasker-mysql-backup --name "${BACKUP%.sql.gz}.sha256" \
+  --file /tmp/prod-restore.sha256
+
+oci --profile BACKUP_READER os object get \
+  -bn qasker-mysql-backup --name "${BACKUP%.sql.gz}.meta.json" \
+  --file /tmp/prod-restore-meta.json
+
+# sha256 검증 (필수)
+ACTUAL=$(sha256sum /tmp/prod-restore.sql.gz | awk '{print $1}')
+EXPECTED=$(cat /tmp/prod-restore.sha256)
+[[ "$ACTUAL" == "$EXPECTED" ]] \
+  && echo "✅ SHA OK" \
+  || { echo "❌ SHA MISMATCH — 다른 백업으로 재시도"; exit 1; }
+```
+
+**주의**: `backup_readonly` 사용자는 write 권한 없음. 아래 로드 명령은 **admin 계정 필요**.
+
+#### Step 3 · 새 endpoint에 로드
+
+```bash
+ADMIN_PWD='<NEW_ADMIN_PWD>'
+
+MYSQL_PWD="$ADMIN_PWD" zcat /tmp/prod-restore.sql.gz | \
+  mysql -h "$NEW_ENDPOINT" -u admin --protocol=tcp qaskerdb
+```
+
+39 MB급 dump 기준 약 15~20초 소요.
+
+#### Step 4 · 새 endpoint 헬스체크 (권장)
+
+`healthcheck.sh`를 새 HeatWave endpoint에 대해 직접 실행:
+
+```bash
+BASELINE_FILE=/etc/oci-mysql-backup/healthcheck.baseline.yml \
+META_FILE=/tmp/prod-restore-meta.json \
+RESTORED_HOST="$NEW_ENDPOINT" \
+RESTORED_PORT=3306 \
+RESTORED_USER=admin \
+RESTORED_PASSWORD="$ADMIN_PWD" \
+RESTORED_DATABASE=qaskerdb \
+/opt/oci-mysql-backup/healthcheck.sh
+```
+
+**판정**:
+- exit 0 (PASS) → Part 3 endpoint 전환으로 진행
+- exit 10 (FAIL) → 다른 백업 시점으로 재시도
+
+---
+
+## Part 3 · 애플리케이션 endpoint 전환 (L1 · L2 공통)
+
+새 HeatWave 인스턴스가 준비되면 애플리케이션을 그쪽으로 전환.
+
+### 절차
+
+1. **`application-secrets.yml` datasource URL 갱신**
+   - Jasypt `ENC()` 재암호화 필요 (`./gradlew ...`)
+2. **Blue-Green 배포로 트래픽 점진 전환** (`infra/blue-green/`)
+3. **정상 확인**
+   - 애플리케이션 `/actuator/health` 200 응답
+   - Grafana 대시보드: DB 응답시간·에러율 정상
+   - 몇 시간~1일 안정성 관찰
+4. **원본 인스턴스 종료 · 삭제** (안정 확인 후)
+
+### 롤백 조건
+
+성능 이상, 데이터 불일치, 애플리케이션 오류 감지 시:
+- 원본 endpoint로 즉시 복귀 (Blue-Green 활용)
+- 원본 인스턴스는 안정 확인 전까지 삭제 금지
+
+---
+
+## 시나리오 비교 요약
+
+| 항목 | 격리 검증 (Part 1) | L1 실제 복원 (Part 2·A) | L2 실제 복원 (Part 2·B) |
+|---|---|---|---|
+| 진입점 | `restore.sh` | OCI Console / CLI | 수동 다단계 |
+| 자동화 | 완전 자동 | 반자동 (콘솔·명령) | 수동 |
+| 소요 시간 | ~45초 (SC-001) | 3~5분 | 30분~1시간 |
+| 원본 서비스 | 무영향 | 무영향 (병행 유지) | 무영향 (병행 유지) or 파괴 (wipe 옵션) |
+| 실행 빈도 | 분기 훈련 + 수시 | 사고 시 (희망 0회) | 사고 시 (희망 0회) |
+| 시점 커버리지 | 최근 14일 (L2 lifecycle) | 최근 24h (Always Free) | 최근 14일 |
+| 대상 환경 | Docker 컨테이너 | 새 HeatWave 인스턴스 | 새 HeatWave 인스턴스 |
+| endpoint 전환 | 불필요 | 필요 (Part 3) | 필요 (Part 3) |
+
+---
 
 ## 관련 문서
 
