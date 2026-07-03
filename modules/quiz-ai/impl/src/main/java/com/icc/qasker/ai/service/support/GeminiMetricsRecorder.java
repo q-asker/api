@@ -7,6 +7,7 @@ import io.micrometer.core.instrument.Timer;
 import java.util.concurrent.TimeUnit;
 import org.springframework.ai.chat.metadata.Usage;
 import org.springframework.ai.google.genai.metadata.GoogleGenAiUsage;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
@@ -16,10 +17,9 @@ import org.springframework.stereotype.Component;
 @Component
 public class GeminiMetricsRecorder {
 
-  // Gemini 3 Flash Preview 단가
-  private static final double PRICE_INPUT_PER_1M = 0.50;
-  private static final double PRICE_CACHE_READ_PER_1M = 0.050;
-  private static final double PRICE_OUTPUT_PER_1M = 3.00;
+  private final double priceInputPer1M;
+  private final double priceCacheReadPer1M;
+  private final double priceOutputPer1M;
 
   private final MeterRegistry registry;
   private final Timer chunkDuration;
@@ -44,8 +44,16 @@ public class GeminiMetricsRecorder {
 
   private static final String[] QUIZ_TYPES = {"MULTIPLE", "OX", "BLANK", "ESSAY"};
 
-  public GeminiMetricsRecorder(MeterRegistry registry, QAskerAiProperties aiProperties) {
+  public GeminiMetricsRecorder(
+      MeterRegistry registry,
+      QAskerAiProperties aiProperties,
+      @Value("${q-asker.ai.generation.price-input-per-1m}") double priceInputPer1M,
+      @Value("${q-asker.ai.generation.price-cache-read-per-1m}") double priceCacheReadPer1M,
+      @Value("${q-asker.ai.generation.price-output-per-1m}") double priceOutputPer1M) {
     this.registry = registry;
+    this.priceInputPer1M = priceInputPer1M;
+    this.priceCacheReadPer1M = priceCacheReadPer1M;
+    this.priceOutputPer1M = priceOutputPer1M;
     this.selectionEqualization =
         Counter.builder("gemini.selection.equalization")
             .description("선택지 길이 균등화 실행 횟수")
@@ -165,10 +173,10 @@ public class GeminiMetricsRecorder {
     }
 
     long nonCachedInputTokens = Math.max(0, promptTokens - cachedTokens);
-    double inputCost = nonCachedInputTokens * PRICE_INPUT_PER_1M / 1_000_000;
-    double cacheCost = cachedTokens * PRICE_CACHE_READ_PER_1M / 1_000_000;
-    double outputCost = completionTokens * PRICE_OUTPUT_PER_1M / 1_000_000;
-    double thinkingCost = thoughtsTokens * PRICE_OUTPUT_PER_1M / 1_000_000;
+    double inputCost = nonCachedInputTokens * priceInputPer1M / 1_000_000;
+    double cacheCost = cachedTokens * priceCacheReadPer1M / 1_000_000;
+    double outputCost = completionTokens * priceOutputPer1M / 1_000_000;
+    double thinkingCost = thoughtsTokens * priceOutputPer1M / 1_000_000;
     double totalCost = inputCost + cacheCost + outputCost + thinkingCost;
 
     chunkDuration.record(elapsedMs, TimeUnit.MILLISECONDS);
