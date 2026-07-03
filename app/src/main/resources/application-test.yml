@@ -71,6 +71,14 @@ q-asker:
   ai:
     gcs:
       bucket-name: ci-dummy
+    essay:
+      grading-model: gemini-3.1-flash-lite-preview
+      price-input-per-1m: 0.25
+      price-output-per-1m: 1.50
+    generation:
+      price-input-per-1m: 0.50
+      price-cache-read-per-1m: 0.050
+      price-output-per-1m: 3.00
 
   hashid:
     salt: ci-dummy-salt

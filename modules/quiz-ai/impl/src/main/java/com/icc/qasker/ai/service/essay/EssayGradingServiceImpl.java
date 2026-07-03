@@ -23,6 +23,7 @@ import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.converter.BeanOutputConverter;
 import org.springframework.ai.google.genai.GoogleGenAiChatOptions;
 import org.springframework.ai.google.genai.metadata.GoogleGenAiUsage;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 /**
@@ -34,24 +35,31 @@ import org.springframework.stereotype.Service;
 @Service
 public class EssayGradingServiceImpl implements EssayGradingService {
 
-  private static final String GRADING_MODEL = "gemini-3.1-flash-lite-preview";
-  private static final double PRICE_INPUT_PER_1M = 0.25;
-  private static final double PRICE_OUTPUT_PER_1M = 1.50;
-
   private final ChatModel chatModel;
   private final ObjectMapper objectMapper;
   private final GeminiMetricsRecorder metricsRecorder;
   private final String evidenceSchema;
   private final String gradingSchema;
+  private final String gradingModel;
+  private final double priceInputPer1M;
+  private final double priceOutputPer1M;
 
   /** Pass 결과를 ChatResponse와 함께 전달하기 위한 내부 record. */
   private record PassResult<T>(T result, ChatResponse chatResponse) {}
 
   public EssayGradingServiceImpl(
-      ChatModel chatModel, ObjectMapper objectMapper, GeminiMetricsRecorder metricsRecorder) {
+      ChatModel chatModel,
+      ObjectMapper objectMapper,
+      GeminiMetricsRecorder metricsRecorder,
+      @Value("${q-asker.ai.essay.grading-model}") String gradingModel,
+      @Value("${q-asker.ai.essay.price-input-per-1m}") double priceInputPer1M,
+      @Value("${q-asker.ai.essay.price-output-per-1m}") double priceOutputPer1M) {
     this.chatModel = chatModel;
     this.objectMapper = objectMapper;
     this.metricsRecorder = metricsRecorder;
+    this.gradingModel = gradingModel;
+    this.priceInputPer1M = priceInputPer1M;
+    this.priceOutputPer1M = priceOutputPer1M;
     this.evidenceSchema =
         new BeanOutputConverter<>(GeminiEvidenceExtractionResponse.class).getJsonSchema();
     this.gradingSchema = new BeanOutputConverter<>(GeminiGradingResponse.class).getJsonSchema();
@@ -92,8 +100,8 @@ public class EssayGradingServiceImpl implements EssayGradingService {
       long totalNonCachedInput = nonCachedInput1 + nonCachedInput2;
       long totalOutput = output1 + output2;
       double totalCost =
-          totalNonCachedInput * PRICE_INPUT_PER_1M / 1_000_000
-              + totalOutput * PRICE_OUTPUT_PER_1M / 1_000_000;
+          totalNonCachedInput * priceInputPer1M / 1_000_000
+              + totalOutput * priceOutputPer1M / 1_000_000;
       metricsRecorder.recordGrading(elapsedMs, totalNonCachedInput, totalOutput, totalCost);
 
       EssayGradingResult gradingOnly = pass2.result();
@@ -131,7 +139,7 @@ public class EssayGradingServiceImpl implements EssayGradingService {
 
     var options =
         GoogleGenAiChatOptions.builder()
-            .model(GRADING_MODEL)
+            .model(gradingModel)
             .responseMimeType("application/json")
             .responseSchema(evidenceSchema)
             .build();
@@ -161,7 +169,7 @@ public class EssayGradingServiceImpl implements EssayGradingService {
 
     var options =
         GoogleGenAiChatOptions.builder()
-            .model(GRADING_MODEL)
+            .model(gradingModel)
             .responseMimeType("application/json")
             .responseSchema(gradingSchema)
             .build();
@@ -190,7 +198,7 @@ public class EssayGradingServiceImpl implements EssayGradingService {
 
     var options =
         GoogleGenAiChatOptions.builder()
-            .model(GRADING_MODEL)
+            .model(gradingModel)
             .responseMimeType("application/json")
             .responseSchema(gradingSchema)
             .build();
@@ -203,8 +211,7 @@ public class EssayGradingServiceImpl implements EssayGradingService {
     long nonCachedInput = extractNonCachedInput(chatResponse);
     long outputTokens = chatResponse.getMetadata().getUsage().getCompletionTokens();
     double cost =
-        nonCachedInput * PRICE_INPUT_PER_1M / 1_000_000
-            + outputTokens * PRICE_OUTPUT_PER_1M / 1_000_000;
+        nonCachedInput * priceInputPer1M / 1_000_000 + outputTokens * priceOutputPer1M / 1_000_000;
     metricsRecorder.recordGrading(elapsedMs, nonCachedInput, outputTokens, cost);
 
     EssayGradingResult parsed = parseGradingResponse(responseText);

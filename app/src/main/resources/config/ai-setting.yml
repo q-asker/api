@@ -10,13 +10,24 @@ spring:
             temperature: 1.0
             model: gemini-3-flash-preview
             max-output-tokens: 20000
+            
             thinking-level: low
 
 q-asker:
   ai:
     chat-timeout-ms: 360000
     chunk:
-      max-count-variants: [30]
+      max-count-variants: [ 30 ]
       chunk-size: 15
     multiple:
       chunk-mode: 1  # 1: 단일 호출, 2: 멀티턴 순차 (A→B→C 중복방지), 3: 패턴별 병렬 (A/B/C)
+    essay:
+      grading-model: gemini-3.1-flash-lite-preview
+      # 채점 모델 토큰 단가 (USD per 1M tokens)
+      price-input-per-1m: 0.25
+      price-output-per-1m: 1.50
+    generation:
+      # 생성 모델(Gemini 3 Flash Preview) 토큰 단가 (USD per 1M tokens)
+      price-input-per-1m: 0.50
+      price-cache-read-per-1m: 0.050
+      price-output-per-1m: 3.00
