@@ -71,7 +71,7 @@ q-asker/api/
 │       ├── db/migration/         # Flyway 마이그레이션 SQL (V1~V13)
 │       └── config/               # 분리된 설정 파일들
 │           ├── database-config.yml   # 서버, DB, JPA, 캐시
-│           ├── ai-setting.yml        # Google Gemini AI 설정
+│           ├── ai-setting.yml        # Google Gemini AI 설정 (생성/ESSAY 채점 모델, 토큰 단가)
 │           ├── spring-security.yml   # JWT, OAuth2, CORS
 │           ├── oci-bucket-config.yml # OCI Object Storage, CDN
 │           ├── jodconverter.yml      # LibreOffice 문서변환
@@ -94,6 +94,8 @@ q-asker/api/
 │   ├── monitoring/               # Grafana Alloy 설정
 │   ├── mysql/                    # MySQL Docker 설정
 │   ├── base-image/               # Docker 베이스 이미지
+│   ├── scripts/
+│   │   └── oci-mysql-backup/     # OCI MySQL 백업/복구/헬스체크 스크립트 (backup.sh, restore.sh, healthcheck.sh, systemd)
 │   └── terraform/
 │       ├── gcp/                  # GCP 인프라 (GCS, IAM, Vertex AI)
 │       └── oci/                  # OCI 인프라 (NSG Cloudflare 인바운드, MySQL HeatWave 백업/PITR)
