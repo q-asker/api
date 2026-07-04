@@ -24,6 +24,13 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(CustomException.class)
   public ResponseEntity<CustomErrorResponse> handleCustomException(
       CustomException customException) {
+    logCustomException(customException);
+
+    return ResponseEntity.status(customException.getHttpStatus())
+        .body(new CustomErrorResponse(customException.getMessage()));
+  }
+
+  private void logCustomException(CustomException customException) {
     if (customException.getHttpStatus().is4xxClientError()) {
       if (customException.getContext() != null) {
         log.warn(
@@ -39,9 +46,6 @@ public class GlobalExceptionHandler {
         log.error("[서버 오류] 처리 중 예외 발생", customException);
       }
     }
-
-    return ResponseEntity.status(customException.getHttpStatus())
-        .body(new CustomErrorResponse(customException.getMessage()));
   }
 
   @ExceptionHandler(CallNotPermittedException.class)
