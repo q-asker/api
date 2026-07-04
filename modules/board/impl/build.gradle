@@ -45,4 +45,11 @@ dependencies {
     // 예: KafkaTemplate을 이용한 간편한 메시지 발행(Publish) 및 @KafkaListener를 통한 선언적 메시지 구독(Subscribe)
     implementation 'org.springframework.kafka:spring-kafka'
 
+    // ────────────────────────────────
+    // 테스트
+    // ────────────────────────────────
+    testImplementation "org.springframework.boot:spring-boot-starter-test"
+    testImplementation platform(libs.junit.bom)
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+
 }
