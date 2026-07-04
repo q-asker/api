@@ -23,4 +23,15 @@ dependencies {
     // API 문서 (Swagger)
     // ────────────────────────────────
     implementation libs.springdoc.openapi.starter.webmvc.ui
+
+    // ────────────────────────────────
+    // 테스트
+    // ────────────────────────────────
+    testImplementation "org.springframework.boot:spring-boot-starter-test"
+    testImplementation platform(libs.junit.bom)
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+}
+
+test {
+    useJUnitPlatform()
 }

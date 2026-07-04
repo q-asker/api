@@ -13,6 +13,12 @@ q-asker:
     allowed-extensions: application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint
     max-file-size: 52_428_800
 
+  # 관리자 이미지 업로드 검증 (문서 업로드와 규칙이 달라 분리)
+  admin:
+    image-upload:
+      max-size: 5_242_880 # 5MB
+      allowed-types: image/jpeg,image/png,image/gif,image/webp
+
 server:
   shutdown: graceful
 
