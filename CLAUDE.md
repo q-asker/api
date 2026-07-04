@@ -10,22 +10,22 @@
 | 분류            | 기술                                                                    | 버전             |
 |---------------|-----------------------------------------------------------------------|----------------|
 | 언어            | Java                                                                  | 21             |
-| 프레임워크         | Spring Boot                                                           | 3.5.8          |
-| AI            | Spring AI (Google Gemini via Vertex AI)                               | 1.1.2          |
+| 프레임워크         | Spring Boot                                                           | 4.1.0          |
+| AI            | Spring AI (Google Gemini via Vertex AI)                               | 2.0.0          |
 | ORM           | Spring Data JPA + Hibernate                                           | (Boot BOM)     |
 | DB            | MySQL                                                                 | -              |
 | 인증            | JWT (Auth0 java-jwt 4.5.0) + OAuth2 Client                            | -              |
 | 클라우드          | OCI Java SDK (Object Storage) + Cloudflare CDN + Google Cloud Storage | 3.90.0         |
-| 문서변환          | JODConverter (LibreOffice)                                            | 4.4.9          |
-| PDF 처리        | Apache PDFBox                                                         | 3.0.3          |
+| 문서변환          | JODConverter (LibreOffice)                                            | 4.4.11         |
+| PDF 처리        | Apache PDFBox                                                         | 3.0.7          |
 | 모니터링          | Micrometer + Prometheus + Actuator                                    | (Boot BOM)     |
-| 장애격리          | Resilience4j (Circuit Breaker)                                        | 2.3.0          |
+| 장애격리          | Resilience4j (Circuit Breaker)                                        | 2.4.0          |
 | Rate Limiting | Bucket4j + Caffeine                                                   | 8.19.0         |
-| API 문서        | SpringDoc OpenAPI (Swagger UI)                                        | 2.8.17         |
+| API 문서        | SpringDoc OpenAPI (Swagger UI)                                        | 3.0.3          |
 | 암호화           | Jasypt                                                                | 3.0.5          |
 | ID 난독화        | Hashids                                                               | 1.0.3          |
 | 빌드            | Gradle (Groovy DSL)                                                   | 8.14.3         |
-| 컨테이너          | Jib (Docker)                                                          | 3.4.0          |
+| 컨테이너          | Jib (Docker)                                                          | 3.5.3          |
 | 포맷터           | Spotless + Google Java Format                                         | 7.0.4 / 1.25.2 |
 | DB 마이그레이션     | Flyway                                                                | (Boot BOM)     |
 | 테스트           | JUnit 5                                                               | (Boot BOM)     |
@@ -80,7 +80,7 @@ q-asker/api/
 │           ├── resilience.yml        # Circuit Breaker
 │           └── spring-doc.yml        # Swagger/OpenAPI
 ├── modules/
-│   ├── global/                   # 공통 (BaseEntity, ApiResponse, GlobalExceptionHandler)
+│   ├── global/                   # 공통 (BaseEntity, ApiResponse, GlobalExceptionHandler, Boot4CompatConfig)
 │   ├── auth/     (api + impl)    # 인증 (JWT, OAuth2, RateLimitFilter)
 │   ├── oci/      (api + impl)    # OCI Object Storage 파일 업로드
 │   ├── board/    (api + impl)    # 게시판
@@ -94,11 +94,9 @@ q-asker/api/
 │   ├── monitoring/               # Grafana Alloy 설정
 │   ├── mysql/                    # MySQL Docker 설정
 │   ├── base-image/               # Docker 베이스 이미지
-│   ├── scripts/
-│   │   └── oci-mysql-backup/     # OCI MySQL 백업/복구/헬스체크 스크립트 (backup.sh, restore.sh, healthcheck.sh, systemd)
-│   └── terraform/
-│       ├── gcp/                  # GCP 인프라 (GCS, IAM, Vertex AI)
-│       └── oci/                  # OCI 인프라 (NSG Cloudflare 인바운드, MySQL HeatWave 백업/PITR)
+│   ├── blue-green/               # Blue-Green 무중단 배포 (Nginx 트래픽 스위칭, docker-compose, deploy.sh)
+│   └── scripts/
+│       └── oci-mysql-backup/     # OCI MySQL 백업/복구/헬스체크 스크립트 (backup.sh, restore.sh, healthcheck.sh, deploy.sh, env.example, healthcheck.baseline.yml, lib/, systemd/, RESTORE.md) — 리눅스·macOS 호환 (gzip -dc, sha256sum↔shasum 폴백)
 ├── docs/                         # 문서, 분석 자료
 ├── gradle/
 │   ├── libs.versions.toml        # Version Catalog: 모든 의존성/플러그인 버전 SSOT
@@ -161,5 +159,7 @@ q-asker/api/
 
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
-shell commands, and other important information, read the current plan
+shell commands, and other important information, read the current plan:
+`specs/001-quiz-read-optimization/plan.md` (research.md, data-model.md,
+contracts/, quickstart.md in the same directory)
 <!-- SPECKIT END -->
