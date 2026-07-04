@@ -2,15 +2,13 @@ package com.icc.qasker.auth.config;
 
 import static org.springframework.security.config.Customizer.withDefaults;
 
+import com.icc.qasker.auth.component.JwtProvider;
+import com.icc.qasker.auth.config.security.SecurityErrorResponder;
 import com.icc.qasker.auth.config.security.filter.JwtTokenAuthenticationFilter;
 import com.icc.qasker.auth.config.security.filter.RateLimitFilter;
 import com.icc.qasker.auth.config.security.handler.OAuth2LoginSuccessHandler;
 import com.icc.qasker.auth.config.security.service.PrincipalOAuth2UserService;
 import com.icc.qasker.auth.repository.UserRepository;
-import com.icc.qasker.global.error.ExceptionMessage;
-import com.icc.qasker.global.properties.JwtProperties;
-import jakarta.servlet.http.HttpServletResponse;
-import java.io.IOException;
 import lombok.AllArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -33,6 +31,8 @@ public class SecurityConfig {
   private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
   private final PrincipalOAuth2UserService principalOauth2UserService;
   private final RateLimitFilter rateLimitFilter;
+  private final JwtProvider jwtProvider;
+  private final SecurityErrorResponder securityErrorResponder;
 
   @Bean
   public AuthenticationManager authenticationManager(
@@ -42,8 +42,7 @@ public class SecurityConfig {
 
   @Bean
   public SecurityFilterChain apiFilterChain(
-      HttpSecurity http, AuthenticationManager authenticationManager, JwtProperties jwtProperties)
-      throws Exception {
+      HttpSecurity http, AuthenticationManager authenticationManager) throws Exception {
     http.cors(withDefaults())
         .csrf(AbstractHttpConfigurer::disable)
         .sessionManagement(
@@ -53,15 +52,13 @@ public class SecurityConfig {
         .exceptionHandling(
             ex ->
                 ex.authenticationEntryPoint(
-                        (request, response, authException) -> {
-                          createUnauthorizedResponse(response);
-                        })
+                        (request, response, authException) ->
+                            securityErrorResponder.writeUnauthorized(response))
                     .accessDeniedHandler(
-                        (request, response, accessDeniedException) -> {
-                          createForbiddenResponse(response);
-                        }))
+                        (request, response, accessDeniedException) ->
+                            securityErrorResponder.writeForbidden(response)))
         .addFilterBefore(
-            new JwtTokenAuthenticationFilter(authenticationManager, userRepository, jwtProperties),
+            new JwtTokenAuthenticationFilter(authenticationManager, userRepository, jwtProvider),
             UsernamePasswordAuthenticationFilter.class)
         .addFilterAfter(rateLimitFilter, JwtTokenAuthenticationFilter.class)
         .authorizeHttpRequests(
@@ -88,21 +85,5 @@ public class SecurityConfig {
                     .userInfoEndpoint(user -> user.userService(principalOauth2UserService))
                     .successHandler(oAuth2LoginSuccessHandler));
     return http.build();
-  }
-
-  public void createUnauthorizedResponse(HttpServletResponse response) throws IOException {
-    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-    response.setContentType("application/json;charset=UTF-8");
-    response
-        .getWriter()
-        .write("{\"message\": \"" + ExceptionMessage.UNAUTHORIZED.getMessage() + "\"}");
-  }
-
-  public void createForbiddenResponse(HttpServletResponse response) throws IOException {
-    response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-    response.setContentType("application/json;charset=UTF-8");
-    response
-        .getWriter()
-        .write("{\"message\": \"" + ExceptionMessage.NOT_ENOUGH_ACCESS.getMessage() + "\"}");
   }
 }

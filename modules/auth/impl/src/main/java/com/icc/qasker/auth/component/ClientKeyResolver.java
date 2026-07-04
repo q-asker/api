@@ -1,21 +1,22 @@
 package com.icc.qasker.auth.component;
 
-import com.icc.qasker.auth.entity.User;
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.security.core.Authentication;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 /** 요청에서 Rate Limit 버킷 키를 추출한다. 인증 사용자: "user:{userId}", 비인증: "ip:{ip}" */
 @Component
+@RequiredArgsConstructor
 public class ClientKeyResolver {
 
+  private final PrincipalExtractor principalExtractor;
+
   public String resolve(HttpServletRequest request) {
-    Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-    if (auth != null && auth.isAuthenticated() && auth.getPrincipal() instanceof User user) {
-      return "user:" + user.getUserId();
-    }
-    return "ip:" + extractIp(request);
+    return principalExtractor
+        .extractUserId(SecurityContextHolder.getContext().getAuthentication())
+        .map(userId -> "user:" + userId)
+        .orElseGet(() -> "ip:" + extractIp(request));
   }
 
   private String extractIp(HttpServletRequest request) {

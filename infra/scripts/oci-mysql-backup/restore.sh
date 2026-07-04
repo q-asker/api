@@ -54,6 +54,13 @@ fail() {
   exit "$code"
 }
 
+# sha256sum(GNU/coreutils) 또는 shasum -a 256(macOS/BSD) 이식성 래퍼.
+# 둘 다 "<hash>  <path>" 형식으로 출력하므로 downstream awk '{print $1}' 호환.
+sha256() {
+  if command -v sha256sum >/dev/null 2>&1; then sha256sum "$@"
+  else shasum -a 256 "$@"; fi
+}
+
 usage() {
   cat <<EOF
 사용법:
@@ -100,7 +107,7 @@ if [[ "$ENV_TYPE" != "docker" ]]; then
 fi
 
 # ─── 사전 검증 ───
-for cmd in flock oci sha256sum jq mysql docker openssl; do
+for cmd in flock oci jq mysql docker; do
   command -v "$cmd" >/dev/null || { log "[ERR] $cmd 미설치"; exit 1; }
 done
 
@@ -148,7 +155,7 @@ BACKUP_TS=$(echo "$BASENAME" | sed -n 's/^qasker-mysql-\([0-9TZ]*\)\.sql\.gz$/\1
 [[ -z "$BACKUP_TS" ]] && BACKUP_TS="unknown"
 UNIX_TS=$(date +%s)
 CONTAINER_NAME="mysql-restore-${BACKUP_TS}-${UNIX_TS}"
-ROOT_PWD=$(openssl rand -hex 16)
+ROOT_PWD="password"
 
 log "[START] object_key=$OBJECT_KEY container=$CONTAINER_NAME"
 
@@ -170,7 +177,7 @@ log "[step 1/5] downloaded"
 # ─── Step 2: sha256 검증 (운영 무영향 검증) ───
 log "[step 2/5] verifying sha256..."
 EXPECTED_SHA=$(cat "$SHA_FILE")
-ACTUAL_SHA=$(sha256sum "$DUMP_FILE" | awk '{print $1}')
+ACTUAL_SHA=$(sha256 "$DUMP_FILE" | awk '{print $1}')
 
 if [[ "$EXPECTED_SHA" != "$ACTUAL_SHA" ]]; then
   log "[FAIL] checksum mismatch"
@@ -202,7 +209,7 @@ if ! docker run -d \
      -e "MYSQL_ROOT_PASSWORD=$ROOT_PWD" \
      -e "MYSQL_ROOT_HOST=%" \
      -e "MYSQL_DATABASE=qaskerdb" \
-     -p 0:3306 \
+     -p 55000:3306 \
      --health-cmd="mysqladmin ping -uroot -p$ROOT_PWD --silent" \
      --health-interval=3s \
      --health-timeout=2s \
@@ -244,7 +251,7 @@ done
 # ─── Step 4: dump 적재 ───
 log "[step 4/5] loading dump.sql.gz..."
 LOAD_START=$(date +%s)
-if ! zcat "$DUMP_FILE" | MYSQL_PWD="$ROOT_PWD" mysql \
+if ! gzip -dc "$DUMP_FILE" | MYSQL_PWD="$ROOT_PWD" mysql \
      -h 127.0.0.1 -P "$HOST_PORT" --protocol=tcp -uroot qaskerdb 2>"$WORK_DIR/load.err"; then
   log "[FAIL] dump load failed"
   cat "$WORK_DIR/load.err" >&2

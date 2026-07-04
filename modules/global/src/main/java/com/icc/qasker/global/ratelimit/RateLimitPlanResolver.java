@@ -2,6 +2,7 @@ package com.icc.qasker.global.ratelimit;
 
 import com.icc.qasker.global.annotation.RateLimit;
 import jakarta.servlet.http.HttpServletRequest;
+import java.util.Optional;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.web.method.HandlerMethod;
@@ -24,33 +25,23 @@ public class RateLimitPlanResolver {
   }
 
   public RateLimitTier resolve(HttpServletRequest request) {
-    try {
-      HandlerExecutionChain chain = handlerMapping.getHandler(request);
-      if (chain != null && chain.getHandler() instanceof HandlerMethod handlerMethod) {
-        RateLimit rateLimit = handlerMethod.getMethodAnnotation(RateLimit.class);
-        if (rateLimit != null) {
-          return rateLimit.value();
-        }
-      }
-    } catch (Exception ignored) {
-      // 핸들러 조회 실패 시 기본값 사용
-    }
-    return RateLimitTier.READ;
+    return findAnnotation(request).map(RateLimit::value).orElse(RateLimitTier.READ);
   }
 
   /** 요청 핸들러에 global=true 가 선언되어 있으면 true를 반환한다. */
   public boolean resolveGlobal(HttpServletRequest request) {
+    return findAnnotation(request).map(RateLimit::global).orElse(false);
+  }
+
+  private Optional<RateLimit> findAnnotation(HttpServletRequest request) {
     try {
       HandlerExecutionChain chain = handlerMapping.getHandler(request);
       if (chain != null && chain.getHandler() instanceof HandlerMethod handlerMethod) {
-        RateLimit rateLimit = handlerMethod.getMethodAnnotation(RateLimit.class);
-        if (rateLimit != null) {
-          return rateLimit.global();
-        }
+        return Optional.ofNullable(handlerMethod.getMethodAnnotation(RateLimit.class));
       }
     } catch (Exception ignored) {
       // 핸들러 조회 실패 시 기본값 사용
     }
-    return false;
+    return Optional.empty();
   }
 }

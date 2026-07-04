@@ -8,7 +8,6 @@ import com.icc.qasker.board.dto.response.PostPageResponse;
 import com.icc.qasker.board.dto.response.PostResponse;
 import com.icc.qasker.board.entity.Board;
 import com.icc.qasker.board.entity.BoardStatus;
-import com.icc.qasker.board.entity.Reply;
 import com.icc.qasker.board.mapper.PostResponseMapper;
 import com.icc.qasker.board.repository.BoardRepository;
 import com.icc.qasker.global.error.CustomException;
@@ -27,7 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class BoardService {
 
-  private static final String UPDATE_LOG_USERNAME = "운영팀";
+  private static final String UNKNOWN_USERNAME = "알 수 없음";
 
   private final BoardRepository boardRepository;
   private final PostResponseMapper postResponseMapper;
@@ -39,12 +38,7 @@ public class BoardService {
     if (category == BoardCategory.UPDATE_LOG) {
       List<PostResponse> posts =
           boards.map(board -> postResponseMapper.fromEntity(board, null)).getContent();
-      return new PostPageResponse(
-          posts,
-          boards.getTotalElements(),
-          boards.getTotalPages(),
-          boards.getSize(),
-          boards.getNumber());
+      return toPageResponse(boards, posts);
     }
 
     List<String> userIds = boards.stream().map(Board::getUserId).distinct().toList();
@@ -53,18 +47,12 @@ public class BoardService {
     List<PostResponse> posts =
         boards
             .map(
-                board -> {
-                  String nickname = nicknames.getOrDefault(board.getUserId(), "알 수 없음");
-                  return postResponseMapper.fromEntity(board, nickname);
-                })
+                board ->
+                    postResponseMapper.fromEntity(
+                        board, nicknames.getOrDefault(board.getUserId(), UNKNOWN_USERNAME)))
             .getContent();
 
-    return new PostPageResponse(
-        posts,
-        boards.getTotalElements(),
-        boards.getTotalPages(),
-        boards.getSize(),
-        boards.getNumber());
+    return toPageResponse(boards, posts);
   }
 
   @Transactional
@@ -76,41 +64,15 @@ public class BoardService {
 
     board.incrementViewCount();
 
-    if (board.getCategory() == BoardCategory.UPDATE_LOG) {
-      return new PostDetailResponse(
-          board.getBoardId(),
-          UPDATE_LOG_USERNAME,
-          board.getTitle(),
-          board.getContent(),
-          board.getViewCount(),
-          null,
-          board.getCreatedAt(),
-          List.of(),
-          false,
-          board.getCategory().name());
-    }
-
-    List<String> replies = board.getReplies().stream().map(Reply::getContent).toList();
+    boolean isUpdateLog = board.getCategory() == BoardCategory.UPDATE_LOG;
+    String nickname = isUpdateLog ? null : userService.getUserNickname(board.getUserId());
     boolean isWriter = Objects.equals(requestUserId, board.getUserId());
-
-    return new PostDetailResponse(
-        board.getBoardId(),
-        userService.getUserNickname(board.getUserId()),
-        board.getTitle(),
-        board.getContent(),
-        board.getViewCount(),
-        board.getStatus().name(),
-        board.getCreatedAt(),
-        replies,
-        isWriter,
-        board.getCategory().name());
+    return postResponseMapper.toDetail(board, nickname, isWriter);
   }
 
   @Transactional
   public void createPost(PostRequest request, String userId) {
-    if (userId == null) {
-      throw new CustomException(ExceptionMessage.UNAUTHORIZED);
-    }
+    requireUserId(userId);
     userService.checkUserExists(userId);
     Board board =
         Board.builder().title(request.title()).content(request.content()).userId(userId).build();
@@ -119,49 +81,38 @@ public class BoardService {
 
   @Transactional
   public void updatePost(Long boardId, PostRequest request, String userId) {
-    if (userId == null) {
-      throw new CustomException(ExceptionMessage.UNAUTHORIZED);
-    }
-
+    requireUserId(userId);
     Board board =
         boardRepository
             .findById(boardId)
             .orElseThrow(() -> new CustomException(ExceptionMessage.POST_NOT_FOUND));
-
-    if (board.getCategory() == BoardCategory.UPDATE_LOG) {
-      throw new CustomException(ExceptionMessage.NOT_ENOUGH_ACCESS);
-    }
-
-    if (board.getStatus() == BoardStatus.ANSWERED) {
-      throw new CustomException(ExceptionMessage.ALREADY_ANSWERED);
-    }
-
-    if (!userId.equals(board.getUserId())) {
-      throw new CustomException(ExceptionMessage.NOT_ENOUGH_ACCESS);
-    }
+    board.ensureModifiableBy(userId);
     board.update(request.title(), request.content());
   }
 
   @Transactional
   public void deletePost(Long boardId, String userId) {
-    if (userId == null) {
-      throw new CustomException(ExceptionMessage.UNAUTHORIZED);
-    }
+    requireUserId(userId);
     Board board =
         boardRepository
             .findById(boardId)
             .orElseThrow(() -> new CustomException(ExceptionMessage.POST_NOT_FOUND));
-
-    if (board.getCategory() == BoardCategory.UPDATE_LOG) {
-      throw new CustomException(ExceptionMessage.NOT_ENOUGH_ACCESS);
-    }
-
-    if (board.getStatus() == BoardStatus.ANSWERED) {
-      throw new CustomException(ExceptionMessage.ALREADY_ANSWERED);
-    }
-    if (!userId.equals(board.getUserId())) {
-      throw new CustomException(ExceptionMessage.NOT_ENOUGH_ACCESS);
-    }
+    board.ensureModifiableBy(userId);
     board.changeStatus(BoardStatus.DELETED);
+  }
+
+  private void requireUserId(String userId) {
+    if (userId == null) {
+      throw new CustomException(ExceptionMessage.UNAUTHORIZED);
+    }
+  }
+
+  private PostPageResponse toPageResponse(Page<Board> boards, List<PostResponse> posts) {
+    return new PostPageResponse(
+        posts,
+        boards.getTotalElements(),
+        boards.getTotalPages(),
+        boards.getSize(),
+        boards.getNumber());
   }
 }

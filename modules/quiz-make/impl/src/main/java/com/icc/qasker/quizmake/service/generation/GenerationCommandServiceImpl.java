@@ -2,7 +2,6 @@ package com.icc.qasker.quizmake.service.generation;
 
 import static com.icc.qasker.quizset.GenerationStatus.COMPLETED;
 import static com.icc.qasker.quizset.GenerationStatus.FAILED;
-import static com.icc.qasker.quizset.GenerationStatus.GENERATING;
 
 import com.icc.qasker.ai.dto.GenerationRequestToAI;
 import com.icc.qasker.global.component.HashUtil;
@@ -12,28 +11,12 @@ import com.icc.qasker.quizmake.GenerationCommandService;
 import com.icc.qasker.quizmake.SseNotificationService;
 import com.icc.qasker.quizmake.adapter.AIServerAdapter;
 import com.icc.qasker.quizmake.dto.ferequest.GenerationRequest;
-import com.icc.qasker.quizmake.mapper.AIProblemSetMapper;
-import com.icc.qasker.quizmake.mapper.ExplanationMarkdownBuilder;
 import com.icc.qasker.quizset.QuizCommandService;
 import com.icc.qasker.quizset.QuizQueryService;
-import com.icc.qasker.quizset.dto.airesponse.ProblemSetGeneratedEvent;
-import com.icc.qasker.quizset.dto.airesponse.ProblemSetGeneratedEvent.QuizGeneratedFromAI;
-import com.icc.qasker.quizset.dto.airesponse.ProblemSetGeneratedEvent.QuizGeneratedFromAI.SelectionsOfAI;
 import com.icc.qasker.quizset.dto.ferequest.enums.QuizType;
-import com.icc.qasker.quizset.dto.feresponse.ProblemSetResponse;
-import com.icc.qasker.quizset.dto.feresponse.ProblemSetResponse.QuizForFe;
-import com.icc.qasker.quizset.view.QuizView;
-import com.icc.qasker.quizset.view.QuizViewToQuizForFeMapper;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.ReentrantLock;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
-import org.springframework.util.CollectionUtils;
 
 @Slf4j
 @Service
@@ -86,11 +69,15 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
       String sessionId, Long problemSetId, GenerationRequest request) {
 
     long startNanos = System.nanoTime();
-    AtomicInteger atomicGeneratedCount = new AtomicInteger(0);
-    AtomicInteger numberCounter = new AtomicInteger(1);
-    AtomicLong firstConsumerNanos = new AtomicLong(0);
-    AtomicLong lastConsumerNanos = new AtomicLong(0);
-    ReentrantLock consumerLock = new ReentrantLock();
+    GenerationBatchConsumer batchConsumer =
+        new GenerationBatchConsumer(
+            sessionId,
+            problemSetId,
+            request,
+            quizCommandService,
+            quizQueryService,
+            notificationService,
+            hashUtil);
 
     GenerationRequestToAI requestToAI =
         GenerationRequestToAI.builder()
@@ -100,90 +87,7 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
             .quizCount(request.quizCount())
             .referencePages(request.pageNumbers())
             .customInstruction(request.customInstruction())
-            .questionsConsumer(
-                aiProblemSet -> {
-                  consumerLock.lock();
-                  try {
-                    // 1. 전송용 DTO로 변환
-                    ProblemSetGeneratedEvent problemSet = AIProblemSetMapper.toEvent(aiProblemSet);
-                    if (CollectionUtils.isEmpty(problemSet.getQuiz())) {
-                      log.warn("[AI 생성 스킵] 빈 배치 수신 sessionId={}", sessionId);
-                      return;
-                    }
-
-                    // 2. 선택지 셔플
-                    QuizType quizType = request.quizType();
-                    if (quizType == QuizType.MULTIPLE
-                        || quizType == QuizType.BLANK
-                        || quizType == QuizType.REAL_BLANK) {
-                      for (var quiz : problemSet.getQuiz()) {
-                        if (!CollectionUtils.isEmpty(quiz.getSelections())) {
-                          List<SelectionsOfAI> shuffled = new ArrayList<>(quiz.getSelections());
-                          Collections.shuffle(shuffled);
-                          quiz.setSelections(shuffled);
-                        }
-                      }
-                    } else if (quizType == QuizType.OX) {
-                      // OX 선택지 정규화: X 계열이 1번이면 순서 변경 → O가 항상 1번
-                      for (var quiz : problemSet.getQuiz()) {
-                        var sels = quiz.getSelections();
-                        if (sels != null
-                            && sels.size() == 2
-                            && sels.get(0).getContent() != null
-                            && sels.get(0).getContent().matches("(?i)^x$")) {
-
-                          List<SelectionsOfAI> swapped = new ArrayList<>(2);
-                          swapped.add(sels.get(1));
-                          swapped.add(sels.get(0));
-                          quiz.setSelections(swapped);
-                        }
-                      }
-                    }
-
-                    // 3. 마크다운 포맷팅
-                    for (QuizGeneratedFromAI quiz : problemSet.getQuiz()) {
-                      quiz.setExplanation(
-                          ExplanationMarkdownBuilder.build(quiz, request.language()));
-                    }
-
-                    // 4. 순서 보장 번호 할당
-                    for (QuizGeneratedFromAI quiz : problemSet.getQuiz()) {
-                      quiz.setNumber(numberCounter.getAndIncrement());
-                    }
-
-                    // 5. 데이터베이스에 영속화
-                    List<Integer> savedNumbers =
-                        quizCommandService.saveBatch(problemSet.getQuiz(), problemSetId);
-
-                    // 6. SSE 전송
-                    List<QuizView> quizViews =
-                        quizQueryService.getQuizViews(problemSetId, savedNumbers);
-                    if (quizViews.isEmpty()) {
-                      return;
-                    }
-
-                    List<QuizForFe> quizForFeList =
-                        quizViews.stream().map(QuizViewToQuizForFeMapper::toQuizForFe).toList();
-
-                    notificationService.sendCreatedMessageWithId(
-                        sessionId,
-                        String.valueOf(quizViews.getLast().getNumber()),
-                        new ProblemSetResponse(
-                            sessionId,
-                            hashUtil.encode(problemSetId),
-                            request.title(),
-                            GENERATING,
-                            request.quizType(),
-                            request.quizCount(),
-                            quizForFeList));
-
-                    atomicGeneratedCount.addAndGet(quizViews.size());
-                    firstConsumerNanos.compareAndSet(0, System.nanoTime());
-                    lastConsumerNanos.set(System.nanoTime());
-                  } finally {
-                    consumerLock.unlock();
-                  }
-                })
+            .questionsConsumer(batchConsumer)
             .build();
 
     int maxChunkCount;
@@ -199,12 +103,16 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
       return;
     }
 
-    int generatedCount = atomicGeneratedCount.get();
+    int generatedCount = batchConsumer.generatedCount();
     int quizCount = request.quizCount();
     long ttfqMs =
-        firstConsumerNanos.get() > 0 ? (firstConsumerNanos.get() - startNanos) / 1_000_000 : -1;
+        batchConsumer.firstConsumerNanos() > 0
+            ? (batchConsumer.firstConsumerNanos() - startNanos) / 1_000_000
+            : -1;
     long ttlqMs =
-        lastConsumerNanos.get() > 0 ? (lastConsumerNanos.get() - startNanos) / 1_000_000 : -1;
+        batchConsumer.lastConsumerNanos() > 0
+            ? (batchConsumer.lastConsumerNanos() - startNanos) / 1_000_000
+            : -1;
 
     // 요청/생성/실패 문제 수 메트릭 기록 (finalize 결과와 무관하게 항상 실행)
     resultRecorder.recordQuizCounts(request.quizType(), quizCount, generatedCount, maxChunkCount);

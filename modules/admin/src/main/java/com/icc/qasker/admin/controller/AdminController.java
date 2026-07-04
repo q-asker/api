@@ -1,5 +1,6 @@
 package com.icc.qasker.admin.controller;
 
+import com.icc.qasker.admin.properties.ImageUploadProperties;
 import com.icc.qasker.board.BoardAdminService;
 import com.icc.qasker.board.dto.request.PostRequest;
 import com.icc.qasker.board.dto.request.ReplyRequest;
@@ -14,7 +15,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.io.IOException;
 import java.util.Map;
-import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -33,12 +33,9 @@ import org.springframework.web.multipart.MultipartFile;
 @RequiredArgsConstructor
 public class AdminController {
 
-  private static final Set<String> ALLOWED_IMAGE_TYPES =
-      Set.of("image/jpeg", "image/png", "image/gif", "image/webp");
-  private static final long MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
-
   private final BoardAdminService boardAdminService;
   private final ObjectStorageService objectStorageService;
+  private final ImageUploadProperties imageUploadProperties;
 
   @Operation(summary = "업데이트 로그를 작성한다")
   @RateLimit(RateLimitTier.WRITE)
@@ -71,16 +68,7 @@ public class AdminController {
   @RateLimit(RateLimitTier.WRITE)
   @PostMapping(value = "/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   public ResponseEntity<Map<String, String>> uploadImage(@RequestParam("file") MultipartFile file) {
-    if (file.isEmpty()) {
-      throw new CustomException(ExceptionMessage.FILE_NAME_NOT_EXIST);
-    }
-    if (file.getSize() > MAX_IMAGE_SIZE) {
-      throw new CustomException(ExceptionMessage.OUT_OF_FILE_SIZE);
-    }
-    String contentType = file.getContentType();
-    if (contentType == null || !ALLOWED_IMAGE_TYPES.contains(contentType)) {
-      throw new CustomException(ExceptionMessage.EXTENSION_INVALID);
-    }
+    String contentType = validateImage(file);
 
     try {
       String url =
@@ -90,5 +78,20 @@ public class AdminController {
     } catch (IOException e) {
       throw new CustomException(ExceptionMessage.FILE_UPLOAD_FAILED);
     }
+  }
+
+  /** 업로드 이미지의 존재·크기·contentType을 검증하고 검증된 contentType을 반환한다. */
+  private String validateImage(MultipartFile file) {
+    if (file.isEmpty()) {
+      throw new CustomException(ExceptionMessage.FILE_NAME_NOT_EXIST);
+    }
+    if (file.getSize() > imageUploadProperties.maxSize()) {
+      throw new CustomException(ExceptionMessage.OUT_OF_FILE_SIZE);
+    }
+    String contentType = file.getContentType();
+    if (contentType == null || !imageUploadProperties.allowedTypes().contains(contentType)) {
+      throw new CustomException(ExceptionMessage.EXTENSION_INVALID);
+    }
+    return contentType;
   }
 }

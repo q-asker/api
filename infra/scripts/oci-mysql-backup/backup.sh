@@ -57,8 +57,15 @@ fail() {
   exit "$code"
 }
 
+# sha256sum(GNU/coreutils) 또는 shasum -a 256(macOS/BSD) 이식성 래퍼.
+# 둘 다 "<hash>  <path>" 형식으로 출력하므로 downstream awk '{print $1}' 호환.
+sha256() {
+  if command -v sha256sum >/dev/null 2>&1; then sha256sum "$@"
+  else shasum -a 256 "$@"; fi
+}
+
 # ─── 사전 검증 ───
-for cmd in flock mysqldump mysql sha256sum jq oci; do
+for cmd in flock mysqldump mysql jq oci; do
   command -v "$cmd" >/dev/null || { log "[ERR] $cmd 미설치"; exit 1; }
 done
 for var in MYSQL_HOST MYSQL_USER MYSQL_PASSWORD MYSQL_DATABASE; do
@@ -124,7 +131,7 @@ log "[step 1/5] dump complete ($DUMP_SIZE bytes)"
 
 # ─── Step 2: SHA256 ───
 log "[step 2/5] checksum..."
-if ! sha256sum "$DUMP_FILE" | awk '{print $1}' > "$SHA_FILE"; then
+if ! sha256 "$DUMP_FILE" | awk '{print $1}' > "$SHA_FILE"; then
   fail "checksum" 3
 fi
 SHA256=$(cat "$SHA_FILE")

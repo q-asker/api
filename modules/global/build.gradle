@@ -48,4 +48,11 @@ dependencies {
     // Bucket4j: Token Bucket 알고리즘 기반 요청 속도 제한
     // 예: 사용자별/엔드포인트별 차등 Rate Limit 적용, 버스트 트래픽 허용 + 평균 속도 제한
     implementation libs.bucket4j.jdk17.core
+
+    // ────────────────────────────────
+    // 테스트
+    // ────────────────────────────────
+    testImplementation "org.springframework.boot:spring-boot-starter-test"
+    testImplementation platform(libs.junit.bom)
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher"
 }

@@ -6,11 +6,7 @@ import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.global.properties.JwtProperties;
 import jakarta.transaction.Transactional;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.SecureRandom;
 import java.time.Instant;
-import java.util.Base64;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -23,10 +19,9 @@ public class RefreshTokenUtil {
 
   public String issue(String userId) {
     try {
-      String rtPlain = TokenUtils.randomUrlSafe(64);
-      String rtHash = TokenUtils.sha256Hex(rtPlain);
+      String rtPlain = TokenCrypto.randomUrlSafe(64);
+      String rtHash = TokenCrypto.sha256Hex(rtPlain);
       refreshTokenRepository.save(new RefreshToken(userId, rtHash, nextExpiry()));
-
       return rtPlain;
     } catch (Exception e) {
       throw new CustomException(ExceptionMessage.TOKEN_GENERATION_FAILED, e);
@@ -35,7 +30,7 @@ public class RefreshTokenUtil {
 
   @Transactional
   public RotateResult validateAndRotate(String oldRtPlain) {
-    String oldRtHash = TokenUtils.sha256Hex(oldRtPlain);
+    String oldRtHash = TokenCrypto.sha256Hex(oldRtPlain);
 
     RefreshToken refreshToken =
         refreshTokenRepository
@@ -46,8 +41,8 @@ public class RefreshTokenUtil {
       throw new CustomException(ExceptionMessage.UNAUTHORIZED);
     }
 
-    String newRtPlain = TokenUtils.randomUrlSafe(64);
-    String newRtHash = TokenUtils.sha256Hex(newRtPlain);
+    String newRtPlain = TokenCrypto.randomUrlSafe(64);
+    String newRtHash = TokenCrypto.sha256Hex(newRtPlain);
     refreshToken.rotate(newRtHash, nextExpiry());
     refreshTokenRepository.save(refreshToken);
 
@@ -56,7 +51,7 @@ public class RefreshTokenUtil {
 
   @Transactional
   public void revoke(String presentedRtPlain) {
-    String rtHash = TokenUtils.sha256Hex(presentedRtPlain);
+    String rtHash = TokenCrypto.sha256Hex(presentedRtPlain);
     refreshTokenRepository.findByRtHash(rtHash).ifPresent(refreshTokenRepository::delete);
   }
 
@@ -65,29 +60,4 @@ public class RefreshTokenUtil {
   }
 
   public record RotateResult(String userId, String newRtPlain) {}
-
-  public static class TokenUtils {
-
-    private static final SecureRandom RAND = new SecureRandom();
-
-    public static String randomUrlSafe(int bytes) {
-      byte[] buf = new byte[bytes];
-      RAND.nextBytes(buf);
-      return Base64.getUrlEncoder().withoutPadding().encodeToString(buf);
-    }
-
-    public static String sha256Hex(String v) {
-      try {
-        MessageDigest md = MessageDigest.getInstance("SHA-256");
-        byte[] d = md.digest(v.getBytes(StandardCharsets.UTF_8));
-        StringBuilder sb = new StringBuilder(d.length * 2);
-        for (byte b : d) {
-          sb.append(String.format("%02x", b));
-        }
-        return sb.toString();
-      } catch (Exception e) {
-        throw new IllegalStateException(e);
-      }
-    }
-  }
 }
