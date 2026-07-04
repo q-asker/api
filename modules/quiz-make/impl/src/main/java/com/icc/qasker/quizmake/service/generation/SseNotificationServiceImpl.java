@@ -69,15 +69,10 @@ public class SseNotificationServiceImpl implements SseNotificationService {
 
   @Override
   public void sendConnected(String sessionId) {
-    SseEmitter emitter = emitterMap.get(sessionId);
-    if (emitter != null) {
-      try {
-        emitter.send(SseEmitter.event().name("connected").data("hello"));
-      } catch (IOException e) {
-        log.warn("[SSE 연결 실패] 클라이언트 연결 중 에러 발생", e);
-        emitter.completeWithError(e);
-      }
-    }
+    safeSend(
+        sessionId,
+        SseEmitter.event().name("connected").data("hello"),
+        "[SSE 연결 실패] 클라이언트 연결 중 에러 발생");
   }
 
   private @NonNull SseEmitter initSseEmitter(String sessionId) {
@@ -104,38 +99,40 @@ public class SseNotificationServiceImpl implements SseNotificationService {
 
   @Override
   public void sendCreatedMessageWithId(String sessionId, String eventId, Object data) {
-    SseEmitter emitter = emitterMap.get(sessionId);
-    if (emitter != null) {
-      try {
-        emitter.send(SseEmitter.event().id(eventId).name("created").data(data));
-      } catch (IOException e) {
-        log.warn("[SSE 전송 실패] 클라이언트에게 데이터 전송 중 에러 발생", e);
-        emitter.completeWithError(e);
-      }
-    }
+    safeSend(
+        sessionId,
+        SseEmitter.event().id(eventId).name("created").data(data),
+        "[SSE 전송 실패] 클라이언트에게 데이터 전송 중 에러 발생");
   }
 
   @Override
   public void sendFinishWithError(String sessionId, String message) {
-    SseEmitter emitter = emitterMap.get(sessionId);
-    if (emitter != null) {
-      try {
-        emitter.send(SseEmitter.event().name("error-finish").data(message));
-      } catch (IOException e) {
-        emitter.completeWithError(e);
-      }
-    }
+    safeSend(sessionId, SseEmitter.event().name("error-finish").data(message), null);
   }
 
   @Override
   public void sendComplete(String sessionId) {
+    safeSend(sessionId, SseEmitter.event().name("complete").data("complete"), null);
+  }
+
+  /**
+   * 세션에 연결된 emitter로 이벤트를 전송한다. emitter가 없으면 no-op, {@link IOException} 발생 시 해당 emitter를 에러로 마감하며
+   * 예외를 밖으로 전파하지 않는다.
+   *
+   * @param warnMessage 전송 실패 시 남길 경고 로그 (null이면 로그 생략)
+   */
+  private void safeSend(String sessionId, SseEmitter.SseEventBuilder event, String warnMessage) {
     SseEmitter emitter = emitterMap.get(sessionId);
-    if (emitter != null) {
-      try {
-        emitter.send(SseEmitter.event().name("complete").data("complete"));
-      } catch (IOException e) {
-        emitter.completeWithError(e);
+    if (emitter == null) {
+      return;
+    }
+    try {
+      emitter.send(event);
+    } catch (IOException e) {
+      if (warnMessage != null) {
+        log.warn(warnMessage, e);
       }
+      emitter.completeWithError(e);
     }
   }
 }
