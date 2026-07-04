@@ -5,6 +5,7 @@ import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import java.util.concurrent.TimeUnit;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.metadata.Usage;
 import org.springframework.ai.google.genai.metadata.GoogleGenAiUsage;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Component;
  * Gemini API 호출에 대한 Prometheus 메트릭을 통합 기록한다. 비즈니스 로직(QuizOrchestrationServiceImpl)에서 메트릭 관심사를 분리하기
  * 위한 Delegation 패턴. 모든 메트릭은 eager 등록 — Prometheus가 첫 스크랩에서 0을 관측하여 increase()가 첫 요청부터 정확히 동작한다.
  */
+@Slf4j
 @Component
 public class GeminiMetricsRecorder {
 
@@ -27,14 +29,6 @@ public class GeminiMetricsRecorder {
   private final Counter tokensCached;
   private final Counter tokensThinking;
   private final Counter tokensOutput;
-  private final Counter selectionEqualization;
-  private final Counter selectionChecked;
-  private final Counter eqTokensInput;
-  private final Counter eqTokensOutput;
-  private final Counter eqCost;
-  private final Counter planTokensInput;
-  private final Counter planTokensOutput;
-  private final Counter planCost;
   private final Timer gradingDuration;
   private final Counter gradingTokensInput;
   private final Counter gradingTokensOutput;
@@ -54,36 +48,6 @@ public class GeminiMetricsRecorder {
     this.priceInputPer1M = priceInputPer1M;
     this.priceCacheReadPer1M = priceCacheReadPer1M;
     this.priceOutputPer1M = priceOutputPer1M;
-    this.selectionEqualization =
-        Counter.builder("gemini.selection.equalization")
-            .description("선택지 길이 균등화 실행 횟수")
-            .register(registry);
-    this.selectionChecked =
-        Counter.builder("gemini.selection.checked")
-            .description("선택지 균등화 검사 대상 문항 수")
-            .register(registry);
-    this.eqTokensInput =
-        Counter.builder("gemini.equalization.tokens.input")
-            .description("균등화 API 입력 토큰")
-            .register(registry);
-    this.eqTokensOutput =
-        Counter.builder("gemini.equalization.tokens.output")
-            .description("균등화 API 출력 토큰")
-            .register(registry);
-    this.eqCost =
-        Counter.builder("gemini.equalization.cost")
-            .description("균등화 API 추정 비용 (USD)")
-            .register(registry);
-    this.planTokensInput =
-        Counter.builder("gemini.plan.tokens.input")
-            .description("문항 계획 API 입력 토큰")
-            .register(registry);
-    this.planTokensOutput =
-        Counter.builder("gemini.plan.tokens.output")
-            .description("문항 계획 API 출력 토큰")
-            .register(registry);
-    this.planCost =
-        Counter.builder("gemini.plan.cost").description("문항 계획 API 추정 비용 (USD)").register(registry);
     this.gradingDuration =
         Timer.builder("gemini.grading.duration")
             .description("ESSAY 채점 API 응답 시간")
@@ -188,24 +152,29 @@ public class GeminiMetricsRecorder {
     return totalCost;
   }
 
-  /** 선택지 균등화 검사 대상 문항 수를 기록한다. */
-  public void incrementSelectionChecked(int count) {
-    selectionChecked.increment(count);
-  }
-
-  /** 문항 계획 실행 + 토큰/비용을 기록한다. */
-  public void recordPlan(long inputTokens, long outputTokens, double cost) {
-    planTokensInput.increment(inputTokens);
-    planTokensOutput.increment(outputTokens);
-    planCost.increment(cost);
-  }
-
-  /** 선택지 길이 균등화 실행 + 토큰/비용을 기록한다. */
-  public void recordEqualization(long inputTokens, long outputTokens, double cost) {
-    selectionEqualization.increment();
-    eqTokensInput.increment(inputTokens);
-    eqTokensOutput.increment(outputTokens);
-    eqCost.increment(cost);
+  /**
+   * 청크 usage를 기록하고 토큰/비용을 로깅한 뒤 추정 비용을 반환한다. 오케스트레이터의 doOnNext usage 로깅 중복을 흡수한다.
+   *
+   * @param label 로그 식별 라벨 (예: "MULTIPLE chunk #0", "streaming")
+   * @param startNanos 요청 시작 시각 (System.nanoTime)
+   * @param usage ChatResponse에서 추출한 Usage 메타데이터
+   * @return 추정 비용 (USD)
+   */
+  public double recordChunkUsage(String label, long startNanos, Usage usage) {
+    long elapsedMs = (System.nanoTime() - startNanos) / 1_000_000;
+    double cost = recordChunkResult(elapsedMs, usage);
+    long thinkingTokens =
+        usage instanceof GoogleGenAiUsage g && g.getThoughtsTokenCount() != null
+            ? g.getThoughtsTokenCount()
+            : 0;
+    log.info(
+        "Gemini Usage - {}, 토큰: 입력={}, 추론={}, 출력={}, 비용=${}",
+        label,
+        usage.getPromptTokens(),
+        thinkingTokens,
+        usage.getCompletionTokens(),
+        String.format("%.6f", cost));
+    return cost;
   }
 
   /** ESSAY 채점 완료 메트릭을 기록한다. */

@@ -1,24 +1,26 @@
 package com.icc.qasker.ai.service.support;
 
-import com.icc.qasker.ai.structure.GeminiQuestion;
 import java.util.function.Consumer;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * 스트리밍 JSON 응답에서 GeminiQuestion 객체가 완성될 때마다 콜백을 호출한다.
+ * 스트리밍 JSON 응답에서 배열 원소 객체가 완성될 때마다 콜백을 호출하는 제네릭 추출기.
  *
  * <p>Gemini 응답 형식: {"questions": [{Q1}, {Q2}, ...]}
  *
- * <p>questions 배열 내부의 각 객체({...})가 완성되면 즉시 파싱하여 consumer에 전달한다. 문자열 내부의 중괄호를 무시하기 위해 JSON 문자열
- * 이스케이프를 추적한다.
+ * <p>배열 내부의 각 객체({...})가 완성되면 즉시 파싱하여 consumer에 전달한다. 문자열 내부의 중괄호를 무시하기 위해 JSON 문자열 이스케이프를 추적한다.
+ *
+ * @param <T> 배열 원소 타입 (예: GeminiQuestion, GeminiEssayQuestion)
  */
 @Slf4j
-public class StreamingQuestionExtractor {
+public class StreamingJsonArrayExtractor<T> {
 
   private final ObjectMapper objectMapper;
-  private final Consumer<GeminiQuestion> questionConsumer;
+  private final Class<T> elementType;
+  private final Consumer<T> elementConsumer;
+  private final String logTag;
 
   private final StringBuilder buffer = new StringBuilder();
   private boolean inArray = false;
@@ -27,16 +29,18 @@ public class StreamingQuestionExtractor {
   private boolean inString = false;
   private boolean escaped = false;
 
-  /** -- GETTER -- 추출된 문항 수를 반환한다. */
+  /** -- GETTER -- 추출된 원소 수를 반환한다. */
   @Getter private int questionCount = 0;
 
-  public StreamingQuestionExtractor(
-      ObjectMapper objectMapper, Consumer<GeminiQuestion> questionConsumer) {
+  public StreamingJsonArrayExtractor(
+      ObjectMapper objectMapper, Class<T> elementType, Consumer<T> elementConsumer, String logTag) {
     this.objectMapper = objectMapper;
-    this.questionConsumer = questionConsumer;
+    this.elementType = elementType;
+    this.elementConsumer = elementConsumer;
+    this.logTag = logTag;
   }
 
-  /** 스트리밍 텍스트 청크를 받아 처리한다. 문항 객체가 완성되면 consumer가 호출된다. */
+  /** 스트리밍 텍스트 청크를 받아 처리한다. 원소 객체가 완성되면 consumer가 호출된다. */
   public void feed(String chunk) {
     if (chunk == null) return;
 
@@ -59,7 +63,7 @@ public class StreamingQuestionExtractor {
       }
       if (inString) continue;
 
-      // questions 배열 시작 감지
+      // 배열 시작 감지
       if (c == '[' && !inArray) {
         inArray = true;
         continue;
@@ -67,7 +71,7 @@ public class StreamingQuestionExtractor {
 
       if (!inArray) continue;
 
-      // 문항 객체 추적
+      // 원소 객체 추적
       if (c == '{') {
         if (braceDepth == 0) {
           objectStart = buffer.length() - 1;
@@ -77,20 +81,21 @@ public class StreamingQuestionExtractor {
         braceDepth--;
         if (braceDepth == 0 && objectStart >= 0) {
           String objectJson = buffer.substring(objectStart, buffer.length());
-          emitQuestion(objectJson);
+          emitElement(objectJson);
           objectStart = -1;
         }
       }
     }
   }
 
-  private void emitQuestion(String json) {
-    GeminiQuestion question;
+  private void emitElement(String json) {
+    T element;
     try {
-      question = objectMapper.readValue(json, GeminiQuestion.class);
+      element = objectMapper.readValue(json, elementType);
     } catch (Exception e) {
       log.warn(
-          "[JSON 파싱 실패] 문항 JSON 역직렬화 실패 jsonLength={} jsonPreview={}",
+          "[{} JSON 파싱 실패] 문항 JSON 역직렬화 실패 jsonLength={} jsonPreview={}",
+          logTag,
           json.length(),
           json.length() > 300 ? json.substring(0, 300) : json,
           e);
@@ -98,9 +103,9 @@ public class StreamingQuestionExtractor {
     }
     try {
       questionCount++;
-      questionConsumer.accept(question);
+      elementConsumer.accept(element);
     } catch (Exception e) {
-      log.warn("[문항 처리 실패] 문항 소비자 호출 중 오류 발생", e);
+      log.warn("[{} 문항 처리 실패] 문항 소비자 호출 중 오류 발생", logTag, e);
     }
   }
 }
