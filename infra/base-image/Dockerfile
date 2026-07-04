@@ -1,6 +1,6 @@
 # eclipse-temurin:21-jdk-noble: arm64v8 공식 지원, Ubuntu 24.04(Noble) 기반
 # bookworm(Debian) 태그는 deprecated → noble 사용
-FROM eclipse-temurin:21-jdk-noble
+FROM eclipse-temurin:25.0.2_10-jdk-noble
 
 # ── 시스템 패키지 설치 ──────────────────────
 # DEBIAN_FRONTEND=noninteractive: apt 설치 중 대화형 프롬프트 방지

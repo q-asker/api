@@ -1,13 +1,13 @@
 package com.icc.qasker.quizset.converter;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
 import java.util.List;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 
 @Converter
 public class IntegerListConverter implements AttributeConverter<List<Integer>, String> {
@@ -21,7 +21,7 @@ public class IntegerListConverter implements AttributeConverter<List<Integer>, S
     }
     try {
       return MAPPER.writeValueAsString(attribute);
-    } catch (JsonProcessingException e) {
+    } catch (JacksonException e) {
       throw new CustomException(ExceptionMessage.FAIL_CONVERT);
     }
   }
@@ -33,7 +33,7 @@ public class IntegerListConverter implements AttributeConverter<List<Integer>, S
     }
     try {
       return List.copyOf(MAPPER.readValue(dbData, new TypeReference<>() {}));
-    } catch (JsonProcessingException e) {
+    } catch (JacksonException e) {
       throw new CustomException(ExceptionMessage.FAIL_CONVERT);
     }
   }

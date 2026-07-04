@@ -1,10 +1,10 @@
 package com.icc.qasker.ai.service.support;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.icc.qasker.ai.structure.GeminiQuestion;
 import java.util.function.Consumer;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * 스트리밍 JSON 응답에서 GeminiQuestion 객체가 완성될 때마다 콜백을 호출한다.

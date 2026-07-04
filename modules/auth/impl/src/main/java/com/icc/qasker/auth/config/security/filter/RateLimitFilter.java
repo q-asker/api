@@ -1,6 +1,5 @@
 package com.icc.qasker.auth.config.security.filter;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.icc.qasker.auth.component.ClientKeyResolver;
@@ -28,6 +27,7 @@ import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import tools.jackson.databind.ObjectMapper;
 
 /** Bucket4j Token Bucket 기반 Rate Limit 필터. JWT 인증 필터 이후에 실행되어 인증 정보를 활용한다. */
 @Component

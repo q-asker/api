@@ -1,27 +1,27 @@
 [versions]
 # ── BOMs ────────────────────────────────────────────────
-spring-boot = "3.5.8"
-spring-ai = "1.1.2"
-google-cloud = "26.67.0"
+spring-boot = "4.1.0"
+spring-ai = "2.0.0"
+google-cloud = "26.84.0"
 junit = "5.14.4"
 
 # ── Plugins ─────────────────────────────────────────────
 spotless = "7.0.4"
 google-java-format = "1.25.2"
 dependency-graph-generator = "0.8.0"
-jib = "3.4.0"
+jib = "3.5.3"
 foojay = "0.8.0"
 
 # ── Libraries ───────────────────────────────────────────
 jasypt = "3.0.5"
-springdoc = "2.8.17"
+springdoc = "3.0.3"
 auth0-jwt = "4.5.0"
 bucket4j = "8.19.0"
-jodconverter = "4.4.9"
+jodconverter = "4.4.11"
 hashids = "1.0.3"
-resilience4j = "2.3.0"
+resilience4j = "2.4.0"
 oci = "3.90.0"
-pdfbox = "3.0.3"
+pdfbox = "3.0.7"
 httpclient5 = "5.6.1"
 
 [libraries]
@@ -39,7 +39,7 @@ bucket4j-jdk17-core = { module = "com.bucket4j:bucket4j_jdk17-core", version.ref
 jodconverter-local-lo = { module = "org.jodconverter:jodconverter-local-lo", version.ref = "jodconverter" }
 jodconverter-spring-boot-starter = { module = "org.jodconverter:jodconverter-spring-boot-starter", version.ref = "jodconverter" }
 hashids = { module = "org.hashids:hashids", version.ref = "hashids" }
-resilience4j-spring-boot3 = { module = "io.github.resilience4j:resilience4j-spring-boot3", version.ref = "resilience4j" }
+resilience4j-spring-boot3 = { module = "io.github.resilience4j:resilience4j-spring-boot4", version.ref = "resilience4j" }
 oci-objectstorage = { module = "com.oracle.oci.sdk:oci-java-sdk-objectstorage", version.ref = "oci" }
 oci-httpclient-jersey3 = { module = "com.oracle.oci.sdk:oci-java-sdk-common-httpclient-jersey3", version.ref = "oci" }
 pdfbox = { module = "org.apache.pdfbox:pdfbox", version.ref = "pdfbox" }

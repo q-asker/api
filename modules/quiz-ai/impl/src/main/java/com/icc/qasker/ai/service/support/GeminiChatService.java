@@ -1,6 +1,5 @@
 package com.icc.qasker.ai.service.support;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.icc.qasker.ai.dto.ChunkInfo;
 import com.icc.qasker.ai.strategy.QuizType;
 import com.icc.qasker.ai.structure.GeminiResponse;
@@ -14,6 +13,7 @@ import org.springframework.ai.google.genai.GoogleGenAiChatOptions;
 import org.springframework.ai.google.genai.common.GoogleGenAiThinkingLevel;
 import org.springframework.ai.google.genai.metadata.GoogleGenAiUsage;
 import org.springframework.stereotype.Component;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * Gemini ChatModel 호출, JSON 응답 파싱, 메트릭 기록을 담당한다. QuizOrchestrationServiceImpl에서 Chat 관심사를 분리하여
