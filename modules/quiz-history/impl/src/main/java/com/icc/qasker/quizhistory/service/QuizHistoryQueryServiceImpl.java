@@ -5,32 +5,26 @@ import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.quizhistory.QuizHistoryQueryService;
 import com.icc.qasker.quizhistory.dto.feresponse.EssayHistoryDetailResponse;
-import com.icc.qasker.quizhistory.dto.feresponse.EssayHistoryDetailResponse.ElementScoreDetail;
 import com.icc.qasker.quizhistory.dto.feresponse.EssayHistoryDetailResponse.EssayProblemWithGrade;
-import com.icc.qasker.quizhistory.dto.feresponse.EssayHistoryDetailResponse.EssaySelection;
-import com.icc.qasker.quizhistory.dto.feresponse.EssayHistoryDetailResponse.GradeResult;
 import com.icc.qasker.quizhistory.dto.feresponse.HistoryCheckResponse;
 import com.icc.qasker.quizhistory.dto.feresponse.HistoryDetailResponse;
 import com.icc.qasker.quizhistory.dto.feresponse.HistoryPageResponse;
 import com.icc.qasker.quizhistory.dto.feresponse.HistorySummaryResponse;
 import com.icc.qasker.quizhistory.dto.feresponse.ProblemWithAnswer;
-import com.icc.qasker.quizhistory.entity.AnswerSnapshot;
+import com.icc.qasker.quizhistory.entity.AnswerSnapshotView;
 import com.icc.qasker.quizhistory.entity.EssayGradeLog;
 import com.icc.qasker.quizhistory.entity.QuizHistory;
 import com.icc.qasker.quizhistory.mapper.QuizHistoryMapper;
 import com.icc.qasker.quizhistory.repository.EssayGradeLogRepository;
 import com.icc.qasker.quizhistory.repository.QuizHistoryRepository;
 import com.icc.qasker.quizset.ProblemSetReadService;
-import com.icc.qasker.quizset.dto.feresponse.Selection;
 import com.icc.qasker.quizset.dto.readonly.ProblemDetail;
 import com.icc.qasker.quizset.dto.readonly.ProblemSetSummary;
-import com.icc.qasker.quizset.dto.readonly.SelectionDetail;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -94,58 +88,14 @@ public class QuizHistoryQueryServiceImpl implements QuizHistoryQueryService {
 
   @Override
   public HistoryDetailResponse getHistoryDetail(String userId, String historyId) {
-    long id = hashUtil.decode(historyId);
-    QuizHistory history =
-        quizHistoryRepository
-            .findById(id)
-            .filter(h -> h.getUserId().equals(userId))
-            .orElseThrow(() -> new CustomException(ExceptionMessage.QUIZ_HISTORY_NOT_FOUND));
-
+    QuizHistory history = loadOwnedHistory(userId, historyId);
     Long problemSetId = history.getProblemSetId();
-    ProblemSetSummary problemSet =
-        problemSetReadService
-            .findProblemSetById(problemSetId)
-            .orElseThrow(() -> new CustomException(ExceptionMessage.PROBLEM_SET_NOT_FOUND));
-
+    ProblemSetSummary problemSet = loadProblemSet(problemSetId);
     List<ProblemDetail> problems = problemSetReadService.findProblemsByProblemSetId(problemSetId);
 
-    Map<Integer, Integer> answerMap =
-        history.getAnswers().stream()
-            .collect(Collectors.toMap(AnswerSnapshot::number, AnswerSnapshot::userAnswer));
-
-    Map<Integer, Boolean> inReviewMap =
-        history.getAnswers().stream()
-            .collect(Collectors.toMap(AnswerSnapshot::number, AnswerSnapshot::inReview));
-
-    Map<Integer, String> textAnswerMap =
-        history.getAnswers().stream()
-            .filter(a -> a.textAnswer() != null)
-            .collect(Collectors.toMap(AnswerSnapshot::number, AnswerSnapshot::textAnswer));
-
+    AnswerSnapshotView answers = AnswerSnapshotView.from(history.getAnswers());
     List<ProblemWithAnswer> problemWithAnswers =
-        problems.stream()
-            .map(
-                p -> {
-                  boolean inReview = inReviewMap.getOrDefault(p.number(), false);
-                  int userAnswer = answerMap.getOrDefault(p.number(), 0);
-                  List<SelectionDetail> rawSelections = p.selections();
-                  int correctIndex = findCorrectIndex(rawSelections);
-                  boolean correct = userAnswer == correctIndex;
-                  List<Selection> selections =
-                      IntStream.range(0, rawSelections.size())
-                          .mapToObj(
-                              i ->
-                                  new Selection(
-                                      i + 1,
-                                      rawSelections.get(i).content(),
-                                      rawSelections.get(i).correct()))
-                          .toList();
-
-                  String textAnswer = textAnswerMap.get(p.number());
-                  return new ProblemWithAnswer(
-                      p.number(), p.title(), userAnswer, correct, inReview, selections, textAnswer);
-                })
-            .toList();
+        problems.stream().map(p -> quizHistoryMapper.toProblemWithAnswer(p, answers)).toList();
 
     return new HistoryDetailResponse(
         hashUtil.encode(history.getId()),
@@ -160,29 +110,12 @@ public class QuizHistoryQueryServiceImpl implements QuizHistoryQueryService {
 
   @Override
   public EssayHistoryDetailResponse getEssayHistoryDetail(String userId, String historyId) {
-    long id = hashUtil.decode(historyId);
-    QuizHistory history =
-        quizHistoryRepository
-            .findById(id)
-            .filter(h -> h.getUserId().equals(userId))
-            .orElseThrow(() -> new CustomException(ExceptionMessage.QUIZ_HISTORY_NOT_FOUND));
-
+    QuizHistory history = loadOwnedHistory(userId, historyId);
     Long problemSetId = history.getProblemSetId();
-    ProblemSetSummary problemSet =
-        problemSetReadService
-            .findProblemSetById(problemSetId)
-            .orElseThrow(() -> new CustomException(ExceptionMessage.PROBLEM_SET_NOT_FOUND));
-
+    ProblemSetSummary problemSet = loadProblemSet(problemSetId);
     List<ProblemDetail> problems = problemSetReadService.findProblemsByProblemSetId(problemSetId);
 
-    // 답안 스냅샷 매핑
-    Map<Integer, String> textAnswerMap =
-        history.getAnswers().stream()
-            .filter(a -> a.textAnswer() != null)
-            .collect(Collectors.toMap(AnswerSnapshot::number, AnswerSnapshot::textAnswer));
-    Map<Integer, Boolean> inReviewMap =
-        history.getAnswers().stream()
-            .collect(Collectors.toMap(AnswerSnapshot::number, AnswerSnapshot::inReview));
+    AnswerSnapshotView answers = AnswerSnapshotView.from(history.getAnswers());
 
     // 문제별 최신 채점 결과 조회
     Map<Integer, EssayGradeLog> gradeLogMap =
@@ -192,25 +125,9 @@ public class QuizHistoryQueryServiceImpl implements QuizHistoryQueryService {
     List<EssayProblemWithGrade> essayProblems =
         problems.stream()
             .map(
-                p -> {
-                  // selections (id, content만 노출)
-                  List<EssaySelection> selections =
-                      IntStream.range(0, p.selections().size())
-                          .mapToObj(i -> new EssaySelection(i + 1, p.selections().get(i).content()))
-                          .toList();
-
-                  // 채점 결과 변환
-                  EssayGradeLog gradeLog = gradeLogMap.get(p.number());
-                  GradeResult gradeResult = toGradeResult(gradeLog);
-
-                  return new EssayProblemWithGrade(
-                      p.number(),
-                      p.title(),
-                      textAnswerMap.get(p.number()),
-                      inReviewMap.getOrDefault(p.number(), false),
-                      selections,
-                      gradeResult);
-                })
+                p ->
+                    quizHistoryMapper.toEssayProblemWithGrade(
+                        p, answers, gradeLogMap.get(p.number())))
             .toList();
 
     return new EssayHistoryDetailResponse(
@@ -223,24 +140,6 @@ public class QuizHistoryQueryServiceImpl implements QuizHistoryQueryService {
         essayProblems);
   }
 
-  private GradeResult toGradeResult(EssayGradeLog gradeLog) {
-    if (gradeLog == null) {
-      return null;
-    }
-    List<ElementScoreDetail> elementScores =
-        gradeLog.getElementScores().stream()
-            .map(
-                e ->
-                    new ElementScoreDetail(
-                        e.element(), e.maxPoints(), e.earnedPoints(), e.level(), e.feedback()))
-            .toList();
-    return new GradeResult(
-        gradeLog.getTotalScore(),
-        gradeLog.getMaxScore(),
-        gradeLog.getOverallFeedback(),
-        elementScores);
-  }
-
   @Override
   public HistoryCheckResponse checkHistory(String userId, String problemSetId) {
     long id = hashUtil.decode(problemSetId);
@@ -250,12 +149,17 @@ public class QuizHistoryQueryServiceImpl implements QuizHistoryQueryService {
         .orElse(new HistoryCheckResponse(false, null, null));
   }
 
-  private int findCorrectIndex(List<SelectionDetail> selections) {
-    for (int i = 0; i < selections.size(); i++) {
-      if (selections.get(i).correct()) {
-        return i + 1;
-      }
-    }
-    return -1;
+  private QuizHistory loadOwnedHistory(String userId, String historyId) {
+    long id = hashUtil.decode(historyId);
+    return quizHistoryRepository
+        .findById(id)
+        .filter(h -> h.getUserId().equals(userId))
+        .orElseThrow(() -> new CustomException(ExceptionMessage.QUIZ_HISTORY_NOT_FOUND));
+  }
+
+  private ProblemSetSummary loadProblemSet(Long problemSetId) {
+    return problemSetReadService
+        .findProblemSetById(problemSetId)
+        .orElseThrow(() -> new CustomException(ExceptionMessage.PROBLEM_SET_NOT_FOUND));
   }
 }
