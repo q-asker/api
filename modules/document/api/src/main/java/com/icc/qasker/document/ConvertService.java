@@ -10,6 +10,7 @@ public interface ConvertService {
    *
    * @param inputFile 변환할 원본 파일의 로컬 경로
    * @return 변환된 PDF 파일의 로컬 경로
+   * @throws UnsupportedOperationException LibreOffice가 비활성화된 환경(CI/test)에서는 변환이 지원되지 않는다
    */
   Path convertToPdf(Path inputFile);
 }

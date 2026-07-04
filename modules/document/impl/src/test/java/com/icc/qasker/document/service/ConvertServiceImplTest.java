@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
+import io.micrometer.core.instrument.Timer;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.io.File;
 import java.net.URL;
@@ -26,6 +27,8 @@ class ConvertServiceImplTest {
 
   // JODConverter의 DocumentConverter를 모킹하여 LibreOffice 없이 테스트한다
   private DocumentConverter documentConverter;
+  // Timer 기록을 검증하기 위해 registry를 필드로 보관한다
+  private SimpleMeterRegistry registry;
   // 테스트 대상: ConvertServiceImpl (DocumentConverter를 주입받는 구현체)
   private ConvertServiceImpl convertService;
 
@@ -33,8 +36,20 @@ class ConvertServiceImplTest {
   void setUp() {
     // DocumentConverter의 가짜 객체를 생성한다 (실제 LibreOffice 프로세스를 띄우지 않음)
     documentConverter = mock(DocumentConverter.class);
+    registry = new SimpleMeterRegistry();
     // 모킹된 DocumentConverter를 주입하여 테스트 대상 서비스를 생성한다
-    convertService = new ConvertServiceImpl(documentConverter, new SimpleMeterRegistry());
+    convertService = new ConvertServiceImpl(documentConverter, registry);
+  }
+
+  // 특정 source_type/result 태그를 가진 Timer의 기록 횟수를 조회하는 헬퍼
+  private long timerCount(String sourceType, String result) {
+    Timer timer =
+        registry
+            .find("document.conversion.duration")
+            .tag("source_type", sourceType)
+            .tag("result", result)
+            .timer();
+    return timer == null ? 0 : timer.count();
   }
 
   // 클래스패스(src/test/resources)에서 테스트 파일의 절대 경로를 가져오는 헬퍼
@@ -107,6 +122,8 @@ class ConvertServiceImplTest {
     verify(documentConverter).convert(pptxFile.toFile());
     // Then: 최종적으로 execute()가 호출되어 실제 변환이 트리거되었는지 검증한다
     verify(targetJob).execute();
+    // Then: source_type=pptx/result=success Timer가 1회 기록되었는지 검증한다
+    assertThat(timerCount("pptx", "success")).isEqualTo(1);
   }
 
   // 보장: DOCX → PDF 변환이 PPTX와 동일한 경로로 동작하여 Word 문서 업로드를 지원한다
@@ -152,5 +169,30 @@ class ConvertServiceImplTest {
     assertThatThrownBy(() -> convertService.convertToPdf(pptxFile))
         .isInstanceOf(CustomException.class)
         .hasMessage(ExceptionMessage.CONVERT_FAILED.getMessage());
+    // Then: 실패 경로에서 source_type=pptx/result=fail Timer가 1회 기록되었는지 검증한다
+    // (리팩터링이 실패 계측을 헬퍼로 통합하므로 회귀 방지 필수)
+    assertThat(timerCount("pptx", "fail")).isEqualTo(1);
+  }
+
+  // 보장: 첫 요청 전에도 (확장자 × 결과) 시계열이 대시보드에 0값으로 노출되도록 사전 등록된다
+  @Test
+  @DisplayName("기동 시 4확장자 × 2결과 = 8개 Timer 시계열을 사전 등록한다")
+  void eagerRegisterMetrics_registersAllTimeSeries() {
+    // When: @PostConstruct 메서드를 수동 호출한다 (단위 테스트에서는 컨테이너가 없음)
+    convertService.eagerRegisterMetrics();
+
+    // Then: 4개 확장자 × 2개 결과 = 8개 Timer가 모두 등록되어야 한다
+    for (String ext : new String[] {"pptx", "ppt", "docx", "doc"}) {
+      for (String result : new String[] {"success", "fail"}) {
+        assertThat(
+                registry
+                    .find("document.conversion.duration")
+                    .tag("source_type", ext)
+                    .tag("result", result)
+                    .timer())
+            .as("Timer source_type=%s result=%s", ext, result)
+            .isNotNull();
+      }
+    }
   }
 }
