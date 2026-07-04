@@ -1,67 +1,34 @@
 package com.icc.qasker.auth.config.security.filter;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.icc.qasker.auth.component.ClientKeyResolver;
-import com.icc.qasker.global.error.CustomErrorResponse;
-import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.global.properties.RateLimitProperties;
 import com.icc.qasker.global.ratelimit.RateLimitPlanResolver;
 import com.icc.qasker.global.ratelimit.RateLimitTier;
-import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.ConsumptionProbe;
-import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.Tags;
-import jakarta.annotation.PostConstruct;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-import tools.jackson.databind.ObjectMapper;
 
 /** Bucket4j Token Bucket 기반 Rate Limit 필터. JWT 인증 필터 이후에 실행되어 인증 정보를 활용한다. */
 @Component
 @RequiredArgsConstructor
 public class RateLimitFilter extends OncePerRequestFilter {
 
-  private static final String HEADER_LIMIT = "X-RateLimit-Limit";
-  private static final String HEADER_REMAINING = "X-RateLimit-Remaining";
-  private static final String HEADER_RESET = "X-RateLimit-Reset";
-  private static final String HEADER_RETRY_AFTER = "Retry-After";
-
   private final ClientKeyResolver keyResolver;
   private final RateLimitPlanResolver planResolver;
   private final RateLimitProperties rateLimitProperties;
-  private final ObjectMapper objectMapper;
-  private final MeterRegistry meterRegistry;
-
-  private Cache<String, Bucket> bucketCache;
-
-  // 글로벌 버킷은 만료 없이 영구 보관 — Micrometer Gauge의 WeakReference가 끊기지 않도록 강참조 유지
-  private final Map<String, Bucket> globalBucketStore = new ConcurrentHashMap<>();
-
-  @PostConstruct
-  public void initCache() {
-    bucketCache =
-        Caffeine.newBuilder()
-            .expireAfterAccess(rateLimitProperties.getBucketExpireMinutes(), TimeUnit.MINUTES)
-            .maximumSize(rateLimitProperties.getMaxBucketSize())
-            .build();
-  }
+  private final RateLimitBucketRegistry bucketRegistry;
+  private final RateLimitResponseWriter responseWriter;
+  private final RateLimitMetrics metrics;
 
   @Override
   protected boolean shouldNotFilter(HttpServletRequest request) {
-    // actuator 엔드포인트는 Rate Limit 제외
     return request.getRequestURI().startsWith("/actuator");
   }
 
@@ -85,81 +52,17 @@ public class RateLimitFilter extends OncePerRequestFilter {
     String clientKey = isGlobal ? "global" : keyResolver.resolve(request);
     String bucketKey = clientKey + ":" + tier.name();
 
-    Bucket bucket;
-    if (isGlobal) {
-      // 글로벌 버킷은 Caffeine 캐시 만료 대상에서 제외 — Gauge WeakReference가 끊기지 않도록 강참조 유지
-      bucket =
-          globalBucketStore.computeIfAbsent(
-              bucketKey,
-              k -> {
-                Bucket b = createBucket(tier);
-                meterRegistry.gauge(
-                    "rate_limit_global_remaining_tokens",
-                    Tags.of("tier", tier.name()),
-                    b,
-                    bkt -> (double) bkt.getAvailableTokens());
-                return b;
-              });
-    } else {
-      bucket = bucketCache.get(bucketKey, k -> createBucket(tier));
-    }
-
+    Bucket bucket = bucketRegistry.getOrCreate(bucketKey, tier, isGlobal);
     ConsumptionProbe probe = bucket.tryConsumeAndReturnRemaining(1);
     String scope = isGlobal ? "global" : "client";
 
     if (probe.isConsumed()) {
-      meterRegistry
-          .counter("rate_limit_consumed_total", "tier", tier.name(), "scope", scope)
-          .increment();
-      addRateLimitHeaders(response, tier, probe);
+      metrics.incrementConsumed(tier.name(), scope);
+      responseWriter.addRateLimitHeaders(response, tier, probe);
       chain.doFilter(request, response);
     } else {
-      meterRegistry
-          .counter("rate_limit_rejected_total", "tier", tier.name(), "scope", scope)
-          .increment();
-      long retryAfter = TimeUnit.NANOSECONDS.toSeconds(probe.getNanosToWaitForRefill()) + 1;
-      response.setStatus(429);
-      response.setContentType("application/json;charset=UTF-8");
-      response.setHeader(HEADER_RETRY_AFTER, String.valueOf(retryAfter));
-      addRateLimitHeaders(response, tier, probe);
-      objectMapper.writeValue(
-          response.getWriter(),
-          new CustomErrorResponse(ExceptionMessage.RATE_LIMIT_EXCEEDED.getMessage()));
+      metrics.incrementRejected(tier.name(), scope);
+      responseWriter.writeTooManyRequests(response, tier, probe);
     }
-  }
-
-  private void addRateLimitHeaders(
-      HttpServletResponse response, RateLimitTier tier, ConsumptionProbe probe) {
-    long resetEpochSeconds =
-        Instant.now().plusNanos(probe.getNanosToWaitForRefill()).getEpochSecond();
-    response.setHeader(HEADER_LIMIT, String.valueOf(getCapacity(tier)));
-    response.setHeader(HEADER_REMAINING, String.valueOf(Math.max(0, probe.getRemainingTokens())));
-    response.setHeader(HEADER_RESET, String.valueOf(resetEpochSeconds));
-  }
-
-  private Bucket createBucket(RateLimitTier tier) {
-    Bandwidth bandwidth =
-        Bandwidth.builder()
-            .capacity(getCapacity(tier))
-            .refillGreedy(getRefillPerMinute(tier), Duration.ofMinutes(1))
-            .build();
-    return Bucket.builder().addLimit(bandwidth).build();
-  }
-
-  private long getCapacity(RateLimitTier tier) {
-    return getTierConfig(tier).capacity();
-  }
-
-  private long getRefillPerMinute(RateLimitTier tier) {
-    return getTierConfig(tier).refillPerMinute();
-  }
-
-  private RateLimitProperties.TierConfig getTierConfig(RateLimitTier tier) {
-    RateLimitProperties.TierConfig config = rateLimitProperties.getTiers().get(tier.name());
-    if (config == null) {
-      throw new IllegalStateException(
-          "YAML에 Rate Limit Tier 설정이 없습니다: q-asker.rate-limit.tiers." + tier.name());
-    }
-    return config;
   }
 }

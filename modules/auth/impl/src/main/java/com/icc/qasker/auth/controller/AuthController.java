@@ -32,7 +32,6 @@ public class AuthController {
   @RateLimit(RateLimitTier.NONE)
   @GetMapping("/test")
   public ResponseEntity<?> test() {
-    System.out.println("test 성공");
     return ResponseEntity.ok().build();
   }
 
