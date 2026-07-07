@@ -12,7 +12,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.icc.qasker.ai.dto.AIProblem;
-import com.icc.qasker.ai.dto.AIProblemSet;
 import com.icc.qasker.ai.dto.AISelection;
 import com.icc.qasker.ai.dto.GenerationRequestToAI;
 import com.icc.qasker.global.component.HashUtil;
@@ -62,7 +61,9 @@ class GenerationCommandServiceImplTest {
             quizCommandService,
             quizQueryService,
             hashUtil,
-            resultRecorder);
+            resultRecorder,
+            mock(com.icc.qasker.quizset.QualityLogService.class),
+            15);
   }
 
   @Test
@@ -117,26 +118,28 @@ class GenerationCommandServiceImplTest {
   }
 
   @Test
-  @DisplayName("배치 소비: 문제에 1..n 순차 번호를 부여하고 saveBatch로 저장한다")
-  void batch_consumer_assigns_sequential_numbers_and_saves() {
+  @DisplayName("문제 저장: saveProblem 호출마다 1..n 순차 번호를 부여한다")
+  void save_problem_assigns_sequential_numbers() {
     GenerationRequest request = request(QuizType.MULTIPLE);
-    AIProblemSet batch = batchOf(multipleProblem(), multipleProblem());
-    stubConsumer(batch, List.of(1, 2), List.of(quizView(1), quizView(2)));
+    stubSink(2);
 
     service.triggerGeneration("user-1", request);
 
     @SuppressWarnings("unchecked")
     ArgumentCaptor<List<QuizGeneratedFromAI>> captor = ArgumentCaptor.forClass(List.class);
-    verify(quizCommandService, timeout(2000)).saveBatch(captor.capture(), eq(1L));
-    assertThat(captor.getValue()).extracting(QuizGeneratedFromAI::getNumber).containsExactly(1, 2);
+    verify(quizCommandService, timeout(2000).times(2)).saveBatch(captor.capture(), eq(1L));
+    assertThat(captor.getAllValues())
+        .allSatisfy(saved -> assertThat(saved).hasSize(1))
+        .flatExtracting(saved -> saved)
+        .extracting(QuizGeneratedFromAI::getNumber)
+        .containsExactly(1, 2);
   }
 
   @Test
-  @DisplayName("배치 소비: SSE eventId는 저장된 마지막 문제 번호로 전송된다")
-  void batch_consumer_sends_last_number_as_event_id() {
+  @DisplayName("문제 저장: SSE eventId는 방금 저장된 문제 번호로 전송된다")
+  void save_problem_sends_number_as_event_id() {
     GenerationRequest request = request(QuizType.MULTIPLE);
-    AIProblemSet batch = batchOf(multipleProblem(), multipleProblem());
-    stubConsumer(batch, List.of(1, 2), List.of(quizView(1), quizView(2)));
+    stubSink(2);
 
     service.triggerGeneration("user-1", request);
 
@@ -144,11 +147,10 @@ class GenerationCommandServiceImplTest {
   }
 
   @Test
-  @DisplayName("배치 소비: MULTIPLE 선택지는 순서만 바뀌고 집합은 보존된다")
-  void multiple_selections_are_shuffled_preserving_set() {
+  @DisplayName("문제 저장: 선택지 집합은 보존된다 (셔플은 오케스트레이터 책임으로 이관)")
+  void save_problem_preserves_selection_set() {
     GenerationRequest request = request(QuizType.MULTIPLE);
-    AIProblemSet batch = batchOf(multipleProblem());
-    stubConsumer(batch, List.of(1), List.of(quizView(1)));
+    stubSink(1);
 
     service.triggerGeneration("user-1", request);
 
@@ -160,37 +162,6 @@ class GenerationCommandServiceImplTest {
             .map(QuizGeneratedFromAI.SelectionsOfAI::getContent)
             .toList();
     assertThat(contents).containsExactlyInAnyOrder("A", "B", "C", "D");
-  }
-
-  @Test
-  @DisplayName("배치 소비: OX 선택지는 X가 1번이면 O가 항상 1번이 되도록 정규화된다")
-  void ox_selections_are_normalized_so_o_is_first() {
-    GenerationRequest request =
-        new GenerationRequest(
-            null,
-            UUID.randomUUID().toString(),
-            "https://example.com/file.pdf",
-            "title",
-            5,
-            QuizType.OX,
-            List.of(1, 2),
-            Language.KO);
-    AIProblemSet batch =
-        batchOf(
-            new AIProblem(
-                "질문",
-                "이해",
-                List.of(new AISelection("X", "틀림 해설", false), new AISelection("O", "맞음 해설", true)),
-                List.of(1),
-                null));
-    stubConsumer(batch, List.of(1), List.of(quizView(1)));
-
-    service.triggerGeneration("user-1", request);
-
-    @SuppressWarnings("unchecked")
-    ArgumentCaptor<List<QuizGeneratedFromAI>> captor = ArgumentCaptor.forClass(List.class);
-    verify(quizCommandService, timeout(2000)).saveBatch(captor.capture(), eq(1L));
-    assertThat(captor.getValue().get(0).getSelections().get(0).getContent()).isEqualTo("O");
   }
 
   @Test
@@ -210,11 +181,7 @@ class GenerationCommandServiceImplTest {
   @DisplayName("finalize: 생성 수가 요청 수와 같으면 COMPLETED + 성공 기록")
   void finalize_marks_completed_on_full_success() {
     GenerationRequest request = request(QuizType.MULTIPLE); // quizCount=5
-    AIProblemSet batch = batchOf(multipleProblem());
-    stubConsumer(
-        batch,
-        List.of(1, 2, 3, 4, 5),
-        List.of(quizView(1), quizView(2), quizView(3), quizView(4), quizView(5)));
+    stubSink(5);
 
     service.triggerGeneration("user-1", request);
 
@@ -228,8 +195,7 @@ class GenerationCommandServiceImplTest {
   @DisplayName("finalize: 일부만 생성되면 COMPLETED + 부분 성공 기록")
   void finalize_marks_partial_success() {
     GenerationRequest request = request(QuizType.MULTIPLE); // quizCount=5
-    AIProblemSet batch = batchOf(multipleProblem());
-    stubConsumer(batch, List.of(1, 2, 3), List.of(quizView(1), quizView(2), quizView(3)));
+    stubSink(3);
 
     service.triggerGeneration("user-1", request);
 
@@ -252,21 +218,30 @@ class GenerationCommandServiceImplTest {
 
   // ── helpers ────────────────────────────────────────────────
 
-  /** streamRequest가 호출되면 넘겨받은 consumer에 batch를 전달하도록 스텁한다. */
-  private void stubConsumer(AIProblemSet batch, List<Integer> savedNumbers, List<QuizView> views) {
-    when(quizCommandService.saveBatch(anyList(), eq(1L))).thenReturn(savedNumbers);
-    when(quizQueryService.getQuizViews(anyLong(), anyList())).thenReturn(views);
+  /** streamRequest 호출 시 sink에 deliverCount건의 문제를 순차 저장하도록 스텁한다(배치 인터리빙 Phase 1). */
+  private void stubSink(int deliverCount) {
+    when(quizCommandService.saveBatch(anyList(), eq(1L)))
+        .thenAnswer(
+            invocation -> {
+              List<QuizGeneratedFromAI> quizzes = invocation.getArgument(0);
+              return quizzes.stream().map(QuizGeneratedFromAI::getNumber).toList();
+            });
+    when(quizQueryService.getQuizViews(anyLong(), anyList()))
+        .thenAnswer(
+            invocation -> {
+              List<Integer> nums = invocation.getArgument(1);
+              return nums.stream().map(this::quizView).toList();
+            });
     when(aiServerAdapter.streamRequest(any()))
         .thenAnswer(
             invocation -> {
               GenerationRequestToAI req = invocation.getArgument(0);
-              req.questionsConsumer().accept(batch);
+              for (int i = 0; i < deliverCount; i++) {
+                req.sink().saveProblem(multipleProblem());
+              }
+              req.sink().markProblemsReady();
               return 3;
             });
-  }
-
-  private AIProblemSet batchOf(AIProblem... problems) {
-    return new AIProblemSet(List.of(problems));
   }
 
   private AIProblem multipleProblem() {
@@ -274,11 +249,13 @@ class GenerationCommandServiceImplTest {
         "질문",
         "이해",
         List.of(
-            new AISelection("A", "해설 A", true),
-            new AISelection("B", "해설 B", false),
-            new AISelection("C", "해설 C", false),
-            new AISelection("D", "해설 D", false)),
+            new AISelection("A", null, true),
+            new AISelection("B", null, false),
+            new AISelection("C", null, false),
+            new AISelection("D", null, false)),
         List.of(1),
+        null,
+        null,
         null);
   }
 

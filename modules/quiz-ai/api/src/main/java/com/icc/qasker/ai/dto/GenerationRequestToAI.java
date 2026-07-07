@@ -1,7 +1,7 @@
 package com.icc.qasker.ai.dto;
 
+import com.icc.qasker.ai.QuizBatchSink;
 import java.util.List;
-import java.util.function.Consumer;
 import lombok.Builder;
 
 @Builder
@@ -11,5 +11,5 @@ public record GenerationRequestToAI(
     String language,
     int quizCount,
     List<Integer> referencePages,
-    Consumer<AIProblemSet> questionsConsumer,
+    QuizBatchSink sink,
     String customInstruction) {}

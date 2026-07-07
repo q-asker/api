@@ -11,4 +11,5 @@ public record GeminiEssayQuestion(
     @JsonPropertyDescription("참조한 강의노트 페이지 번호") List<Integer> referencedPages,
     @JsonPropertyDescription("모범답안 (핵심 요소 포함)") String modelAnswer,
     @JsonPropertyDescription("해설 (분석적 루브릭 포함)") String explanation,
-    @JsonPropertyDescription("사용자 지시 반영 결과") String appliedInstruction) {}
+    @JsonPropertyDescription("사용자 지시 반영 결과") String appliedInstruction,
+    @JsonPropertyDescription("문항 생성 근거 (품질 검증 입력)") GeminiRationale rationale) {}

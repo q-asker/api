@@ -35,8 +35,17 @@ public class GeminiMetricsRecorder {
   private final Counter gradingCost;
   private final Counter gradingCount;
   private final Counter gradingFailure;
+  private final Timer verifyDuration;
+  private final Counter verifyTokensInput;
+  private final Counter verifyTokensOutput;
+  private final Counter verifyCost;
+  private final Counter verifyCount;
+  private final Counter verifyFailure;
 
   private static final String[] QUIZ_TYPES = {"MULTIPLE", "OX", "BLANK", "ESSAY"};
+
+  /** 재생성 결과 — v2 통과 / v2 미달 / 재생성 불가. */
+  private static final String[] REGENERATION_OUTCOMES = {"PASS", "BELOW_THRESHOLD", "UNABLE"};
 
   public GeminiMetricsRecorder(
       MeterRegistry registry,
@@ -68,6 +77,35 @@ public class GeminiMetricsRecorder {
         Counter.builder("gemini.grading.count").description("ESSAY 채점 요청 횟수").register(registry);
     this.gradingFailure =
         Counter.builder("gemini.grading.failure").description("ESSAY 채점 실패 횟수").register(registry);
+
+    this.verifyDuration =
+        Timer.builder("gemini.verify.duration")
+            .description("문항 품질 검증 API 응답 시간")
+            .register(registry);
+    this.verifyTokensInput =
+        Counter.builder("gemini.verify.tokens.input")
+            .description("문항 품질 검증 API 입력 토큰")
+            .register(registry);
+    this.verifyTokensOutput =
+        Counter.builder("gemini.verify.tokens.output")
+            .description("문항 품질 검증 API 출력 토큰")
+            .register(registry);
+    this.verifyCost =
+        Counter.builder("gemini.verify.cost")
+            .description("문항 품질 검증 API 추정 비용 (USD)")
+            .register(registry);
+    this.verifyCount =
+        Counter.builder("gemini.verify.count").description("문항 품질 검증 요청 횟수").register(registry);
+    this.verifyFailure =
+        Counter.builder("gemini.verify.failure").description("문항 품질 검증 실패 횟수").register(registry);
+
+    // 재생성 결과 카운터를 결과별로 미리 등록 (개선율 = PASS ÷ 전체)
+    for (String outcome : REGENERATION_OUTCOMES) {
+      Counter.builder("gemini.regeneration.outcome")
+          .description("미달 문항 재생성(1회 캡) 결과 — v2 통과/미달/불가")
+          .tag("outcome", outcome)
+          .register(registry);
+    }
 
     this.chunkDuration =
         Timer.builder("gemini.chunk.duration")
@@ -189,6 +227,33 @@ public class GeminiMetricsRecorder {
   /** ESSAY 채점 실패를 기록한다. */
   public void recordGradingFailure() {
     gradingFailure.increment();
+  }
+
+  /** 문항 품질 검증 완료 메트릭을 기록한다. */
+  public void recordVerify(long elapsedMs, long inputTokens, long outputTokens, double cost) {
+    verifyDuration.record(elapsedMs, TimeUnit.MILLISECONDS);
+    verifyTokensInput.increment(inputTokens);
+    verifyTokensOutput.increment(outputTokens);
+    verifyCost.increment(cost);
+    verifyCount.increment();
+  }
+
+  /** 문항 품질 검증 실패(검증 불가)를 기록한다. */
+  public void recordVerifyFailure() {
+    verifyFailure.increment();
+  }
+
+  /**
+   * 미달 문항 재생성 결과를 기록한다. 재생성 개선율(PASS ÷ 전체) 산출 근거(SC-001).
+   *
+   * @param outcome 재생성 결과 — "PASS"(v2 통과) / "BELOW_THRESHOLD"(v2 미달) / "UNABLE"(재생성 불가)
+   */
+  public void recordRegenerationOutcome(String outcome) {
+    Counter.builder("gemini.regeneration.outcome")
+        .description("미달 문항 재생성(1회 캡) 결과 — v2 통과/미달/불가")
+        .tag("outcome", outcome)
+        .register(registry)
+        .increment();
   }
 
   /** 스트리밍 타임아웃 발생을 기록한다. */

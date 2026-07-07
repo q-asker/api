@@ -44,7 +44,9 @@ public class GeminiEssayQuestionMapper {
                       q.bloomsLevel(),
                       selections,
                       remapPages(q.referencedPages(), sourcePages),
-                      remapText(q.appliedInstruction(), sourcePages));
+                      remapText(q.appliedInstruction(), sourcePages),
+                      GeminiRationaleMapper.toDto(q.rationale()),
+                      null);
                 })
             .toList();
 

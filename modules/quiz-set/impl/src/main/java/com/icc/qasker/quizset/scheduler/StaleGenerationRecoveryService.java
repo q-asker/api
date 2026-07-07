@@ -2,6 +2,7 @@ package com.icc.qasker.quizset.scheduler;
 
 import com.icc.qasker.quizset.GenerationStatus;
 import com.icc.qasker.quizset.entity.ProblemSet;
+import com.icc.qasker.quizset.repository.ProblemRepository;
 import com.icc.qasker.quizset.repository.ProblemSetRepository;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -23,6 +24,7 @@ public class StaleGenerationRecoveryService {
       List.of(GenerationStatus.FAILED, GenerationStatus.GENERATING);
 
   private final ProblemSetRepository problemSetRepository;
+  private final ProblemRepository problemRepository;
 
   /** FAILED 또는 10분 이상 GENERATING 상태로 방치된 ProblemSet을 삭제하고 삭제 건수를 반환한다. */
   @Transactional
@@ -31,6 +33,8 @@ public class StaleGenerationRecoveryService {
     List<ProblemSet> stale =
         problemSetRepository.findByGenerationStatusInAndCreatedAtBefore(TARGET_STATUSES, threshold);
     if (!stale.isEmpty()) {
+      List<Long> staleIds = stale.stream().map(ProblemSet::getId).toList();
+      problemRepository.deleteByProblemSetIdIn(staleIds);
       problemSetRepository.deleteAll(stale);
     }
     return stale.size();

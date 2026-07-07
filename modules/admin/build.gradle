@@ -13,6 +13,8 @@ dependencies {
     implementation project(":board-api")
     // oci-api: ObjectStorageService 인터페이스 (이미지 업로드)
     implementation project(":oci-api")
+    // quiz-set-api: QualityReviewService 인터페이스 (품질 재검토)
+    implementation project(":quiz-set-api")
 
     // ────────────────────────────────
     // 스프링부트 Web
