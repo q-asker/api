@@ -1,0 +1,5 @@
+# gen-seed-ids.mjs 실행 산출물 / k6 입력 (운영자 로컬 생성물, 커밋 대상 아님)
+seed-ids.txt
+node_modules/
+package.json
+package-lock.json
