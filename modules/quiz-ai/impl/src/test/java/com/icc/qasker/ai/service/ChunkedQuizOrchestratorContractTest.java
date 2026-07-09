@@ -11,7 +11,6 @@ import static org.mockito.Mockito.when;
 
 import com.icc.qasker.ai.GeminiFileService;
 import com.icc.qasker.ai.QuizBatchSink;
-import com.icc.qasker.ai.dto.AIExplanation;
 import com.icc.qasker.ai.dto.AIProblem;
 import com.icc.qasker.ai.dto.GeminiFileUploadResponse.FileMetadata;
 import com.icc.qasker.ai.dto.GenerationRequestToAI;
@@ -43,10 +42,10 @@ import reactor.core.publisher.Flux;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * 청크형 오케스트레이터(MULTIPLE/BLANK/OX) 공통 동작 회귀 테스트 — 배치 인터리빙 2단계 생성(Q9).
+ * 청크형 오케스트레이터(MULTIPLE/BLANK/OX) 공통 동작 회귀 테스트 — 배치 인터리빙 1-패스 생성.
  *
- * <p>Phase 1(문제)·Phase 2(해설) 모두 {@code chatModel.stream}으로 스트리밍 생성된다. 본 테스트는 Phase 1 전달 계약(개수·순서·초과
- * drop·부분 보존·전량 실패 전파)과 중복 회피 지침의 배치별 주입을 검증한다.
+ * <p>문제+해설을 한 호출({@code chatModel.stream})로 스트리밍 생성한다. 본 테스트는 전달 계약(개수·순서·초과 drop·부분 보존·전량 실패 전파)과
+ * 중복 회피 지침의 배치별 주입을 검증한다.
  */
 class ChunkedQuizOrchestratorContractTest {
 
@@ -66,7 +65,7 @@ class ChunkedQuizOrchestratorContractTest {
     aiProperties = new QAskerAiProperties();
     // 게이트는 이 계약 테스트 범위 밖 — 전량 통과로 스텁해 Phase 1 전달 계약만 검증한다.
     qualityGate = mock(QualityGate.class);
-    when(qualityGate.verify(any(), any(), any(), any())).thenReturn(QualityVerdict.pass());
+    when(qualityGate.verify(any(), any(), any(), any(), any())).thenReturn(QualityVerdict.pass());
 
     FileMetadata meta =
         new FileMetadata(null, null, null, null, null, null, null, "gs://b/x.pdf", null);
@@ -75,12 +74,11 @@ class ChunkedQuizOrchestratorContractTest {
     when(metricsRecorder.recordChunkResult(anyLong(), any())).thenReturn(0.0);
   }
 
-  /** Phase 1 저장을 순서대로 기록하는 테스트용 sink. Phase 2(해설)는 호출 여부만 센다. */
+  /** Phase 1 저장을 순서대로 기록하는 테스트용 sink. */
   private static class FakeSink implements QuizBatchSink {
     final List<AIProblem> saved = new ArrayList<>();
     final AtomicInteger counter = new AtomicInteger(1);
     boolean readyMarked = false;
-    int explanationCalls = 0;
 
     @Override
     public int saveProblem(AIProblem problem) {
@@ -91,11 +89,6 @@ class ChunkedQuizOrchestratorContractTest {
     @Override
     public void markProblemsReady() {
       readyMarked = true;
-    }
-
-    @Override
-    public void saveExplanation(AIExplanation explanation) {
-      explanationCalls++;
     }
 
     List<String> contents() {

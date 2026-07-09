@@ -44,9 +44,6 @@ public class GeminiMetricsRecorder {
 
   private static final String[] QUIZ_TYPES = {"MULTIPLE", "OX", "BLANK", "ESSAY"};
 
-  /** 재생성 결과 — v2 통과 / v2 미달 / 재생성 불가. */
-  private static final String[] REGENERATION_OUTCOMES = {"PASS", "BELOW_THRESHOLD", "UNABLE"};
-
   public GeminiMetricsRecorder(
       MeterRegistry registry,
       QAskerAiProperties aiProperties,
@@ -98,14 +95,6 @@ public class GeminiMetricsRecorder {
         Counter.builder("gemini.verify.count").description("문항 품질 검증 요청 횟수").register(registry);
     this.verifyFailure =
         Counter.builder("gemini.verify.failure").description("문항 품질 검증 실패 횟수").register(registry);
-
-    // 재생성 결과 카운터를 결과별로 미리 등록 (개선율 = PASS ÷ 전체)
-    for (String outcome : REGENERATION_OUTCOMES) {
-      Counter.builder("gemini.regeneration.outcome")
-          .description("미달 문항 재생성(1회 캡) 결과 — v2 통과/미달/불가")
-          .tag("outcome", outcome)
-          .register(registry);
-    }
 
     this.chunkDuration =
         Timer.builder("gemini.chunk.duration")
@@ -241,19 +230,6 @@ public class GeminiMetricsRecorder {
   /** 문항 품질 검증 실패(검증 불가)를 기록한다. */
   public void recordVerifyFailure() {
     verifyFailure.increment();
-  }
-
-  /**
-   * 미달 문항 재생성 결과를 기록한다. 재생성 개선율(PASS ÷ 전체) 산출 근거(SC-001).
-   *
-   * @param outcome 재생성 결과 — "PASS"(v2 통과) / "BELOW_THRESHOLD"(v2 미달) / "UNABLE"(재생성 불가)
-   */
-  public void recordRegenerationOutcome(String outcome) {
-    Counter.builder("gemini.regeneration.outcome")
-        .description("미달 문항 재생성(1회 캡) 결과 — v2 통과/미달/불가")
-        .tag("outcome", outcome)
-        .register(registry)
-        .increment();
   }
 
   /** 스트리밍 타임아웃 발생을 기록한다. */

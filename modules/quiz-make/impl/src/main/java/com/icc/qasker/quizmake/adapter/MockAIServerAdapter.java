@@ -46,8 +46,6 @@ public class MockAIServerAdapter extends AIServerAdapter {
                     new AISelection("Option C", "Mock explanation C", false),
                     new AISelection("Option D", "Mock explanation D", false)),
                 pages,
-                null,
-                null,
                 null));
       }
       problems.forEach(request.sink()::saveProblem);

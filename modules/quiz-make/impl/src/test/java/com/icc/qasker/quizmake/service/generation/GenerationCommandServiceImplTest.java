@@ -62,8 +62,7 @@ class GenerationCommandServiceImplTest {
             quizQueryService,
             hashUtil,
             resultRecorder,
-            mock(com.icc.qasker.quizset.QualityLogService.class),
-            15);
+            mock(com.icc.qasker.quizset.QualityLogService.class));
   }
 
   @Test
@@ -254,8 +253,6 @@ class GenerationCommandServiceImplTest {
             new AISelection("C", null, false),
             new AISelection("D", null, false)),
         List.of(1),
-        null,
-        null,
         null);
   }
 

@@ -7,11 +7,6 @@ q-asker:
   sse:
     timeout-ms: 600000
 
-  # 생성 파이프라인
-  generation:
-    # Phase 2 해설을 N건 단위로 묶어 단일 트랜잭션 저장(커밋·fsync·왕복 N→1). 환경변수 Q_ASKER_GENERATION_EXPLANATION_BATCH_SIZE로 override.
-    explanation-batch-size: 15
-
   # 파일 업로드 검증
   file-validation:
     max-file-name-length: 255

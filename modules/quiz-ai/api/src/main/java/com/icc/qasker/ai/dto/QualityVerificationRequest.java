@@ -12,10 +12,35 @@ public record QualityVerificationRequest(
     String question,
     List<Selection> selections,
     String modelAnswer,
-    AIRationale rationale,
     String customInstruction,
     String appliedInstruction,
-    Mode mode) {
+    Mode mode,
+    String cacheName) {
+
+  /**
+   * 캐시 없는 검증용 편의 생성자(cacheName=null). Pass 2(재검토)와 Pass 1 캐시 미생성 폴백이 사용한다. cacheName이 있으면 검증기가 해당
+   * 컨텍스트 캐시(검증 루브릭+PDF 원문)를 참조해 원문 대조 검증을 수행한다.
+   */
+  public QualityVerificationRequest(
+      String quizType,
+      String language,
+      String question,
+      List<Selection> selections,
+      String modelAnswer,
+      String customInstruction,
+      String appliedInstruction,
+      Mode mode) {
+    this(
+        quizType,
+        language,
+        question,
+        selections,
+        modelAnswer,
+        customInstruction,
+        appliedInstruction,
+        mode,
+        null);
+  }
 
   public record Selection(String content, boolean correct) {}
 

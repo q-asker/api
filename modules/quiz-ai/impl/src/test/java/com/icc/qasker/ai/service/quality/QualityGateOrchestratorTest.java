@@ -7,7 +7,6 @@ import static org.mockito.Mockito.when;
 
 import com.icc.qasker.ai.GeminiFileService;
 import com.icc.qasker.ai.QuizBatchSink;
-import com.icc.qasker.ai.dto.AIExplanation;
 import com.icc.qasker.ai.dto.AIProblem;
 import com.icc.qasker.ai.dto.GeminiFileUploadResponse.FileMetadata;
 import com.icc.qasker.ai.dto.GenerationRequestToAI;
@@ -105,7 +104,7 @@ class QualityGateOrchestratorTest {
     when(chatModel.call(any(Prompt.class))).thenReturn(resp(questionsJson("Q1v2")));
 
     // Q1(v1)만 미달, 나머지(및 Q1v2)는 통과
-    when(qualityGate.verify(any(AIProblem.class), any(), any(), any()))
+    when(qualityGate.verify(any(AIProblem.class), any(), any(), any(), any()))
         .thenAnswer(
             inv -> {
               AIProblem p = inv.getArgument(0);
@@ -130,7 +129,7 @@ class QualityGateOrchestratorTest {
     // 재생성 응답이 비어 있음 → 재생성 불가
     when(chatModel.call(any(Prompt.class))).thenReturn(resp("{\"questions\":[]}"));
 
-    when(qualityGate.verify(any(AIProblem.class), any(), any(), any()))
+    when(qualityGate.verify(any(AIProblem.class), any(), any(), any(), any()))
         .thenAnswer(
             inv ->
                 "Q1".equals(((AIProblem) inv.getArgument(0)).content())
@@ -155,9 +154,6 @@ class QualityGateOrchestratorTest {
 
     @Override
     public void markProblemsReady() {}
-
-    @Override
-    public void saveExplanation(AIExplanation explanation) {}
 
     List<String> contents() {
       return saved.stream().map(AIProblem::content).toList();

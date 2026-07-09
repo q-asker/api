@@ -14,8 +14,6 @@ import com.icc.qasker.quizset.entity.Problem;
 import com.icc.qasker.quizset.entity.ProblemId;
 import com.icc.qasker.quizset.entity.ProblemQualityLog;
 import com.icc.qasker.quizset.entity.ProblemSet;
-import com.icc.qasker.quizset.entity.QualityStatus;
-import com.icc.qasker.quizset.entity.Rationale;
 import com.icc.qasker.quizset.entity.Selection;
 import com.icc.qasker.quizset.repository.ProblemQualityLogRepository;
 import com.icc.qasker.quizset.repository.ProblemRepository;
@@ -81,15 +79,15 @@ class QualityReviewServiceTest extends JpaIntegrationTestBase {
 
     ProblemQualityLog bad =
         qualityLogRepository.findByProblemSetIdAndNumber(set.getId(), 2).orElseThrow();
-    assertThat(bad.getQualityStatus()).isEqualTo(QualityStatus.BELOW_THRESHOLD);
-    assertThat(bad.getFeedback()).isEqualTo("정답 근거 불명확");
-    // 통과 문항은 재검토가 건드리지 않아 seed 값(OK) 그대로 유지
+    assertThat(bad.getReview()).isEqualTo("정답 근거 불명확");
+    assertThat(bad.getV2Feedback()).isEqualTo("정답 근거 불명확");
+    // 통과 문항은 재검토가 건드리지 않아 review가 null로 유지
     assertThat(
             qualityLogRepository
                 .findByProblemSetIdAndNumber(set.getId(), 1)
                 .orElseThrow()
-                .getQualityStatus())
-        .isEqualTo(QualityStatus.OK);
+                .getReview())
+        .isNull();
   }
 
   @Test
@@ -140,23 +138,15 @@ class QualityReviewServiceTest extends JpaIntegrationTestBase {
             .build();
     problem.bindQuizData(List.of(new Selection("보기", null, true)), List.of(1));
     em.persist(problem);
+    // Pass-2는 로그의 질문 JSON에서 검증 요청을 재구성한다(옵션 A). stem에 제목을 담아 검증기 분기가 동작하게 한다.
     em.persist(
         ProblemQualityLog.builder()
             .problemSetId(set.getId())
             .number(number)
-            .qualityStatus(QualityStatus.OK)
-            .rationale(
-                new Rationale(
-                    new Rationale.SourceAnchor(1, "1장", "인용"),
-                    "학습목표",
-                    "UNDERSTAND",
-                    0.5,
-                    "구성전략",
-                    "지시 없음",
-                    0.8,
-                    new Rationale.SelfChecks(true, true, true, true),
-                    null,
-                    null))
+            .v1QuestionJson(
+                "{\"stem\":\""
+                    + title
+                    + "\",\"selections\":[{\"content\":\"보기\",\"correct\":true}]}")
             .build());
   }
 }

@@ -10,6 +10,6 @@ public interface ProblemQualityLogRepository extends JpaRepository<ProblemQualit
 
   Optional<ProblemQualityLog> findByProblemSetIdAndNumber(Long problemSetId, int number);
 
-  // Pass 2 재검토용 — 세트/묶음 전량 managed 로드(rationale 포함).
+  // Pass 2 재검토용 — 세트/묶음 전량 managed 로드.
   List<ProblemQualityLog> findByProblemSetIdIn(Collection<Long> problemSetIds);
 }

@@ -16,8 +16,6 @@ import com.icc.qasker.quizset.entity.Problem;
 import com.icc.qasker.quizset.entity.ProblemId;
 import com.icc.qasker.quizset.entity.ProblemQualityLog;
 import com.icc.qasker.quizset.entity.ProblemSet;
-import com.icc.qasker.quizset.entity.QualityStatus;
-import com.icc.qasker.quizset.entity.Rationale;
 import com.icc.qasker.quizset.entity.Selection;
 import com.icc.qasker.quizset.repository.ProblemQualityLogRepository;
 import com.icc.qasker.quizset.repository.ProblemRepository;
@@ -31,7 +29,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
-/** 레거시(품질 로그 없음 = rationale 없음) 세트가 재검토 대상에서 제외됨을 검증한다(FR-014). 단건은 400, 일괄은 스킵된다. */
+/** 품질 로그가 없는 세트가 재검토 대상에서 제외됨을 검증한다. 단건은 400, 일괄은 스킵된다. */
 class QualityReviewLegacyTest extends JpaIntegrationTestBase {
 
   @Autowired private ProblemRepository problemRepository;
@@ -54,7 +52,7 @@ class QualityReviewLegacyTest extends JpaIntegrationTestBase {
   }
 
   @Test
-  @DisplayName("레거시(품질 로그 없음) 세트 단건 재검토는 400으로 거부된다")
+  @DisplayName("품질 로그 없는 세트 단건 재검토는 400으로 거부된다")
   void legacySetRejectedOnSingle() {
     ProblemSet set = persistSet("legacy-1");
     persistProblem(set, 1); // 품질 로그 없음 → 대상 없음
@@ -65,11 +63,11 @@ class QualityReviewLegacyTest extends JpaIntegrationTestBase {
         .satisfies(
             e ->
                 assertThat(((CustomException) e).getMessage())
-                    .isEqualTo(ExceptionMessage.QUALITY_REVIEW_NO_RATIONALE.getMessage()));
+                    .isEqualTo(ExceptionMessage.QUALITY_REVIEW_NO_TARGET.getMessage()));
   }
 
   @Test
-  @DisplayName("일괄 재검토는 레거시 세트를 건너뛰고 rationale 보유 세트만 결과에 포함한다")
+  @DisplayName("일괄 재검토는 품질 로그 없는 세트를 건너뛰고 품질 로그 보유 세트만 결과에 포함한다")
   void bulkSkipsLegacySets() {
     ProblemSet legacy = persistSet("legacy-2");
     persistProblem(legacy, 1); // 품질 로그 없음
@@ -111,23 +109,6 @@ class QualityReviewLegacyTest extends JpaIntegrationTestBase {
   }
 
   private void persistQuality(Long setId, int number) {
-    em.persist(
-        ProblemQualityLog.builder()
-            .problemSetId(setId)
-            .number(number)
-            .qualityStatus(QualityStatus.OK)
-            .rationale(
-                new Rationale(
-                    new Rationale.SourceAnchor(1, "1장", "인용"),
-                    "학습목표",
-                    "UNDERSTAND",
-                    0.5,
-                    "구성전략",
-                    "지시 없음",
-                    0.8,
-                    new Rationale.SelfChecks(true, true, true, true),
-                    null,
-                    null))
-            .build());
+    em.persist(ProblemQualityLog.builder().problemSetId(setId).number(number).build());
   }
 }

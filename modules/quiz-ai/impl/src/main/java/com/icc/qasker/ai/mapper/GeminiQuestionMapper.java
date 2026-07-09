@@ -49,9 +49,7 @@ public class GeminiQuestionMapper {
                                             s.correct()))
                                 .toList(),
                         remapPages(q.referencedPages(), sourcePages),
-                        remapText(q.appliedInstruction(), sourcePages),
-                        GeminiRationaleMapper.toDto(q.rationale()),
-                        null))
+                        remapText(q.appliedInstruction(), sourcePages)))
             .toList();
 
     return new AIProblemSet(result);

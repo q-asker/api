@@ -21,6 +21,9 @@ public class QualityProperties {
   /** 검증 모델 입력 토큰 단가 (USD per 1M). */
   private double priceInputPer1m;
 
+  /** Pass 1 원문 대조 캐시 읽기 단가 (USD per 1M). */
+  private double priceCacheReadPer1m;
+
   /** 검증 모델 출력 토큰 단가 (USD per 1M). */
   private double priceOutputPer1m;
 

@@ -6,12 +6,10 @@ spring:
     google:
       genai:
         chat:
-          options:
-            temperature: 1.0
-            model: gemini-3-flash-preview
-            max-output-tokens: 20000
-            
-            thinking-level: low
+          model: gemini-3-flash-preview
+          temperature: 1.0
+          max-output-tokens: 20000
+          thinking-level: MINIMAL
 
 q-asker:
   ai:
@@ -57,6 +55,7 @@ q-asker:
       verify-model: gemini-3.1-flash-lite-preview
       # 검증 모델 토큰 단가 (USD per 1M tokens)
       price-input-per-1m: 0.25
+      price-cache-read-per-1m: 0.025  # Pass 1 원문 대조 캐시 읽기 단가(추정) — 입력의 10%
       price-output-per-1m: 1.50
       # 적용 검증 항목·항목별 엄격도 — 운영자가 조절(FR-011)
       # 값: strict(엄격) / normal(보통) / off(미적용). 필수 항목은 항상 평가됨.

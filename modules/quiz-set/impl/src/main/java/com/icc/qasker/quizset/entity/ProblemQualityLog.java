@@ -3,8 +3,6 @@ package com.icc.qasker.quizset.entity;
 import com.icc.qasker.global.entity.CreatedAt;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -16,13 +14,11 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.DynamicUpdate;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 
 /**
- * 문항 품질 로그 — 문항 1:1(problem_set_id + number). problem이 순수 서빙만 책임지도록 생성 근거(rationale)·품질 판정
- * (qualityStatus/feedback)과 재생성 원본(v1)을 이 테이블로 분리 보관한다. 미달 subset만 마킹하는 dirty tracking·부분 컬럼
- * UPDATE를 위해 {@link DynamicUpdate}를 적용한다.
+ * 문항 품질 로그 — 문항 1:1(problem_set_id + number). problem이 순수 서빙만 책임지도록 생성 근거를 이 테이블로 분리 보관한다. 첫
+ * 생성본(v1: 질문·해설·미달 사유)과 재생성된 개선본(v2: 질문·해설)을 함께 담고, 사후 재검토(Pass 2) 결과(v2Feedback·review)는 필요 시
+ * 마킹한다. 소수만 마킹하는 dirty tracking·부분 컬럼 UPDATE를 위해 {@link DynamicUpdate}를 적용한다.
  */
 @Entity
 @Getter
@@ -48,39 +44,40 @@ public class ProblemQualityLog extends CreatedAt {
   @Column(name = "number", nullable = false)
   private int number;
 
-  // 생성 근거(검증·재생성 입력). Pass 2 재검토가 이 값을 읽는다.
-  @JdbcTypeCode(SqlTypes.JSON)
-  @Column(columnDefinition = "JSON")
-  private Rationale rationale;
-
-  @Enumerated(EnumType.STRING)
-  @Column(length = 20)
-  private QualityStatus qualityStatus;
+  // 첫 생성본(v1): 질문(stem+선지) JSON 문자열, 해설 마크다운, 게이트 미달 사유(통과 시 null).
+  // 질문은 앱이 JSON을 직접 직렬화/역직렬화하는 불투명 스냅샷이므로 TEXT로 저장한다(String↔JSON 컬럼 이중 인코딩 회피).
+  @Column(columnDefinition = "TEXT")
+  private String v1QuestionJson;
 
   @Column(columnDefinition = "TEXT")
-  private String feedback;
-
-  // 재생성된 문항인 경우 원본 미달본(v1)과 그 미달 사유. 아니면 null. 현재(v2)는 problem + 이 로그의 quality가 곧 결과다.
-  @Column(columnDefinition = "JSON")
-  private String v1Json;
+  private String v1Explanation;
 
   @Column(columnDefinition = "TEXT")
   private String v1Feedback;
 
-  /** 생성 근거 갱신(게이트 저장 시). */
-  public void bindRationale(Rationale rationale) {
-    this.rationale = rationale;
+  // 재생성된 개선본(v2): 질문 JSON 문자열·해설. 재생성되지 않은 문항은 null.
+  @Column(columnDefinition = "TEXT")
+  private String v2QuestionJson;
+
+  @Column(columnDefinition = "TEXT")
+  private String v2Explanation;
+
+  // 사후 재검토(Pass 2) 산출물. 생성 시점엔 null이며, 재검토 요청 시 채운다.
+  @Column(columnDefinition = "TEXT")
+  private String v2Feedback;
+
+  @Column(columnDefinition = "TEXT")
+  private String review;
+
+  /** 재생성된 개선본(v2)의 질문·해설을 부착한다. */
+  public void bindV2(String v2QuestionJson, String v2Explanation) {
+    this.v2QuestionJson = v2QuestionJson;
+    this.v2Explanation = v2Explanation;
   }
 
-  /** 품질 판정 반영(게이트·Pass 2 재검토). 통과 시 status=OK·feedback=null. */
-  public void applyVerdict(QualityStatus qualityStatus, String feedback) {
-    this.qualityStatus = qualityStatus;
-    this.feedback = feedback;
-  }
-
-  /** 재생성 원본(v1) 스냅샷 기록. */
-  public void bindV1(String v1Json, String v1Feedback) {
-    this.v1Json = v1Json;
-    this.v1Feedback = v1Feedback;
+  /** 사후 재검토(Pass 2) 결과를 반영한다. */
+  public void applyReview(String v2Feedback, String review) {
+    this.v2Feedback = v2Feedback;
+    this.review = review;
   }
 }

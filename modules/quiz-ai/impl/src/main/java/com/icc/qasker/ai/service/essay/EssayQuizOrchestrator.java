@@ -5,7 +5,6 @@ import com.icc.qasker.ai.dto.AIProblem;
 import com.icc.qasker.ai.dto.GeminiFileUploadResponse.FileMetadata;
 import com.icc.qasker.ai.dto.GenerationRequestToAI;
 import com.icc.qasker.ai.dto.QualityVerdict;
-import com.icc.qasker.ai.dto.RegenerationRecord;
 import com.icc.qasker.ai.exception.GeminiInfraException;
 import com.icc.qasker.ai.mapper.GeminiEssayQuestionMapper;
 import com.icc.qasker.ai.service.QuizTypeOrchestrator;
@@ -136,7 +135,8 @@ public class EssayQuizOrchestrator implements QuizTypeOrchestrator {
                     continue;
                   }
 
-                  request.sink().saveProblem(p.withQuality(QualityGate.toStatus(verdict), null));
+                  int number = request.sink().saveProblem(p);
+                  request.sink().recordV1(number, p, null);
                   int count = delivered.incrementAndGet();
 
                   long now = System.nanoTime();
@@ -227,7 +227,7 @@ public class EssayQuizOrchestrator implements QuizTypeOrchestrator {
     }
   }
 
-  /** 보류된 ESSAY 미달 문항을 세션 내에서 1회씩 재생성한다(1회 캡). 통과→OK, v2 미달→BELOW_THRESHOLD+feedback, 재생성 불가→제외. */
+  /** 보류된 ESSAY 미달 문항을 세션 내에서 1회씩 재생성한다(1회 캡). 개선본(v2)은 검증 없이 저장하고 v1·v2를 품질 로그에 기록한다. 재생성 불가→제외. */
   private void processEssayHeldQueue(
       List<EssayHeld> heldQueue,
       SystemMessage systemMessage,
@@ -252,31 +252,14 @@ public class EssayQuizOrchestrator implements QuizTypeOrchestrator {
             regenerateEssay(
                 held, systemMessage, pdfMedia, responseSchema, metadata, startNanos, totalCost);
         if (v2 == null) {
-          metricsRecorder.recordRegenerationOutcome("UNABLE");
           continue;
         }
-        QualityVerdict verdict =
-            qualityGate.verify(v2, "ESSAY", request.language(), request.customInstruction());
-        String status;
-        String feedback;
-        if (verdict.passed()) {
-          status = "OK";
-          feedback = null;
-          metricsRecorder.recordRegenerationOutcome("PASS");
-        } else {
-          status = "BELOW_THRESHOLD";
-          feedback = verdict.feedback();
-          metricsRecorder.recordRegenerationOutcome("BELOW_THRESHOLD");
-        }
-        AIProblem marked = v2.withQuality(status, feedback);
-        int number = request.sink().saveProblem(marked);
+        // v2는 검증 없이 저장한다(사후 Pass 2가 판정). 품질 로그엔 미달 원본(v1)과 개선본(v2)을 함께 기록한다.
+        int number = request.sink().saveProblem(v2);
+        request.sink().recordV1(number, held.problem(), held.feedback());
+        request.sink().recordV2(number, v2);
         delivered.incrementAndGet();
-        request
-            .sink()
-            .logRegeneration(
-                new RegenerationRecord(number, toJson(held.problem()), held.feedback()));
       } catch (Exception e) {
-        metricsRecorder.recordRegenerationOutcome("UNABLE");
         log.warn("ESSAY 보류 문항 재생성 실패 — 제외", e);
       }
     }
@@ -322,16 +305,6 @@ public class EssayQuizOrchestrator implements QuizTypeOrchestrator {
         .stream()
         .findFirst()
         .orElse(null);
-  }
-
-  /** 단건 문항을 JSON으로 직렬화한다(재생성 비교 로그용). 실패 시 null. */
-  private String toJson(AIProblem problem) {
-    try {
-      return objectMapper.writeValueAsString(problem);
-    } catch (Exception e) {
-      log.warn("재생성 로그용 ESSAY 문항 직렬화 실패", e);
-      return null;
-    }
   }
 
   private String buildEssayRegenerationPrompt(EssayHeld held) {

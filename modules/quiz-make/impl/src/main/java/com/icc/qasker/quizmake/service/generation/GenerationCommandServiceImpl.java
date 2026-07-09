@@ -18,7 +18,6 @@ import com.icc.qasker.quizset.dto.ferequest.enums.QuizType;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
@@ -34,9 +33,6 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
   private final GenerationResultRecorder resultRecorder;
   private final QualityLogService qualityLogService;
 
-  // Phase 2 해설을 N건 단위로 묶어 저장(단일 트랜잭션). 환경변수 override 가능, 기본 15.
-  private final int explanationBatchSize;
-
   public GenerationCommandServiceImpl(
       AIServerAdapter aiServerAdapter,
       SseNotificationService notificationService,
@@ -44,8 +40,7 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
       QuizQueryService quizQueryService,
       HashUtil hashUtil,
       GenerationResultRecorder resultRecorder,
-      QualityLogService qualityLogService,
-      @Value("${q-asker.generation.explanation-batch-size:15}") int explanationBatchSize) {
+      QualityLogService qualityLogService) {
     this.aiServerAdapter = aiServerAdapter;
     this.notificationService = notificationService;
     this.quizCommandService = quizCommandService;
@@ -53,7 +48,6 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
     this.hashUtil = hashUtil;
     this.resultRecorder = resultRecorder;
     this.qualityLogService = qualityLogService;
-    this.explanationBatchSize = explanationBatchSize;
   }
 
   @Override
@@ -101,8 +95,7 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
             quizQueryService,
             notificationService,
             hashUtil,
-            qualityLogService,
-            explanationBatchSize);
+            qualityLogService);
 
     GenerationRequestToAI requestToAI =
         GenerationRequestToAI.builder()
@@ -120,7 +113,6 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
       maxChunkCount = aiServerAdapter.streamRequest(requestToAI);
     } catch (Exception e) {
       log.error("[AI 생성 실패] 퀴즈 생성 중 오류 발생 sessionId={}", sessionId, e);
-      batchConsumer.flushExplanations(); // 실패 시점까지 버퍼된 해설 best-effort 저장
       finalizeError(
           sessionId,
           problemSetId,
@@ -128,8 +120,6 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
           ExceptionMessage.AI_GENERATION_FAILED.getMessage());
       return;
     }
-    // 성공: N 미만으로 버퍼에 남은 해설을 마저 저장(세트 완료 처리 전)
-    batchConsumer.flushExplanations();
 
     int generatedCount = batchConsumer.generatedCount();
     int quizCount = request.quizCount();

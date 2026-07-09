@@ -25,7 +25,7 @@ public interface ProblemRepository extends JpaRepository<Problem, ProblemId> {
 
   List<Problem> findByIdProblemSetId(Long problemSetId);
 
-  // Pass 2 재검토용 — 세트/묶음 전량을 managed 상태로 로드한다. rationale은 eager 매핑이라 함께 로드된다.
+  // Pass 2 재검토용 — 세트/묶음 전량을 managed 상태로 로드한다.
   List<Problem> findByIdProblemSetIdIn(Collection<Long> problemSetIds);
 
   List<Problem> findByIdInOrderByIdNumberAsc(Collection<ProblemId> id);

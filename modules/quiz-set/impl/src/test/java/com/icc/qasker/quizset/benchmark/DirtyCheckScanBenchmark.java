@@ -3,8 +3,6 @@ package com.icc.qasker.quizset.benchmark;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.icc.qasker.quizset.entity.ProblemQualityLog;
-import com.icc.qasker.quizset.entity.QualityStatus;
-import com.icc.qasker.quizset.entity.Rationale;
 import com.icc.qasker.quizset.support.JpaIntegrationTestBase;
 import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
@@ -17,7 +15,8 @@ import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 /**
  * dirty-check 스캔 벤치 — 바이트코드 인핸스먼트의 inline dirty tracking이 전체 필드 비교(스냅샷 deep-compare)를 스킵하는지 실증한다.
- * 대형 필드 (rationale JSON)를 가진 problem_quality_log 행 N개를 로드/보유한 뒤 소수만 마킹하고 flush 시간·할당을 측정한다.
+ * 대형 필드(v1QuestionJson·v1Explanation)를 가진 problem_quality_log 행 N개를 로드/보유한 뒤 소수만 마킹하고 flush 시간·할당을
+ * 측정한다.
  *
  * <pre>
  *   BENCHMARK=true ./gradlew :quiz-set-impl:test --tests '*DirtyCheckScanBenchmark'
@@ -33,7 +32,7 @@ class DirtyCheckScanBenchmark extends JpaIntegrationTestBase {
   private final int dirty = envInt("BENCH_DIRTY", 3);
   private final int iterations = envInt("BENCH_ITERATIONS", 30);
   private final int warmup = envInt("BENCH_WARMUP", 8);
-  private final int rationaleChars = envInt("BENCH_RATIONALE_CHARS", 1200);
+  private final int fillerChars = envInt("BENCH_FILLER_CHARS", 1200);
 
   @Test
   @DisplayName("소수만 수정 시 flush(dirty-check) 시간·할당이 로드 수 N에 비례하지 않음")
@@ -52,7 +51,7 @@ class DirtyCheckScanBenchmark extends JpaIntegrationTestBase {
         long a0 = allocOk ? currentThreadAllocatedBytes() : 0L;
         List<ProblemQualityLog> all = loadAll(setId);
         for (int d = 0; d < dirty && d < all.size(); d++) {
-          all.get(d).applyVerdict(QualityStatus.BELOW_THRESHOLD, "fb-" + it + "-" + d);
+          all.get(d).applyReview(null, "fb-" + it + "-" + d);
         }
         long t0 = System.nanoTime();
         em.flush();
@@ -75,7 +74,7 @@ class DirtyCheckScanBenchmark extends JpaIntegrationTestBase {
     em.clear();
     List<ProblemQualityLog> all = loadAll(setId);
     for (int d = 0; d < dirty; d++) {
-      all.get(d).applyVerdict(QualityStatus.BELOW_THRESHOLD, "final-" + d);
+      all.get(d).applyReview(null, "final-" + d);
     }
     statistics().clear();
     em.flush();
@@ -96,7 +95,7 @@ class DirtyCheckScanBenchmark extends JpaIntegrationTestBase {
       long[] flushNanos = new long[iterations];
       for (int it = 0; it < warmup + iterations; it++) {
         for (int d = 0; d < dirty && d < managed.size(); d++) {
-          managed.get(d).applyVerdict(QualityStatus.BELOW_THRESHOLD, "v" + it + "-" + d);
+          managed.get(d).applyReview(null, "v" + it + "-" + d);
         }
         long t0 = System.nanoTime();
         em.flush();
@@ -123,15 +122,16 @@ class DirtyCheckScanBenchmark extends JpaIntegrationTestBase {
 
   private long seed(long n) {
     long setId = System.nanoTime();
-    Rationale rationale = largeRationale();
+    String largeJson = largeJson();
     for (int number = 1; number <= n; number++) {
-      em.persist(
+      ProblemQualityLog row =
           ProblemQualityLog.builder()
               .problemSetId(setId)
               .number(number)
-              .qualityStatus(QualityStatus.OK)
-              .rationale(rationale)
-              .build());
+              .v1QuestionJson(largeJson)
+              .v1Explanation(filler(fillerChars))
+              .build();
+      em.persist(row);
     }
     flushAndClear();
     return setId;
@@ -139,15 +139,15 @@ class DirtyCheckScanBenchmark extends JpaIntegrationTestBase {
 
   private List<ProblemQualityLog> seedManaged(int n) {
     long setId = System.nanoTime();
-    Rationale rationale = largeRationale();
+    String largeJson = largeJson();
     List<ProblemQualityLog> list = new ArrayList<>(n);
     for (int number = 1; number <= n; number++) {
       ProblemQualityLog row =
           ProblemQualityLog.builder()
               .problemSetId(setId)
               .number(number)
-              .qualityStatus(QualityStatus.OK)
-              .rationale(rationale)
+              .v1QuestionJson(largeJson)
+              .v1Explanation(filler(fillerChars))
               .build();
       em.persist(row);
       list.add(row);
@@ -156,18 +156,8 @@ class DirtyCheckScanBenchmark extends JpaIntegrationTestBase {
     return list;
   }
 
-  private Rationale largeRationale() {
-    return new Rationale(
-        new Rationale.SourceAnchor(1, "1장", filler(rationaleChars)),
-        "학습목표",
-        "UNDERSTAND",
-        0.5,
-        filler(rationaleChars),
-        "지시 없음",
-        0.8,
-        new Rationale.SelfChecks(true, true, true, true),
-        null,
-        null);
+  private String largeJson() {
+    return "{\"content\":\"" + filler(fillerChars) + "\"}";
   }
 
   private static String filler(int approxChars) {

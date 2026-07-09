@@ -1,9 +1,6 @@
 package com.icc.qasker.ai.dto;
 
-/**
- * 문항 품질 검증 결과(이진 판정 + 검증 불가). feedback은 미달 사유·개선 지침이며 통과 시 null이다. Result는 QualityStatus로 1:1 대응된다
- * (PASS→OK, BELOW_THRESHOLD→BELOW_THRESHOLD, UNVERIFIABLE→UNVERIFIABLE).
- */
+/** 문항 품질 검증 결과(이진 판정 + 검증 불가). feedback은 미달 사유·개선 지침이며 통과 시 null이다. */
 public record QualityVerdict(Result result, String feedback) {
 
   public enum Result {

@@ -11,8 +11,6 @@ import com.icc.qasker.quizset.dto.QualityReviewResult;
 import com.icc.qasker.quizset.entity.Problem;
 import com.icc.qasker.quizset.entity.ProblemQualityLog;
 import com.icc.qasker.quizset.entity.ProblemSet;
-import com.icc.qasker.quizset.entity.QualityStatus;
-import com.icc.qasker.quizset.entity.Selection;
 import com.icc.qasker.quizset.repository.ProblemQualityLogRepository;
 import com.icc.qasker.quizset.repository.ProblemRepository;
 import java.util.ArrayList;
@@ -29,11 +27,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 /**
- * Pass 2 재검토 서비스. problem(서빙)과 분리된 품질 로그(problem_quality_log)에서 rationale을 읽어 원문 없이 병렬 재검증(가상 스레드)한
- * 뒤, 미달 문항의 품질 로그 행만 순차 마킹한다. 통과·검증불가 행은 건드리지 않아 dirty tracking이 미달 subset만 UPDATE한다(SC-003). 검증기는
- * quiz-ai/api의 QualityVerifier 인터페이스에만 의존한다(헌법 III).
+ * Pass 2 재검토 서비스. problem(서빙)과 분리된 품질 로그(problem_quality_log) 행별로 문항을 원문 없이 병렬 재검증(가상 스레드)한 뒤, 미달
+ * 문항의 품질 로그 행에만 재검토 결과(review·v2Feedback)를 순차 마킹한다. 통과·검증불가 행은 건드리지 않아 dirty tracking이 미달 subset만
+ * UPDATE한다(SC-003). 검증기는 quiz-ai/api의 QualityVerifier 인터페이스에만 의존한다(헌법 III).
  */
 @Slf4j
 @Service
@@ -44,6 +44,8 @@ public class QualityReviewServiceImpl implements QualityReviewService {
   private final QualityVerifier qualityVerifier;
   private final TransactionTemplate transactionTemplate;
   private final Map<Long, QualityReviewResult> latestResults = new ConcurrentHashMap<>();
+
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   public QualityReviewServiceImpl(
       ProblemRepository problemRepository,
@@ -70,7 +72,7 @@ public class QualityReviewServiceImpl implements QualityReviewService {
       try {
         results.add(review(setId));
       } catch (CustomException e) {
-        // 레거시(rationale 없음) 세트는 일괄에서 건너뛴다(FR-014).
+        // 품질 로그가 없어 재검토 대상이 없는 세트는 일괄에서 건너뛴다.
         log.info("[품질 재검토] 세트 {} 스킵: {}", setId, e.getMessage());
       }
     }
@@ -108,37 +110,33 @@ public class QualityReviewServiceImpl implements QualityReviewService {
             .collect(Collectors.toMap(p -> p.getId().getNumber(), Function.identity()));
     ProblemSet set = problems.get(0).getProblemSet();
 
-    // rationale 보유 품질 로그 행만 대상. 레거시(품질 로그 없음/근거 없음)는 제외.
+    // 품질 로그 행이 있는 문항만 대상(문항 매칭). 품질 로그가 없는 세트는 재검토할 대상이 없다.
     List<ProblemQualityLog> qualities =
         qualityLogRepository.findByProblemSetIdIn(List.of(problemSetId));
     List<ProblemQualityLog> targets =
-        qualities.stream()
-            .filter(q -> q.getRationale() != null && problemByNumber.containsKey(q.getNumber()))
-            .toList();
+        qualities.stream().filter(q -> problemByNumber.containsKey(q.getNumber())).toList();
     int skipped = problems.size() - targets.size();
     if (targets.isEmpty()) {
-      throw new CustomException(ExceptionMessage.QUALITY_REVIEW_NO_RATIONALE);
+      throw new CustomException(ExceptionMessage.QUALITY_REVIEW_NO_TARGET);
     }
 
     // 검증 요청은 트랜잭션 스레드에서 구성(엔티티 동시 접근 방지) 후, 병렬 검증엔 불변 DTO만 넘긴다.
     List<ReviewTask> tasks =
-        targets.stream()
-            .map(q -> new ReviewTask(q, toRequest(q, problemByNumber.get(q.getNumber()), set)))
-            .toList();
+        targets.stream().map(q -> new ReviewTask(q, toRequest(q, set))).toList();
     List<Verdicted> verdicts = verifyInParallel(tasks);
 
     int below = 0;
     for (Verdicted v : verdicts) {
       if (v.verdict().result() == QualityVerdict.Result.BELOW_THRESHOLD) {
-        // 미달 subset만 마킹 → dirty. 통과·검증불가는 무변경(flush 스킵).
-        v.quality().applyVerdict(QualityStatus.BELOW_THRESHOLD, v.verdict().feedback());
+        // 미달 문항만 마킹 → dirty. 통과·검증불가는 무변경(flush 스킵).
+        v.quality().applyReview(v.verdict().feedback(), v.verdict().feedback());
         below++;
       }
     }
     return new QualityReviewResult(problemSetId, targets.size(), below, skipped, "COMPLETED");
   }
 
-  /** rationale 기반 재검증을 가상 스레드로 병렬 실행한다(DB 접근·엔티티 상태 변경 없음). */
+  /** 문항 재검증을 가상 스레드로 병렬 실행한다(DB 접근·엔티티 상태 변경 없음). */
   private List<Verdicted> verifyInParallel(List<ReviewTask> tasks) {
     try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
       List<Future<Verdicted>> futures =
@@ -163,33 +161,69 @@ public class QualityReviewServiceImpl implements QualityReviewService {
     }
   }
 
-  private QualityVerificationRequest toRequest(
-      ProblemQualityLog quality, Problem problem, ProblemSet set) {
+  /** 재검토 요청을 서빙 problem이 아니라 로그 행에서 재구성한다(로그 자기완결). 개선본(v2) 우선, 없으면 첫 생성본(v1). */
+  private QualityVerificationRequest toRequest(ProblemQualityLog quality, ProblemSet set) {
     String quizType = set.getQuizType() == null ? "MULTIPLE" : set.getQuizType().toAiStrategyName();
+    QuestionSnapshot snapshot = deserializeQuestion(quality);
     List<QualityVerificationRequest.Selection> selections =
-        problem.getSelections().stream()
+        snapshot.selections().stream()
             .map(s -> new QualityVerificationRequest.Selection(s.content(), s.correct()))
             .toList();
-    String modelAnswer = "ESSAY".equals(quizType) ? firstCorrect(problem.getSelections()) : null;
+    String modelAnswer = "ESSAY".equals(quizType) ? firstCorrect(snapshot.selections()) : null;
     return new QualityVerificationRequest(
         quizType,
         "KO",
-        problem.getTitle(),
+        snapshot.stem(),
         selections,
         modelAnswer,
-        RationaleToAiMapper.toDto(quality.getRationale()),
         set.getCustomInstruction(),
-        problem.getAppliedInstruction(),
+        snapshot.appliedInstruction(),
         Mode.PASS_2);
   }
 
-  private static String firstCorrect(List<Selection> selections) {
+  /** 로그 행의 개선본(v2) 질문 우선, 없으면 첫 생성본(v1) 질문 JSON을 역직렬화한다. */
+  @SuppressWarnings("unchecked")
+  private static QuestionSnapshot deserializeQuestion(ProblemQualityLog quality) {
+    String json =
+        quality.getV2QuestionJson() != null
+            ? quality.getV2QuestionJson()
+            : quality.getV1QuestionJson();
+    if (json == null || json.isBlank()) {
+      return new QuestionSnapshot("", List.of(), null);
+    }
+    try {
+      Map<String, Object> map = OBJECT_MAPPER.readValue(json, Map.class);
+      String stem = map.get("stem") instanceof String s ? s : "";
+      String appliedInstruction = map.get("appliedInstruction") instanceof String a ? a : null;
+      List<SelectionSnapshot> selections = new ArrayList<>();
+      if (map.get("selections") instanceof List<?> rawSelections) {
+        for (Object raw : rawSelections) {
+          if (raw instanceof Map<?, ?> sel) {
+            selections.add(
+                new SelectionSnapshot(
+                    sel.get("content") instanceof String c ? c : "",
+                    Boolean.TRUE.equals(sel.get("correct"))));
+          }
+        }
+      }
+      return new QuestionSnapshot(stem, selections, appliedInstruction);
+    } catch (JacksonException e) {
+      throw new CustomException(ExceptionMessage.DEFAULT_ERROR);
+    }
+  }
+
+  private static String firstCorrect(List<SelectionSnapshot> selections) {
     return selections.stream()
-        .filter(Selection::correct)
-        .map(Selection::content)
+        .filter(SelectionSnapshot::correct)
+        .map(SelectionSnapshot::content)
         .findFirst()
         .orElse(null);
   }
+
+  private record QuestionSnapshot(
+      String stem, List<SelectionSnapshot> selections, String appliedInstruction) {}
+
+  private record SelectionSnapshot(String content, boolean correct) {}
 
   private record ReviewTask(ProblemQualityLog quality, QualityVerificationRequest request) {}
 

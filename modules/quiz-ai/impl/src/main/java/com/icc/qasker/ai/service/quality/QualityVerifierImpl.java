@@ -1,16 +1,22 @@
 package com.icc.qasker.ai.service.quality;
 
+import com.google.genai.types.Content;
+import com.google.genai.types.Part;
 import com.icc.qasker.ai.dto.QualityVerdict;
 import com.icc.qasker.ai.dto.QualityVerificationRequest;
+import com.icc.qasker.ai.dto.QualityVerificationRequest.Mode;
 import com.icc.qasker.ai.properties.QualityProperties;
 import com.icc.qasker.ai.service.QualityVerifier;
 import com.icc.qasker.ai.service.support.GeminiMetricsRecorder;
 import com.icc.qasker.ai.strategy.QuizType;
 import com.icc.qasker.ai.structure.GeminiVerificationResponse;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.metadata.Usage;
@@ -18,7 +24,10 @@ import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.converter.BeanOutputConverter;
+import org.springframework.ai.google.genai.GoogleGenAiChatModel;
 import org.springframework.ai.google.genai.GoogleGenAiChatOptions;
+import org.springframework.ai.google.genai.cache.CachedContentRequest;
+import org.springframework.ai.google.genai.cache.GoogleGenAiCachedContent;
 import org.springframework.ai.google.genai.metadata.GoogleGenAiUsage;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.ObjectMapper;
@@ -31,6 +40,9 @@ import tools.jackson.databind.ObjectMapper;
 @Slf4j
 @Service
 public class QualityVerifierImpl implements QualityVerifier {
+
+  /** Pass 1 검증 캐시 TTL — 한 세트 생성 세션을 커버(생성 캐시와 동일). */
+  private static final Duration PASS1_CACHE_TTL = Duration.ofMinutes(15);
 
   private final ChatModel chatModel;
   private final GeminiMetricsRecorder metricsRecorder;
@@ -55,18 +67,32 @@ public class QualityVerifierImpl implements QualityVerifier {
   public QualityVerdict verify(QualityVerificationRequest request) {
     long startMs = System.currentTimeMillis();
 
-    SystemMessage systemMessage = new SystemMessage(buildSystemPrompt(request));
     UserMessage userMessage = new UserMessage(buildUserPrompt(request));
-
-    var options =
+    GoogleGenAiChatOptions.Builder options =
         GoogleGenAiChatOptions.builder()
             .model(properties.getVerifyModel())
             .responseMimeType("application/json")
-            .responseSchema(verifySchema)
-            .build();
+            .responseSchema(verifySchema);
 
-    ChatResponse chatResponse =
-        chatModel.call(new Prompt(List.of(systemMessage, userMessage), options));
+    List<Message> messages;
+    if (request.cacheName() != null) {
+      // 캐시 사용: 검증 루브릭+PDF 원문은 캐시 프리픽스에 있으므로 요청엔 대화 턴만
+      // (Vertex는 캐시 사용 시 요청 systemInstruction 금지). 검증기가 PDF 원문과 직접 대조한다.
+      options.useCachedContent(true).cachedContentName(request.cacheName());
+      messages = List.of(userMessage);
+    } else {
+      // 폴백: 루브릭을 systemInstruction으로 붙이고 PDF 대조 없이 검증(현행).
+      SystemMessage systemMessage =
+          new SystemMessage(
+              buildSystemPrompt(
+                  resolveQuizType(request.quizType()),
+                  resolveLanguage(request.language()),
+                  request.mode(),
+                  false));
+      messages = List.of(systemMessage, userMessage);
+    }
+
+    ChatResponse chatResponse = chatModel.call(new Prompt(messages, options.build()));
     String responseText = chatResponse.getResult().getOutput().getText();
     GeminiVerificationResponse parsed =
         new BeanOutputConverter<>(GeminiVerificationResponse.class).convert(responseText);
@@ -98,18 +124,75 @@ public class QualityVerifierImpl implements QualityVerifier {
     long output = usage.getCompletionTokens();
     double cost =
         nonCachedInput * properties.getPriceInputPer1m() / 1_000_000
+            + cachedTokens * properties.getPriceCacheReadPer1m() / 1_000_000
             + output * properties.getPriceOutputPer1m() / 1_000_000;
     metricsRecorder.recordVerify(elapsedMs, nonCachedInput, output, cost);
   }
 
-  private String buildSystemPrompt(QualityVerificationRequest request) {
-    QuizType quizType = resolveQuizType(request.quizType());
-    String guideLine = quizType.getProblemGuideLine(resolveLanguage(request.language()));
+  @Override
+  public Optional<String> createPass1Cache(String pdfUri, String quizType, String language) {
+    if (!(chatModel instanceof GoogleGenAiChatModel genAiModel)) {
+      return Optional.empty();
+    }
+    String model = properties.getVerifyModel();
+    if (model == null || model.isBlank()) {
+      return Optional.empty();
+    }
+    try {
+      // 검증 루브릭(PDF 대조 지시 포함)+PDF 원문을 캐시에 담는다. 세션 내 quizType·language·criteria가 고정이라
+      // 루브릭도 고정 → 세트 전 문항 검증이 한 캐시를 재사용한다.
+      String systemPrompt =
+          buildSystemPrompt(
+              resolveQuizType(quizType), resolveLanguage(language), Mode.PASS_1, true);
+      Content pdf = Content.fromParts(Part.fromUri(pdfUri, "application/pdf"));
+      CachedContentRequest request =
+          CachedContentRequest.builder()
+              .model(model)
+              .systemInstruction(systemPrompt)
+              .addContent(pdf)
+              .ttl(PASS1_CACHE_TTL)
+              .build();
+      GoogleGenAiCachedContent created = genAiModel.getCachedContentService().create(request);
+      log.info("Pass 1 검증 캐시 생성: name={}, model={}", created.getName(), model);
+      return Optional.of(created.getName());
+    } catch (Exception e) {
+      log.warn("Pass 1 검증 캐시 생성 실패 — 캐시 없이 검증(원문 대조 없음)으로 폴백.", e);
+      return Optional.empty();
+    }
+  }
+
+  @Override
+  public void deletePass1Cache(String cacheName) {
+    if (cacheName == null || !(chatModel instanceof GoogleGenAiChatModel genAiModel)) {
+      return;
+    }
+    try {
+      genAiModel.getCachedContentService().delete(cacheName);
+      log.info("Pass 1 검증 캐시 삭제: {}", cacheName);
+    } catch (Exception e) {
+      log.warn("Pass 1 검증 캐시 삭제 실패(TTL 만료 대기): {}", cacheName, e);
+    }
+  }
+
+  /**
+   * 검증관 시스템 프롬프트를 만든다. pdfGrounded=true면 첨부 PDF 원문과 직접 대조하도록 지시한다(Pass 1 캐시 검증 — 환각·출처 이탈 탐지).
+   * false면 PDF 없이 문항 자체로 판정한다(폴백·Pass 2 현행). 어느 경우든 문항 자체(+첨부 PDF 원문)만 보고 판정한다.
+   */
+  private String buildSystemPrompt(
+      QuizType quizType, String language, Mode mode, boolean pdfGrounded) {
+    String guideLine = quizType.getProblemGuideLine(language);
 
     StringBuilder sb = new StringBuilder();
     sb.append("# 역할\n");
-    sb.append("당신은 AI가 생성한 ").append(request.quizType()).append(" 문항의 품질을 검수하는 엄격한 검증관이다.\n");
+    sb.append("당신은 AI가 생성한 ").append(quizType.name()).append(" 문항의 품질을 검수하는 엄격한 검증관이다.\n");
     sb.append("아래 '검증 항목'을 기준으로 문항을 점검하고, 이진 판정(통과/미달)을 내린다.\n\n");
+
+    if (pdfGrounded) {
+      sb.append("# 원문 대조 (중요)\n");
+      sb.append(
+          "첨부된 PDF가 이 문항의 출처 원문이다. 정답 근거(answer-grounded-in-source)와 범위 밖 지식 여부(no-outside-knowledge)를\n");
+      sb.append("반드시 **첨부 PDF 원문과 직접 대조**해 판정하라. 원문에 없는 사실로만 정답이 성립하면 미달이다.\n\n");
+    }
 
     sb.append("# 판정 규칙\n");
     sb.append("- 필수 항목 중 **하나라도 실패하면 미달(passed=false)**. 모든 필수 항목을 통과해야 통과(passed=true).\n");
@@ -118,18 +201,18 @@ public class QualityVerifierImpl implements QualityVerifier {
     sb.append("- 미달 시 feedback에 실패 항목과 개선 방향을 구체적으로 적는다. 통과 시 feedback은 빈 문자열.\n\n");
 
     sb.append("# 필수 항목 (전 유형 공통)\n");
-    sb.append("1. 구성전략 부합: rationale.constructionStrategy가 아래 유형별 GuideLine의 출제 원칙에 부합하는가.\n");
+    sb.append("1. 구성전략 부합: 문항(질문·선지 구성)이 아래 유형별 GuideLine의 출제 원칙·패턴에 부합하는가.\n");
     sb.append("2. 사용자 지시 반영: customInstruction이 appliedInstruction/문항에 정확히 반영됐는가(지시가 없으면 통과).\n\n");
 
     sb.append("# 검증 항목 및 엄격도 (운영자 설정)\n");
     appendCriteria(sb);
 
-    if (request.mode() == QualityVerificationRequest.Mode.PASS_2) {
+    if (mode == Mode.PASS_2) {
       sb.append("\n# 추가 심층 검증 (Pass 2 — 더 엄격)\n");
       sb.append("- 세트 내 문항 다양성·중복 회피\n");
       sb.append("- 해설-문항 정합성\n");
       sb.append("- 인지적 깊이·지름길(shortcut) 풀이 방지\n");
-      sb.append("- 출처 충실성 심화(sourceAnchor 인용↔정답 정합)\n");
+      sb.append("- 출처 충실성 심화(정답이 강의노트 원문 범위 내 근거로 성립하는가)\n");
     }
 
     sb.append("\n# 유형별 출제 GuideLine (구성전략 부합 판단 기준)\n");
@@ -140,14 +223,12 @@ public class QualityVerifierImpl implements QualityVerifier {
   /** 검증 항목명 → 검증관이 무엇을 점검해야 하는지에 대한 설명. 경량 모델이 항목을 정확히 적용하도록 프롬프트에 함께 제공한다. */
   private static final Map<String, String> CRITERION_DESCRIPTIONS =
       Map.ofEntries(
-          Map.entry(
-              "construction-strategy",
-              "rationale.constructionStrategy가 유형별 GuideLine의 출제 패턴·원칙에 부합하는가."),
+          Map.entry("construction-strategy", "문항(질문·선지 구성)이 유형별 GuideLine의 출제 패턴·원칙에 부합하는가."),
           Map.entry(
               "instruction-application",
               "사용자 지시(customInstruction)가 문항·appliedInstruction에 정확히 반영됐는가."),
           Map.entry("single-correct-answer", "정답이 유일한가(복수 정답·정답 없음이 아님)."),
-          Map.entry("answer-grounded-in-source", "정답이 rationale.sourceAnchor의 원문 근거에 부합하는가."),
+          Map.entry("answer-grounded-in-source", "정답이 강의노트 원문에 근거하는가(첨부 PDF가 있으면 원문과 직접 대조)."),
           Map.entry("distractors-plausible", "오답이 진지하게 고민할 만큼 그럴듯한가(명백한 극단·환상 진술이 아님)."),
           Map.entry("no-outside-knowledge", "강의노트 범위 밖 지식 없이 풀 수 있는가(환각·외부지식 보강 배제)."),
           Map.entry(
@@ -181,14 +262,14 @@ public class QualityVerifierImpl implements QualityVerifier {
   }
 
   private String buildUserPrompt(QualityVerificationRequest request) {
+    // 검증관은 문항 자체(+첨부 PDF 원문)만 보고 독립·비판적으로 판정한다.
     Map<String, Object> payload =
         Map.of(
             "question", nullToEmpty(request.question()),
             "selections", request.selections() == null ? List.of() : request.selections(),
             "modelAnswer", nullToEmpty(request.modelAnswer()),
             "customInstruction", nullToEmpty(request.customInstruction()),
-            "appliedInstruction", nullToEmpty(request.appliedInstruction()),
-            "rationale", request.rationale() == null ? Map.of() : request.rationale());
+            "appliedInstruction", nullToEmpty(request.appliedInstruction()));
     return "# 검증 대상 문항\n" + serialize(payload);
   }
 

@@ -101,7 +101,7 @@ q-asker/api/
 │   └── scripts/
 │       ├── oci-mysql-backup/     # OCI MySQL 백업/복구/헬스체크 스크립트 (backup.sh, restore.sh, healthcheck.sh, deploy.sh, env.example, healthcheck.baseline.yml, lib/, systemd/, RESTORE.md) — 리눅스·macOS 호환 (gzip -dc, sha256sum↔shasum 폴백)
 │       ├── query-tuning/         # 쿼리 튜닝 부하 하네스 (스케일 스윕 x1/x10/x100 DB 대상, README.md에 실행 가이드): provision-level.sh(prod-matched config로 127.0.0.1 레벨 컨테이너 생성), loadgen.sh(실 엔드포인트 타격 단일 레시피 — 읽기 GET·실 write[mock 순증 0]·스케줄러·refresh·SSE 생성구독·로그아웃; admin·/local·/upload-doc[외부IO]·/auth/test 외 전 엔드포인트 요청), run-level.sh(레벨별 실행 — 무거운 패스=§① Micrometer seed + 가벼운 패스=§②③ trace_snapshot 귀속 + slow_log 수집), run-all.sh(3레벨 순차 스윕 오케스트레이터 — 레벨→포트→컨테이너 매핑 내장, ROUNDS 등 env 통과)
-│       └── perf-seed/             # 스케일 시딩 (x1 원본 복원본에 배수 시드 추가, FK 정합 유지): seed-scale.sh(작은 테이블 일괄 + problem 배치 시딩·총량 검증), seed-scale-small.sql, seed-scale-problem.sql / 성능 테스트용 DB 시딩 (seed.sh, seed.sql, verify.sql, cleanup.sql, README.md)
+│       └── perf-seed/             # 스케일 시딩 (x1 원본 복원본에 배수 시드 추가, FK 정합 유지): seed-scale.sh(작은 테이블 일괄 + problem 배치 시딩·총량 검증), seed-scale-small.sql, seed-scale-problem.sql
 ├── docs/                         # 문서, 분석 자료
 ├── gradle/
 │   ├── libs.versions.toml        # Version Catalog: 모든 의존성/플러그인 버전 SSOT

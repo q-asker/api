@@ -362,6 +362,16 @@ subprojects {
         testLogging {
             showStandardStreams = true
         }
+        // 벤치마크용 옵트인 튜닝(기본 CI 메모리 불변) — `-PtestMaxHeap=2g`, `-PtestMinHeap=2g`, `-PtestGcLog`
+        if (project.hasProperty('testMaxHeap')) {
+            maxHeapSize = project.property('testMaxHeap')
+        }
+        if (project.hasProperty('testMinHeap')) {
+            minHeapSize = project.property('testMinHeap')
+        }
+        if (project.hasProperty('testGcLog')) {
+            jvmArgs += ['-Xlog:gc*:stdout:time,level,tags']
+        }
     }
 
     tasks.withType(JavaCompile).configureEach {

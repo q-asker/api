@@ -2,16 +2,13 @@ package com.icc.qasker.quizset.service;
 
 import com.icc.qasker.quizset.QualityLogService;
 import com.icc.qasker.quizset.dto.QualityLogEntry;
-import com.icc.qasker.quizset.dto.airesponse.RationaleOfAI;
 import com.icc.qasker.quizset.entity.ProblemQualityLog;
-import com.icc.qasker.quizset.entity.QualityStatus;
-import com.icc.qasker.quizset.entity.Rationale;
 import com.icc.qasker.quizset.repository.ProblemQualityLogRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** 문항 품질 로그 upsert·재생성 원본 부착. problem과 분리된 품질 상태 저장소를 관리한다. */
+/** 문항 품질 로그 v1 write-once 기록·v2 부착. problem과 분리된 생성 근거 저장소를 관리한다. */
 @Service
 @RequiredArgsConstructor
 public class QualityLogServiceImpl implements QualityLogService {
@@ -20,65 +17,26 @@ public class QualityLogServiceImpl implements QualityLogService {
 
   @Override
   @Transactional
-  public void upsertQuality(QualityLogEntry entry) {
-    QualityStatus status =
-        entry.qualityStatus() == null ? null : QualityStatus.valueOf(entry.qualityStatus());
-    Rationale rationale = toRationale(entry.rationale());
-
-    repository
-        .findByProblemSetIdAndNumber(entry.problemSetId(), entry.number())
-        .ifPresentOrElse(
-            row -> {
-              row.bindRationale(rationale);
-              row.applyVerdict(status, entry.feedback());
-            },
-            () ->
-                repository.save(
-                    ProblemQualityLog.builder()
-                        .problemSetId(entry.problemSetId())
-                        .number(entry.number())
-                        .rationale(rationale)
-                        .qualityStatus(status)
-                        .feedback(entry.feedback())
-                        .build()));
+  public void upsertV1(QualityLogEntry entry) {
+    // write-once: 행이 있으면 v1은 최초 값을 유지한다(중복 기록 방지).
+    if (repository.findByProblemSetIdAndNumber(entry.problemSetId(), entry.number()).isPresent()) {
+      return;
+    }
+    repository.save(
+        ProblemQualityLog.builder()
+            .problemSetId(entry.problemSetId())
+            .number(entry.number())
+            .v1QuestionJson(entry.v1QuestionJson())
+            .v1Explanation(entry.v1Explanation())
+            .v1Feedback(entry.v1Feedback())
+            .build());
   }
 
   @Override
   @Transactional
-  public void attachRegenerationSource(
-      Long problemSetId, int number, String v1Json, String v1Feedback) {
+  public void attachV2(Long problemSetId, int number, String v2QuestionJson, String v2Explanation) {
     repository
         .findByProblemSetIdAndNumber(problemSetId, number)
-        .ifPresent(row -> row.bindV1(v1Json, v1Feedback));
-  }
-
-  private static Rationale toRationale(RationaleOfAI r) {
-    if (r == null) {
-      return null;
-    }
-    Rationale.SourceAnchor anchor =
-        r.sourceAnchor() == null
-            ? null
-            : new Rationale.SourceAnchor(
-                r.sourceAnchor().page(), r.sourceAnchor().section(), r.sourceAnchor().quote());
-    Rationale.SelfChecks checks =
-        r.selfChecks() == null
-            ? null
-            : new Rationale.SelfChecks(
-                r.selfChecks().singleCorrectAnswer(),
-                r.selfChecks().answerGroundedInSource(),
-                r.selfChecks().distractorsPlausible(),
-                r.selfChecks().noOutsideKnowledge());
-    return new Rationale(
-        anchor,
-        r.learningObjective(),
-        r.bloomLevel(),
-        r.difficultyEstimate(),
-        r.constructionStrategy(),
-        r.instructionApplication(),
-        r.confidence(),
-        checks,
-        r.modelAnswerBasis(),
-        r.rubricConsistency());
+        .ifPresent(row -> row.bindV2(v2QuestionJson, v2Explanation));
   }
 }
