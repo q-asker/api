@@ -39,7 +39,7 @@ class EnhancementWriteScenarioTest extends JpaIntegrationTestBase {
 
     // 5행 중 2·4번만 마킹 — review 컬럼만 변경
     for (int number : new int[] {2, 4}) {
-      repositoryFind(100L, number).applyReview(null, "정답 근거 불명확");
+      repositoryFind(100L, number).markExplanationReview("정답 근거 불명확");
     }
     em.flush();
 

@@ -129,7 +129,7 @@ public class QualityReviewServiceImpl implements QualityReviewService {
     for (Verdicted v : verdicts) {
       if (v.verdict().result() == QualityVerdict.Result.BELOW_THRESHOLD) {
         // 미달 문항만 마킹 → dirty. 통과·검증불가는 무변경(flush 스킵).
-        v.quality().applyReview(v.verdict().feedback(), v.verdict().feedback());
+        v.quality().markQuestionVerdict(v.verdict().feedback());
         below++;
       }
     }
@@ -178,7 +178,10 @@ public class QualityReviewServiceImpl implements QualityReviewService {
         modelAnswer,
         set.getCustomInstruction(),
         snapshot.appliedInstruction(),
-        Mode.PASS_2);
+        Mode.PASS_2,
+        // 재생성본이면 round 1 미달 사유(v1Feedback)를 함께 넘겨 반영 여부까지 판정하게 한다(통과분은 null).
+        quality.getV1Feedback(),
+        null);
   }
 
   /** 로그 행의 개선본(v2) 질문 우선, 없으면 첫 생성본(v1) 질문 JSON을 역직렬화한다. */

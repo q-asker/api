@@ -99,7 +99,7 @@ class SetDiversityEnhancementBenchmarkTest extends JpaIntegrationTestBase {
     // 정확성: M개만 dirty → flush UPDATE 수 == M (로드 N 무관, skip-clean)
     statistics().clear();
     for (int i = 0; i < m; i++) {
-      loaded.get(i).applyReview(null, "warm");
+      loaded.get(i).markExplanationReview("warm");
     }
     em.flush();
     assertThat(statistics().getEntityUpdateCount())
@@ -109,7 +109,7 @@ class SetDiversityEnhancementBenchmarkTest extends JpaIntegrationTestBase {
     long[] flushNanos = new long[iterations];
     for (int it = 0; it < warmup + iterations; it++) {
       for (int i = 0; i < m; i++) {
-        loaded.get(i).applyReview(null, "v" + it); // 매 회 새 값 → 항상 dirty
+        loaded.get(i).markExplanationReview("v" + it); // 매 회 새 값 → 항상 dirty
       }
       long t0 = System.nanoTime();
       em.flush(); // 이 스캔이 O(N): OFF는 전체 필드 비교, ON은 tracker 조회

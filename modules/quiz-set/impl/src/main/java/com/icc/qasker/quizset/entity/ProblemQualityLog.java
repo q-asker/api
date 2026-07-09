@@ -75,9 +75,13 @@ public class ProblemQualityLog extends CreatedAt {
     this.v2Explanation = v2Explanation;
   }
 
-  /** 사후 재검토(Pass 2) 결과를 반영한다. */
-  public void applyReview(String v2Feedback, String review) {
+  /** 질문 재검증(Pass 2) 결과를 v2Feedback에 반영한다. */
+  public void markQuestionVerdict(String v2Feedback) {
     this.v2Feedback = v2Feedback;
+  }
+
+  /** 해설 형식 검증(정규식) 결과를 review에 반영한다. */
+  public void markExplanationReview(String review) {
     this.review = review;
   }
 }

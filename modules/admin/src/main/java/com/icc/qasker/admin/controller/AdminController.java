@@ -10,7 +10,9 @@ import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.global.ratelimit.RateLimitTier;
 import com.icc.qasker.oci.ObjectStorageService;
+import com.icc.qasker.quizset.ExplanationReviewService;
 import com.icc.qasker.quizset.QualityReviewService;
+import com.icc.qasker.quizset.dto.ExplanationReviewResult;
 import com.icc.qasker.quizset.dto.QualityReviewResult;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -42,6 +44,7 @@ public class AdminController {
   private final ObjectStorageService objectStorageService;
   private final ImageUploadProperties imageUploadProperties;
   private final QualityReviewService qualityReviewService;
+  private final ExplanationReviewService explanationReviewService;
 
   @Operation(summary = "세트 품질 재검토를 요청한다(Pass 2, 비동기)")
   @RateLimit(RateLimitTier.HEAVY)
@@ -68,6 +71,14 @@ public class AdminController {
         .latestResult(setId)
         .map(ResponseEntity::ok)
         .orElseGet(() -> ResponseEntity.status(HttpStatus.NO_CONTENT).build());
+  }
+
+  @Operation(summary = "세트 해설 형식 검증(정규식)을 수행한다")
+  @RateLimit(RateLimitTier.HEAVY)
+  @PostMapping("/problem-sets/{setId}/explanation-review")
+  public ResponseEntity<ExplanationReviewResult> requestExplanationReview(
+      @PathVariable Long setId) {
+    return ResponseEntity.ok(explanationReviewService.review(setId));
   }
 
   @Operation(summary = "업데이트 로그를 작성한다")

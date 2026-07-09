@@ -81,7 +81,7 @@ class SetDiversityReviewScenarioTest extends JpaIntegrationTestBase {
       if (representative != null) {
         qualityByNumber
             .get(number)
-            .applyReview(null, number + "번은 " + representative + "번과 문항 내용 중복");
+            .markExplanationReview(number + "번은 " + representative + "번과 문항 내용 중복");
       }
     }
     em.flush();

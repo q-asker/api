@@ -51,7 +51,7 @@ class DirtyCheckScanBenchmark extends JpaIntegrationTestBase {
         long a0 = allocOk ? currentThreadAllocatedBytes() : 0L;
         List<ProblemQualityLog> all = loadAll(setId);
         for (int d = 0; d < dirty && d < all.size(); d++) {
-          all.get(d).applyReview(null, "fb-" + it + "-" + d);
+          all.get(d).markExplanationReview("fb-" + it + "-" + d);
         }
         long t0 = System.nanoTime();
         em.flush();
@@ -74,7 +74,7 @@ class DirtyCheckScanBenchmark extends JpaIntegrationTestBase {
     em.clear();
     List<ProblemQualityLog> all = loadAll(setId);
     for (int d = 0; d < dirty; d++) {
-      all.get(d).applyReview(null, "final-" + d);
+      all.get(d).markExplanationReview("final-" + d);
     }
     statistics().clear();
     em.flush();
@@ -95,7 +95,7 @@ class DirtyCheckScanBenchmark extends JpaIntegrationTestBase {
       long[] flushNanos = new long[iterations];
       for (int it = 0; it < warmup + iterations; it++) {
         for (int d = 0; d < dirty && d < managed.size(); d++) {
-          managed.get(d).applyReview(null, "v" + it + "-" + d);
+          managed.get(d).markExplanationReview("v" + it + "-" + d);
         }
         long t0 = System.nanoTime();
         em.flush();

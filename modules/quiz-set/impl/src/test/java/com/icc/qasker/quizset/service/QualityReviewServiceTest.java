@@ -79,14 +79,15 @@ class QualityReviewServiceTest extends JpaIntegrationTestBase {
 
     ProblemQualityLog bad =
         qualityLogRepository.findByProblemSetIdAndNumber(set.getId(), 2).orElseThrow();
-    assertThat(bad.getReview()).isEqualTo("정답 근거 불명확");
+    // Pass-2(질문 재검증)는 v2Feedback만 마킹하고 review(해설 형식 검증)는 건드리지 않는다
     assertThat(bad.getV2Feedback()).isEqualTo("정답 근거 불명확");
-    // 통과 문항은 재검토가 건드리지 않아 review가 null로 유지
+    assertThat(bad.getReview()).isNull();
+    // 통과 문항은 재검토가 건드리지 않아 v2Feedback이 null로 유지
     assertThat(
             qualityLogRepository
                 .findByProblemSetIdAndNumber(set.getId(), 1)
                 .orElseThrow()
-                .getReview())
+                .getV2Feedback())
         .isNull();
   }
 

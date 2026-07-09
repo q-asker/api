@@ -16,6 +16,7 @@ import com.icc.qasker.board.dto.request.ReplyRequest;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.oci.ObjectStorageService;
+import com.icc.qasker.quizset.ExplanationReviewService;
 import com.icc.qasker.quizset.QualityReviewService;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -52,7 +53,8 @@ class AdminControllerTest {
             boardAdminService,
             objectStorageService,
             IMAGE_PROPERTIES,
-            mock(QualityReviewService.class));
+            mock(QualityReviewService.class),
+            mock(ExplanationReviewService.class));
   }
 
   private MultipartFile validImageFile() throws IOException {

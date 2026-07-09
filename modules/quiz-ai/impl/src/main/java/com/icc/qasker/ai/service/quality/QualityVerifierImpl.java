@@ -15,6 +15,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.SystemMessage;
@@ -180,44 +181,57 @@ public class QualityVerifierImpl implements QualityVerifier {
    */
   private String buildSystemPrompt(
       QuizType quizType, String language, Mode mode, boolean pdfGrounded) {
-    String guideLine = quizType.getProblemGuideLine(language);
+    String grounding =
+        pdfGrounded
+            ? """
+            # 원문 대조 (중요)
+            첨부된 PDF가 이 문항의 출처 원문이다. 정답 근거(answer-grounded-in-source)와 범위 밖 지식 여부(no-outside-knowledge)를
+            반드시 **첨부 PDF 원문과 직접 대조**해 판정하라. 원문에 없는 사실로만 정답이 성립하면 미달이다.
 
-    StringBuilder sb = new StringBuilder();
-    sb.append("# 역할\n");
-    sb.append("당신은 AI가 생성한 ").append(quizType.name()).append(" 문항의 품질을 검수하는 엄격한 검증관이다.\n");
-    sb.append("아래 '검증 항목'을 기준으로 문항을 점검하고, 이진 판정(통과/미달)을 내린다.\n\n");
+            """
+            : "";
 
-    if (pdfGrounded) {
-      sb.append("# 원문 대조 (중요)\n");
-      sb.append(
-          "첨부된 PDF가 이 문항의 출처 원문이다. 정답 근거(answer-grounded-in-source)와 범위 밖 지식 여부(no-outside-knowledge)를\n");
-      sb.append("반드시 **첨부 PDF 원문과 직접 대조**해 판정하라. 원문에 없는 사실로만 정답이 성립하면 미달이다.\n\n");
-    }
+    String pass2 =
+        mode == Mode.PASS_2
+            ? """
 
-    sb.append("# 판정 규칙\n");
-    sb.append("- 필수 항목 중 **하나라도 실패하면 미달(passed=false)**. 모든 필수 항목을 통과해야 통과(passed=true).\n");
-    sb.append("- 가중 점수 합산이 아니라 치명 항목 이진 판정이다.\n");
-    sb.append("- 검증 항목의 엄격도: **strict = 경미한 위반도 미달**, **normal = 명백한 위반만 미달**(애매하면 통과).\n");
-    sb.append("- 미달 시 feedback에 실패 항목과 개선 방향을 구체적으로 적는다. 통과 시 feedback은 빈 문자열.\n\n");
+            # 추가 심층 검증 (Pass 2 — 더 엄격)
+            - 세트 내 문항 다양성·중복 회피
+            - 해설-문항 정합성
+            - 인지적 깊이·지름길(shortcut) 풀이 방지
+            - 출처 충실성 심화(정답이 강의노트 원문 범위 내 근거로 성립하는가)
+            - 재생성 반영 검증: 입력의 priorRoundFeedback(이전 라운드 미달 사유)이 비어있지 않으면, 현재 문항은 그 사유를 고치려고 재생성된 개선본이다. 각 지적이 실제로 해소됐는지 판정하고, feedback에 '어떤 지적이 어떻게 반영/미반영됐는지'를 항목별로 구체적으로 서술한다. 미해소·부분해소가 있으면 미달로 본다.
+            """
+            : "";
 
-    sb.append("# 필수 항목 (전 유형 공통)\n");
-    sb.append("1. 구성전략 부합: 문항(질문·선지 구성)이 아래 유형별 GuideLine의 출제 원칙·패턴에 부합하는가.\n");
-    sb.append("2. 사용자 지시 반영: customInstruction이 appliedInstruction/문항에 정확히 반영됐는가(지시가 없으면 통과).\n\n");
+    return """
+        # 역할
+        당신은 AI가 생성한 %s 문항의 품질을 검수하는 엄격한 검증관이다.
+        아래 '검증 항목'을 기준으로 문항을 점검하고, 이진 판정(통과/미달)을 내린다.
 
-    sb.append("# 검증 항목 및 엄격도 (운영자 설정)\n");
-    appendCriteria(sb);
+        """
+            .formatted(quizType.name())
+        + grounding
+        + """
+        # 판정 규칙
+        - 필수 항목 중 **하나라도 실패하면 미달(passed=false)**. 모든 필수 항목을 통과해야 통과(passed=true).
+        - 가중 점수 합산이 아니라 치명 항목 이진 판정이다.
+        - 검증 항목의 엄격도: **strict = 경미한 위반도 미달**, **normal = 명백한 위반만 미달**(애매하면 통과).
+        - 미달 시 feedback에 실패 항목과 개선 방향을 구체적으로 적는다. 통과 시 feedback은 빈 문자열.
 
-    if (mode == Mode.PASS_2) {
-      sb.append("\n# 추가 심층 검증 (Pass 2 — 더 엄격)\n");
-      sb.append("- 세트 내 문항 다양성·중복 회피\n");
-      sb.append("- 해설-문항 정합성\n");
-      sb.append("- 인지적 깊이·지름길(shortcut) 풀이 방지\n");
-      sb.append("- 출처 충실성 심화(정답이 강의노트 원문 범위 내 근거로 성립하는가)\n");
-    }
+        # 필수 항목 (전 유형 공통)
+        1. 구성전략 부합: 문항(질문·선지 구성)이 아래 유형별 GuideLine의 출제 원칙·패턴에 부합하는가.
+        2. 사용자 지시 반영: customInstruction이 appliedInstruction/문항에 정확히 반영됐는가(지시가 없으면 통과).
 
-    sb.append("\n# 유형별 출제 GuideLine (구성전략 부합 판단 기준)\n");
-    sb.append(guideLine);
-    return sb.toString();
+        # 검증 항목 및 엄격도 (운영자 설정)
+        """
+        + buildCriteria()
+        + pass2
+        + """
+
+        # 유형별 출제 GuideLine (구성전략 부합 판단 기준)
+        """
+        + quizType.getProblemGuideLine(language);
   }
 
   /** 검증 항목명 → 검증관이 무엇을 점검해야 하는지에 대한 설명. 경량 모델이 항목을 정확히 적용하도록 프롬프트에 함께 제공한다. */
@@ -242,23 +256,20 @@ public class QualityVerifierImpl implements QualityVerifier {
           Map.entry("model-answer-basis", "[ESSAY] 모범답안이 원문에 근거하는가."),
           Map.entry("rubric-consistency", "[ESSAY] 질문↔모범답안↔채점 루브릭 3자가 정합하는가."));
 
-  private void appendCriteria(StringBuilder sb) {
+  private String buildCriteria() {
     Map<String, String> criteria = properties.getCriteria();
     if (criteria == null || criteria.isEmpty()) {
-      sb.append("- (설정된 항목 없음 — 필수 항목만 적용)\n");
-      return;
+      return "- (설정된 항목 없음 — 필수 항목만 적용)\n";
     }
-    criteria.forEach(
-        (name, strictness) -> {
-          if (strictness != null && !"off".equalsIgnoreCase(strictness)) {
-            sb.append("- ").append(name).append(" (엄격도: ").append(strictness).append(")");
-            String desc = CRITERION_DESCRIPTIONS.get(name);
-            if (desc != null) {
-              sb.append(": ").append(desc);
-            }
-            sb.append("\n");
-          }
-        });
+    return criteria.entrySet().stream()
+        .filter(e -> e.getValue() != null && !"off".equalsIgnoreCase(e.getValue()))
+        .map(
+            e -> {
+              String base = "- " + e.getKey() + " (엄격도: " + e.getValue() + ")";
+              String desc = CRITERION_DESCRIPTIONS.get(e.getKey());
+              return desc != null ? base + ": " + desc + "\n" : base + "\n";
+            })
+        .collect(Collectors.joining());
   }
 
   private String buildUserPrompt(QualityVerificationRequest request) {
@@ -269,7 +280,8 @@ public class QualityVerifierImpl implements QualityVerifier {
             "selections", request.selections() == null ? List.of() : request.selections(),
             "modelAnswer", nullToEmpty(request.modelAnswer()),
             "customInstruction", nullToEmpty(request.customInstruction()),
-            "appliedInstruction", nullToEmpty(request.appliedInstruction()));
+            "appliedInstruction", nullToEmpty(request.appliedInstruction()),
+            "priorRoundFeedback", nullToEmpty(request.priorFeedback()));
     return "# 검증 대상 문항\n" + serialize(payload);
   }
 
