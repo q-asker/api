@@ -88,6 +88,9 @@ q-asker:
     enabled: false
     webhook-url-notify: http://localhost
 
+  github:
+    enabled: false
+
   web:
     frontend-deploy-url: http://localhost:3000
 

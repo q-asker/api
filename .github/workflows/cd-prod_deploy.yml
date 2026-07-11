@@ -72,6 +72,11 @@ jobs:
           SLACK_WEBHOOK_URL_VALUE=$(echo "${{ secrets.GRADLE_PROPERTIES }}" | grep '^SLACK_WEBHOOK_URL=' | cut -d'=' -f2-)
           echo "SLACK_WEBHOOK_URL=$SLACK_WEBHOOK_URL_VALUE" >> $GITHUB_ENV
 
+          # GITHUB_ISSUE_TOKEN 추출, 마스킹, 환경 변수 등록 (피드백 → GitHub 이슈 자동 등록용)
+          GITHUB_ISSUE_TOKEN_VALUE=$(echo "${{ secrets.GRADLE_PROPERTIES }}" | grep '^GITHUB_ISSUE_TOKEN=' | cut -d'=' -f2-)
+          echo "::add-mask::$GITHUB_ISSUE_TOKEN_VALUE"
+          echo "GITHUB_ISSUE_TOKEN=$GITHUB_ISSUE_TOKEN_VALUE" >> $GITHUB_ENV
+
 
       - name: 코드 체크아웃
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -117,6 +122,7 @@ jobs:
             echo "BLUE_PORT=${{ env.BLUE_PORT }}" >> .env
             echo "GREEN_PORT=${{ env.GREEN_PORT }}" >> .env
             echo "JASYPT_ENCRYPTOR_PASSWORD=${{ env.JASYPT_ENCRYPTOR_PASSWORD }}" >> .env
+            echo "GITHUB_ISSUE_TOKEN=${{ env.GITHUB_ISSUE_TOKEN }}" >> .env
 
             # 3. Docker 로그인
             echo "${{ env.DOCKER_PASSWORD }}" | docker login -u "${{ env.DOCKER_ID }}" --password-stdin
