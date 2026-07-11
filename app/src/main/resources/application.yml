@@ -10,6 +10,7 @@ spring:
       - config/jodconverter.yml
       - config/actuator.yml
       - config/app-common.yml
+      - config/github.yml
       - config/resilience.yml
       - config/spring-doc.yml
       - application-secrets.yml

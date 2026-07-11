@@ -77,6 +77,7 @@ q-asker/api/
 │           ├── jodconverter.yml      # LibreOffice 문서변환
 │           ├── actuator.yml          # Actuator, Prometheus
 │           ├── app-common.yml        # 앱 커스텀 설정
+│           ├── github.yml            # 피드백 → GitHub 이슈 자동 등록 (owner/repo/토큰/라벨)
 │           ├── resilience.yml        # Circuit Breaker
 │           └── spring-doc.yml        # Swagger/OpenAPI
 ├── modules/
@@ -107,7 +108,8 @@ q-asker/api/
     ├── ci-auto-version-bump.yml
     ├── ci-check-code-convention.yml
     ├── ci-update-api-docs.yml
-    └── renovate-impact-analysis.yml
+    ├── renovate-impact-analysis.yml
+    └── feedback-review.yml       # 피드백 이슈에 /review 코멘트 시 Claude가 FE/BE 작업 분석
 ```
 
 ## 환경 변수
@@ -155,6 +157,7 @@ q-asker/api/
     - `ci-auto-version-bump.yml` — 자동 버전 범프
     - `ci-update-api-docs.yml` — OpenAPI 스펙 자동 갱신
     - `renovate-impact-analysis.yml` — Renovate PR 영향 분석
+    - `feedback-review.yml` — 피드백 이슈 `/review` 코멘트 시 Claude 프론트/백엔드 작업 분석
     - `cd-prod_deploy.yml` — 운영 배포
 
 <!-- SPECKIT START -->
