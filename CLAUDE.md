@@ -65,6 +65,7 @@
 q-asker/api/
 ├── app/                          # 진입점 (Spring Boot Application)
 │   ├── src/main/java/com/icc/qasker/loadtest/  # loadtest 전용 드라이버 (@Profile("loadtest")): LocalSchedulerController(비-controller 스케줄러 로직을 온디맨드 1회 호출해 백그라운드 쿼리 트레이스). read/write 부하는 loadgen.sh가 실 엔드포인트를 직접 태운다(mock 자기정리로 순증 0 — 별도 드라이버 불필요)
+│   ├── src/main/java/com/icc/qasker/dev/  # 로컬 전용(@Profile("local")) 벤치 훅 (ExplanationReviewBenchController)
 │   └── src/main/resources/
 │       ├── application.yml       # 설정 진입점 (config/ import)
 │       ├── application-secrets.yml  # 암호화된 시크릿
@@ -89,7 +90,7 @@ q-asker/api/
 │   ├── board/    (api + impl)    # 게시판
 │   ├── quiz-ai/  (api + impl)    # AI 퀴즈 생성 (Gemini 호출, 메트릭, 품질 검증 QualityVerifier/QualityGate)
 │   ├── quiz-make/(api + impl)    # 퀴즈 생성 흐름 (파일업로드, SSE, 생성결과)
-│   ├── quiz-set/ (api + impl)    # 퀴즈 세트 CRUD, 품질 리뷰(QualityReviewService)·품질 로그(QualityLogService/ProblemQualityLog/QualityStatus, 재생성 원본 v1 포함)·스테일 생성 복구 스케줄러
+│   ├── quiz-set/ (api + impl)    # 퀴즈 세트 CRUD, 품질 리뷰(QualityReviewService)·해설 재검토(ExplanationReviewService/ExplanationFormatValidator)·품질 로그(QualityLogService/ProblemQualityLog, v1 생성본·v2 재생성본 함께 보관)·스테일 생성 복구 스케줄러
 │   ├── quiz-history/(api + impl) # 풀이 히스토리
 │   ├── document/ (api + impl)    # 문서 변환 (PPT/DOCX → PDF)
 │   └── admin/                    # 관리자 전용 API
