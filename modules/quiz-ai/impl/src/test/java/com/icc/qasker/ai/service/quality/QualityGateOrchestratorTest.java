@@ -48,6 +48,8 @@ class QualityGateOrchestratorTest {
     chatModel = mock(ChatModel.class);
     metricsRecorder = mock(GeminiMetricsRecorder.class);
     aiProperties = new QAskerAiProperties();
+    // @ConfigurationProperties 기본값이 제거돼 yml이 단일 출처이므로, Spring 없이 직접 생성한 이 인스턴스엔 필요한 값을 명시한다.
+    aiProperties.getChunk().setChunkSize(15);
     qualityGate = mock(QualityGate.class);
 
     FileMetadata meta =

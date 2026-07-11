@@ -1,6 +1,5 @@
 package com.icc.qasker.ai.service.support;
 
-import com.icc.qasker.ai.properties.QAskerAiProperties;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
@@ -46,7 +45,6 @@ public class GeminiMetricsRecorder {
 
   public GeminiMetricsRecorder(
       MeterRegistry registry,
-      QAskerAiProperties aiProperties,
       @Value("${q-asker.ai.generation.price-input-per-1m}") double priceInputPer1M,
       @Value("${q-asker.ai.generation.price-cache-read-per-1m}") double priceCacheReadPer1M,
       @Value("${q-asker.ai.generation.price-output-per-1m}") double priceOutputPer1M) {
@@ -116,27 +114,6 @@ public class GeminiMetricsRecorder {
       Counter.builder("gemini.streaming.timeout")
           .description("Gemini 스트리밍 5분 타임아웃 발생 횟수")
           .tag("quiz_type", quizType)
-          .register(registry);
-    }
-
-    // 요청 단위 메트릭을 max_chunks 변형별로 미리 등록
-    for (int variant : aiProperties.getChunk().getMaxCountVariants()) {
-      String tag = String.valueOf(variant);
-      Timer.builder("gemini.request.total.duration")
-          .description("요청 시작 → 전체 퀴즈 생성 완료까지 소요 시간")
-          .tag("max_chunks", tag)
-          .register(registry);
-      Timer.builder("gemini.request.first-quiz.duration")
-          .description("요청 시작 → 첫 번째 퀴즈 응답까지 소요 시간")
-          .tag("max_chunks", tag)
-          .register(registry);
-      Timer.builder("gemini.request.spread.duration")
-          .description("첫 번째 퀴즈 응답 ~ 마지막 퀴즈 응답 사이 시간 차이")
-          .tag("max_chunks", tag)
-          .register(registry);
-      Counter.builder("gemini.request.cost")
-          .description("요청 단위 추정 비용 합계 (USD)")
-          .tag("max_chunks", tag)
           .register(registry);
     }
   }

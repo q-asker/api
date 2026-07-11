@@ -1,12 +1,12 @@
 package com.icc.qasker.ai.service.quality;
 
-import com.google.genai.types.Content;
-import com.google.genai.types.Part;
 import com.icc.qasker.ai.dto.QualityVerdict;
 import com.icc.qasker.ai.dto.QualityVerificationRequest;
 import com.icc.qasker.ai.dto.QualityVerificationRequest.Mode;
 import com.icc.qasker.ai.properties.QualityProperties;
 import com.icc.qasker.ai.service.QualityVerifier;
+import com.icc.qasker.ai.service.support.GeminiContextCacheManager;
+import com.icc.qasker.ai.service.support.GeminiContextCacheManager.CacheRef;
 import com.icc.qasker.ai.service.support.GeminiMetricsRecorder;
 import com.icc.qasker.ai.strategy.QuizType;
 import com.icc.qasker.ai.structure.GeminiVerificationResponse;
@@ -25,10 +25,7 @@ import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.converter.BeanOutputConverter;
-import org.springframework.ai.google.genai.GoogleGenAiChatModel;
 import org.springframework.ai.google.genai.GoogleGenAiChatOptions;
-import org.springframework.ai.google.genai.cache.CachedContentRequest;
-import org.springframework.ai.google.genai.cache.GoogleGenAiCachedContent;
 import org.springframework.ai.google.genai.metadata.GoogleGenAiUsage;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.ObjectMapper;
@@ -50,6 +47,7 @@ public class QualityVerifierImpl implements QualityVerifier {
   private final QualityProperties properties;
   private final ObjectMapper objectMapper;
   private final String verifySchema;
+  private final GeminiContextCacheManager cacheManager;
 
   public QualityVerifierImpl(
       ChatModel chatModel,
@@ -61,6 +59,7 @@ public class QualityVerifierImpl implements QualityVerifier {
     this.properties = properties;
     this.objectMapper = objectMapper;
     this.verifySchema = new BeanOutputConverter<>(GeminiVerificationResponse.class).getJsonSchema();
+    this.cacheManager = new GeminiContextCacheManager(chatModel);
   }
 
   @Override
@@ -132,47 +131,18 @@ public class QualityVerifierImpl implements QualityVerifier {
 
   @Override
   public Optional<String> createPass1Cache(String pdfUri, String quizType, String language) {
-    if (!(chatModel instanceof GoogleGenAiChatModel genAiModel)) {
-      return Optional.empty();
-    }
-    String model = properties.getVerifyModel();
-    if (model == null || model.isBlank()) {
-      return Optional.empty();
-    }
-    try {
-      // 검증 루브릭(PDF 대조 지시 포함)+PDF 원문을 캐시에 담는다. 세션 내 quizType·language·criteria가 고정이라
-      // 루브릭도 고정 → 세트 전 문항 검증이 한 캐시를 재사용한다.
-      String systemPrompt =
-          buildSystemPrompt(
-              resolveQuizType(quizType), resolveLanguage(language), Mode.PASS_1, true);
-      Content pdf = Content.fromParts(Part.fromUri(pdfUri, "application/pdf"));
-      CachedContentRequest request =
-          CachedContentRequest.builder()
-              .model(model)
-              .systemInstruction(systemPrompt)
-              .addContent(pdf)
-              .ttl(PASS1_CACHE_TTL)
-              .build();
-      GoogleGenAiCachedContent created = genAiModel.getCachedContentService().create(request);
-      log.info("Pass 1 검증 캐시 생성: name={}, model={}", created.getName(), model);
-      return Optional.of(created.getName());
-    } catch (Exception e) {
-      log.warn("Pass 1 검증 캐시 생성 실패 — 캐시 없이 검증(원문 대조 없음)으로 폴백.", e);
-      return Optional.empty();
-    }
+    // 검증 루브릭(PDF 대조 지시 포함)+PDF 원문을 캐시에 담는다. 세션 내 quizType·language·criteria가 고정이라
+    // 루브릭도 고정 → 세트 전 문항 검증이 한 캐시를 재사용한다. 검증 모델(verifyModel)로 캐시를 생성한다.
+    String systemPrompt =
+        buildSystemPrompt(resolveQuizType(quizType), resolveLanguage(language), Mode.PASS_1, true);
+    return cacheManager
+        .create("Pass 1 검증", properties.getVerifyModel(), systemPrompt, pdfUri, PASS1_CACHE_TTL)
+        .map(CacheRef::name);
   }
 
   @Override
   public void deletePass1Cache(String cacheName) {
-    if (cacheName == null || !(chatModel instanceof GoogleGenAiChatModel genAiModel)) {
-      return;
-    }
-    try {
-      genAiModel.getCachedContentService().delete(cacheName);
-      log.info("Pass 1 검증 캐시 삭제: {}", cacheName);
-    } catch (Exception e) {
-      log.warn("Pass 1 검증 캐시 삭제 실패(TTL 만료 대기): {}", cacheName, e);
-    }
+    cacheManager.delete("Pass 1 검증", cacheName);
   }
 
   /**

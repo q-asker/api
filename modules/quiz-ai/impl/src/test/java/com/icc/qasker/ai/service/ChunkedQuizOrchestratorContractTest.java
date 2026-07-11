@@ -63,6 +63,8 @@ class ChunkedQuizOrchestratorContractTest {
     objectMapper = new ObjectMapper();
     metricsRecorder = mock(GeminiMetricsRecorder.class);
     aiProperties = new QAskerAiProperties();
+    // @ConfigurationProperties 기본값이 제거돼 yml이 단일 출처이므로, Spring 없이 직접 생성한 이 인스턴스엔 필요한 값을 명시한다.
+    aiProperties.getChunk().setChunkSize(15);
     // 게이트는 이 계약 테스트 범위 밖 — 전량 통과로 스텁해 Phase 1 전달 계약만 검증한다.
     qualityGate = mock(QualityGate.class);
     when(qualityGate.verify(any(), any(), any(), any(), any())).thenReturn(QualityVerdict.pass());
