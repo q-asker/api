@@ -10,7 +10,6 @@ import com.icc.qasker.ai.dto.QualityVerdict;
 import com.icc.qasker.ai.service.QualityVerifier;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
-import com.icc.qasker.quizset.dto.QualityReviewResult;
 import com.icc.qasker.quizset.dto.ferequest.enums.QuizType;
 import com.icc.qasker.quizset.entity.Problem;
 import com.icc.qasker.quizset.entity.ProblemId;
@@ -18,7 +17,7 @@ import com.icc.qasker.quizset.entity.ProblemQualityLog;
 import com.icc.qasker.quizset.entity.ProblemSet;
 import com.icc.qasker.quizset.entity.Selection;
 import com.icc.qasker.quizset.repository.ProblemQualityLogRepository;
-import com.icc.qasker.quizset.repository.ProblemRepository;
+import com.icc.qasker.quizset.repository.ProblemSetRepository;
 import com.icc.qasker.quizset.service.quality.QualityReviewServiceImpl;
 import com.icc.qasker.quizset.support.JpaIntegrationTestBase;
 import java.util.List;
@@ -32,7 +31,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 /** 품질 로그가 없는 세트가 재검토 대상에서 제외됨을 검증한다. 단건은 400, 일괄은 스킵된다. */
 class QualityReviewLegacyTest extends JpaIntegrationTestBase {
 
-  @Autowired private ProblemRepository problemRepository;
+  @Autowired private ProblemSetRepository problemSetRepository;
   @Autowired private ProblemQualityLogRepository qualityLogRepository;
   @Autowired private PlatformTransactionManager transactionManager;
 
@@ -45,7 +44,7 @@ class QualityReviewLegacyTest extends JpaIntegrationTestBase {
     when(verifier.verify(any())).thenReturn(QualityVerdict.pass());
     service =
         new QualityReviewServiceImpl(
-            problemRepository,
+            problemSetRepository,
             qualityLogRepository,
             verifier,
             new TransactionTemplate(transactionManager));
@@ -58,7 +57,7 @@ class QualityReviewLegacyTest extends JpaIntegrationTestBase {
     persistProblem(set, 1); // 품질 로그 없음 → 대상 없음
     flushAndClear();
 
-    assertThatThrownBy(() -> service.review(set.getId()))
+    assertThatThrownBy(() -> service.review(List.of(set.getId())))
         .isInstanceOf(CustomException.class)
         .satisfies(
             e ->
@@ -76,11 +75,16 @@ class QualityReviewLegacyTest extends JpaIntegrationTestBase {
     persistQuality(valid.getId(), 1);
     flushAndClear();
 
-    List<QualityReviewResult> results = service.reviewBulk(List.of(legacy.getId(), valid.getId()));
+    service.review(List.of(legacy.getId(), valid.getId()));
 
-    assertThat(results).hasSize(1);
-    assertThat(results.get(0).problemSetId()).isEqualTo(valid.getId());
-    assertThat(results.get(0).reviewedCount()).isEqualTo(1);
+    // 품질 로그 없는 legacy 세트는 결과에 없고, 보유 세트만 집계된다.
+    assertThat(service.latestResult(legacy.getId())).isEmpty();
+    assertThat(service.latestResult(valid.getId()))
+        .hasValueSatisfying(
+            r -> {
+              assertThat(r.problemSetId()).isEqualTo(valid.getId());
+              assertThat(r.reviewedCount()).isEqualTo(1);
+            });
   }
 
   private ProblemSet persistSet(String sessionId) {

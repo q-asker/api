@@ -16,7 +16,7 @@ import com.icc.qasker.quizset.entity.ProblemQualityLog;
 import com.icc.qasker.quizset.entity.ProblemSet;
 import com.icc.qasker.quizset.entity.Selection;
 import com.icc.qasker.quizset.repository.ProblemQualityLogRepository;
-import com.icc.qasker.quizset.repository.ProblemRepository;
+import com.icc.qasker.quizset.repository.ProblemSetRepository;
 import com.icc.qasker.quizset.service.quality.QualityReviewServiceImpl;
 import com.icc.qasker.quizset.support.JpaIntegrationTestBase;
 import java.util.List;
@@ -33,7 +33,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  */
 class QualityReviewServiceTest extends JpaIntegrationTestBase {
 
-  @Autowired private ProblemRepository problemRepository;
+  @Autowired private ProblemSetRepository problemSetRepository;
   @Autowired private ProblemQualityLogRepository qualityLogRepository;
   @Autowired private PlatformTransactionManager transactionManager;
 
@@ -45,7 +45,7 @@ class QualityReviewServiceTest extends JpaIntegrationTestBase {
     verifier = mock(QualityVerifier.class);
     service =
         new QualityReviewServiceImpl(
-            problemRepository,
+            problemSetRepository,
             qualityLogRepository,
             verifier,
             new TransactionTemplate(transactionManager));
@@ -68,12 +68,12 @@ class QualityReviewServiceTest extends JpaIntegrationTestBase {
                     : QualityVerdict.pass());
 
     statistics().clear();
-    QualityReviewResult result = service.review(set.getId());
+    service.review(List.of(set.getId()));
+    QualityReviewResult result = service.latestResult(set.getId()).orElseThrow();
     flushAndClear();
 
     assertThat(result.reviewedCount()).isEqualTo(3);
     assertThat(result.belowThresholdCount()).isEqualTo(1);
-    assertThat(result.skippedLegacyCount()).isZero();
     // 미달 1건만 UPDATE(통과분 무변경 → skip-clean)
     assertThat(statistics().getEntityUpdateCount()).isEqualTo(1);
 
@@ -108,7 +108,8 @@ class QualityReviewServiceTest extends JpaIntegrationTestBase {
                     : QualityVerdict.pass());
 
     statistics().clear();
-    QualityReviewResult result = service.review(set.getId());
+    service.review(List.of(set.getId()));
+    QualityReviewResult result = service.latestResult(set.getId()).orElseThrow();
     flushAndClear();
 
     assertThat(result.reviewedCount()).isEqualTo(5);

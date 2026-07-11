@@ -6,12 +6,7 @@ package com.icc.qasker.quizset.dto;
  * @param problemSetId 대상 세트 ID
  * @param reviewedCount 재검증한 문항 수(품질 로그 보유분)
  * @param belowThresholdCount 미달로 마킹된 문항 수(UPDATE 발생 수)
- * @param skippedLegacyCount 품질 로그 없어 건너뛴 레거시 문항 수
  * @param status 처리 상태("COMPLETED" 등)
  */
 public record QualityReviewResult(
-    Long problemSetId,
-    int reviewedCount,
-    int belowThresholdCount,
-    int skippedLegacyCount,
-    String status) {}
+    Long problemSetId, int reviewedCount, int belowThresholdCount, String status) {}
