@@ -109,7 +109,7 @@ q-asker/api/
     ├── ci-check-code-convention.yml
     ├── ci-update-api-docs.yml
     ├── renovate-impact-analysis.yml
-    └── feedback-review.yml       # 피드백 이슈에 /review 코멘트 시 Claude가 FE/BE 작업 분석
+    └── feedback-review.yml       # 피드백 이슈 /review 시 Claude가 FE/BE 작업 분석, @claude 멘션 시 후속 Q&A
 ```
 
 ## 환경 변수
@@ -157,7 +157,7 @@ q-asker/api/
     - `ci-auto-version-bump.yml` — 자동 버전 범프
     - `ci-update-api-docs.yml` — OpenAPI 스펙 자동 갱신
     - `renovate-impact-analysis.yml` — Renovate PR 영향 분석
-    - `feedback-review.yml` — 피드백 이슈 `/review` 코멘트 시 Claude 프론트/백엔드 작업 분석
+    - `feedback-review.yml` — 피드백 이슈 `/review` 시 Claude 프론트/백엔드 작업 분석, `@claude` 멘션 시 후속 Q&A(맥락 보강)
     - `cd-prod_deploy.yml` — 운영 배포
 
 <!-- SPECKIT START -->

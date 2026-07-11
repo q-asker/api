@@ -130,3 +130,52 @@ jobs:
             - 추측 금지. **코드에서 실제로 확인된 근거만** 경로와 함께 제시한다.
             - 한국어로 자연스럽게. 클래스/파일/컴포넌트명 등 식별자는 원문 유지.
             - 간결하게. 불필요한 사족 금지.
+
+  followup:
+    # /review 분석 이후 팀 멤버가 '@claude <질문>' 으로 댓글을 남기면,
+    # Claude가 이슈 스레드(이전 분석 포함) + 저장소 코드를 컨텍스트로 그 질문에 답한다(맥락 보강).
+    # claude-code-action의 네이티브 멘션 모드 — prompt를 비워 두면 댓글 본문을 지시로 받는다.
+    # (댓글 본문을 YAML에 문자열로 끼워넣지 않으므로 스크립트 인젝션 위험이 없다.)
+    # 실행 조건:
+    # 1) PR 코멘트가 아닌 순수 이슈 코멘트일 것
+    # 2) 코멘트에 '@claude' 가 포함될 것 (단, '/review'로 시작하면 review 잡이 담당하므로 제외)
+    # 3) 작성자가 저장소 오너/멤버/협력자일 것
+    if: >-
+      github.event.issue.pull_request == null &&
+      contains(github.event.comment.body, '@claude') &&
+      !startsWith(github.event.comment.body, '/review') &&
+      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+      id-token: write
+
+    steps:
+      - name: Checkout backend (q-asker/api)
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Checkout frontend (q-asker/client)
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        continue-on-error: true
+        with:
+          repository: q-asker/client
+          token: ${{ secrets.FRONTEND_REPO_TOKEN }}
+          path: _frontend
+          fetch-depth: 1
+
+      - name: Run Claude follow-up (mention mode)
+        uses: anthropics/claude-code-action@2fee15510437d71399d9139ed60433470484a8fb # v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # /review와 동일하게 Opus 4.8 사용.
+          claude_args: "--model claude-opus-4-8"
+          # prompt 미지정 → '@claude' 멘션 네이티브 모드. 댓글 본문이 곧 지시가 되며,
+          # 이슈 스레드와 체크아웃된 저장소(백엔드=루트, 프론트엔드=_frontend/)를 탐색해 답한다.
+          show_full_output: true
