@@ -32,4 +32,12 @@ public class SqlCapture implements StatementInspector {
         .filter(s -> s.startsWith("update " + table.toLowerCase() + " "))
         .collect(Collectors.toList());
   }
+
+  /** 지정 테이블을 조회하는 SELECT 문만 소문자로 정규화해 반환한다(지연 로딩 컬럼 제외 검증용). */
+  public static List<String> selectsFor(String table) {
+    return STATEMENTS.stream()
+        .map(s -> s.toLowerCase().replaceAll("\\s+", " ").trim())
+        .filter(s -> s.startsWith("select ") && s.contains(table.toLowerCase()))
+        .collect(Collectors.toList());
+  }
 }
