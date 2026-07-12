@@ -87,9 +87,11 @@ q-asker:
   slack:
     enabled: false
     webhook-url-notify: http://localhost
+    webhook-url-feedback: http://localhost
 
   github:
     enabled: false
+    token: ci-dummy
 
   web:
     frontend-deploy-url: http://localhost:3000

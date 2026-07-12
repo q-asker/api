@@ -16,7 +16,6 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=prod,blue
       - JASYPT_ENCRYPTOR_PASSWORD=${JASYPT_ENCRYPTOR_PASSWORD}
-      - GITHUB_ISSUE_TOKEN=${GITHUB_ISSUE_TOKEN}
     volumes:
       - ~/.oci:/home/appuser/.oci:ro
       - ~/.config/gcloud:/home/appuser/.config/gcloud:ro
@@ -29,7 +28,6 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=prod,green
       - JASYPT_ENCRYPTOR_PASSWORD=${JASYPT_ENCRYPTOR_PASSWORD}
-      - GITHUB_ISSUE_TOKEN=${GITHUB_ISSUE_TOKEN}
     volumes:
       - ~/.oci:/home/appuser/.oci:ro
       - ~/.config/gcloud:/home/appuser/.config/gcloud:ro

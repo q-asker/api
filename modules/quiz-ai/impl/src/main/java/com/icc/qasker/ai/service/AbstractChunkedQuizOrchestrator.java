@@ -259,7 +259,9 @@ public abstract class AbstractChunkedQuizOrchestrator implements QuizTypeOrchest
                 totalCost.add(cost);
               }
             })
-        .blockLast(java.time.Duration.ofMinutes(6));
+        // 대기 상한은 OkHttp 시한(connect/read/call, gemini-http 설정)이 전담한다 — 동기 풀 구조라
+        // blockLast의 Duration은 발화 불능이므로 두지 않는다.
+        .blockLast();
   }
 
   /** 청크 K(K≥2)의 시스템 프롬프트에 직전 누적 컨텍스트와 중복 회피 지침을 부가한다. */

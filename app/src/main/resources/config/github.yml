@@ -1,11 +1,9 @@
 # GitHub 이슈 자동 등록 설정
 # feedback_board 저장 시 백엔드가 피드백 원문을 q-asker/api 저장소 이슈로 자동 등록한다.
-# 토큰은 issues:write 권한을 가진 PAT(또는 GitHub App 토큰)를 GITHUB_ISSUE_TOKEN 환경변수로 주입한다.
-# (Jasypt ENC 대신 환경변수 주입 — 배포 파이프라인에서 시크릿으로 전달)
+# 토큰(q-asker.github.token)은 application-secrets.yml에 Jasypt ENC로 주입한다.
 q-asker:
   github:
     enabled: false # 기본 비활성 — 프로파일별로 override
-    token: ${GITHUB_ISSUE_TOKEN:}
     api-base-url: https://api.github.com
     owner: q-asker
     repo: api
