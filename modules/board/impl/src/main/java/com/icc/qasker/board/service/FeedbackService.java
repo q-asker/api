@@ -4,6 +4,7 @@ import com.icc.qasker.board.controller.dto.PostFeedbackRequest;
 import com.icc.qasker.board.entity.FeedbackBoard;
 import com.icc.qasker.board.repository.FeedbackBoardRepository;
 import com.icc.qasker.global.component.GithubIssueClient;
+import com.icc.qasker.global.component.SlackNotifier;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -12,16 +13,45 @@ import org.springframework.stereotype.Service;
 public class FeedbackService {
 
   private static final int TITLE_SUMMARY_LIMIT = 50;
+  private static final int PREVIEW_LIMIT = 100;
 
   private final FeedbackBoardRepository feedbackBoardRepository;
   private final GithubIssueClient githubIssueClient;
+  private final SlackNotifier slackNotifier;
 
   public void postFeedback(String userId, PostFeedbackRequest request) {
     FeedbackBoard feedbackBoard =
         FeedbackBoard.builder().userId(userId).content(request.content()).build();
     FeedbackBoard saved = feedbackBoardRepository.save(feedbackBoard);
 
-    githubIssueClient.asyncCreateIssue(buildIssueTitle(saved), buildIssueBody(saved));
+    // 이슈 생성이 끝나면 그 링크로 Slack 알림을 쏜다. 이슈 생성이 비활성/실패면 링크가 null이라 Slack은 건너뛴다.
+    githubIssueClient
+        .asyncCreateIssue(buildIssueTitle(saved), buildIssueBody(saved))
+        .thenAccept(
+            issueUrl -> {
+              if (issueUrl != null) {
+                slackNotifier.asyncNotifyFeedback(buildSlackMessage(saved, issueUrl));
+              }
+            });
+  }
+
+  private String buildSlackMessage(FeedbackBoard feedback, String issueUrl) {
+    return """
+        :memo: *새 피드백이 등록되었습니다*
+
+        > %s
+
+        <%s|GitHub 이슈에서 보기>"""
+        .formatted(buildPreview(feedback), issueUrl);
+  }
+
+  private String buildPreview(FeedbackBoard feedback) {
+    String content = feedback.getContent() == null ? "" : feedback.getContent().strip();
+    String preview = content.replaceAll("\\s+", " ");
+    if (preview.length() > PREVIEW_LIMIT) {
+      preview = preview.substring(0, PREVIEW_LIMIT) + "…";
+    }
+    return preview.isBlank() ? "(내용 없음)" : preview;
   }
 
   private String buildIssueTitle(FeedbackBoard feedback) {
