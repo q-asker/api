@@ -6,6 +6,10 @@ resilience4j:
     instances:
       aiServer:
         sliding-window-type: COUNT_BASED
+        # 공리(느림=행): 정상 성공 호출의 관측 최대(90일, 274.3s)를 넘는 매달림만 slow로 간주.
+        # 60s였을 때 정상 롱테일(대형 문서 생성 110~274s)이 slow로 오분류되어 오탐 OPEN 유발 (30일간 62건 차단).
+        slow-call-duration-threshold:
+          seconds: 300
         minimum-number-of-calls: 3
         sliding-window-size: 10
         failure-rate-threshold: 60
@@ -14,8 +18,7 @@ resilience4j:
         permitted-number-of-calls-in-half-open-state: 2
         automatic-transition-from-open-to-half-open-enabled: true
         event-consumer-buffer-size: 10
-        slow-call-duration-threshold:
-          seconds: 60
+        # 백분율(1~100): 윈도우 내 slow 호출 비율이 이 값 이상이면 OPEN. 초 단위 임계는 위 slow-call-duration-threshold.
         slow-call-rate-threshold: 100
         record-exceptions:
           - com.icc.qasker.ai.exception.GeminiInfraException
