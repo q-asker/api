@@ -1,6 +1,7 @@
 package com.icc.qasker.ai.properties;
 
 import com.icc.qasker.ai.ChunkProperties;
+import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import lombok.Getter;
@@ -14,6 +15,9 @@ public class QAskerAiProperties {
 
   /** Gemini Chat API 타임아웃 (ms) */
   private int chatTimeoutMs = 90_000;
+
+  /** Gemini HTTP 클라이언트 시한 계층 (connect < read < call) */
+  private GeminiHttp geminiHttp = new GeminiHttp();
 
   /** 청크 분할 설정 */
   private Chunk chunk = new Chunk();
@@ -64,5 +68,23 @@ public class QAskerAiProperties {
 
     /** GCS 버킷 이름 */
     private String bucketName;
+  }
+
+  /**
+   * Gemini 스트리밍 HTTP 시한 계층. 각 임계는 "관측 성공 최대 +10%" 레시피로 산출 — 그 아래로 내리면 실존했던 성공을 자르는 오탐이 된다 (측정
+   * 2026-07-11, 78일 스냅샷).
+   */
+  @Getter
+  @Setter
+  public static class GeminiHttp {
+
+    /** 연결 수립 시한. 정상 연결은 수백 ms — 초과는 가장 깨끗한 인프라 장애 신호. */
+    private Duration connectTimeout = Duration.ofSeconds(10);
+
+    /** 무음 갭 시한: 바이트가 이 시간 동안 안 오면 절단. 근거: 첫 문제 도착(TTFQ) 관측 최대 134.9s. */
+    private Duration readTimeout = Duration.ofSeconds(150);
+
+    /** 청크 HTTP 호출 총 시한. 근거: 청크 소요 관측 최대 274.3s + 여유. */
+    private Duration callTimeout = Duration.ofSeconds(350);
   }
 }
