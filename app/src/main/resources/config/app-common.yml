@@ -7,11 +7,6 @@ q-asker:
   sse:
     timeout-ms: 600000
 
-  # 피드백 알림 전용 Slack 채널 웹훅 (해당 채널용 Incoming Webhook URL을 주입).
-  # 미설정 시 피드백 알림은 발송하지 않는다(폴백 없음).
-  slack:
-    webhook-url-feedback: ${SLACK_FEEDBACK_WEBHOOK_URL:}
-
   # 파일 업로드 검증
   file-validation:
     max-file-name-length: 255
