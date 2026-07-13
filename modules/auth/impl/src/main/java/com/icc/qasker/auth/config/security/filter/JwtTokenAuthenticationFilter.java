@@ -1,12 +1,8 @@
 package com.icc.qasker.auth.config.security.filter;
 
-import static com.auth0.jwt.JWT.require;
-
-import com.auth0.jwt.algorithms.Algorithm;
-import com.auth0.jwt.exceptions.TokenExpiredException;
+import com.icc.qasker.auth.component.JwtProvider;
 import com.icc.qasker.auth.entity.User;
 import com.icc.qasker.auth.repository.UserRepository;
-import com.icc.qasker.global.properties.JwtProperties;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -25,15 +21,13 @@ import org.springframework.security.web.authentication.www.BasicAuthenticationFi
 public class JwtTokenAuthenticationFilter extends BasicAuthenticationFilter {
 
   private static final String BEARER_PREFIX = "Bearer ";
-  private final JwtProperties jwtProperties;
+  private final JwtProvider jwtProvider;
   private final UserRepository userRepository;
 
   public JwtTokenAuthenticationFilter(
-      AuthenticationManager authManager,
-      UserRepository userRepository,
-      JwtProperties jwtProperties) {
+      AuthenticationManager authManager, UserRepository userRepository, JwtProvider jwtProvider) {
     super(authManager);
-    this.jwtProperties = jwtProperties;
+    this.jwtProvider = jwtProvider;
     this.userRepository = userRepository;
   }
 
@@ -48,37 +42,31 @@ public class JwtTokenAuthenticationFilter extends BasicAuthenticationFilter {
       return;
     }
     String accessToken = authorizationHeader.substring(BEARER_PREFIX.length());
-    try {
-      var decoded =
-          require(Algorithm.HMAC512(jwtProperties.getSecret())).build().verify(accessToken);
 
-      String userId = decoded.getClaim("userId").asString();
-      if (userId == null || userId.isBlank()) {
-        chain.doFilter(request, response);
-        return;
-      }
-
-      Authentication existing = SecurityContextHolder.getContext().getAuthentication();
-      if (existing != null && existing.isAuthenticated()) {
-        chain.doFilter(request, response);
-        return;
-      }
-
-      User user = userRepository.findById(userId).orElse(null);
-      if (user == null) {
-        chain.doFilter(request, response);
-        return;
-      }
-      String role = Objects.toString(user.getRole(), "ROLE_USER");
-      var authorities = List.of(new SimpleGrantedAuthority(role));
-
-      UsernamePasswordAuthenticationToken authentication =
-          new UsernamePasswordAuthenticationToken(user, null, authorities);
-      authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-      SecurityContextHolder.getContext().setAuthentication(authentication);
+    String userId = jwtProvider.verifyAndExtractUserId(accessToken);
+    if (userId == null || userId.isBlank()) {
       chain.doFilter(request, response);
-    } catch (TokenExpiredException ex) {
-      chain.doFilter(request, response);
+      return;
     }
+
+    Authentication existing = SecurityContextHolder.getContext().getAuthentication();
+    if (existing != null && existing.isAuthenticated()) {
+      chain.doFilter(request, response);
+      return;
+    }
+
+    User user = userRepository.findById(userId).orElse(null);
+    if (user == null) {
+      chain.doFilter(request, response);
+      return;
+    }
+
+    String role = Objects.toString(user.getRole(), "ROLE_USER");
+    var authorities = List.of(new SimpleGrantedAuthority(role));
+    UsernamePasswordAuthenticationToken authentication =
+        new UsernamePasswordAuthenticationToken(user, null, authorities);
+    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+    SecurityContextHolder.getContext().setAuthentication(authentication);
+    chain.doFilter(request, response);
   }
 }

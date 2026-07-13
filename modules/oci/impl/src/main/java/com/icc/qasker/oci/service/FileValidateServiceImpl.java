@@ -37,10 +37,7 @@ public class FileValidateServiceImpl implements FileValidateService {
     if (fileName.length() > maxFileNameLength) {
       throw new CustomException(ExceptionMessage.FILE_NAME_TOO_LONG);
     }
-    if (contentType == null) {
-      throw new CustomException(ExceptionMessage.EXTENSION_NOT_EXIST);
-    }
-    if (!allowedExtensions.contains(contentType)) {
+    if (contentType == null || !allowedExtensions.contains(contentType)) {
       throw new CustomException(ExceptionMessage.EXTENSION_INVALID);
     }
   }

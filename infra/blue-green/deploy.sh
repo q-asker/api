@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Slack 전송 함수
-WEBHOOK="${SLACK_WEBHOOK_URL:?SLACK_WEBHOOK_URL is required}"
+WEBHOOK="${SLACK_DEPLOY_WEBHOOK_URL:?SLACK_DEPLOY_WEBHOOK_URL is required}"
 
 function send_slack() {
   local MESSAGE="$1"

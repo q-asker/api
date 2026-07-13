@@ -1,13 +1,13 @@
 package com.icc.qasker.ai.structure;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.springframework.ai.converter.BeanOutputConverter;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.ObjectNode;
 
 /**
  * customInstruction 유무에 따라 적절한 JSON 스키마를 제공한다.
@@ -40,7 +40,7 @@ public class GeminiResponseSchema {
       JsonNode root = om.readTree(schema);
       stripFieldRecursive(root, "appliedInstruction");
       return om.writeValueAsString(root);
-    } catch (JsonProcessingException e) {
+    } catch (JacksonException e) {
       // 스키마 조작 실패 시 원본 반환 (안전 폴백)
       return schema;
     }
@@ -70,8 +70,8 @@ public class GeminiResponseSchema {
     }
 
     // 하위 노드 재귀 탐색 ($defs, properties 내부 등)
-    obj.fields()
-        .forEachRemaining(
+    obj.properties()
+        .forEach(
             entry -> {
               if (entry.getValue().isObject()) {
                 stripFieldRecursive(entry.getValue(), fieldName);

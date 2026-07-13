@@ -1,6 +1,5 @@
 package com.icc.qasker.ai.service.essay;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.icc.qasker.ai.GeminiFileService;
 import com.icc.qasker.ai.dto.GeminiFileUploadResponse.FileMetadata;
 import com.icc.qasker.ai.dto.GenerationRequestToAI;
@@ -8,8 +7,9 @@ import com.icc.qasker.ai.exception.GeminiInfraException;
 import com.icc.qasker.ai.mapper.GeminiEssayQuestionMapper;
 import com.icc.qasker.ai.service.QuizTypeOrchestrator;
 import com.icc.qasker.ai.service.support.GeminiMetricsRecorder;
-import com.icc.qasker.ai.service.support.StreamingEssayQuestionExtractor;
+import com.icc.qasker.ai.service.support.StreamingJsonArrayExtractor;
 import com.icc.qasker.ai.strategy.QuizType;
+import com.icc.qasker.ai.structure.GeminiEssayQuestion;
 import com.icc.qasker.ai.structure.GeminiEssayResponseSchema;
 import com.icc.qasker.global.error.CustomException;
 import java.net.URI;
@@ -25,10 +25,10 @@ import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.content.Media;
 import org.springframework.ai.google.genai.GoogleGenAiChatOptions;
-import org.springframework.ai.google.genai.metadata.GoogleGenAiUsage;
 import org.springframework.stereotype.Component;
 import org.springframework.util.MimeTypeUtils;
 import reactor.core.publisher.Flux;
+import tools.jackson.databind.ObjectMapper;
 
 /** 서술형(ESSAY) 퀴즈 오케스트레이터. 캐시 없이 1회 호출 + 응답 스트리밍으로 문항이 완성될 때마다 즉시 SSE 전달한다. */
 @Slf4j
@@ -99,9 +99,10 @@ public class EssayQuizOrchestrator implements QuizTypeOrchestrator {
       log.info("ESSAY 스트리밍 생성 시작: 목표={}문항", quizCount);
 
       // 스트리밍 파서: 문항 객체가 완성될 때마다 즉시 SSE 전달
-      StreamingEssayQuestionExtractor extractor =
-          new StreamingEssayQuestionExtractor(
+      StreamingJsonArrayExtractor<GeminiEssayQuestion> extractor =
+          new StreamingJsonArrayExtractor<>(
               objectMapper,
+              GeminiEssayQuestion.class,
               question -> {
                 if (delivered.get() >= quizCount) return;
 
@@ -119,7 +120,8 @@ public class EssayQuizOrchestrator implements QuizTypeOrchestrator {
                   long ttfqMs = (now - startNanos) / 1_000_000;
                   log.info("TTFQ (Time To First Question): {}ms", ttfqMs);
                 }
-              });
+              },
+              "ESSAY");
 
       // 스트리밍 실행
       Flux<ChatResponse> stream = chatModel.stream(prompt);
@@ -135,20 +137,10 @@ public class EssayQuizOrchestrator implements QuizTypeOrchestrator {
                 if (response.getMetadata() != null
                     && response.getMetadata().getUsage() != null
                     && response.getMetadata().getUsage().getCompletionTokens() > 0) {
-                  var usage = response.getMetadata().getUsage();
-                  long elapsedMs = (System.nanoTime() - startNanos) / 1_000_000;
-                  double cost = metricsRecorder.recordChunkResult(elapsedMs, usage);
+                  double cost =
+                      metricsRecorder.recordChunkUsage(
+                          "streaming", startNanos, response.getMetadata().getUsage());
                   totalCost.add(cost);
-                  long thinkingTokens =
-                      usage instanceof GoogleGenAiUsage g && g.getThoughtsTokenCount() != null
-                          ? g.getThoughtsTokenCount()
-                          : 0;
-                  log.info(
-                      "Gemini Usage - streaming, 토큰: 입력={}, 추론={}, 출력={}, 비용=${}",
-                      usage.getPromptTokens(),
-                      thinkingTokens,
-                      usage.getCompletionTokens(),
-                      String.format("%.6f", cost));
                 }
               })
           .blockLast(java.time.Duration.ofMinutes(6));

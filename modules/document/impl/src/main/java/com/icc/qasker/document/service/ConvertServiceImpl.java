@@ -36,20 +36,25 @@ public class ConvertServiceImpl implements ConvertService {
   void eagerRegisterMetrics() {
     for (String ext : new String[] {"pptx", "ppt", "docx", "doc"}) {
       for (String result : new String[] {"success", "fail"}) {
-        Timer.builder("document.conversion.duration")
-            .publishPercentileHistogram(true)
-            .serviceLevelObjectives(
-                Duration.ofSeconds(1),
-                Duration.ofSeconds(3),
-                Duration.ofSeconds(5),
-                Duration.ofSeconds(10),
-                Duration.ofSeconds(30))
-            .tag("source_type", ext)
-            .tag("result", result)
-            .description("문서 변환(PPT/DOCX → PDF) 소요 시간")
-            .register(registry);
+        conversionTimer(ext, result);
       }
     }
+  }
+
+  /** 문서 변환 Timer를 SLO 히스토그램 설정과 함께 등록하고 반환한다 (동일 태그면 기존 인스턴스 재사용). */
+  private Timer conversionTimer(String sourceType, String result) {
+    return Timer.builder("document.conversion.duration")
+        .publishPercentileHistogram(true)
+        .serviceLevelObjectives(
+            Duration.ofSeconds(1),
+            Duration.ofSeconds(3),
+            Duration.ofSeconds(5),
+            Duration.ofSeconds(10),
+            Duration.ofSeconds(30))
+        .tag("source_type", sourceType)
+        .tag("result", result)
+        .description("문서 변환(PPT/DOCX → PDF) 소요 시간")
+        .register(registry);
   }
 
   @Override
@@ -70,6 +75,7 @@ public class ConvertServiceImpl implements ConvertService {
 
     String pdfFileName = fileName.substring(0, fileName.lastIndexOf(".")) + ".pdf";
     File pdfFile = new File(TEMP_DIR, pdfFileName);
+    String sourceType = extension.substring(1);
 
     Timer.Sample sample = Timer.start(registry);
     try {
@@ -77,36 +83,13 @@ public class ConvertServiceImpl implements ConvertService {
       documentConverter.convert(inputFile.toFile()).to(pdfFile).execute();
       log.info("PDF 변환 완료: {}", pdfFile.getAbsolutePath());
 
-      // 문서 변환 Percentile Histogram Timer — tail latency SLO 설정용
-      sample.stop(
-          Timer.builder("document.conversion.duration")
-              .publishPercentileHistogram(true)
-              .serviceLevelObjectives(
-                  Duration.ofSeconds(1),
-                  Duration.ofSeconds(3),
-                  Duration.ofSeconds(5),
-                  Duration.ofSeconds(10),
-                  Duration.ofSeconds(30))
-              .tag("source_type", extension.substring(1))
-              .tag("result", "success")
-              .description("문서 변환(PPT/DOCX → PDF) 소요 시간")
-              .register(registry));
+      sample.stop(conversionTimer(sourceType, "success"));
       return pdfFile.toPath();
-    } catch (CustomException e) {
-      sample.stop(
-          Timer.builder("document.conversion.duration")
-              .tag("source_type", extension.substring(1))
-              .tag("result", "fail")
-              .description("문서 변환(PPT/DOCX → PDF) 소요 시간")
-              .register(registry));
-      throw e;
     } catch (Exception e) {
-      sample.stop(
-          Timer.builder("document.conversion.duration")
-              .tag("source_type", extension.substring(1))
-              .tag("result", "fail")
-              .description("문서 변환(PPT/DOCX → PDF) 소요 시간")
-              .register(registry));
+      sample.stop(conversionTimer(sourceType, "fail"));
+      if (e instanceof CustomException ce) {
+        throw ce;
+      }
       throw new CustomException(ExceptionMessage.CONVERT_FAILED, "PDF 변환 중 오류: " + inputFile, e);
     }
   }

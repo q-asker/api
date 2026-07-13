@@ -36,7 +36,8 @@ dependencies {
     // Spring AOP: @Aspect 기반 관점 지향 프로그래밍 지원
     // 예: @Around("@annotation(RateLimited)")로 커스텀 어노테이션이 붙은 메서드에
     //     실행 시간 측정, 접근 제한 등 횡단 관심사 로직을 적용
-    implementation "org.springframework.boot:spring-boot-starter-aop"
+    // Spring Boot 4.x부터 starter-aop → starter-aspectj로 이름 변경됨 (breaking change)
+    implementation "org.springframework.boot:spring-boot-starter-aspectj"
     // MySQL JDBC 드라이버: 런타임에 DB 연결 시 사용 (컴파일 시에는 불필요)
     // 예: JPA가 내부적으로 이 드라이버를 통해 MySQL 서버와 TCP 커넥션을 맺음
     runtimeOnly "com.mysql:mysql-connector-j"

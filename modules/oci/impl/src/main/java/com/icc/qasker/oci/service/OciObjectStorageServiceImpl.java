@@ -12,7 +12,9 @@ import java.io.BufferedInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
@@ -57,31 +59,20 @@ public class OciObjectStorageServiceImpl implements ObjectStorageService {
           String extension = originalFileName.substring(originalFileName.lastIndexOf("."));
           String objectName = "images/" + UUID.randomUUID() + extension;
 
-          String encodedFileName = UriUtils.encode(originalFileName, StandardCharsets.UTF_8);
-
-          PutObjectRequest putObjectRequest =
-              PutObjectRequest.builder()
-                  .namespaceName(ociProperties.namespace())
-                  .bucketName(ociProperties.imageBucketName())
-                  .objectName(objectName)
-                  .contentType(contentType)
-                  .opcMeta(java.util.Map.of("original-filename", encodedFileName))
-                  .build();
-
           // stream does not support mark/reset 워닝 방지를 위해 BufferedInputStream으로 래핑
           InputStream bufferedInputStream =
               inputStream.markSupported() ? inputStream : new BufferedInputStream(inputStream);
 
-          UploadRequest uploadRequest =
-              UploadRequest.builder(bufferedInputStream, contentLength)
-                  .allowOverwrite(true)
-                  .build(putObjectRequest);
-
-          uploadManager.upload(uploadRequest);
-
-          String finalUrl = cdnProperties.imageBaseUrl() + "/" + objectName;
-          log.info("이미지 OCI 업로드 완료: {} -> {}", originalFileName, finalUrl);
-          return finalUrl;
+          return upload(
+              ociProperties.imageBucketName(),
+              objectName,
+              contentType,
+              originalFileName,
+              cdnProperties.imageBaseUrl(),
+              request ->
+                  UploadRequest.builder(bufferedInputStream, contentLength)
+                      .allowOverwrite(true)
+                      .build(request));
         });
   }
 
@@ -89,29 +80,46 @@ public class OciObjectStorageServiceImpl implements ObjectStorageService {
   public String uploadPdf(Path pdfFile, String originalFileName) {
     return pdfUploadTimer.record(
         () -> {
-          String uuid = UUID.randomUUID().toString();
-          String objectName = uuid + ".pdf";
+          String objectName = UUID.randomUUID() + ".pdf";
 
-          String encodedFileName = UriUtils.encode(originalFileName, StandardCharsets.UTF_8);
-
-          PutObjectRequest putObjectRequest =
-              PutObjectRequest.builder()
-                  .namespaceName(ociProperties.namespace())
-                  .bucketName(ociProperties.pdfBucketName())
-                  .objectName(objectName)
-                  .contentType("application/pdf")
-                  .opcMeta(java.util.Map.of("original-filename", encodedFileName))
-                  .build();
-
-          // File 객체를 직접 전달하면 OCI SDK가 스트림 mark/reset 워닝 없이 멀티파트 업로드 처리
-          UploadRequest uploadRequest =
-              UploadRequest.builder(pdfFile.toFile()).allowOverwrite(true).build(putObjectRequest);
-
-          uploadManager.upload(uploadRequest);
-
-          String finalUrl = cdnProperties.fileBaseUrl() + "/" + objectName;
-          log.info("PDF OCI 업로드 완료: {} -> {}", originalFileName, finalUrl);
-          return finalUrl;
+          return upload(
+              ociProperties.pdfBucketName(),
+              objectName,
+              "application/pdf",
+              originalFileName,
+              cdnProperties.fileBaseUrl(),
+              // File 객체를 직접 전달하면 OCI SDK가 스트림 mark/reset 워닝 없이 멀티파트 업로드 처리
+              request ->
+                  UploadRequest.builder(pdfFile.toFile()).allowOverwrite(true).build(request));
         });
+  }
+
+  /**
+   * PutObjectRequest 조립 → 업로드 → CDN URL 생성의 공통 골격. 소스 타입(스트림/파일)별 UploadRequest 조립만 {@code
+   * uploadRequestFactory}로 위임한다.
+   */
+  private String upload(
+      String bucketName,
+      String objectName,
+      String contentType,
+      String originalFileName,
+      String cdnBaseUrl,
+      Function<PutObjectRequest, UploadRequest> uploadRequestFactory) {
+    String encodedFileName = UriUtils.encode(originalFileName, StandardCharsets.UTF_8);
+
+    PutObjectRequest putObjectRequest =
+        PutObjectRequest.builder()
+            .namespaceName(ociProperties.namespace())
+            .bucketName(bucketName)
+            .objectName(objectName)
+            .contentType(contentType)
+            .opcMeta(Map.of("original-filename", encodedFileName))
+            .build();
+
+    uploadManager.upload(uploadRequestFactory.apply(putObjectRequest));
+
+    String finalUrl = cdnBaseUrl + "/" + objectName;
+    log.info("OCI 업로드 완료: {} -> {}", originalFileName, finalUrl);
+    return finalUrl;
   }
 }

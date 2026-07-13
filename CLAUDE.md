@@ -10,22 +10,22 @@
 | 분류            | 기술                                                                    | 버전             |
 |---------------|-----------------------------------------------------------------------|----------------|
 | 언어            | Java                                                                  | 21             |
-| 프레임워크         | Spring Boot                                                           | 3.5.8          |
-| AI            | Spring AI (Google Gemini via Vertex AI)                               | 1.1.2          |
+| 프레임워크         | Spring Boot                                                           | 4.1.0          |
+| AI            | Spring AI (Google Gemini via Vertex AI)                               | 2.0.0          |
 | ORM           | Spring Data JPA + Hibernate                                           | (Boot BOM)     |
 | DB            | MySQL                                                                 | -              |
 | 인증            | JWT (Auth0 java-jwt 4.5.0) + OAuth2 Client                            | -              |
 | 클라우드          | OCI Java SDK (Object Storage) + Cloudflare CDN + Google Cloud Storage | 3.90.0         |
-| 문서변환          | JODConverter (LibreOffice)                                            | 4.4.9          |
-| PDF 처리        | Apache PDFBox                                                         | 3.0.3          |
+| 문서변환          | JODConverter (LibreOffice)                                            | 4.4.11         |
+| PDF 처리        | Apache PDFBox                                                         | 3.0.7          |
 | 모니터링          | Micrometer + Prometheus + Actuator                                    | (Boot BOM)     |
-| 장애격리          | Resilience4j (Circuit Breaker)                                        | 2.3.0          |
+| 장애격리          | Resilience4j (Circuit Breaker)                                        | 2.4.0          |
 | Rate Limiting | Bucket4j + Caffeine                                                   | 8.19.0         |
-| API 문서        | SpringDoc OpenAPI (Swagger UI)                                        | 2.8.17         |
+| API 문서        | SpringDoc OpenAPI (Swagger UI)                                        | 3.0.3          |
 | 암호화           | Jasypt                                                                | 3.0.5          |
 | ID 난독화        | Hashids                                                               | 1.0.3          |
 | 빌드            | Gradle (Groovy DSL)                                                   | 8.14.3         |
-| 컨테이너          | Jib (Docker)                                                          | 3.4.0          |
+| 컨테이너          | Jib (Docker)                                                          | 3.5.3          |
 | 포맷터           | Spotless + Google Java Format                                         | 7.0.4 / 1.25.2 |
 | DB 마이그레이션     | Flyway                                                                | (Boot BOM)     |
 | 테스트           | JUnit 5                                                               | (Boot BOM)     |
@@ -68,19 +68,20 @@ q-asker/api/
 │       ├── application.yml       # 설정 진입점 (config/ import)
 │       ├── application-secrets.yml  # 암호화된 시크릿
 │       ├── application-test.yml  # test 프로파일 (CI/JUnit, H2 + 더미 Jasypt/OCI)
-│       ├── db/migration/         # Flyway 마이그레이션 SQL (V1~V13)
+│       ├── db/migration/         # Flyway 마이그레이션 SQL (V1~V14)
 │       └── config/               # 분리된 설정 파일들
 │           ├── database-config.yml   # 서버, DB, JPA, 캐시
-│           ├── ai-setting.yml        # Google Gemini AI 설정
+│           ├── ai-setting.yml        # Google Gemini AI 설정 (생성/ESSAY 채점 모델, 토큰 단가)
 │           ├── spring-security.yml   # JWT, OAuth2, CORS
 │           ├── oci-bucket-config.yml # OCI Object Storage, CDN
 │           ├── jodconverter.yml      # LibreOffice 문서변환
 │           ├── actuator.yml          # Actuator, Prometheus
 │           ├── app-common.yml        # 앱 커스텀 설정
+│           ├── github.yml            # 피드백 → GitHub 이슈 자동 등록 (owner/repo/토큰/라벨)
 │           ├── resilience.yml        # Circuit Breaker
 │           └── spring-doc.yml        # Swagger/OpenAPI
 ├── modules/
-│   ├── global/                   # 공통 (BaseEntity, ApiResponse, GlobalExceptionHandler)
+│   ├── global/                   # 공통 (BaseEntity, ApiResponse, GlobalExceptionHandler, Boot4CompatConfig)
 │   ├── auth/     (api + impl)    # 인증 (JWT, OAuth2, RateLimitFilter)
 │   ├── oci/      (api + impl)    # OCI Object Storage 파일 업로드
 │   ├── board/    (api + impl)    # 게시판
@@ -94,9 +95,9 @@ q-asker/api/
 │   ├── monitoring/               # Grafana Alloy 설정
 │   ├── mysql/                    # MySQL Docker 설정
 │   ├── base-image/               # Docker 베이스 이미지
-│   └── terraform/
-│       ├── gcp/                  # GCP 인프라 (GCS, IAM, Vertex AI)
-│       └── oci/                  # OCI 인프라 (NSG Cloudflare 인바운드, MySQL HeatWave 백업/PITR)
+│   ├── blue-green/               # Blue-Green 무중단 배포 (Nginx 트래픽 스위칭, docker-compose, deploy.sh)
+│   └── scripts/
+│       └── oci-mysql-backup/     # OCI MySQL 백업/복구/헬스체크 스크립트 (backup.sh, restore.sh, healthcheck.sh, deploy.sh, env.example, healthcheck.baseline.yml, lib/, systemd/, RESTORE.md) — 리눅스·macOS 호환 (gzip -dc, sha256sum↔shasum 폴백)
 ├── docs/                         # 문서, 분석 자료
 ├── gradle/
 │   ├── libs.versions.toml        # Version Catalog: 모든 의존성/플러그인 버전 SSOT
@@ -107,7 +108,8 @@ q-asker/api/
     ├── ci-auto-version-bump.yml
     ├── ci-check-code-convention.yml
     ├── ci-update-api-docs.yml
-    └── renovate-impact-analysis.yml
+    ├── renovate-impact-analysis.yml
+    └── feedback-review.yml       # 피드백 이슈 /review 시 Claude가 FE/BE 작업 분석, @claude 멘션 시 후속 Q&A
 ```
 
 ## 환경 변수
@@ -155,9 +157,12 @@ q-asker/api/
     - `ci-auto-version-bump.yml` — 자동 버전 범프
     - `ci-update-api-docs.yml` — OpenAPI 스펙 자동 갱신
     - `renovate-impact-analysis.yml` — Renovate PR 영향 분석
+    - `feedback-review.yml` — 피드백 이슈 `/review` 시 Claude 프론트/백엔드 작업 분석, `@claude` 멘션 시 후속 Q&A(맥락 보강)
     - `cd-prod_deploy.yml` — 운영 배포
 
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
-shell commands, and other important information, read the current plan
+shell commands, and other important information, read the current plan:
+`specs/001-quiz-read-optimization/plan.md` (research.md, data-model.md,
+contracts/, quickstart.md in the same directory)
 <!-- SPECKIT END -->

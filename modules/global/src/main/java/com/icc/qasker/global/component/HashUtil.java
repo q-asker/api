@@ -21,7 +21,7 @@ public class HashUtil {
   public long decode(String hashId) {
     long[] decoded = hashids.decode(hashId);
     if (decoded.length == 0) {
-      throw new CustomException(ExceptionMessage.PROBLEM_SET_NOT_FOUND);
+      throw new CustomException(ExceptionMessage.INVALID_URL_REQUEST);
     }
     if (decoded.length > 1) {
       log.error("[해시 디코딩 이상] 중복된 ID 발견 hashId={}", hashId);

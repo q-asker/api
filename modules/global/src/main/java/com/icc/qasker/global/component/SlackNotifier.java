@@ -26,6 +26,16 @@ public class SlackNotifier {
         text);
   }
 
+  /** 피드백 전용 채널로 알림을 보낸다. 전용 웹훅이 설정되지 않았으면 아무것도 보내지 않는다(폴백 없음). */
+  @Async
+  public void asyncNotifyFeedback(String text) {
+    sendSlack(
+        slackProperties.getWebhookUrlFeedback(),
+        slackProperties.getUsernameFeedback(),
+        slackProperties.getIconFeedback(),
+        text);
+  }
+
   private void sendSlack(String webhookUrl, String username, String icon, String text) {
     if (!slackProperties.isEnabled() || webhookUrl == null || webhookUrl.isBlank()) {
       return;

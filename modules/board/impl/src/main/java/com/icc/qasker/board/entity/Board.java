@@ -2,6 +2,8 @@ package com.icc.qasker.board.entity;
 
 import com.icc.qasker.board.dto.BoardCategory;
 import com.icc.qasker.global.entity.CreatedAt;
+import com.icc.qasker.global.error.CustomException;
+import com.icc.qasker.global.error.ExceptionMessage;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -77,5 +79,17 @@ public class Board extends CreatedAt {
 
   public void incrementViewCount() {
     this.viewCount += 1;
+  }
+
+  public void ensureModifiableBy(String userId) {
+    if (category == BoardCategory.UPDATE_LOG) {
+      throw new CustomException(ExceptionMessage.NOT_ENOUGH_ACCESS);
+    }
+    if (status == BoardStatus.ANSWERED) {
+      throw new CustomException(ExceptionMessage.ALREADY_ANSWERED);
+    }
+    if (!userId.equals(this.userId)) {
+      throw new CustomException(ExceptionMessage.NOT_ENOUGH_ACCESS);
+    }
   }
 }

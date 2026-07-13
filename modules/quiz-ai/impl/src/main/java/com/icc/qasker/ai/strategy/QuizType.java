@@ -18,22 +18,12 @@ import lombok.RequiredArgsConstructor;
 public enum QuizType implements QuizPromptStrategy {
   MULTIPLE(MultipleGuideLine.content) {
     @Override
-    public String generateRequestPrompt(List<Integer> referencePages, int quizCount) {
-      return MultipleRequestPrompt.generate(referencePages, quizCount);
-    }
-
-    @Override
     public String generateRequestPrompt(
         List<Integer> referencePages, int quizCount, String planExtra) {
       return MultipleRequestPrompt.generateWithPlan(referencePages, quizCount, planExtra);
     }
   },
   BLANK(BlankGuideLine.content) {
-    @Override
-    public String generateRequestPrompt(List<Integer> referencePages, int quizCount) {
-      return BlankRequestPrompt.generate(referencePages, quizCount);
-    }
-
     @Override
     public String generateRequestPrompt(
         List<Integer> referencePages, int quizCount, String planExtra) {
@@ -42,11 +32,6 @@ public enum QuizType implements QuizPromptStrategy {
   },
   OX(OXGuideLine.content) {
     @Override
-    public String generateRequestPrompt(List<Integer> referencePages, int quizCount) {
-      return OXRequestPrompt.generate(referencePages, quizCount);
-    }
-
-    @Override
     public String generateRequestPrompt(
         List<Integer> referencePages, int quizCount, String planExtra) {
       // customInstruction이 있으면 XML 태그로 감싸 유저 프롬프트 끝에 우선 삽입
@@ -54,11 +39,6 @@ public enum QuizType implements QuizPromptStrategy {
     }
   },
   ESSAY(EssayGuideLine.content) {
-    @Override
-    public String generateRequestPrompt(List<Integer> referencePages, int quizCount) {
-      return EssayRequestPrompt.generate(referencePages, quizCount);
-    }
-
     @Override
     public String generateRequestPrompt(
         List<Integer> referencePages, int quizCount, String planExtra) {
