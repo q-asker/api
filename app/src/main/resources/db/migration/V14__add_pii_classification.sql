@@ -1,4 +1,4 @@
--- V15: PII 분류 레지스트리 (기존 엔티티 코드 무수정, 마스킹 정책 연결)
+-- V14: PII 분류 레지스트리 (기존 엔티티 코드 무수정, 마스킹 정책 연결)
 -- masked-export 가 이 테이블 + information_schema 를 조인해 컬럼별 마스킹을 자동 적용한다.
 -- strategy: HASH(결정적 해시, 식별자·FK) / FAKE(가짜값) / REDACT(원문 제거) / DROP(값 제거) / SAFE(원본 유지)
 -- deny-by-default: 이 표에 없는 컬럼은 masked-export 가 기본 마스킹한다. SAFE 로 명시된 것만 원본 유지.
