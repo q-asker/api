@@ -88,9 +88,9 @@ q-asker/api/
 │   ├── auth/     (api + impl)    # 인증 (JWT, OAuth2, RateLimitFilter, JwtProvider, PrincipalExtractor, SecurityErrorResponder, TokenCrypto, LocalTokenController=@Profile("loadtest") 토큰 발급 헬퍼)
 │   ├── oci/      (api + impl)    # OCI Object Storage 파일 업로드
 │   ├── board/    (api + impl)    # 게시판
-│   ├── quiz-ai/  (api + impl)    # AI 퀴즈 생성 (Gemini 호출, 메트릭, 품질 검증 QualityVerifier/QualityGate)
+│   ├── quiz-ai/  (api + impl)    # AI 퀴즈 생성 (Gemini 호출, 청크 분할 스트리밍(ChunkPlanner/AbstractChunkedQuizOrchestrator)·컨텍스트 캐시(GeminiContextCacheManager), 메트릭, 품질 검증 QualityVerifier/QualityGate)
 │   ├── quiz-make/(api + impl)    # 퀴즈 생성 흐름 (파일업로드, SSE, 생성결과)
-│   ├── quiz-set/ (api + impl)    # 퀴즈 세트 CRUD, 품질 리뷰(QualityReviewService)·해설 재검토(ExplanationReviewService/ExplanationFormatValidator)·품질 로그(QualityLogService/ProblemQualityLog, v1 생성본·v2 재생성본 함께 보관)·스테일 생성 복구 스케줄러
+│   ├── quiz-set/ (api + impl)    # 퀴즈 세트 CRUD, 품질 리뷰(QualityReviewService, problemSetIds 배치 재검토)·해설 재검토(ExplanationReviewService/ExplanationFormatValidator)·품질 로그(QualityLogService/ProblemQualityLog, v1 생성본·v2 재생성본 함께 보관)·스테일 생성 복구 스케줄러
 │   ├── quiz-history/(api + impl) # 풀이 히스토리
 │   ├── document/ (api + impl)    # 문서 변환 (PPT/DOCX → PDF)
 │   └── admin/                    # 관리자 전용 API
@@ -100,7 +100,6 @@ q-asker/api/
 │   ├── base-image/               # Docker 베이스 이미지
 │   ├── blue-green/               # Blue-Green 무중단 배포 (Nginx 트래픽 스위칭, docker-compose, deploy.sh)
 │   └── scripts/
-│       ├── oci-mysql-backup/     # OCI MySQL 백업/복구/헬스체크 스크립트 (backup.sh, restore.sh, healthcheck.sh, deploy.sh, env.example, healthcheck.baseline.yml, lib/, systemd/, RESTORE.md) — 리눅스·macOS 호환 (gzip -dc, sha256sum↔shasum 폴백)
 │       ├── query-tuning/         # 쿼리 튜닝 부하 하네스 (스케일 스윕 x1/x10/x100 DB 대상, README.md에 실행 가이드): provision-level.sh(prod-matched config로 127.0.0.1 레벨 컨테이너 생성), loadgen.sh(실 엔드포인트 타격 단일 레시피 — 읽기 GET·실 write[mock 순증 0]·스케줄러·refresh·SSE 생성구독·로그아웃; admin·/local·/upload-doc[외부IO]·/auth/test 외 전 엔드포인트 요청), run-level.sh(레벨별 실행 — 무거운 패스=§① Micrometer seed + 가벼운 패스=§②③ trace_snapshot 귀속 + slow_log 수집), run-all.sh(3레벨 순차 스윕 오케스트레이터 — 레벨→포트→컨테이너 매핑 내장, ROUNDS 등 env 통과)
 │       └── perf-seed/             # 스케일 시딩 (x1 원본 복원본에 배수 시드 추가, FK 정합 유지): seed-scale.sh(작은 테이블 일괄 + problem 배치 시딩·총량 검증), seed-scale-small.sql, seed-scale-problem.sql
 ├── docs/                         # 문서, 분석 자료
