@@ -32,11 +32,11 @@ q-asker:
       # 미측정 — 발화 건이 오탐(재시도 시 성공)이면 임계 상향이 갱신 조건.
       read-timeout: 150s
       # 청크 HTTP 호출 1건의 총 시한 (연결~응답 본문 완독, 리셋 없는 절대 시계).
-      # 근거: 청크 소요 관측 최대 274.3s + 여유 ~27%. slow-call 임계 300s(생성 전체 진단)와는
-      # 앵커가 다른 독립 변수 — 이 시한은 청크 단위 집행이며 값 일치 의무 없음.
-      # 주의: GeminiClientConfig가 customHttpClient를 쓰므로 SDK의 HttpOptions.timeout은
-      # 무시된다 — 총 시한은 오직 여기서만 걸린다.
-      call-timeout: 350s
+      # 근거: 청크 소요 관측 최대 274.3s + 여유 ~9%(300−274.3≈26s). 이 값이 곧 '성공 가능한 최대 소요' —
+      # 300s를 넘으면 성공이 아니라 실패(timeout)로 변환돼 서킷 실패 경로가 집계한다 (slow-call 경로는 비활성).
+      # 주의(마진): 여유가 얇아 300~350s대 대형 문서가 실패로 잘릴 수 있음 — 관측 최대 상승 시 재검토.
+      # 주의: GeminiClientConfig가 customHttpClient를 쓰므로 SDK의 HttpOptions.timeout은 무시된다.
+      call-timeout: 300s
     chunk:
       max-count-variants: [ 30 ]
       chunk-size: 15

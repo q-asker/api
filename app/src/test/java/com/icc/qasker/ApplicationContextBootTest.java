@@ -41,11 +41,11 @@ class ApplicationContextBootTest {
   void aiServerCircuitBreakerIsRegisteredWithExpectedConfig() {
     CircuitBreaker cb = circuitBreakerRegistry.circuitBreaker("aiServer");
     assertThat(cb).isNotNull();
-    assertThat(cb.getCircuitBreakerConfig().getFailureRateThreshold()).isEqualTo(60.0f);
+    assertThat(cb.getCircuitBreakerConfig().getFailureRateThreshold()).isEqualTo(51.0f);
     assertThat(cb.getCircuitBreakerConfig().getMinimumNumberOfCalls()).isEqualTo(3);
     assertThat(cb.getCircuitBreakerConfig().getSlidingWindowSize()).isEqualTo(10);
     assertThat(cb.getCircuitBreakerConfig().getPermittedNumberOfCallsInHalfOpenState())
-        .isEqualTo(2);
+        .isEqualTo(3);
   }
 
   private static Class<?> resolveChatModelType() {

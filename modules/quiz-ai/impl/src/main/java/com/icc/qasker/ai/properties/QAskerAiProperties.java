@@ -84,7 +84,7 @@ public class QAskerAiProperties {
     /** 무음 갭 시한: 바이트가 이 시간 동안 안 오면 절단. 근거: 첫 문제 도착(TTFQ) 관측 최대 134.9s. */
     private Duration readTimeout = Duration.ofSeconds(150);
 
-    /** 청크 HTTP 호출 총 시한. 근거: 청크 소요 관측 최대 274.3s + 여유. */
-    private Duration callTimeout = Duration.ofSeconds(350);
+    /** 청크 HTTP 호출 총 시한. 근거: 청크 소요 관측 최대 274.3s + 여유 ~9%. */
+    private Duration callTimeout = Duration.ofSeconds(300);
   }
 }
