@@ -6,20 +6,52 @@ resilience4j:
     instances:
       aiServer:
         sliding-window-type: COUNT_BASED
-        # 공리(느림=행): 정상 성공 호출의 관측 최대(90일, 274.3s)를 넘는 매달림만 slow로 간주.
-        # 60s였을 때 정상 롱테일(대형 문서 생성 110~274s)이 slow로 오분류되어 오탐 OPEN 유발 (30일간 62건 차단).
+        # slow-call 경로 비활성 — 느림을 별도 모수로 잡지 않는다. 타임아웃 계층(connect 10s / read 150s /
+        # call 350s)이 병리적 느림을 GeminiInfraException(실패)으로 변환하므로, 실패율 경로가 이를 단일 실패
+        # 모수로 집계한다. call-timeout 350s가 절대 상한이라 "느린 성공"은 300~350s의 미관측 좁은 띠뿐이고
+        # (관측 최대 성공 274.3s < 300s), 그마저 실패율 경로+타임아웃과 중복이라 별도 slow 판정을 두지 않는다.
+        # slow-duration을 도달 불가능한 센티널(9999s ≫ call-timeout 350s)로 둬 어떤 호출도 slow로 라벨되지
+        # 않게 함 = 비활성 표식. (Resilience4j엔 slow 비활성 플래그가 없고 slowCallRateThreshold는 [1,100]만
+        # 허용하므로, duration을 도달 불가로 두는 게 유일한 관용적 비활성 방법.)
+        # (이 줄을 지우면 기본값 60s로 되돌아가 정상 롱테일 110~274s가 slow 오분류 → 과거 62건 오탐 재발.)
         slow-call-duration-threshold:
-          seconds: 300
-        minimum-number-of-calls: 3
-        sliding-window-size: 10
-        failure-rate-threshold: 60
-        wait-duration-in-open-state:
-          seconds: 10
-        permitted-number-of-calls-in-half-open-state: 2
-        automatic-transition-from-open-to-half-open-enabled: true
-        event-consumer-buffer-size: 10
-        # 백분율(1~100): 윈도우 내 slow 호출 비율이 이 값 이상이면 OPEN. 초 단위 임계는 위 slow-call-duration-threshold.
+          seconds: 9999
+        # slow-call-rate-threshold: 위 duration 센티널에 지배돼 무의미(slow_call_rate 항상 0/-1이라 어떤
+        # 값이든 트립 불가). 100은 센티널이 혹시 제거돼도 만장일치(전건 slow)만 트립하는 안전 기본값(defense-in-depth).
         slow-call-rate-threshold: 100
+        wait-duration-in-open-state:
+          seconds: 60
+        # 저트래픽(버스트조차 4RPM, 시간당 중앙값 0)이라 최소 표본으로 판정 + 과반(2:1)이 성립하는 최소 창 = 3.
+        # M<3이면 단발 실패 1건이 동점(M=2, 1:1=50%)이거나 100%(M=1)라 임계에 휘둘림/과민.
+        # 위험 바닥 1/M=33%가 임계(≥34%) 아래라 임계 미확정과 무관하게 단발 관용. 근거: docs/circuit-breaker/min-calls-enumeration.svg
+        minimum-number-of-calls: 3
+        # 피크 4RPM 기준: 기본값 100은 채우는 데 25분(너무 오래돼 '최근 상태'가 아님), 10은 2.5분(버스트 내 도달).
+        # 또 10의 배수라 실패율(6/10=60% 등)이 직관적으로 계산됨 → 10.
+        sliding-window-size: 10
+        # [과반수 논리] 지속 장애인지 확실히 알 수 없기에, 하나의 실패는 우연이어도 과반의 실패는 신호 —
+        # [성공|실패] 호출들의 과반수를 따른다. 51% = 동점(50%) 바로 위 '최소 과반선': 만창에서 5/10(동점) 통과 ·
+        # 6/10(과반)만 차단, 부분 창의 딱-과반(4/7·5/9)까지 포착(≤55.6%). 노이즈 천장 33% 위(오탐 0) · 장애 ≈100%.
+        failure-rate-threshold: 51
+        # [HALF_OPEN 과반] 탐침 3개 중 과반(2/3)이 실패면 재-OPEN · 1/3은 관용(막차 실패). CLOSED의 min-calls=3과
+        # 같은 과반 모델 — 임계 51%가 (33,67] 어디든 판정 불변(P=2의 1/2 동점은 임계에 뒤집힘). 탐침은 늦은 실패의
+        # 선형 배수(P·D/(W+g))지만 저트래픽이라 절대량이 작아, 최소치(2) 대신 강건·일관의 3 채택.
+        permitted-number-of-calls-in-half-open-state: 3
+        # 무한 대기(0) 의도 — HALF_OPEN에서 탐침 P건 도착을 끝까지 기다린다. 시한(>0)을 두면 저트래픽에서 탐침이
+        # 트래픽 부족으로 제때 안 와 강제 재-OPEN → 실패가 아니라 '트래픽 부족'으로 회복 판정을 포기하는 오작동.
+        max-wait-duration-in-half-open-state:
+          seconds: 0
+        # wait-duration 만료 시 스케줄러가 자동 OPEN→HALF_OPEN 승격. 기본값(false, lazy)은 다음 호출이 승격시키며
+        # 그 호출도 탐침으로 admit돼 '갇힘'은 없으나, true는 상태·메트릭이 만료 즉시 정확해져 대시보드 관측성이 좋음.
+        automatic-transition-from-open-to-half-open-enabled: true
+        # 이벤트 링버퍼(상태전이·호출 이벤트 보관, 모니터링/리스너용) — 동작 무관. 최근 10개면 저트래픽 디버깅에 충분.
+        event-consumer-buffer-size: 10
+        # [실패의 정의 — 서킷의 공리] 화이트리스트: 등록된 GeminiInfraException만 '실패'로 세고 나머지 예외는
+        # 성공 취급. GeminiInfraException은 두 필터를 다 통과할 때만 throw — ①종류: CustomException(비즈니스·
+        # 검증·사용자 오류) 제외한 인프라 예외(타임아웃 connect/read/call·SDK 오류 등) ②진행도: delivered==0
+        # (첫 문제조차 못 냄). 부분 전달(delivered>0) 후 오류나 비즈니스 오류는 실패 아님.
+        # 화이트리스트인 이유: 서킷은 인프라 보호용 — 기본값(모든 예외=실패)이면 사용자 불량입력 급증이 서킷을
+        # 열어 전체 차단(인프라는 멀쩡한데 오작동). → 모든 지표(33%·51%)·과반 논리가 이 '인프라·출력0' 정의 위에
+        # 서고, 그래서 실패가 희소·비군집이라 과반 신호가 깨끗하다.
         record-exceptions:
           - com.icc.qasker.ai.exception.GeminiInfraException
     metrics:
