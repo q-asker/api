@@ -64,6 +64,7 @@
 ```
 q-asker/api/
 ├── app/                          # 진입점 (Spring Boot Application)
+│   ├── src/main/java/com/icc/qasker/loadtest/  # loadtest 전용 드라이버 (@Profile("loadtest")): LocalRepoBenchController(read 레포 직접 N회 호출로 표본 축적), LocalWriteController(외부 호출 없이 각 레포 save/delete만 태워 쓰기 계측)
 │   └── src/main/resources/
 │       ├── application.yml       # 설정 진입점 (config/ import)
 │       ├── application-secrets.yml  # 암호화된 시크릿
@@ -79,9 +80,10 @@ q-asker/api/
 │           ├── app-common.yml        # 앱 커스텀 설정
 │           ├── github.yml            # 피드백 → GitHub 이슈 자동 등록 (owner/repo/토큰/라벨)
 │           ├── resilience.yml        # Circuit Breaker
-│           └── spring-doc.yml        # Swagger/OpenAPI
+│           ├── spring-doc.yml        # Swagger/OpenAPI
+│           └── loadtest.yml          # loadtest 프로파일 (분석 DB 3307 override, 레이트리밋 비활성)
 ├── modules/
-│   ├── global/                   # 공통 (BaseEntity, ApiResponse, GlobalExceptionHandler, Boot4CompatConfig)
+│   ├── global/                   # 공통 (BaseEntity, ApiResponse, GlobalExceptionHandler, Boot4CompatConfig, SlackNotifier, GithubIssueClient, loadtest 쿼리 계측)
 │   ├── auth/     (api + impl)    # 인증 (JWT, OAuth2, RateLimitFilter)
 │   ├── oci/      (api + impl)    # OCI Object Storage 파일 업로드
 │   ├── board/    (api + impl)    # 게시판
@@ -97,7 +99,8 @@ q-asker/api/
 │   ├── base-image/               # Docker 베이스 이미지
 │   ├── blue-green/               # Blue-Green 무중단 배포 (Nginx 트래픽 스위칭, docker-compose, deploy.sh)
 │   └── scripts/
-│       └── oci-mysql-backup/     # OCI MySQL 백업/복구/헬스체크 스크립트 (backup.sh, restore.sh, healthcheck.sh, deploy.sh, env.example, healthcheck.baseline.yml, lib/, systemd/, RESTORE.md) — 리눅스·macOS 호환 (gzip -dc, sha256sum↔shasum 폴백)
+│       ├── oci-mysql-backup/     # OCI MySQL 백업/복구/헬스체크 스크립트 (backup.sh, restore.sh, healthcheck.sh, deploy.sh, env.example, healthcheck.baseline.yml, lib/, systemd/, RESTORE.md) — 리눅스·macOS 호환 (gzip -dc, sha256sum↔shasum 폴백)
+│       └── query-tuning/         # 쿼리 튜닝 부하 하네스 (분석 DB 3307 대상): collect-on.sh/collect-off.sh(slow log·digest 수집 토글), loadgen.sh(/v3/api-docs 열거 기반 부하), run-level.sh(스케일 레벨별 실행), trace-capture.sh(traceId 스냅샷), analyze.sh(digest 스캔 랭킹·slow log 귀속 판정)
 ├── docs/                         # 문서, 분석 자료
 ├── gradle/
 │   ├── libs.versions.toml        # Version Catalog: 모든 의존성/플러그인 버전 SSOT
@@ -116,7 +119,7 @@ q-asker/api/
 
 - 민감한 값은 `application-secrets.yml`에 Jasypt `ENC()`로 암호화하여 관리
 - Jasypt 복호화 키: `JASYPT_PASSWORD` 환경변수 또는 JVM 옵션으로 전달
-- 프로파일: `local` (개발), `prod` (운영), `test` (CI/JUnit)
+- 프로파일: `local` (개발), `prod` (운영), `test` (CI/JUnit), `loadtest` (부하 테스트, `local`에 얹어 실행 — `SPRING_PROFILES_ACTIVE=local,loadtest`), `mock` (AI 외부 호출 우회, 선택적으로 얹어 실행 — MockAIServerAdapter·MockEssayGradingService가 `@Profile("mock")`으로 Gemini 호출 없이 고정 결과 반환)
 - Actuator 포트: 9090 (서비스 포트와 분리)
 - Virtual Threads 활성화 (`spring.threads.virtual.enabled: true`)
 - OCI Object Storage: `~/.oci/config` 파일 기반 인증, `OCI_NAMESPACE`, `OCI_IMAGE_BUCKET_NAME`,
