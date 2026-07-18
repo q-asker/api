@@ -11,7 +11,6 @@ import com.icc.qasker.quizset.ProblemSetReadService;
 import com.icc.qasker.quizset.dto.readonly.ProblemDetail;
 import com.icc.qasker.quizset.dto.readonly.SelectionDetail;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -58,8 +57,8 @@ public class EssayGradeService {
     EssayGradingResult result =
         essayGradingService.grade(problem.title(), modelAnswer, rubric, textAnswer, attemptCount);
 
-    // 비동기 로그 저장
-    saveLogAsync(
+    // 로그 저장 (동기 — 채점 결과 내구성 보장: 저장 실패 시 요청도 실패)
+    saveLog(
         userId,
         decodedProblemSetId,
         problemNumber,
@@ -71,7 +70,7 @@ public class EssayGradeService {
     return result;
   }
 
-  private void saveLogAsync(
+  private void saveLog(
       String userId,
       Long problemSetId,
       int problemNumber,
@@ -79,32 +78,21 @@ public class EssayGradeService {
       String studentAnswer,
       int attemptCount,
       EssayGradingResult result) {
-    CompletableFuture.runAsync(
-        () -> {
-          try {
-            EssayGradeLog log =
-                EssayGradeLog.builder()
-                    .userId(userId)
-                    .problemSetId(problemSetId)
-                    .problemNumber(problemNumber)
-                    .question(question)
-                    .studentAnswer(studentAnswer)
-                    .attemptCount(attemptCount)
-                    .totalScore(result.totalScore())
-                    .maxScore(result.maxScore())
-                    .elementScores(result.elementScores())
-                    .overallFeedback(result.overallFeedback())
-                    .evidenceJson(result.evidenceJson())
-                    .build();
+    EssayGradeLog essayGradeLog =
+        EssayGradeLog.builder()
+            .userId(userId)
+            .problemSetId(problemSetId)
+            .problemNumber(problemNumber)
+            .question(question)
+            .studentAnswer(studentAnswer)
+            .attemptCount(attemptCount)
+            .totalScore(result.totalScore())
+            .maxScore(result.maxScore())
+            .elementScores(result.elementScores())
+            .overallFeedback(result.overallFeedback())
+            .evidenceJson(result.evidenceJson())
+            .build();
 
-            essayGradeLogRepository.save(log);
-          } catch (Exception e) {
-            log.warn(
-                "[채점 로그 저장 실패] 서술형 채점 로그 저장 실패 problemSetId={} problemNumber={}",
-                problemSetId,
-                problemNumber,
-                e);
-          }
-        });
+    essayGradeLogRepository.save(essayGradeLog);
   }
 }

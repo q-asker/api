@@ -50,15 +50,6 @@ public class MockAIServerAdapter extends AIServerAdapter {
                 null));
       }
       request.questionsConsumer().accept(new AIProblemSet(problems));
-
-      if (range != ranges[ranges.length - 1]) {
-        try {
-          Thread.sleep(10_000);
-        } catch (InterruptedException e) {
-          Thread.currentThread().interrupt();
-          return 3;
-        }
-      }
     }
     return 3;
   }
