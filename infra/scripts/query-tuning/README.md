@@ -47,32 +47,36 @@ bash infra/scripts/perf-seed/seed-scale.sh local-mysql-prod 100
 
 > `reply`는 x1 실측 0이라 시딩 대상 없음. `problem`은 세트당 16 고정이라 원본(15.65) 대비 근사.
 
-## 3. 트레이스 캡처 → 대시보드 §②③ (`trace_snapshot`)
+## 3. 스케일 스윕 + 요청 귀속 → 대시보드 §①②③ (`run-level.sh`)
+
+각 레벨에 앱을 붙여 **한 번에**: 무거운 부하로 스케일 지연(§①) + 가벼운 패스로 요청 귀속(§②③). 부하는 loadgen
+(단일 레시피)이 실 엔드포인트를 직접 태운다 — mock 서비스가 write 를 save→delete 로 자기정리(순증 0).
 
 ```bash
-# 앱을 분석 DB(3307)에 붙여 기동 (mock: Gemini 없이 생성·채점 재현)
-export JASYPT_ENCRYPTOR_PASSWORD="$(grep '^JASYPT_ENCRYPTOR_PASSWORD=' app/gradle.properties | cut -d= -f2-)"
-SPRING_PROFILES_ACTIVE=local,loadtest,mock ./gradlew :app:bootRun
-# 다른 터미널에서 트레이스
-bash infra/scripts/query-tuning/trace-capture.sh
-```
+# 앱 jar 최신화 (최초 1회 또는 코드 변경 시 — run-level 은 java -jar 로 최신 jar 를 띄운다)
+./gradlew :app:bootJar
+# 레벨별 실행 (seed 라벨 자동, trace_snapshot 은 각 레벨 DB에 저장돼 안 덮인다)
+# 3레벨 한 번에 (레벨→포트→컨테이너 매핑 내장, 손 루프 불필요)
+ROUNDS=50 bash infra/scripts/query-tuning/run-all.sh          # 전 레벨
+# 또는 특정 레벨만
+bash infra/scripts/query-tuning/run-all.sh x100
 
-→ `trace_snapshot` 생성. 대시보드 **§②**(엔드포인트별 요청당 쿼리·스캔행)·**§③**(레포·메서드·SQL 시퀀스)가 채워진다.
-`repoMethod=` 주석(RepoMethodAspect)에서 레포·메서드를 파싱하고, 레포를 안 거친 SQL(lazy-load·dirty-check)은
-테이블명 복원 + `method='Hibernate query'`로 표시. 재캡처하면 갱신.
-
-## 4. 스케일 스윕 → 대시보드 §① (seed 축)
-
-각 레벨에 앱을 붙여 부하+스캔측정(seed 라벨 자동 부여):
-
-```bash
+# (개별 호출도 가능)
 bash infra/scripts/query-tuning/run-level.sh 3308 local-mysql-orig x1
 bash infra/scripts/query-tuning/run-level.sh 3309 local-mysql-x10  x10
 bash infra/scripts/query-tuning/run-level.sh 3307 local-mysql-prod x100
 ```
 
-→ §① 막대가 `x1→x10→x100`로 **계단 상승**하면 O(n)(무인덱스 풀스캔). `findByRtHash`가 `155→1,550→15,500`
-정확히 비례하는 게 그 예. 평평하면 인덱스가 먹는 정상 룩업.
+각 실행이 하는 일:
+1. 앱을 레벨 DB에 붙여 기동 (`local,loadtest,mock` — Gemini·GitHub 호출 없이 실 write 순증 0)
+2. **loadgen 무거운 패스** → Micrometer `seed` 라벨 → **§①** 스케일 지연 곡선
+3. `/auth/refresh` p95 + refresh_token digest
+4. **loadgen 가벼운 패스 + trace_snapshot** → **§②③** uri·repo.method별 요청당 쿼리·examined
+
+→ §① 막대가 `x1→x10→x100`로 **계단 상승**하면 O(n)(무인덱스 풀스캔). `findByRtHash` `155→1,550→15,500`
+정확 비례가 그 예. 평평하면 인덱스 정상 룩업.
+`trace_snapshot`은 `repoMethod=` 주석(RepoMethodAspect)에서 레포·메서드를 파싱하고, 레포를 안 거친
+SQL(lazy-load·dirty-check)은 테이블명 복원 + `method='Hibernate query'`로 표시.
 
 ---
 
@@ -82,15 +86,15 @@ Grafana → **[쿼리튜닝] 통합 진단**(`q-asker-unified-diagnosis`). `$rep
 
 | 섹션 | 내용 | 채우는 법 |
 |---|---|---|
-| **§①** 스케일 축 | Micrometer seed 지연 곡선 | 4번(run-level.sh) |
-| **§②③** 귀속·시퀀스 | trace_snapshot | 3번(trace-capture.sh) |
+| **§①** 스케일 축 | Micrometer seed 지연 곡선 | 3번(run-level.sh, 무거운 패스) |
+| **§②③** 귀속·시퀀스 | trace_snapshot | 3번(run-level.sh, 가벼운 패스) |
 | **§④** 읽기/쓰기 비율 | 프로덕션 실측(springboot-oci) | 상시(Prometheus) |
 
 ---
 
 ## 흔한 함정
 
-- **`Table 'qaskerdb.trace_snapshot' doesn't exist`** → 재시딩(DB 재생성)으로 날아간 것. **3번(trace-capture) 재실행**하면 복구(분석 파생 테이블이라 Flyway 밖, 정상 동작).
+- **`Table 'qaskerdb.trace_snapshot' doesn't exist`** → 재시딩(DB 재생성)으로 날아간 것. **3번(run-level.sh) 재실행**하면 복구(분석 파생 테이블이라 Flyway 밖, 정상 동작).
 - **§① No data** → seed 데이터 없음. **4번(run-level.sh)**을 각 레벨로 돌려야 seed 축이 생긴다.
 - **exporter mysql 메트릭 끊김** → 컨테이너가 `local_local-monitoring` 네트워크에 없거나 127.0.0.1 바인딩 후 `host.docker.internal`로 붙는 옛 설정. `provision-level.sh`로 생성 + exporter는 `<컨테이너명>:3306` 접근(run-level.sh가 처리).
 - **포트를 `0.0.0.0`으로 열지 말 것** — 항상 `provision-level.sh`(127.0.0.1). 공개 MySQL은 랜섬 스캔 표적이다.
