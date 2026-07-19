@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
 # traceId 캡처: history_long 활성 → 실 API 엔드포인트 부하(요청마다 distinct reqId, uri=실제 엔드포인트)
 #   → reqId 태그 스냅샷 테이블. 대시보드가 trace_snapshot 조회.
-# 전제: 앱이 3307(local,loadtest)로 떠 있어야 함.
+# 전제: 앱이 3307에 local,loadtest,mock 프로파일로 떠 있어야 함
+#   (mock: write 서비스가 자기정리 mock으로 교체돼 실 write 엔드포인트를 순증 0으로 태움 — 외부 AI·GitHub 호출 없음).
 set -euo pipefail
 CONTAINER="${CONTAINER:-local-mysql-prod}"
 BASE="${BASE:-http://localhost:8080}"
 USER_ID="${USER_ID:-h_e9887d1d5b31f89c3101b5732df92f4c}"
 SWEEP="${SWEEP:-40}"       # 목록 GET 반복
+WRITE="${WRITE:-10}"       # 각 write 엔드포인트 반복
 REFRESH="${REFRESH:-150}"  # refresh 반복
 MY(){ docker exec -e MYSQL_PWD=password "$CONTAINER" mysql -uroot "$@" 2>/dev/null; }
 
@@ -17,10 +19,12 @@ MY qaskerdb -e "DROP TABLE IF EXISTS trace_snapshot;"
 
 TOKEN=$(curl -s "$BASE/local/token?userId=$USER_ID")
 AUTH=(-H "Authorization: Bearer $TOKEN")
+JSON=(-H "Content-Type: application/json")
+# write 엔드포인트 호출 헬퍼(실패해도 트레이스는 계속 — 부작용은 mock이 자기정리로 흡수).
+REQ(){ curl -s -o /dev/null --max-time 8 "${AUTH[@]}" "${JSON[@]}" "$@" || true; }
 
-echo "[trace] 실 엔드포인트 부하 — 목록 GET(진짜 uri) + 상세조회 + refresh"
+echo "[trace] 목록 GET(진짜 uri: GET:/history, GET:/boards) + hashid 수확"
 IDPOOL=$(mktemp); trap 'rm -f "$IDPOOL"' EXIT
-# 목록 GET (실 uri: GET:/history, GET:/boards) + hashid 수확
 #   GET /boards 는 category 가 필수(@RequestParam BoardCategory) — 없으면 400 이라 board 가 트레이스에 안 잡힌다.
 for r in $(seq 1 "$SWEEP"); do
   for ep in /history "/boards?category=INQUIRY"; do
@@ -29,20 +33,46 @@ for r in $(seq 1 "$SWEEP"); do
   done
 done
 sort -u "$IDPOOL" -o "$IDPOOL"
-# 상세조회 (실 uri: GET:/boards/{boardId} 등) — 수확 id 대입
+# 수확 id 배열(board·problemSet·history 슬롯에 공용으로 재사용 — mock은 대부분 id를 무시하고 자기정리한다).
 IDS=(); while IFS= read -r l; do [ -n "$l" ] && IDS+=("$l"); done < <(head -n 25 "$IDPOOL")
+ID(){ [ ${#IDS[@]} -gt 0 ] && echo "${IDS[$(( $1 % ${#IDS[@]} ))]}" || echo "mock"; }
+
+echo "[trace] 상세조회(실 uri: GET:/boards/{id} 등) — 수확 id 대입"
 for tmpl in "/boards/%s" "/problem-set/%s" "/history/%s" "/history/%s/essay" "/history/check/%s" "/explanation/%s"; do
-  for id in "${IDS[@]}"; do
-    curl -s -o /dev/null --max-time 8 "${AUTH[@]}" "$BASE$(printf "$tmpl" "$id")" || true
+  for i in "${!IDS[@]}"; do
+    curl -s -o /dev/null --max-time 8 "${AUTH[@]}" "$BASE$(printf "$tmpl" "${IDS[$i]}")" || true
   done
 done
-# 쓰기 (실 uri: POST:/local/write) — LocalWriteController가 9레포 save/delete를 자기정리로 실행(순증 0).
-#   전 레포의 write(save·delete)를 §② trace에 태깅하되 생성 행은 같은 호출에서 되돌리므로 멱등 유지.
-for r in $(seq 1 10); do
-  curl -s -o /dev/null --max-time 8 "${AUTH[@]}" -X POST "$BASE/local/write" || true
+
+echo "[trace] 실 write 엔드포인트(mock 자기정리로 순증 0) — 각 실 uri 로 태깅"
+for r in $(seq 1 "$WRITE"); do
+  id=$(ID "$r")
+  # board: POST/PUT/DELETE /boards
+  REQ -X POST   "$BASE/boards"                    -d '{"title":"mock","content":"mock"}'
+  REQ -X PUT    "$BASE/boards/$id"                -d '{"title":"mock","content":"mock"}'
+  REQ -X DELETE "$BASE/boards/$id"
+  # feedback: POST /feedback (GitHub 이슈·Slack 은 mock 이 생략)
+  REQ -X POST   "$BASE/feedback"                  -d '{"content":"mock"}'
+  # essay 채점: POST /essay/.../grade (문제조회는 실제, 채점은 mock, 로그 save→delete)
+  REQ -X POST   "$BASE/essay/problem-sets/$id/problems/1/grade" -d '{"textAnswer":"mock","attemptCount":1}'
+  # 닉네임 변경: PATCH /user/nickname (변경→원복)
+  REQ -X PATCH  "$BASE/user/nickname"             -d '{"nickname":"mock"}'
+  # 문제세트 제목: PATCH /problem-set/{id}/title (변경→원복, 소유자 아니면 403 이라도 read SQL 은 태워짐)
+  REQ -X PATCH  "$BASE/problem-set/$id/title"     -d '{"title":"mock"}'
+  # 히스토리: init/save(INSERT)·title(UPDATE)·delete(DELETE) — mock throwaway save→delete
+  REQ -X POST   "$BASE/history/init"              -d "{\"problemSetId\":\"$id\",\"title\":\"mock\"}"
+  REQ -X POST   "$BASE/history"                   -d "{\"problemSetId\":\"$id\",\"title\":\"mock\",\"userAnswers\":[],\"score\":0,\"totalTime\":\"0\"}"
+  REQ -X PATCH  "$BASE/history/$id/title"         -d '{"title":"mock"}'
+  REQ -X DELETE "$BASE/history/$id"
+  REQ -X DELETE "$BASE/history/all"
+  # 생성: POST /generation (동기 initProblemSet 만 태우고 롤백 — AI/비동기/SSE 없음)
+  SID=$(uuidgen | tr 'A-Z' 'a-z')
+  REQ -X POST   "$BASE/generation" -d "{\"sessionId\":\"$SID\",\"uploadedUrl\":\"mock\",\"title\":\"mock\",\"quizCount\":5,\"quizType\":\"MULTIPLE\",\"pageNumbers\":[1],\"language\":\"KO\"}"
+  # 스케줄러 로직 온디맨드 — 비-controller 백그라운드 SELECT(findByGenerationStatusInAndCreatedAtBefore 스캔)를 실 uri로 태깅
+  REQ -X POST   "$BASE/local/scheduler/stale-generation"
 done
 
-# refresh (실 uri: POST:/auth/refresh) — 요청마다 distinct reqId
+echo "[trace] refresh(실 uri: POST:/auth/refresh) — 요청마다 distinct reqId"
 for r in $(seq 1 "$REFRESH"); do
   curl -s -o /dev/null --max-time 8 -X POST "$BASE/auth/refresh" -b "refresh_token=trace-$r" &
   [ $((r % 20)) -eq 0 ] && wait
