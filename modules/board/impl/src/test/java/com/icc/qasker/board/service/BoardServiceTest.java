@@ -45,7 +45,7 @@ class BoardServiceTest {
 
   @Mock UserService userService;
 
-  @InjectMocks BoardService boardService;
+  @InjectMocks BoardServiceImpl boardService;
 
   private Board inquiryBoard(String userId) {
     Board board = Board.builder().userId(userId).title("제목").content("내용").build();
