@@ -1,12 +1,12 @@
 # GitHub 이슈 자동 등록 설정
-# feedback_board 저장 시 백엔드가 피드백 원문을 q-asker/api 저장소 이슈로 자동 등록한다.
+# feedback_board 저장 시 백엔드가 피드백 원문을 q-asker/feedback 저장소 이슈로 자동 등록한다.
 # 토큰(q-asker.github.token)은 application-secrets.yml에 Jasypt ENC로 주입한다.
 q-asker:
   github:
     enabled: false # 기본 비활성 — 프로파일별로 override
     api-base-url: https://api.github.com
     owner: q-asker
-    repo: api
+    repo: feedback
     feedback-labels:
       - feedback
 
