@@ -18,6 +18,10 @@ dependencies {
     // 예: @MappedSuperclass로 BaseEntity(createdAt, updatedAt)를 정의하면
     //     모든 모듈의 엔티티가 이를 상속받아 공통 필드를 공유
     implementation "org.springframework.boot:spring-boot-starter-data-jpa"
+    // Hibernate ORM: 부하 계측(query 패키지)이 StatementInspector·AvailableSettings를 직접 참조.
+    // starter-data-jpa로 전이돼 오지만, 직접 import하는 라이브러리는 명시 선언(전이 의존에 기대지 않음).
+    // 버전은 Spring Boot BOM이 관리(strictly).
+    implementation "org.hibernate.orm:hibernate-core"
     // MySQL JDBC 드라이버: 런타임에 DB 연결 시 사용 (컴파일 시에는 불필요)
     // 예: application.yml의 spring.datasource.url에 mysql:// 연결 문자열을 설정하면
     //     이 드라이버가 JDBC 커넥션을 생성
@@ -49,6 +53,15 @@ dependencies {
     // 예: 사용자별/엔드포인트별 차등 Rate Limit 적용, 버스트 트래픽 허용 + 평균 속도 제한
     implementation libs.bucket4j.jdk17.core
 
+    // ────────────────────────────────
+    // 계측 (부하 테스트)
+    // ────────────────────────────────
+    // Micrometer core: 부하 계측(query 패키지) QueryCountInterceptor가 MeterRegistry를 직접 참조,
+    // 요청당 쿼리수를 app_db_queries{uri,method} DistributionSummary로 기록. 전이 대신 명시.
+    // 버전은 Spring Boot BOM이 관리.
+    implementation "io.micrometer:micrometer-core"
+
+    implementation "org.aspectj:aspectjweaver"
     // ────────────────────────────────
     // 테스트
     // ────────────────────────────────

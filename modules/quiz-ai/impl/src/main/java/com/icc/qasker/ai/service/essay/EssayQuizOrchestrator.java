@@ -1,18 +1,23 @@
 package com.icc.qasker.ai.service.essay;
 
 import com.icc.qasker.ai.GeminiFileService;
+import com.icc.qasker.ai.dto.AIProblem;
 import com.icc.qasker.ai.dto.GeminiFileUploadResponse.FileMetadata;
 import com.icc.qasker.ai.dto.GenerationRequestToAI;
+import com.icc.qasker.ai.dto.QualityVerdict;
 import com.icc.qasker.ai.exception.GeminiInfraException;
 import com.icc.qasker.ai.mapper.GeminiEssayQuestionMapper;
 import com.icc.qasker.ai.service.QuizTypeOrchestrator;
+import com.icc.qasker.ai.service.quality.QualityGate;
 import com.icc.qasker.ai.service.support.GeminiMetricsRecorder;
 import com.icc.qasker.ai.service.support.StreamingJsonArrayExtractor;
 import com.icc.qasker.ai.strategy.QuizType;
 import com.icc.qasker.ai.structure.GeminiEssayQuestion;
+import com.icc.qasker.ai.structure.GeminiEssayResponse;
 import com.icc.qasker.ai.structure.GeminiEssayResponseSchema;
 import com.icc.qasker.global.error.CustomException;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -24,6 +29,7 @@ import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.content.Media;
+import org.springframework.ai.converter.BeanOutputConverter;
 import org.springframework.ai.google.genai.GoogleGenAiChatOptions;
 import org.springframework.stereotype.Component;
 import org.springframework.util.MimeTypeUtils;
@@ -39,17 +45,23 @@ public class EssayQuizOrchestrator implements QuizTypeOrchestrator {
   private final ChatModel chatModel;
   private final ObjectMapper objectMapper;
   private final GeminiMetricsRecorder metricsRecorder;
+  private final QualityGate qualityGate;
 
   public EssayQuizOrchestrator(
       GeminiFileService geminiFileService,
       ChatModel chatModel,
       ObjectMapper objectMapper,
-      GeminiMetricsRecorder metricsRecorder) {
+      GeminiMetricsRecorder metricsRecorder,
+      QualityGate qualityGate) {
     this.geminiFileService = geminiFileService;
     this.chatModel = chatModel;
     this.objectMapper = objectMapper;
     this.metricsRecorder = metricsRecorder;
+    this.qualityGate = qualityGate;
   }
+
+  /** 생성 게이트에서 미달 판정돼 보류된 ESSAY 문항(v1)과 개선 피드백. */
+  private record EssayHeld(AIProblem problem, String feedback) {}
 
   @Override
   public String getSupportedType() {
@@ -98,7 +110,10 @@ public class EssayQuizOrchestrator implements QuizTypeOrchestrator {
       Prompt prompt = new Prompt(List.of(systemMessage, userMessage), options);
       log.info("ESSAY 스트리밍 생성 시작: 목표={}문항", quizCount);
 
-      // 스트리밍 파서: 문항 객체가 완성될 때마다 즉시 SSE 전달
+      // 생성 게이트에서 미달 판정된 문항의 보류 큐. 스트리밍 종료 후 1회 재생성으로 소진한다.
+      List<EssayHeld> heldQueue = new ArrayList<>();
+
+      // 스트리밍 파서: 문항 객체가 완성될 때마다 게이트 검증 후 통과분만 즉시 SSE 전달
       StreamingJsonArrayExtractor<GeminiEssayQuestion> extractor =
           new StreamingJsonArrayExtractor<>(
               objectMapper,
@@ -106,19 +121,32 @@ public class EssayQuizOrchestrator implements QuizTypeOrchestrator {
               question -> {
                 if (delivered.get() >= quizCount) return;
 
-                int count = delivered.incrementAndGet();
-                request
-                    .questionsConsumer()
-                    .accept(
-                        GeminiEssayQuestionMapper.toDto(List.of(question), metadata.sourcePages()));
+                List<AIProblem> problems =
+                    GeminiEssayQuestionMapper.toDto(List.of(question), metadata.sourcePages())
+                        .quiz();
+                for (AIProblem p : problems) {
+                  if (delivered.get() >= quizCount) return;
 
-                long now = System.nanoTime();
-                firstNanos.compareAndSet(0, now);
-                lastNanos.updateAndGet(prev -> Math.max(prev, now));
+                  QualityVerdict verdict =
+                      qualityGate.verify(
+                          p, "ESSAY", request.language(), request.customInstruction());
+                  if (verdict.result() == QualityVerdict.Result.BELOW_THRESHOLD) {
+                    heldQueue.add(new EssayHeld(p, verdict.feedback()));
+                    continue;
+                  }
 
-                if (count == 1) {
-                  long ttfqMs = (now - startNanos) / 1_000_000;
-                  log.info("TTFQ (Time To First Question): {}ms", ttfqMs);
+                  int number = request.sink().saveProblem(p);
+                  request.sink().recordV1(number, p, null);
+                  int count = delivered.incrementAndGet();
+
+                  long now = System.nanoTime();
+                  firstNanos.compareAndSet(0, now);
+                  lastNanos.updateAndGet(prev -> Math.max(prev, now));
+
+                  if (count == 1) {
+                    long ttfqMs = (now - startNanos) / 1_000_000;
+                    log.info("TTFQ (Time To First Question): {}ms", ttfqMs);
+                  }
                 }
               },
               "ESSAY");
@@ -144,6 +172,19 @@ public class EssayQuizOrchestrator implements QuizTypeOrchestrator {
                 }
               })
           .blockLast(java.time.Duration.ofMinutes(6));
+
+      // 보류된 미달 문항을 1회 재생성해 통과분을 채운다(원문 PDF 재첨부).
+      processEssayHeldQueue(
+          heldQueue,
+          systemMessage,
+          pdfMedia,
+          responseSchema,
+          metadata,
+          request,
+          quizCount,
+          delivered,
+          startNanos,
+          totalCost);
 
       log.info(
           "ESSAY 스트리밍 생성 완료: 전달={}문항, 총 소요={}ms",
@@ -184,5 +225,99 @@ public class EssayQuizOrchestrator implements QuizTypeOrchestrator {
       }
       throw new GeminiInfraException("Gemini 인프라 장애", e);
     }
+  }
+
+  /** 보류된 ESSAY 미달 문항을 세션 내에서 1회씩 재생성한다(1회 캡). 개선본(v2)은 검증 없이 저장하고 v1·v2를 품질 로그에 기록한다. 재생성 불가→제외. */
+  private void processEssayHeldQueue(
+      List<EssayHeld> heldQueue,
+      SystemMessage systemMessage,
+      Media pdfMedia,
+      String responseSchema,
+      FileMetadata metadata,
+      GenerationRequestToAI request,
+      int quizCount,
+      AtomicInteger delivered,
+      long startNanos,
+      DoubleAdder totalCost) {
+    if (heldQueue.isEmpty()) {
+      return;
+    }
+    log.info("ESSAY 보류 문항 재생성 시작: {}건", heldQueue.size());
+    for (EssayHeld held : heldQueue) {
+      if (delivered.get() >= quizCount) {
+        break;
+      }
+      try {
+        AIProblem v2 =
+            regenerateEssay(
+                held, systemMessage, pdfMedia, responseSchema, metadata, startNanos, totalCost);
+        if (v2 == null) {
+          continue;
+        }
+        // v2는 검증 없이 저장한다(사후 Pass 2가 판정). 품질 로그엔 미달 원본(v1)과 개선본(v2)을 함께 기록한다.
+        int number = request.sink().saveProblem(v2);
+        request.sink().recordV1(number, held.problem(), held.feedback());
+        request.sink().recordV2(number, v2);
+        delivered.incrementAndGet();
+      } catch (Exception e) {
+        log.warn("ESSAY 보류 문항 재생성 실패 — 제외", e);
+      }
+    }
+  }
+
+  private AIProblem regenerateEssay(
+      EssayHeld held,
+      SystemMessage systemMessage,
+      Media pdfMedia,
+      String responseSchema,
+      FileMetadata metadata,
+      long startNanos,
+      DoubleAdder totalCost) {
+    UserMessage user =
+        UserMessage.builder().text(buildEssayRegenerationPrompt(held)).media(pdfMedia).build();
+    var options =
+        GoogleGenAiChatOptions.builder()
+            .responseMimeType("application/json")
+            .responseSchema(responseSchema)
+            .build();
+    ChatResponse response = chatModel.call(new Prompt(List.of(systemMessage, user), options));
+    if (response.getMetadata() != null
+        && response.getMetadata().getUsage() != null
+        && response.getMetadata().getUsage().getCompletionTokens() > 0) {
+      totalCost.add(
+          metricsRecorder.recordChunkUsage(
+              "ESSAY regenerate", startNanos, response.getMetadata().getUsage()));
+    }
+    String text =
+        response.getResult() == null || response.getResult().getOutput() == null
+            ? null
+            : response.getResult().getOutput().getText();
+    if (text == null) {
+      return null;
+    }
+    GeminiEssayResponse parsed = new BeanOutputConverter<>(GeminiEssayResponse.class).convert(text);
+    if (parsed == null || parsed.questions() == null || parsed.questions().isEmpty()) {
+      return null;
+    }
+    return GeminiEssayQuestionMapper.toDto(
+            List.of(parsed.questions().getFirst()), metadata.sourcePages())
+        .quiz()
+        .stream()
+        .findFirst()
+        .orElse(null);
+  }
+
+  private String buildEssayRegenerationPrompt(EssayHeld held) {
+    String json;
+    try {
+      json = objectMapper.writeValueAsString(held.problem());
+    } catch (Exception e) {
+      json = String.valueOf(held.problem());
+    }
+    return "직전 요청으로 생성한 아래 서술형 문항이 품질 검증에서 미달 판정됐다. 첨부된 원문을 근거로 지적된 문제를 해결한 개선 문항 1개만 생성한다."
+        + " questions 배열에 개선 문항 1개만 담아 응답한다.\n\n# 미달 문항\n"
+        + json
+        + "\n\n# 미달 사유·개선 지침\n"
+        + (held.feedback() == null ? "(사유 미상)" : held.feedback());
   }
 }

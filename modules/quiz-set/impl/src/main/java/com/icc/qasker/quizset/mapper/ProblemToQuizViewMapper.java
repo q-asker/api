@@ -1,11 +1,9 @@
 package com.icc.qasker.quizset.mapper;
 
 import com.icc.qasker.quizset.entity.Problem;
-import com.icc.qasker.quizset.entity.Selection;
 import com.icc.qasker.quizset.view.QuizView;
 import com.icc.qasker.quizset.view.QuizView.SelectionView;
 import java.util.List;
-import java.util.stream.IntStream;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
@@ -14,19 +12,15 @@ public class ProblemToQuizViewMapper {
 
   public static QuizView toQuizView(Problem problem) {
     List<SelectionView> selections =
-        IntStream.range(0, problem.getSelections().size())
-            .mapToObj(
-                i -> {
-                  Selection sel = problem.getSelections().get(i);
-                  return new SelectionView(i + 1, sel.content(), sel.correct());
-                })
-            .toList();
+        QuizMappingSupport.mapSelections(
+            problem.getSelections(),
+            (id, sel) -> new SelectionView(id, sel.content(), sel.correct()));
 
     return new QuizView(
         problem.getId().getNumber(),
         problem.getTitle(),
-        0,
-        false,
+        QuizMappingSupport.UNANSWERED_USER_ANSWER,
+        QuizMappingSupport.UNCHECKED,
         selections,
         problem.getAppliedInstruction());
   }

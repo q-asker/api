@@ -6,16 +6,15 @@ spring:
     google:
       genai:
         chat:
-          options:
-            temperature: 1.0
-            model: gemini-3-flash-preview
-            max-output-tokens: 20000
-            
-            thinking-level: low
+          model: gemini-3-flash-preview
+          temperature: 1.0
+          max-output-tokens: 20000
+          thinking-level: MINIMAL
 
 q-asker:
   ai:
     chat-timeout-ms: 360000
+    cache-ttl: 15m          # 컨텍스트 캐시 TTL (인터리빙 세션 커버)
     # 스트리밍 시한 계층 (connect < read < call). 안쪽 시한이 바깥보다 짧아야
     # 각 계층이 자기 실패를 자기 이름의 예외로 먼저 잡는다 — 순서가 무너지면 바깥층이
     # 안쪽 실패를 가로채 서킷 계수·로그 분류가 오염된다.
@@ -38,7 +37,6 @@ q-asker:
       # 주의: GeminiClientConfig가 customHttpClient를 쓰므로 SDK의 HttpOptions.timeout은 무시된다.
       call-timeout: 300s
     chunk:
-      max-count-variants: [ 30 ]
       chunk-size: 15
     multiple:
       chunk-mode: 1  # 1: 단일 호출, 2: 멀티턴 순차 (A→B→C 중복방지), 3: 패턴별 병렬 (A/B/C)
@@ -52,3 +50,26 @@ q-asker:
       price-input-per-1m: 0.50
       price-cache-read-per-1m: 0.050
       price-output-per-1m: 3.00
+    quality:
+      # 문항 품질 검증 모델 — 경량 flash-lite 계열(저비용·저지연)
+      verify-model: gemini-3.1-flash-lite
+      # 검증 모델 토큰 단가 (USD per 1M tokens)
+      price-input-per-1m: 0.25
+      price-cache-read-per-1m: 0.025  # Pass 1 원문 대조 캐시 읽기 단가(추정) — 입력의 10%
+      price-output-per-1m: 1.50
+      # 적용 검증 항목·항목별 엄격도 — 운영자가 조절(FR-011)
+      # 값: strict(엄격) / normal(보통) / off(미적용). 필수 항목은 항상 평가됨.
+      criteria:
+        # 전 유형 공통 필수(FR-002b) — 항상 평가
+        construction-strategy: strict     # ① 문제 구성전략이 유형별 GuideLine에 부합하는가
+        instruction-application: strict    # ② 사용자 지시(customInstruction)가 정확히 반영됐는가
+        # 객관형(MULTIPLE/OX/BLANK)
+        single-correct-answer: strict      # 정답이 유일한가
+        answer-grounded-in-source: strict  # 정답이 sourceAnchor 원문 근거에 부합하는가
+        distractors-plausible: normal      # 오답이 그럴듯한가
+        no-outside-knowledge: normal       # 문항 밖 지식이 불필요한가
+        shortcut-prevention: normal        # 내용 없이 어조·선지길이·정답 온건함으로 정답을 고를 수 없는가(트레이드오프 오답 위험도 대칭)
+        cognitive-depth: normal            # 단일 사실 암기가 아니라 교차 대조·다단계 추론을 요구하는가
+        # 서술형(ESSAY)
+        model-answer-basis: strict         # 모범답안이 원문에 근거하는가
+        rubric-consistency: strict         # 질문↔모범답안↔채점 루브릭 3자 정합

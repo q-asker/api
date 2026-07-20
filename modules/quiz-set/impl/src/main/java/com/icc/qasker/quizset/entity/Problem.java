@@ -5,6 +5,7 @@ import static jakarta.persistence.FetchType.LAZY;
 import com.icc.qasker.global.entity.CreatedAt;
 import com.icc.qasker.quizset.converter.IntegerListConverter;
 import com.icc.qasker.quizset.converter.SelectionListConverter;
+import jakarta.persistence.Basic;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.EmbeddedId;
@@ -19,9 +20,14 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.DynamicUpdate;
+import org.hibernate.annotations.LazyGroup;
 
 @Entity
 @Getter
+// 순수 서빙 엔티티(질문·선지·해설·페이지·지시). 품질/생성 근거는 problem_quality_log로 분리.
+// 바이트코드 인핸스먼트 dirty tracking과 결합해 변경 컬럼만 UPDATE(예: 해설 저장 시 explanation_content만).
+@DynamicUpdate
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
@@ -42,6 +48,8 @@ public class Problem extends CreatedAt {
   @Builder.Default
   private List<Selection> selections = new ArrayList<>();
 
+  @Basic(fetch = LAZY)
+  @LazyGroup("explanation")
   @Column(columnDefinition = "TEXT")
   private String explanationContent;
 

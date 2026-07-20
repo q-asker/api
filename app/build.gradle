@@ -47,6 +47,11 @@ dependencies {
     implementation project(':board-impl')
     // 관리자 모듈: 어드민 전용 API 엔드포인트
     implementation project(':admin')
+    // 부하 테스트 쓰기 드라이버(LocalWriteController)가 참조하는 API DTO/enum (BoardCategory, QuizType)
+    // — *-impl→*-api는 implementation(비전이)이라 app에 노출되지 않으므로 명시.
+    implementation project(':board-api')
+    implementation project(':quiz-set-api')
+    implementation project(':quiz-ai-api')
 
 
     // ────────────────────────────────
@@ -125,6 +130,20 @@ if (gradle.startParameter.taskNames.any { it.contains("jib") }) {
                 "HOME": "/home/appuser"
             ]
         }
+    }
+}
+
+// ── 로컬 실행(bootRun) ──
+
+// Jasypt 복호화 키를 app/gradle.properties(JASYPT_ENCRYPTOR_PASSWORD)에서 앱으로 주입한다.
+// prod(docker-compose)와 동일한 환경변수명을 써서 로컬 디버그도 같은 출처를 참조한다.
+// 값이 없으면 주입하지 않으므로(부팅 시 명확히 실패) 별도 .env 파일이 필요 없다.
+tasks.named('bootRun') {
+    // 로컬 디버그 기본 프로파일 (필요 시 -Dspring.profiles.active=... 로 override)
+    systemProperty 'spring.profiles.active', findProperty('SPRING_PROFILES_ACTIVE') ?: 'local'
+    def jasyptPassword = project.findProperty('JASYPT_ENCRYPTOR_PASSWORD')
+    if (jasyptPassword) {
+        environment 'JASYPT_ENCRYPTOR_PASSWORD', jasyptPassword
     }
 }
 

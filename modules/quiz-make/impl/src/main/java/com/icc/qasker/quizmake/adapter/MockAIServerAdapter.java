@@ -2,7 +2,6 @@ package com.icc.qasker.quizmake.adapter;
 
 import com.icc.qasker.ai.QuizOrchestrationService;
 import com.icc.qasker.ai.dto.AIProblem;
-import com.icc.qasker.ai.dto.AIProblemSet;
 import com.icc.qasker.ai.dto.AISelection;
 import com.icc.qasker.ai.dto.GenerationRequestToAI;
 import java.util.ArrayList;
@@ -49,17 +48,9 @@ public class MockAIServerAdapter extends AIServerAdapter {
                 pages,
                 null));
       }
-      request.questionsConsumer().accept(new AIProblemSet(problems));
-
-      if (range != ranges[ranges.length - 1]) {
-        try {
-          Thread.sleep(10_000);
-        } catch (InterruptedException e) {
-          Thread.currentThread().interrupt();
-          return 3;
-        }
-      }
+      problems.forEach(request.sink()::saveProblem);
     }
+    request.sink().markProblemsReady();
     return 3;
   }
 }

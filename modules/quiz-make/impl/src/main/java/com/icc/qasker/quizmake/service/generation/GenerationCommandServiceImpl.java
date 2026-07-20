@@ -11,10 +11,13 @@ import com.icc.qasker.quizmake.GenerationCommandService;
 import com.icc.qasker.quizmake.SseNotificationService;
 import com.icc.qasker.quizmake.adapter.AIServerAdapter;
 import com.icc.qasker.quizmake.dto.ferequest.GenerationRequest;
+import com.icc.qasker.quizset.QualityLogService;
 import com.icc.qasker.quizset.QuizCommandService;
 import com.icc.qasker.quizset.QuizQueryService;
 import com.icc.qasker.quizset.dto.ferequest.enums.QuizType;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
@@ -28,6 +31,7 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
   private final QuizQueryService quizQueryService;
   private final HashUtil hashUtil;
   private final GenerationResultRecorder resultRecorder;
+  private final QualityLogService qualityLogService;
 
   public GenerationCommandServiceImpl(
       AIServerAdapter aiServerAdapter,
@@ -35,13 +39,15 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
       QuizCommandService quizCommandService,
       QuizQueryService quizQueryService,
       HashUtil hashUtil,
-      GenerationResultRecorder resultRecorder) {
+      GenerationResultRecorder resultRecorder,
+      QualityLogService qualityLogService) {
     this.aiServerAdapter = aiServerAdapter;
     this.notificationService = notificationService;
     this.quizCommandService = quizCommandService;
     this.quizQueryService = quizQueryService;
     this.hashUtil = hashUtil;
     this.resultRecorder = resultRecorder;
+    this.qualityLogService = qualityLogService;
   }
 
   @Override
@@ -61,8 +67,19 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
       throw new CustomException(ExceptionMessage.AI_DUPLICATED_GENERATION);
     }
 
+    Map<String, String> contextMap = MDC.getCopyOfContextMap();
     Thread.ofVirtual()
-        .start(() -> processGenerationAsync(request.sessionId(), problemSetId, request));
+        .start(
+            () -> {
+              if (contextMap != null) {
+                MDC.setContextMap(contextMap);
+              }
+              try {
+                processGenerationAsync(request.sessionId(), problemSetId, request);
+              } finally {
+                MDC.clear();
+              }
+            });
   }
 
   private void processGenerationAsync(
@@ -77,7 +94,8 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
             quizCommandService,
             quizQueryService,
             notificationService,
-            hashUtil);
+            hashUtil,
+            qualityLogService);
 
     GenerationRequestToAI requestToAI =
         GenerationRequestToAI.builder()
@@ -87,7 +105,7 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
             .quizCount(request.quizCount())
             .referencePages(request.pageNumbers())
             .customInstruction(request.customInstruction())
-            .questionsConsumer(batchConsumer)
+            .sink(batchConsumer)
             .build();
 
     int maxChunkCount;

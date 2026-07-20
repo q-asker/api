@@ -1,12 +1,10 @@
 package com.icc.qasker.quizset.service.generation.support;
 
-import com.icc.qasker.global.component.HashUtil;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.quizset.GenerationStatus;
 import com.icc.qasker.quizset.QuizQueryService;
 import com.icc.qasker.quizset.dto.feresponse.ProblemSetResponse;
-import com.icc.qasker.quizset.dto.feresponse.ProblemSetResponse.QuizForFe;
 import com.icc.qasker.quizset.entity.Problem;
 import com.icc.qasker.quizset.entity.ProblemId;
 import com.icc.qasker.quizset.entity.ProblemSet;
@@ -27,7 +25,6 @@ import org.springframework.util.Assert;
 @Transactional(readOnly = true)
 public class QuizQueryServiceImpl implements QuizQueryService {
 
-  private final HashUtil hashUtil;
   private final ProblemSetRepository problemSetRepository;
   private final ProblemRepository problemRepository;
   private final ProblemSetResponseMapper problemSetResponseMapper;
@@ -60,20 +57,9 @@ public class QuizQueryServiceImpl implements QuizQueryService {
             .findFirstBySessionIdOrderByCreatedAtDesc(sessionId)
             .orElseThrow(() -> new CustomException(ExceptionMessage.PROBLEM_SET_NOT_FOUND));
 
-    Long problemSetId = problemSet.getId();
+    List<Problem> remaining =
+        problemRepository.findRemainingProblems(problemSet.getId(), lastQuizNumber);
 
-    List<QuizForFe> quizForFeList =
-        problemRepository.findRemainingProblems(problemSetId, lastQuizNumber).stream()
-            .map(problemSetResponseMapper::fromEntity)
-            .toList();
-
-    return new ProblemSetResponse(
-        sessionId,
-        hashUtil.encode(problemSetId),
-        problemSet.getTitle(),
-        problemSet.getGenerationStatus(),
-        problemSet.getQuizType(),
-        problemSet.getTotalQuizCount(),
-        quizForFeList);
+    return problemSetResponseMapper.toResponse(problemSet, remaining);
   }
 }

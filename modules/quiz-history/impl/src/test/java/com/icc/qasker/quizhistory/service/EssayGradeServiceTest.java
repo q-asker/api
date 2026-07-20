@@ -35,7 +35,7 @@ class EssayGradeServiceTest {
   @Mock private EssayGradeLogRepository essayGradeLogRepository;
   @Mock private HashUtil hashUtil;
 
-  @InjectMocks private EssayGradeService service;
+  @InjectMocks private EssayGradeServiceImpl service;
 
   private ProblemDetail problem(List<SelectionDetail> selections, String explanation) {
     return new ProblemDetail(1, "essay-title", selections, explanation);

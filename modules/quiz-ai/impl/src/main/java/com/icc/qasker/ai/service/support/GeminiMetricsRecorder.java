@@ -1,6 +1,5 @@
 package com.icc.qasker.ai.service.support;
 
-import com.icc.qasker.ai.properties.QAskerAiProperties;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
@@ -35,12 +34,17 @@ public class GeminiMetricsRecorder {
   private final Counter gradingCost;
   private final Counter gradingCount;
   private final Counter gradingFailure;
+  private final Timer verifyDuration;
+  private final Counter verifyTokensInput;
+  private final Counter verifyTokensOutput;
+  private final Counter verifyCost;
+  private final Counter verifyCount;
+  private final Counter verifyFailure;
 
   private static final String[] QUIZ_TYPES = {"MULTIPLE", "OX", "BLANK", "ESSAY"};
 
   public GeminiMetricsRecorder(
       MeterRegistry registry,
-      QAskerAiProperties aiProperties,
       @Value("${q-asker.ai.generation.price-input-per-1m}") double priceInputPer1M,
       @Value("${q-asker.ai.generation.price-cache-read-per-1m}") double priceCacheReadPer1M,
       @Value("${q-asker.ai.generation.price-output-per-1m}") double priceOutputPer1M) {
@@ -69,6 +73,27 @@ public class GeminiMetricsRecorder {
     this.gradingFailure =
         Counter.builder("gemini.grading.failure").description("ESSAY 채점 실패 횟수").register(registry);
 
+    this.verifyDuration =
+        Timer.builder("gemini.verify.duration")
+            .description("문항 품질 검증 API 응답 시간")
+            .register(registry);
+    this.verifyTokensInput =
+        Counter.builder("gemini.verify.tokens.input")
+            .description("문항 품질 검증 API 입력 토큰")
+            .register(registry);
+    this.verifyTokensOutput =
+        Counter.builder("gemini.verify.tokens.output")
+            .description("문항 품질 검증 API 출력 토큰")
+            .register(registry);
+    this.verifyCost =
+        Counter.builder("gemini.verify.cost")
+            .description("문항 품질 검증 API 추정 비용 (USD)")
+            .register(registry);
+    this.verifyCount =
+        Counter.builder("gemini.verify.count").description("문항 품질 검증 요청 횟수").register(registry);
+    this.verifyFailure =
+        Counter.builder("gemini.verify.failure").description("문항 품질 검증 실패 횟수").register(registry);
+
     this.chunkDuration =
         Timer.builder("gemini.chunk.duration")
             .description("Gemini API 청크별 응답 시간")
@@ -89,27 +114,6 @@ public class GeminiMetricsRecorder {
       Counter.builder("gemini.streaming.timeout")
           .description("Gemini 스트리밍 5분 타임아웃 발생 횟수")
           .tag("quiz_type", quizType)
-          .register(registry);
-    }
-
-    // 요청 단위 메트릭을 max_chunks 변형별로 미리 등록
-    for (int variant : aiProperties.getChunk().getMaxCountVariants()) {
-      String tag = String.valueOf(variant);
-      Timer.builder("gemini.request.total.duration")
-          .description("요청 시작 → 전체 퀴즈 생성 완료까지 소요 시간")
-          .tag("max_chunks", tag)
-          .register(registry);
-      Timer.builder("gemini.request.first-quiz.duration")
-          .description("요청 시작 → 첫 번째 퀴즈 응답까지 소요 시간")
-          .tag("max_chunks", tag)
-          .register(registry);
-      Timer.builder("gemini.request.spread.duration")
-          .description("첫 번째 퀴즈 응답 ~ 마지막 퀴즈 응답 사이 시간 차이")
-          .tag("max_chunks", tag)
-          .register(registry);
-      Counter.builder("gemini.request.cost")
-          .description("요청 단위 추정 비용 합계 (USD)")
-          .tag("max_chunks", tag)
           .register(registry);
     }
   }
@@ -189,6 +193,20 @@ public class GeminiMetricsRecorder {
   /** ESSAY 채점 실패를 기록한다. */
   public void recordGradingFailure() {
     gradingFailure.increment();
+  }
+
+  /** 문항 품질 검증 완료 메트릭을 기록한다. */
+  public void recordVerify(long elapsedMs, long inputTokens, long outputTokens, double cost) {
+    verifyDuration.record(elapsedMs, TimeUnit.MILLISECONDS);
+    verifyTokensInput.increment(inputTokens);
+    verifyTokensOutput.increment(outputTokens);
+    verifyCost.increment(cost);
+    verifyCount.increment();
+  }
+
+  /** 문항 품질 검증 실패(검증 불가)를 기록한다. */
+  public void recordVerifyFailure() {
+    verifyFailure.increment();
   }
 
   /** 스트리밍 타임아웃 발생을 기록한다. */

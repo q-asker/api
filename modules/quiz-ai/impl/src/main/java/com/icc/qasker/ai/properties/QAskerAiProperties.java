@@ -1,9 +1,6 @@
 package com.icc.qasker.ai.properties;
 
-import com.icc.qasker.ai.ChunkProperties;
 import java.time.Duration;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -13,8 +10,11 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "q-asker.ai")
 public class QAskerAiProperties {
 
-  /** Gemini Chat API 타임아웃 (ms) */
-  private int chatTimeoutMs = 90_000;
+  /** Gemini Chat API 타임아웃 (ms) — q-asker.ai.chat-timeout-ms */
+  private int chatTimeoutMs;
+
+  /** 컨텍스트 캐시 TTL — q-asker.ai.cache-ttl. 한 세트 생성 세션(인터리빙 전체)을 커버하고, 종료 시 명시적으로 삭제한다. */
+  private Duration cacheTtl;
 
   /** Gemini HTTP 클라이언트 시한 계층 (connect < read < call) */
   private GeminiHttp geminiHttp = new GeminiHttp();
@@ -27,39 +27,10 @@ public class QAskerAiProperties {
 
   @Getter
   @Setter
-  public static class Chunk implements ChunkProperties {
+  public static class Chunk {
 
-    /** A/B 테스트 변형 목록 */
-    private List<Integer> maxCountVariants = List.of(10);
-
-    /** 한 Gemini 호출당 요청할 최대 문항 수. requestedCount가 이보다 크면 청크로 분할한다. */
-    private int chunkSize = 10;
-
-    private AtomicInteger roundRobinIndex = new AtomicInteger(0);
-
-    /** 변형 목록에서 순차적으로 하나를 선택한다 (라운드로빈). */
-    public int pickMaxCount() {
-      int index = roundRobinIndex.getAndUpdate(i -> (i + 1) % maxCountVariants.size());
-      return maxCountVariants.get(index);
-    }
-
-    /**
-     * 요청 문항 수를 chunkSize 단위 청크로 분할한다. 마지막 청크는 잔여분만큼.
-     *
-     * <p>예: requestedCount=25, chunkSize=10 → [10, 10, 5]
-     */
-    public List<Integer> planChunks(int requestedCount) {
-      if (requestedCount <= 0) return List.of();
-      int size = Math.max(1, chunkSize);
-      java.util.ArrayList<Integer> plan = new java.util.ArrayList<>();
-      int remaining = requestedCount;
-      while (remaining > 0) {
-        int next = Math.min(size, remaining);
-        plan.add(next);
-        remaining -= next;
-      }
-      return java.util.Collections.unmodifiableList(plan);
-    }
+    /** 한 Gemini 호출당 요청할 최대 문항 수 — q-asker.ai.chunk.chunk-size. requestedCount가 이보다 크면 청크로 분할한다. */
+    private int chunkSize;
   }
 
   @Getter

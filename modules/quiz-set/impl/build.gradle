@@ -12,6 +12,8 @@ dependencies {
     implementation project(":global")
     // quiz-set-api: 퀴즈 데이터 관리 인터페이스·DTO 정의 모듈
     implementation project(":quiz-set-api")
+    // quiz-ai-api: 품질 검증기(QualityVerifier) 인터페이스만 의존 (Pass 2 재검토, 헌법 III)
+    implementation project(":quiz-ai-api")
 
     // ────────────────────────────────
     // 스프링부트 Web & JPA
@@ -29,4 +31,19 @@ dependencies {
     // SpringDoc OpenAPI: API 문서화 어노테이션(@Operation, @Schema) + Swagger UI 제공
     implementation libs.springdoc.openapi.starter.webmvc.ui
 
+    // ────────────────────────────────
+    // 테스트
+    // ────────────────────────────────
+    testImplementation "org.springframework.boot:spring-boot-starter-test"
+    // Boot 4: @DataJpaTest 슬라이스 어노테이션이 모듈별 test 아티팩트로 분리됨
+    testImplementation "org.springframework.boot:spring-boot-starter-data-jpa-test"
+    testImplementation platform(libs.junit.bom)
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+    // H2: @DataJpaTest 임베디드 DB (CI test 프로파일과 동일 계열)
+    testRuntimeOnly "com.h2database:h2"
+
+}
+
+test {
+    useJUnitPlatform()
 }

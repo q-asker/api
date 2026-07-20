@@ -30,7 +30,7 @@ jobs:
 
     steps:
       - name: Checkout backend (q-asker/api)
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
           fetch-depth: 0 # 백엔드 전체 코드 확인 가능하도록
 
@@ -38,7 +38,7 @@ jobs:
         # 프론트엔드 코드까지 읽어야 정확한 작업 분해가 가능하다.
         # FRONTEND_REPO_TOKEN(= q-asker/client read 권한 PAT)이 없으면 실패하지만,
         # continue-on-error로 백엔드 단독 분석으로라도 진행한다(프롬프트에서 한계를 명시).
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         continue-on-error: true
         with:
           repository: q-asker/client
@@ -58,7 +58,7 @@ jobs:
             -f content='eyes'
 
       - name: Run Claude feedback analysis
-        uses: anthropics/claude-code-action@2fee15510437d71399d9139ed60433470484a8fb # v1
+        uses: anthropics/claude-code-action@af0559ee4f514d1ef21826982bed13f7edc3c35e # v1
         with:
           # Max 구독 OAuth 토큰 사용 (renovate-impact-analysis.yml과 동일 시크릿)
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
@@ -167,12 +167,12 @@ jobs:
 
     steps:
       - name: Checkout backend (q-asker/api)
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
           fetch-depth: 0
 
       - name: Checkout frontend (q-asker/client)
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         continue-on-error: true
         with:
           repository: q-asker/client
@@ -181,7 +181,7 @@ jobs:
           fetch-depth: 1
 
       - name: Run Claude follow-up (mention mode)
-        uses: anthropics/claude-code-action@2fee15510437d71399d9139ed60433470484a8fb # v1
+        uses: anthropics/claude-code-action@af0559ee4f514d1ef21826982bed13f7edc3c35e # v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           # /review와 동일하게 Opus 4.8 사용.

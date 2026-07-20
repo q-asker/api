@@ -3,7 +3,6 @@ package com.icc.qasker.quizset.entity;
 import com.icc.qasker.global.entity.CreatedAt;
 import com.icc.qasker.quizset.GenerationStatus;
 import com.icc.qasker.quizset.dto.ferequest.enums.QuizType;
-import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -37,7 +36,8 @@ public class ProblemSet extends CreatedAt {
 
   private String userId;
 
-  @OneToMany(mappedBy = "problemSet", cascade = CascadeType.ALL, orphanRemoval = true)
+  // 읽기 전용 연관관계 — Problem의 생성/수정/삭제는 ProblemRepository로 직접 관리(독립 쓰기 단위)
+  @OneToMany(mappedBy = "problemSet")
   @Builder.Default
   private List<Problem> problems = new ArrayList<>();
 
