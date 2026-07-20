@@ -47,6 +47,11 @@ dependencies {
     implementation project(':board-impl')
     // 관리자 모듈: 어드민 전용 API 엔드포인트
     implementation project(':admin')
+    // 부하 테스트 쓰기 드라이버(LocalWriteController)가 참조하는 API DTO/enum (BoardCategory, QuizType)
+    // — *-impl→*-api는 implementation(비전이)이라 app에 노출되지 않으므로 명시.
+    implementation project(':board-api')
+    implementation project(':quiz-set-api')
+    implementation project(':quiz-ai-api')
 
 
     // ────────────────────────────────

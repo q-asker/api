@@ -14,4 +14,5 @@ spring:
       - config/resilience.yml
       - config/spring-doc.yml
       - application-secrets.yml
+      - config/loadtest.yml
 

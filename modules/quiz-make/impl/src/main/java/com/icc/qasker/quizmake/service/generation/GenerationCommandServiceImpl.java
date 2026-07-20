@@ -14,7 +14,9 @@ import com.icc.qasker.quizmake.dto.ferequest.GenerationRequest;
 import com.icc.qasker.quizset.QuizCommandService;
 import com.icc.qasker.quizset.QuizQueryService;
 import com.icc.qasker.quizset.dto.ferequest.enums.QuizType;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
@@ -61,8 +63,19 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
       throw new CustomException(ExceptionMessage.AI_DUPLICATED_GENERATION);
     }
 
+    Map<String, String> contextMap = MDC.getCopyOfContextMap();
     Thread.ofVirtual()
-        .start(() -> processGenerationAsync(request.sessionId(), problemSetId, request));
+        .start(
+            () -> {
+              if (contextMap != null) {
+                MDC.setContextMap(contextMap);
+              }
+              try {
+                processGenerationAsync(request.sessionId(), problemSetId, request);
+              } finally {
+                MDC.clear();
+              }
+            });
   }
 
   private void processGenerationAsync(

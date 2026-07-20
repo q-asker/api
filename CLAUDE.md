@@ -64,6 +64,7 @@
 ```
 q-asker/api/
 ├── app/                          # 진입점 (Spring Boot Application)
+│   ├── src/main/java/com/icc/qasker/loadtest/  # loadtest 전용 드라이버 (@Profile("loadtest")): LocalSchedulerController(비-controller 스케줄러 로직을 온디맨드 1회 호출해 백그라운드 쿼리 트레이스). read/write 부하는 loadgen.sh가 실 엔드포인트를 직접 태운다(mock 자기정리로 순증 0 — 별도 드라이버 불필요)
 │   └── src/main/resources/
 │       ├── application.yml       # 설정 진입점 (config/ import)
 │       ├── application-secrets.yml  # 암호화된 시크릿
@@ -79,10 +80,11 @@ q-asker/api/
 │           ├── app-common.yml        # 앱 커스텀 설정
 │           ├── github.yml            # 피드백 → GitHub 이슈 자동 등록 (owner/repo/토큰/라벨)
 │           ├── resilience.yml        # Circuit Breaker
-│           └── spring-doc.yml        # Swagger/OpenAPI
+│           ├── spring-doc.yml        # Swagger/OpenAPI
+│           └── loadtest.yml          # loadtest 프로파일 (분석 DB 3307 override, 레이트리밋 비활성)
 ├── modules/
-│   ├── global/                   # 공통 (BaseEntity, ApiResponse, GlobalExceptionHandler, Boot4CompatConfig)
-│   ├── auth/     (api + impl)    # 인증 (JWT, OAuth2, RateLimitFilter)
+│   ├── global/                   # 공통 (BaseEntity, ApiResponse, GlobalExceptionHandler, Boot4CompatConfig, SlackNotifier, GithubIssueClient, loadtest 쿼리 계측)
+│   ├── auth/     (api + impl)    # 인증 (JWT, OAuth2, RateLimitFilter, LocalTokenController=@Profile("loadtest") 토큰 발급 헬퍼)
 │   ├── oci/      (api + impl)    # OCI Object Storage 파일 업로드
 │   ├── board/    (api + impl)    # 게시판
 │   ├── quiz-ai/  (api + impl)    # AI 퀴즈 생성 (Gemini 호출, 메트릭)
@@ -97,7 +99,9 @@ q-asker/api/
 │   ├── base-image/               # Docker 베이스 이미지
 │   ├── blue-green/               # Blue-Green 무중단 배포 (Nginx 트래픽 스위칭, docker-compose, deploy.sh)
 │   └── scripts/
-│       └── oci-mysql-backup/     # OCI MySQL 백업/복구/헬스체크 스크립트 (backup.sh, restore.sh, healthcheck.sh, deploy.sh, env.example, healthcheck.baseline.yml, lib/, systemd/, RESTORE.md) — 리눅스·macOS 호환 (gzip -dc, sha256sum↔shasum 폴백)
+│       ├── oci-mysql-backup/     # OCI MySQL 백업/복구/헬스체크 스크립트 (backup.sh, restore.sh, healthcheck.sh, deploy.sh, env.example, healthcheck.baseline.yml, lib/, systemd/, RESTORE.md) — 리눅스·macOS 호환 (gzip -dc, sha256sum↔shasum 폴백)
+│       ├── query-tuning/         # 쿼리 튜닝 부하 하네스 (스케일 스윕 x1/x10/x100 DB 대상, README.md에 실행 가이드): provision-level.sh(prod-matched config로 127.0.0.1 레벨 컨테이너 생성), loadgen.sh(실 엔드포인트 타격 단일 레시피 — 읽기 GET·실 write[mock 순증 0]·스케줄러·refresh·SSE 생성구독·로그아웃; admin·/local·/upload-doc[외부IO]·/auth/test 외 전 엔드포인트 요청), run-level.sh(레벨별 실행 — 무거운 패스=§① Micrometer seed + 가벼운 패스=§②③ trace_snapshot 귀속 + slow_log 수집), run-all.sh(3레벨 순차 스윕 오케스트레이터 — 레벨→포트→컨테이너 매핑 내장, ROUNDS 등 env 통과)
+│       └── perf-seed/             # 스케일 시딩 (x1 원본 복원본에 배수 시드 추가, FK 정합 유지): seed-scale.sh(작은 테이블 일괄 + problem 배치 시딩·총량 검증), seed-scale-small.sql, seed-scale-problem.sql
 ├── docs/                         # 문서, 분석 자료
 ├── gradle/
 │   ├── libs.versions.toml        # Version Catalog: 모든 의존성/플러그인 버전 SSOT
@@ -116,7 +120,7 @@ q-asker/api/
 
 - 민감한 값은 `application-secrets.yml`에 Jasypt `ENC()`로 암호화하여 관리
 - Jasypt 복호화 키: `JASYPT_PASSWORD` 환경변수 또는 JVM 옵션으로 전달
-- 프로파일: `local` (개발), `prod` (운영), `test` (CI/JUnit)
+- 프로파일: `local` (개발), `prod` (운영), `test` (CI/JUnit), `loadtest` (부하 테스트, `local`에 얹어 실행 — `SPRING_PROFILES_ACTIVE=local,loadtest`), `mock` (AI 외부 호출 우회, 선택적으로 얹어 실행 — MockAIServerAdapter·MockEssayGradingService가 `@Profile("mock")`으로 Gemini 호출 없이 고정 결과 반환)
 - Actuator 포트: 9090 (서비스 포트와 분리)
 - Virtual Threads 활성화 (`spring.threads.virtual.enabled: true`)
 - OCI Object Storage: `~/.oci/config` 파일 기반 인증, `OCI_NAMESPACE`, `OCI_IMAGE_BUCKET_NAME`,
