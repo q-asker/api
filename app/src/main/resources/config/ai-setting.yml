@@ -52,7 +52,7 @@ q-asker:
       price-output-per-1m: 3.00
     quality:
       # 문항 품질 검증 모델 — 경량 flash-lite 계열(저비용·저지연)
-      verify-model: gemini-3.1-flash-lite-preview
+      verify-model: gemini-3.1-flash-lite
       # 검증 모델 토큰 단가 (USD per 1M tokens)
       price-input-per-1m: 0.25
       price-cache-read-per-1m: 0.025  # Pass 1 원문 대조 캐시 읽기 단가(추정) — 입력의 10%
