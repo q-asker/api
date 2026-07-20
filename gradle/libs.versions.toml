@@ -6,11 +6,11 @@ google-cloud = "26.84.0"
 junit = "5.14.4"
 
 # ── Plugins ─────────────────────────────────────────────
-spotless = "7.0.4"
+spotless = "7.2.1"
 google-java-format = "1.25.2"
 dependency-graph-generator = "0.8.0"
 jib = "3.5.3"
-foojay = "0.8.0"
+foojay = "0.10.0"
 
 # ── Libraries ───────────────────────────────────────────
 jasypt = "3.0.5"
