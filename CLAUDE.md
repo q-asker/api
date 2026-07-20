@@ -70,7 +70,7 @@ q-asker/api/
 │       ├── application.yml       # 설정 진입점 (config/ import)
 │       ├── application-secrets.yml  # 암호화된 시크릿
 │       ├── application-test.yml  # test 프로파일 (CI/JUnit, H2 + 더미 Jasypt/OCI)
-│       ├── db/migration/         # Flyway 마이그레이션 SQL (V1~V14)
+│       ├── db/migration/         # Flyway 마이그레이션 SQL (V1~V15)
 │       └── config/               # 분리된 설정 파일들
 │           ├── database-config.yml   # 서버, DB, JPA, 캐시
 │           ├── ai-setting.yml        # Google Gemini AI 설정 (생성/ESSAY 채점/품질 검증 모델, 토큰 단가)
