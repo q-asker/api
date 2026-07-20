@@ -30,7 +30,7 @@ jobs:
 
     steps:
       - name: Checkout backend (q-asker/api)
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
           fetch-depth: 0 # 백엔드 전체 코드 확인 가능하도록
 
@@ -38,7 +38,7 @@ jobs:
         # 프론트엔드 코드까지 읽어야 정확한 작업 분해가 가능하다.
         # FRONTEND_REPO_TOKEN(= q-asker/client read 권한 PAT)이 없으면 실패하지만,
         # continue-on-error로 백엔드 단독 분석으로라도 진행한다(프롬프트에서 한계를 명시).
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         continue-on-error: true
         with:
           repository: q-asker/client
@@ -167,12 +167,12 @@ jobs:
 
     steps:
       - name: Checkout backend (q-asker/api)
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
           fetch-depth: 0
 
       - name: Checkout frontend (q-asker/client)
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         continue-on-error: true
         with:
           repository: q-asker/client
