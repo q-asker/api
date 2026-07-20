@@ -3,7 +3,6 @@ package com.icc.qasker.ai.config;
 import com.google.genai.Client;
 import com.google.genai.types.ClientOptions;
 import com.google.genai.types.HttpOptions;
-import com.icc.qasker.ai.ChunkProperties;
 import com.icc.qasker.ai.properties.QAskerAiProperties;
 import lombok.RequiredArgsConstructor;
 import okhttp3.OkHttpClient;
@@ -45,10 +44,5 @@ public class GeminiClientConfig {
         .apiKey("ci-dummy-key")
         .httpOptions(HttpOptions.builder().timeout(aiProperties.getChatTimeoutMs()).build())
         .build();
-  }
-
-  @Bean
-  public ChunkProperties chunkProperties() {
-    return aiProperties.getChunk();
   }
 }

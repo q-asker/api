@@ -5,6 +5,11 @@ spring:
     properties:
       hibernate:
         default_batch_fetch_size: 100
+        # 배치 저장(문항 saveBatch 등) 시 다수 INSERT/UPDATE를 JDBC 배치로 묶어 DB 왕복 감소.
+        jdbc:
+          batch_size: 30
+        order_updates: true
+        order_inserts: true
 
 ---
 spring:

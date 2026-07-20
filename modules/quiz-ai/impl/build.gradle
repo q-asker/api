@@ -31,6 +31,9 @@ dependencies {
     // Apache PDFBox: PDF 페이지 추출 (Slicing) 기능 제공
     implementation libs.pdfbox
 
+    // Resilience4j: 품질 검증 AI 호출에 aiServer 회로차단 적용 (장애 격리)
+    implementation libs.resilience4j.spring.boot3
+
     // ────────────────────────────────
     // 테스트
     // ────────────────────────────────

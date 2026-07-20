@@ -11,6 +11,7 @@ import com.icc.qasker.quizmake.GenerationCommandService;
 import com.icc.qasker.quizmake.SseNotificationService;
 import com.icc.qasker.quizmake.adapter.AIServerAdapter;
 import com.icc.qasker.quizmake.dto.ferequest.GenerationRequest;
+import com.icc.qasker.quizset.QualityLogService;
 import com.icc.qasker.quizset.QuizCommandService;
 import com.icc.qasker.quizset.QuizQueryService;
 import com.icc.qasker.quizset.dto.ferequest.enums.QuizType;
@@ -30,6 +31,7 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
   private final QuizQueryService quizQueryService;
   private final HashUtil hashUtil;
   private final GenerationResultRecorder resultRecorder;
+  private final QualityLogService qualityLogService;
 
   public GenerationCommandServiceImpl(
       AIServerAdapter aiServerAdapter,
@@ -37,13 +39,15 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
       QuizCommandService quizCommandService,
       QuizQueryService quizQueryService,
       HashUtil hashUtil,
-      GenerationResultRecorder resultRecorder) {
+      GenerationResultRecorder resultRecorder,
+      QualityLogService qualityLogService) {
     this.aiServerAdapter = aiServerAdapter;
     this.notificationService = notificationService;
     this.quizCommandService = quizCommandService;
     this.quizQueryService = quizQueryService;
     this.hashUtil = hashUtil;
     this.resultRecorder = resultRecorder;
+    this.qualityLogService = qualityLogService;
   }
 
   @Override
@@ -90,7 +94,8 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
             quizCommandService,
             quizQueryService,
             notificationService,
-            hashUtil);
+            hashUtil,
+            qualityLogService);
 
     GenerationRequestToAI requestToAI =
         GenerationRequestToAI.builder()
@@ -100,7 +105,7 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
             .quizCount(request.quizCount())
             .referencePages(request.pageNumbers())
             .customInstruction(request.customInstruction())
-            .questionsConsumer(batchConsumer)
+            .sink(batchConsumer)
             .build();
 
     int maxChunkCount;

@@ -22,6 +22,11 @@ public final class AIProblemSetMapper {
     return event;
   }
 
+  /** 단건 AIProblem을 전송/영속용 DTO로 변환한다(배치 인터리빙 Phase 1 저장). */
+  public static QuizGeneratedFromAI toQuiz(AIProblem problem) {
+    return toQuizGeneratedFromAI(problem);
+  }
+
   private static QuizGeneratedFromAI toQuizGeneratedFromAI(AIProblem problem) {
     QuizGeneratedFromAI quiz = new QuizGeneratedFromAI();
     quiz.setTitle(problem.content());

@@ -48,11 +48,24 @@ public enum QuizType implements QuizPromptStrategy {
 
   private final String systemGuideLine;
 
+  /** 문제 생성(Step 1~2)과 해설 생성(Step 3~)의 경계 마커. 청크형 2단계 프롬프트 분리에 사용. */
+  private static final String EXPLANATION_MARKER = "# Step 3 — 해설을 작성한다";
+
   @Override
   public String getSystemGuideLine(String language) {
+    return withLanguage(systemGuideLine, language);
+  }
+
+  /** Phase 1(문제 생성) 시스템 프롬프트 — 해설 작성(Step 3~) 지시를 제외한다. */
+  public String getProblemGuideLine(String language) {
+    String problemPart = systemGuideLine.split(EXPLANATION_MARKER, 2)[0];
+    return withLanguage(problemPart, language);
+  }
+
+  private String withLanguage(String base, String language) {
     return switch (language) {
-      case "EN" -> systemGuideLine + ENGLISH.content;
-      case "KO" -> systemGuideLine;
+      case "EN" -> base + ENGLISH.content;
+      case "KO" -> base;
       default -> throw new CustomException(ExceptionMessage.AI_SERVER_RESPONSE_ERROR);
     };
   }

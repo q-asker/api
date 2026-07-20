@@ -10,14 +10,21 @@ import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.global.ratelimit.RateLimitTier;
 import com.icc.qasker.oci.ObjectStorageService;
+import com.icc.qasker.quizset.ExplanationReviewService;
+import com.icc.qasker.quizset.QualityReviewService;
+import com.icc.qasker.quizset.dto.ExplanationReviewResult;
+import com.icc.qasker.quizset.dto.QualityReviewResult;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -36,6 +43,43 @@ public class AdminController {
   private final BoardAdminService boardAdminService;
   private final ObjectStorageService objectStorageService;
   private final ImageUploadProperties imageUploadProperties;
+  private final QualityReviewService qualityReviewService;
+  private final ExplanationReviewService explanationReviewService;
+
+  @Operation(summary = "세트 품질 재검토를 요청한다(Pass 2, 비동기)")
+  @RateLimit(RateLimitTier.HEAVY)
+  @PostMapping("/problem-sets/{setId}/quality-review")
+  public ResponseEntity<?> requestQualityReview(@PathVariable Long setId) {
+    qualityReviewService.submitReview(setId);
+    return ResponseEntity.accepted().build();
+  }
+
+  @Operation(summary = "여러 세트 품질 재검토를 일괄 요청한다(Pass 2, 비동기)")
+  @RateLimit(RateLimitTier.HEAVY)
+  @PostMapping("/problem-sets/quality-review")
+  public ResponseEntity<?> requestQualityReviewBulk(@RequestBody Map<String, List<Long>> body) {
+    List<Long> setIds = body.getOrDefault("setIds", List.of());
+    qualityReviewService.submitReviewBulk(setIds);
+    return ResponseEntity.accepted().build();
+  }
+
+  @Operation(summary = "세트 품질 재검토 결과를 조회한다")
+  @RateLimit(RateLimitTier.READ)
+  @GetMapping("/problem-sets/{setId}/quality-review")
+  public ResponseEntity<QualityReviewResult> getQualityReviewResult(@PathVariable Long setId) {
+    return qualityReviewService
+        .latestResult(setId)
+        .map(ResponseEntity::ok)
+        .orElseGet(() -> ResponseEntity.status(HttpStatus.NO_CONTENT).build());
+  }
+
+  @Operation(summary = "세트 해설 형식 검증(정규식)을 수행한다")
+  @RateLimit(RateLimitTier.HEAVY)
+  @PostMapping("/problem-sets/{setId}/explanation-review")
+  public ResponseEntity<ExplanationReviewResult> requestExplanationReview(
+      @PathVariable Long setId) {
+    return ResponseEntity.ok(explanationReviewService.review(setId));
+  }
 
   @Operation(summary = "업데이트 로그를 작성한다")
   @RateLimit(RateLimitTier.WRITE)

@@ -25,6 +25,7 @@ public enum ExceptionMessage {
   // ## 퀴즈 (quiz-set)
   PROBLEM_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 문제를 찾을 수 없습니다."),
   PROBLEM_SET_NOT_FOUND(HttpStatus.NOT_FOUND, "문제 세트를 찾을 수 없습니다."),
+  QUALITY_REVIEW_NO_TARGET(HttpStatus.BAD_REQUEST, "품질 재검토할 문항이 없는 세트입니다."),
   FAIL_CONVERT(HttpStatus.INTERNAL_SERVER_ERROR, "컨버팅에 실패했습니다."),
 
   // ## 퀴즈 히스토리 (quiz-history)

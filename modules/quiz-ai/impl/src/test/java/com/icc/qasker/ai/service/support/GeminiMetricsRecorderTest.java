@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.icc.qasker.ai.properties.QAskerAiProperties;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.chat.metadata.Usage;
@@ -18,8 +17,7 @@ import org.springframework.ai.google.genai.metadata.GoogleGenAiUsage;
 class GeminiMetricsRecorderTest {
 
   private GeminiMetricsRecorder recorder() {
-    return new GeminiMetricsRecorder(
-        new SimpleMeterRegistry(), new QAskerAiProperties(), 0.5, 0.05, 3.0);
+    return new GeminiMetricsRecorder(new SimpleMeterRegistry(), 0.5, 0.05, 3.0);
   }
 
   @Test

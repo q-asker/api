@@ -10,6 +10,7 @@ plugins {
     alias(libs.plugins.spotless) apply false
     // 모듈 간 의존성 그래프 시각화 플러그인
     // 예: ./gradlew generateDependencyGraph → build/reports/dependency-graph/ 에 PNG/SVG 생성
+    alias(libs.plugins.hibernate.orm) apply false
     alias(libs.plugins.dependency.graph.generator)
 }
 
@@ -88,11 +89,11 @@ tasks.register("dependencyGraphStyled") {
         def appToImpl = edges.findAll { it.from == ":app" && it.to.endsWith("-impl") }
         def implToOwnApi = edges.findAll { e ->
             e.from.endsWith("-impl") && e.to.endsWith("-api") &&
-            e.from.replace("-impl", "") == e.to.replace("-api", "")
+                e.from.replace("-impl", "") == e.to.replace("-api", "")
         }
         def crossDeps = edges.findAll { e ->
             e.from.endsWith("-impl") && e.to.endsWith("-api") &&
-            e.from.replace("-impl", "") != e.to.replace("-api", "")
+                e.from.replace("-impl", "") != e.to.replace("-api", "")
         }
         def apiToApi = edges.findAll { e ->
             e.from.endsWith("-api") && e.to.endsWith("-api")
@@ -232,7 +233,7 @@ subprojects {
     tasks.register("resolveAndLockAll") {
         notCompatibleWithConfigurationCache("Filters configurations at execution time")
         doFirst {
-            assert gradle.startParameter.writeDependencyLocks : "--write-locks 플래그와 함께 실행하세요"
+            assert gradle.startParameter.writeDependencyLocks: "--write-locks 플래그와 함께 실행하세요"
         }
         doLast {
             configurations.findAll { it.canBeResolved }*.resolve()
@@ -324,6 +325,35 @@ subprojects {
         }
     }
 
+    configurations.configureEach {
+        resolutionStrategy.eachDependency {
+            if (it.requested.group == 'org.hibernate.orm') {
+                it.useVersion(libs.versions.hibernate.orm.get())
+            }
+        }
+    }
+
+    // Hibernate 바이트코드 인핸스먼트 — 컴파일타임 계측(dirty tracking + 필드 지연 로딩).
+    // 플러그인은 모든 모듈에 항상 적용해 의존성·gradle.lockfile 상태를 고정한다(플러그인을 통째로 빼면
+    // hibernate-core 등 의존성이 사라져 lock 불일치로 빌드 실패).
+    //
+    // 계측(`enhancement {}`)은 **기본 OFF**이며 `-PenableHibernateEnhancement`로만 켠다. 이유:
+    //   - 인핸서는 모듈 내 엔티티가 아닌 클래스(서비스·설정 등)까지 훑는데, Gradle 데몬 JVM에 따라
+    //     특정 클래스(예: QualityReviewServiceImpl, QAskerAiProperties$Chunk)에서
+    //     "Unable to enhance class"로 컴파일이 깨진다(IntelliJ 데몬에서 재현, CLI에서는 통과 — 환경 편차).
+    //   - 쓰기 축 이득은 이 규모에서 무시할 수준으로 실측됨(perf-seed 조사). 상시 켤 가치가 낮다.
+    //   - @DynamicUpdate(부분 컬럼 UPDATE)는 인핸스먼트 없이도 동작하고, 미변경 행 UPDATE 스킵도
+    //     표준 dirty-check로 동일하게 성립한다. @LazyGroup는 계측이 없으면 즉시 로딩으로 폴백(무해).
+    // A/B 측정 시에만 `-PenableHibernateEnhancement`로 계측 켠 빌드를 산출한다
+    // (infra/scripts/perf-seed/measure-write.sh). **켠 빌드는 반드시 `clean` 후 재빌드**해야
+    // 이전 계측 클래스 캐시와 섞이지 않는다. 계측 의존 기능은 현재 quiz-set-impl에만 존재한다.
+    apply plugin: 'org.hibernate.orm'
+    if (project.path == ':quiz-set-impl' && project.hasProperty('enableHibernateEnhancement')) {
+        hibernate {
+            enhancement {}
+        }
+    }
+
     tasks.withType(Test).configureEach {
         // JUnit 5(Jupiter) 테스트 엔진 활성화
         // 예: 이 설정이 없으면 @Test 어노테이션을 찾지 못해 "No tests found" 오류 발생
@@ -331,6 +361,16 @@ subprojects {
         // 테스트 실행 중 System.out/err 출력을 콘솔에 표시
         testLogging {
             showStandardStreams = true
+        }
+        // 벤치마크용 옵트인 튜닝(기본 CI 메모리 불변) — `-PtestMaxHeap=2g`, `-PtestMinHeap=2g`, `-PtestGcLog`
+        if (project.hasProperty('testMaxHeap')) {
+            maxHeapSize = project.property('testMaxHeap')
+        }
+        if (project.hasProperty('testMinHeap')) {
+            minHeapSize = project.property('testMinHeap')
+        }
+        if (project.hasProperty('testGcLog')) {
+            jvmArgs += ['-Xlog:gc*:stdout:time,level,tags']
         }
     }
 

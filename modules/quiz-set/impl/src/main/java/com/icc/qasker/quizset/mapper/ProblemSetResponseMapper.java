@@ -6,9 +6,7 @@ import com.icc.qasker.quizset.dto.feresponse.ProblemSetResponse.QuizForFe;
 import com.icc.qasker.quizset.dto.feresponse.ProblemSetResponse.QuizForFe.SelectionForFE;
 import com.icc.qasker.quizset.entity.Problem;
 import com.icc.qasker.quizset.entity.ProblemSet;
-import com.icc.qasker.quizset.entity.Selection;
 import java.util.List;
-import java.util.stream.IntStream;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -20,33 +18,37 @@ public final class ProblemSetResponseMapper {
   private final HashUtil hashUtil;
 
   public QuizForFe fromEntity(Problem problem) {
+    // 풀이 응답 경량화: 문항 해설·선지별 해설은 FE 미사용(실증)이므로 값을 비운다.
+    // getExplanationContent()를 호출하지 않아 lazy 컬럼 초기화(N+1)를 유발하지 않는다 — Q6 lazy의 성립 조건.
     List<SelectionForFE> selections =
-        IntStream.range(0, problem.getSelections().size())
-            .mapToObj(
-                i -> {
-                  Selection sel = problem.getSelections().get(i);
-                  return new SelectionForFE(i + 1, sel.content(), sel.explanation(), sel.correct());
-                })
-            .toList();
+        QuizMappingSupport.mapSelections(
+            problem.getSelections(),
+            (id, sel) -> new SelectionForFE(id, sel.content(), null, sel.correct()));
 
     return new QuizForFe(
         problem.getId().getNumber(),
         problem.getTitle(),
-        0,
-        false,
+        QuizMappingSupport.UNANSWERED_USER_ANSWER,
+        QuizMappingSupport.UNCHECKED,
         selections,
-        problem.getExplanationContent(),
+        null,
         problem.getAppliedInstruction());
   }
 
   public ProblemSetResponse fromEntity(ProblemSet problemSet) {
-    List<QuizForFe> quizzes = problemSet.getProblems().stream().map(this::fromEntity).toList();
+    return toResponse(problemSet, problemSet.getProblems());
+  }
+
+  /** 세트 메타데이터는 problemSet에서, 문항 목록은 전달받은 problems에서 조립한다. */
+  public ProblemSetResponse toResponse(ProblemSet problemSet, List<Problem> problems) {
+    List<QuizForFe> quizzes = problems.stream().map(this::fromEntity).toList();
 
     return new ProblemSetResponse(
         problemSet.getSessionId(),
         hashUtil.encode(problemSet.getId()),
         problemSet.getTitle(),
-        problemSet.getGenerationStatus(),
+        // PROBLEMS_READY(내부 전용)는 COMPLETED로 번역 — 구 FE 로딩 hang 방지
+        problemSet.getGenerationStatus().toClientVisible(),
         problemSet.getQuizType(),
         problemSet.getTotalQuizCount(),
         quizzes);

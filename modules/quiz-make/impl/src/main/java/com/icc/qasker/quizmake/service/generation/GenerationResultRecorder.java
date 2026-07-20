@@ -1,6 +1,5 @@
 package com.icc.qasker.quizmake.service.generation;
 
-import com.icc.qasker.ai.ChunkProperties;
 import com.icc.qasker.quizset.dto.ferequest.enums.QuizType;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -13,13 +12,9 @@ public class GenerationResultRecorder {
   private final GenerationSlackNotifier slackNotifier;
   private final MeterRegistry registry;
 
-  public GenerationResultRecorder(
-      GenerationSlackNotifier slackNotifier,
-      MeterRegistry registry,
-      ChunkProperties chunkProperties) {
+  public GenerationResultRecorder(GenerationSlackNotifier slackNotifier, MeterRegistry registry) {
     this.slackNotifier = slackNotifier;
     this.registry = registry;
-    var maxChunkVariants = chunkProperties.getMaxCountVariants();
 
     // 모든 QuizType × outcome/metric 조합을 미리 등록
     for (QuizType qt : QuizType.values()) {
@@ -35,19 +30,6 @@ public class GenerationResultRecorder {
             .description("퀴즈 생성 요청 횟수 (타입+문제수별)")
             .tag("quiz_type", type)
             .tag("quiz_count", String.valueOf(quizCount))
-            .register(registry);
-      }
-      for (int maxChunks : maxChunkVariants) {
-        String chunks = String.valueOf(maxChunks);
-        Counter.builder("quiz.generation.quizzes.requested")
-            .description("요청된 퀴즈 문제 수 누적")
-            .tag("quiz_type", type)
-            .tag("max_chunks", chunks)
-            .register(registry);
-        Counter.builder("quiz.generation.quizzes.generated")
-            .description("실제 생성된 퀴즈 문제 수 누적")
-            .tag("quiz_type", type)
-            .tag("max_chunks", chunks)
             .register(registry);
       }
     }

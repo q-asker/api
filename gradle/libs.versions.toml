@@ -11,6 +11,7 @@ google-java-format = "1.25.2"
 dependency-graph-generator = "0.8.0"
 jib = "3.5.3"
 foojay = "1.0.0"
+hibernate-orm = "7.4.4.Final"
 
 # ── Libraries ───────────────────────────────────────────
 jasypt = "3.0.5"
@@ -52,3 +53,4 @@ dependency-graph-generator = { id = "com.vanniktech.dependency.graph.generator",
 jib = { id = "com.google.cloud.tools.jib", version.ref = "jib" }
 # settings.gradle에서 직접 alias를 쓸 수 없어 marker로만 등록 (Renovate가 이 항목을 보고 업데이트 PR 생성)
 foojay-resolver-convention = { id = "org.gradle.toolchains.foojay-resolver-convention", version.ref = "foojay" }
+hibernate-orm = { id = "org.hibernate.orm", version.ref = "hibernate-orm" }

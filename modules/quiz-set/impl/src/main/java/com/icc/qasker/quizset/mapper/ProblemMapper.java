@@ -13,6 +13,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+/** 전송 DTO → Problem(순수 서빙) 매핑. 품질/생성 근거는 problem_quality_log로 분리되어 여기서 다루지 않는다. */
 @Component
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ProblemMapper {
