@@ -4,6 +4,7 @@ import com.icc.qasker.global.annotation.RateLimit;
 import com.icc.qasker.global.annotation.UserId;
 import com.icc.qasker.global.ratelimit.RateLimitTier;
 import com.icc.qasker.quizhistory.QuizHistoryCommandService;
+import com.icc.qasker.quizhistory.dto.ferequest.AssignFolderRequest;
 import com.icc.qasker.quizhistory.dto.ferequest.ChangeHistoryTitleRequest;
 import com.icc.qasker.quizhistory.dto.ferequest.InitHistoryRequest;
 import com.icc.qasker.quizhistory.dto.ferequest.SaveHistoryRequest;
@@ -63,6 +64,17 @@ public class QuizHistoryCommandController {
       @PathVariable String historyId,
       @Valid @RequestBody ChangeHistoryTitleRequest request) {
     quizHistoryCommandService.updateHistoryTitle(userId, historyId, request.title());
+  }
+
+  @Operation(summary = "퀴즈 기록을 폴더에 배정하거나 미분류로 해제한다 (folderId=null이면 해제)")
+  @RateLimit(RateLimitTier.WRITE)
+  @PatchMapping("/{historyId}/folder")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  public void assignFolder(
+      @UserId String userId,
+      @PathVariable String historyId,
+      @RequestBody AssignFolderRequest request) {
+    quizHistoryCommandService.assignFolder(userId, historyId, request.folderId());
   }
 
   @Operation(summary = "특정 퀴즈 기록을 삭제한다")

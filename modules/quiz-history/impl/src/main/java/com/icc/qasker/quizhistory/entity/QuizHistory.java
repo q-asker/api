@@ -43,6 +43,9 @@ public class QuizHistory extends CreatedAt {
   @Column(nullable = false)
   private Long problemSetId;
 
+  /** 소속 폴더 id. null이면 미분류(어느 폴더에도 속하지 않음). */
+  @Column private Long folderId;
+
   @Column(length = 100)
   private String title;
 
@@ -61,6 +64,11 @@ public class QuizHistory extends CreatedAt {
 
   public void updateTitle(String title) {
     this.title = title;
+  }
+
+  /** 폴더 배정/해제. folderId가 null이면 미분류로 되돌린다(단일 소속: 기존 소속을 덮어씀). */
+  public void assignFolder(Long folderId) {
+    this.folderId = folderId;
   }
 
   public void completeQuiz(List<AnswerSnapshot> answers, Integer score, String totalTime) {

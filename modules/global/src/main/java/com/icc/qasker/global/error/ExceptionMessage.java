@@ -30,6 +30,9 @@ public enum ExceptionMessage {
 
   // ## 퀴즈 히스토리 (quiz-history)
   QUIZ_HISTORY_NOT_FOUND(HttpStatus.NOT_FOUND, "퀴즈 히스토리를 찾을 수 없습니다."),
+  FOLDER_NOT_FOUND(HttpStatus.NOT_FOUND, "폴더를 찾을 수 없습니다."),
+  FOLDER_LIMIT_EXCEEDED(HttpStatus.CONFLICT, "폴더는 최대 100개까지 만들 수 있습니다."),
+  FOLDER_NAME_INVALID(HttpStatus.BAD_REQUEST, "폴더 이름은 1자 이상 50자 이하여야 합니다."),
 
   // ## AI (quiz-ai, quiz-make)
   AI_SERVER_COMMUNICATION_ERROR(

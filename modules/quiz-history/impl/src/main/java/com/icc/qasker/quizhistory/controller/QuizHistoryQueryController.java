@@ -2,6 +2,7 @@ package com.icc.qasker.quizhistory.controller;
 
 import com.icc.qasker.global.annotation.UserId;
 import com.icc.qasker.quizhistory.QuizHistoryQueryService;
+import com.icc.qasker.quizhistory.dto.ferequest.HistoryScope;
 import com.icc.qasker.quizhistory.dto.feresponse.EssayHistoryDetailResponse;
 import com.icc.qasker.quizhistory.dto.feresponse.HistoryCheckResponse;
 import com.icc.qasker.quizhistory.dto.feresponse.HistoryDetailResponse;
@@ -36,13 +37,16 @@ public class QuizHistoryQueryController {
     return ResponseEntity.ok(quizHistoryQueryService.checkHistory(userId, problemSetId));
   }
 
-  @Operation(summary = "내 퀴즈 히스토리 목록을 페이지 단위로 조회한다")
+  @Operation(summary = "내 퀴즈 히스토리 목록을 페이지 단위로 조회한다 (전체/미분류/특정 폴더)")
   @GetMapping
   public ResponseEntity<HistoryPageResponse> getHistoryList(
       @UserId String userId,
+      @RequestParam(defaultValue = "ALL") HistoryScope scope,
+      @RequestParam(required = false) String folderId,
       @RequestParam(defaultValue = "0") int page,
       @RequestParam(defaultValue = "20") int size) {
-    return ResponseEntity.ok(quizHistoryQueryService.getHistoryList(userId, page, size));
+    return ResponseEntity.ok(
+        quizHistoryQueryService.getHistoryList(userId, scope, folderId, page, size));
   }
 
   @Operation(summary = "퀴즈 히스토리 상세를 조회한다 (문제 + 답안 + 정답)")

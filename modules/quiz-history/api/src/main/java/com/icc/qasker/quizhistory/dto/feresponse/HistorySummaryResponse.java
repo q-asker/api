@@ -12,4 +12,6 @@ public record HistorySummaryResponse(
     int totalCount,
     boolean completed,
     Integer score,
-    Instant takenAt) {}
+    Instant takenAt,
+    String folderId,
+    String folderName) {}
