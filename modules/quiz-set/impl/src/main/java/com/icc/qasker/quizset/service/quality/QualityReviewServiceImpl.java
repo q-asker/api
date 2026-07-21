@@ -75,16 +75,6 @@ public class QualityReviewServiceImpl implements QualityReviewService {
 
   @Async
   @Override
-  public void submitReview(Long problemSetId) {
-    try {
-      review(List.of(problemSetId));
-    } catch (CustomException e) {
-      log.info("[품질 재검토] 비동기 세트 {} 스킵/실패: {}", problemSetId, e.getMessage());
-    }
-  }
-
-  @Async
-  @Override
   public void submitReviewBulk(List<Long> problemSetIds) {
     try {
       review(problemSetIds);

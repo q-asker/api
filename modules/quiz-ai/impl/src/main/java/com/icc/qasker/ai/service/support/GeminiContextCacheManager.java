@@ -2,6 +2,7 @@ package com.icc.qasker.ai.service.support;
 
 import com.google.genai.types.Content;
 import com.google.genai.types.Part;
+import com.icc.qasker.ai.dto.CacheRef;
 import java.time.Duration;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
@@ -23,9 +24,6 @@ public final class GeminiContextCacheManager {
   public GeminiContextCacheManager(ChatModel chatModel) {
     this.chatModel = chatModel;
   }
-
-  /** 생성된 컨텍스트 캐시 참조(리소스 이름 + 생성 모델). 추론 요청은 반드시 동일 모델을 써야 한다(불일치 시 Vertex 400). */
-  public record CacheRef(String name, String model) {}
 
   /** ChatModel의 기본 모델. GoogleGenAiChatModel이 아니거나 모델이 비었으면 empty. */
   public Optional<String> defaultModel() {

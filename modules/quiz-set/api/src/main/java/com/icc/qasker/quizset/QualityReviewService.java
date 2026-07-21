@@ -13,9 +13,6 @@ public interface QualityReviewService {
   /** 단일 세트를 재검토한다. 품질 로그 보유 문항이 없으면 예외(단건 400). */
   void review(List<Long> problemSetId);
 
-  /** 단일 세트 재검토를 비동기로 트리거한다(운영자 엔드포인트 — 즉시 202 반환용). */
-  void submitReview(Long problemSetId);
-
   /** 여러 세트 재검토를 비동기로 트리거한다. */
   void submitReviewBulk(List<Long> problemSetIds);
 

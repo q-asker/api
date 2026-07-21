@@ -13,7 +13,7 @@ spring:
 
 q-asker:
   ai:
-    chat-timeout-ms: 360000
+    chat-timeout-ms: 500000
     cache-ttl: 15m          # 컨텍스트 캐시 TTL (인터리빙 세션 커버)
     # 스트리밍 시한 계층 (connect < read < call). 안쪽 시한이 바깥보다 짧아야
     # 각 계층이 자기 실패를 자기 이름의 예외로 먼저 잡는다 — 순서가 무너지면 바깥층이

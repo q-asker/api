@@ -8,6 +8,11 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class EssayRequestPrompt {
 
+  /** 청크 K(K≥2) 유저 프롬프트 꼬리에 붙는 중복 회피 지침. */
+  public static final String DEDUP_INSTRUCTION =
+      "\n\n> **CRITICAL RULE**: 위 직전 문항 목록과 질문 주제·요구 인지수준(Bloom's)·모범답안 논점이 겹치지 않게"
+          + " 이번 청크 문항을 작성한다. 동일·유사한 개념은 다른 강의노트 페이지·다른 분석 각도로 재구성한다.";
+
   private static final String APPLIED_INSTRUCTION_SPEC =
       """
       # 사용자 지시 반영

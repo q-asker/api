@@ -4,6 +4,7 @@ import com.icc.qasker.global.component.HashUtil;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.quizhistory.QuizHistoryQueryService;
+import com.icc.qasker.quizhistory.dto.ferequest.HistoryScope;
 import com.icc.qasker.quizhistory.dto.feresponse.EssayHistoryDetailResponse;
 import com.icc.qasker.quizhistory.dto.feresponse.EssayHistoryDetailResponse.EssayProblemWithGrade;
 import com.icc.qasker.quizhistory.dto.feresponse.HistoryCheckResponse;
@@ -13,9 +14,11 @@ import com.icc.qasker.quizhistory.dto.feresponse.HistorySummaryResponse;
 import com.icc.qasker.quizhistory.dto.feresponse.ProblemWithAnswer;
 import com.icc.qasker.quizhistory.entity.AnswerSnapshotView;
 import com.icc.qasker.quizhistory.entity.EssayGradeLog;
+import com.icc.qasker.quizhistory.entity.QuizFolder;
 import com.icc.qasker.quizhistory.entity.QuizHistory;
 import com.icc.qasker.quizhistory.mapper.QuizHistoryMapper;
 import com.icc.qasker.quizhistory.repository.EssayGradeLogRepository;
+import com.icc.qasker.quizhistory.repository.QuizFolderRepository;
 import com.icc.qasker.quizhistory.repository.QuizHistoryRepository;
 import com.icc.qasker.quizset.ProblemSetReadService;
 import com.icc.qasker.quizset.dto.readonly.ProblemDetail;
@@ -28,6 +31,7 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,18 +41,19 @@ import org.springframework.transaction.annotation.Transactional;
 public class QuizHistoryQueryServiceImpl implements QuizHistoryQueryService {
 
   private final QuizHistoryRepository quizHistoryRepository;
+  private final QuizFolderRepository quizFolderRepository;
   private final EssayGradeLogRepository essayGradeLogRepository;
   private final ProblemSetReadService problemSetReadService;
   private final HashUtil hashUtil;
   private final QuizHistoryMapper quizHistoryMapper;
 
   @Override
-  public HistoryPageResponse getHistoryList(String userId, int page, int size) {
+  public HistoryPageResponse getHistoryList(
+      String userId, HistoryScope scope, String folderId, int page, int size) {
 
-    // 페이지 단위로 히스토리 조회
+    // 페이지 단위로 히스토리 조회 (탐색 범위 3종: 전체/미분류/특정 폴더)
     Pageable pageable = Pageable.ofSize(size).withPage(page);
-    Page<QuizHistory> historyPage =
-        quizHistoryRepository.findAllByUserIdOrderByCreatedAtDesc(userId, pageable);
+    Page<QuizHistory> historyPage = loadHistoryPage(userId, scope, folderId, pageable);
 
     List<QuizHistory> histories = historyPage.getContent();
     if (histories.isEmpty()) {
@@ -67,14 +72,33 @@ public class QuizHistoryQueryServiceImpl implements QuizHistoryQueryService {
         problemSetReadService.findProblemSetsByIds(problemSetIds).stream()
             .collect(Collectors.toMap(ProblemSetSummary::id, Function.identity()));
 
+    // 소속 폴더명 IN 쿼리 1번으로 일괄 조회 후 Map으로 변환 (미분류 기록은 조회 대상 아님)
+    List<Long> folderIds =
+        histories.stream()
+            .map(QuizHistory::getFolderId)
+            .filter(Objects::nonNull)
+            .distinct()
+            .toList();
+    Map<Long, String> folderNameMap =
+        folderIds.isEmpty()
+            ? Map.of()
+            : quizFolderRepository.findAllById(folderIds).stream()
+                .collect(Collectors.toMap(QuizFolder::getId, QuizFolder::getName));
+
     List<HistorySummaryResponse> content =
         histories.stream()
             .map(
-                history ->
-                    problemSetMap.get(history.getProblemSetId()) == null
-                        ? null
-                        : quizHistoryMapper.toSummary(
-                            history, problemSetMap.get(history.getProblemSetId())))
+                history -> {
+                  ProblemSetSummary problemSet = problemSetMap.get(history.getProblemSetId());
+                  if (problemSet == null) {
+                    return null;
+                  }
+                  String folderName =
+                      history.getFolderId() == null
+                          ? null
+                          : folderNameMap.get(history.getFolderId());
+                  return quizHistoryMapper.toSummary(history, problemSet, folderName);
+                })
             .filter(Objects::nonNull)
             .toList();
 
@@ -84,6 +108,23 @@ public class QuizHistoryQueryServiceImpl implements QuizHistoryQueryService {
         historyPage.getTotalPages(),
         historyPage.getNumber(),
         historyPage.getSize());
+  }
+
+  private Page<QuizHistory> loadHistoryPage(
+      String userId, HistoryScope scope, String folderId, Pageable pageable) {
+    return switch (scope) {
+      case ALL -> quizHistoryRepository.findAllByUserIdOrderByCreatedAtDesc(userId, pageable);
+      case UNCLASSIFIED ->
+          quizHistoryRepository.findAllByUserIdAndFolderIdIsNullOrderByCreatedAtDesc(
+              userId, pageable);
+      case FOLDER -> {
+        if (folderId == null || folderId.isBlank()) {
+          throw new CustomException(HttpStatus.BAD_REQUEST, "folderId가 필요합니다.");
+        }
+        yield quizHistoryRepository.findAllByUserIdAndFolderIdOrderByCreatedAtDesc(
+            userId, hashUtil.decode(folderId), pageable);
+      }
+    };
   }
 
   @Override

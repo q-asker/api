@@ -6,6 +6,8 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
@@ -167,7 +169,7 @@ class GenerationCommandServiceImplTest {
   @DisplayName("finalize: 생성 수가 0이면 FAILED 상태로 마감하고 에러를 기록한다")
   void finalize_marks_failed_when_nothing_generated() {
     GenerationRequest request = request(QuizType.MULTIPLE);
-    when(aiServerAdapter.streamRequest(any())).thenReturn(3);
+    // streamRequest는 아무 문항도 전달하지 않는다(mock 기본 no-op) → generatedCount 0 → FAILED
 
     service.triggerGeneration("user-1", request);
 
@@ -207,7 +209,7 @@ class GenerationCommandServiceImplTest {
   @DisplayName("finalize: 스트림 예외 발생 시 FAILED 상태로 마감한다")
   void finalize_marks_failed_when_stream_throws() {
     GenerationRequest request = request(QuizType.MULTIPLE);
-    when(aiServerAdapter.streamRequest(any())).thenThrow(new RuntimeException("boom"));
+    doThrow(new RuntimeException("boom")).when(aiServerAdapter).streamRequest(any());
 
     service.triggerGeneration("user-1", request);
 
@@ -231,15 +233,16 @@ class GenerationCommandServiceImplTest {
               List<Integer> nums = invocation.getArgument(1);
               return nums.stream().map(this::quizView).toList();
             });
-    when(aiServerAdapter.streamRequest(any()))
-        .thenAnswer(
+    doAnswer(
             invocation -> {
               GenerationRequestToAI req = invocation.getArgument(0);
               for (int i = 0; i < deliverCount; i++) {
                 req.sink().saveProblem(multipleProblem());
               }
-              return 3;
-            });
+              return null;
+            })
+        .when(aiServerAdapter)
+        .streamRequest(any());
   }
 
   private AIProblem multipleProblem() {

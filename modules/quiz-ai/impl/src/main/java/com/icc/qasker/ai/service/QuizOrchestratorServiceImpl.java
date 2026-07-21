@@ -23,11 +23,11 @@ public class QuizOrchestratorServiceImpl implements QuizOrchestrationService {
   }
 
   @Override
-  public int generateQuiz(GenerationRequestToAI request) {
+  public void generateQuiz(GenerationRequestToAI request) {
     QuizTypeOrchestrator orchestrator = orchestrators.get(request.strategyValue());
     if (orchestrator == null) {
       throw new CustomException(ExceptionMessage.AI_SERVER_RESPONSE_ERROR);
     }
-    return orchestrator.generateQuiz(request);
+    orchestrator.generateQuiz(request);
   }
 }

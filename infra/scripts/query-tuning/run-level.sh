@@ -4,10 +4,24 @@
 set -euo pipefail
 PORT="$1"; CONTAINER="$2"; LABEL="$3"
 cd /Users/ohyoungje/Desktop/Project/q-asker/api
-JAR="$(ls -t app/build/libs/app-*.jar 2>/dev/null | head -1)"
+# -plain.jar(Main-Class 없는 비실행 jar)는 제외 — 실행 가능한 bootJar 산출물만 고른다.
+JAR="$(ls -t app/build/libs/app-*.jar 2>/dev/null | grep -v -- '-plain\.jar$' | head -1)"
 LOG="/tmp/qasker-lt-$LABEL.log"
 
 echo "════════ 레벨 $LABEL ($CONTAINER:$PORT) ════════"
+# 레벨 DB 기동 보장 — 정지 상태면 start 후 준비 대기(손으로 껐다 켤 필요 없음).
+#  컨테이너 자체가 없으면 재시딩(수백만 행)이 필요하므로 자동 생성하지 않고 안내 후 중단.
+if ! docker inspect "$CONTAINER" >/dev/null 2>&1; then
+  echo "[$LABEL] 컨테이너 $CONTAINER 없음 — provision-level.sh + seed-scale.sh 로 먼저 생성·시딩하세요(README 1·2)"; exit 1
+fi
+if [ "$(docker inspect -f '{{.State.Running}}' "$CONTAINER" 2>/dev/null)" != "true" ]; then
+  docker start "$CONTAINER" >/dev/null
+  echo -n "[$LABEL] $CONTAINER 기동 대기"
+  until docker exec -e MYSQL_PWD=password "$CONTAINER" mysql -uroot -N -e "SELECT 1" 2>/dev/null | grep -q 1; do
+    echo -n "."; sleep 1
+  done
+  echo " ready"
+fi
 # 이전 앱 잔재 정리
 lsof -ti:8080 2>/dev/null | xargs kill -9 2>/dev/null || true
 
@@ -31,7 +45,10 @@ export MANAGEMENT_METRICS_TAGS_SEED="$LABEL"
 : > "$LOG"
 java -jar "$JAR" >> "$LOG" 2>&1 &
 APP_PID=$!
-trap 'kill $APP_PID 2>/dev/null || true; wait $APP_PID 2>/dev/null || true' EXIT
+# SIGKILL 로 즉시 종료 — SIGTERM(graceful)이면 loadgen이 열어둔 SSE 요청이 끝나길 기다려
+#  app-common.yml 의 timeout-per-shutdown-phase(300s)를 매 레벨 다 채우고, 그동안 wait 가 블록돼
+#  run-all 이 다음 레벨로 못 넘어간다. 일회용 부하 JVM + 일회용 분석 DB(mock 쓰기 순증 0)라 강제종료 안전.
+trap 'kill -9 $APP_PID 2>/dev/null || true; wait $APP_PID 2>/dev/null || true' EXIT
 
 for i in $(seq 1 45); do
   code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 2 http://localhost:8080/v3/api-docs || echo 000)

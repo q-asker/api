@@ -46,6 +46,7 @@ public class ExplanationReviewServiceImpl implements ExplanationReviewService {
       String explanation =
           log.getV2Explanation() != null ? log.getV2Explanation() : log.getV1Explanation();
       ExplanationFormatValidator.Result result = validator.validate(explanation);
+
       if (!result.passed()) {
         // 형식 미달 문항만 review 마킹 → dirty subset. 통과분은 무변경(flush 스킵).
         log.markExplanationReview(result.summary());

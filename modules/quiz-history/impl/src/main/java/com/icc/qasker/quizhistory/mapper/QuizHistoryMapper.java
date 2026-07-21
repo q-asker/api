@@ -26,13 +26,15 @@ public final class QuizHistoryMapper {
 
   private final HashUtil hashUtil;
 
-  /** QuizHistory + ProblemSetSummary → HistorySummaryResponse 변환 */
-  public HistorySummaryResponse toSummary(QuizHistory history, ProblemSetSummary problemSet) {
+  /** QuizHistory + ProblemSetSummary → HistorySummaryResponse 변환. folderName은 미분류면 null. */
+  public HistorySummaryResponse toSummary(
+      QuizHistory history, ProblemSetSummary problemSet, String folderName) {
     boolean completed =
         switch (history.getStatus()) {
           case COMPLETED -> true;
           case INCOMPLETE -> false;
         };
+    String folderId = history.getFolderId() == null ? null : hashUtil.encode(history.getFolderId());
     return new HistorySummaryResponse(
         hashUtil.encode(problemSet.id()),
         history.getTitle(),
@@ -42,7 +44,9 @@ public final class QuizHistoryMapper {
         problemSet.totalQuizCount(),
         completed,
         history.getScore(),
-        history.getCreatedAt());
+        history.getCreatedAt(),
+        folderId,
+        folderName);
   }
 
   /** ProblemDetail + 답안 스냅샷 → ProblemWithAnswer(객관식 상세) 변환. 정답 인덱스와 사용자 답을 비교해 정오답을 판정한다. */

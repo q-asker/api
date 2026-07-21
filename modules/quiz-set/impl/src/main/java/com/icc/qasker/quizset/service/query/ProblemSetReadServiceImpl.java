@@ -34,7 +34,9 @@ public class ProblemSetReadServiceImpl implements ProblemSetReadService {
 
   @Override
   public List<ProblemDetail> findProblemsByProblemSetId(Long problemSetId) {
-    return problemRepository.findByIdProblemSetId(problemSetId).stream()
+    // toDetail이 explanationContent(@LazyGroup)를 읽으므로, @EntityGraph로 한 쿼리에 함께 페치해
+    // 문항마다 explanation을 개별 SELECT하는 N+1을 막는다.
+    return problemRepository.findExplanationsBySetId(problemSetId).stream()
         .map(this::toDetail)
         .toList();
   }

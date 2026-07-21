@@ -10,6 +10,9 @@ public class CustomException extends RuntimeException {
   private final String message;
   private final String context;
 
+  // 안정적 오류 식별 코드(ExceptionMessage 상수명). 동적 메시지 생성자에서는 null.
+  private final String code;
+
   // 기본 사용: 정의된 예외 메시지만으로 충분할 때
   // 예) throw new CustomException(ExceptionMessage.NOT_FOUND);
   // 로그) ERROR 해당 리소스를 찾을 수 없습니다
@@ -20,6 +23,7 @@ public class CustomException extends RuntimeException {
     this.httpStatus = exceptionMessage.getHttpStatus();
     this.message = exceptionMessage.getMessage();
     this.context = null;
+    this.code = exceptionMessage.name();
   }
 
   // 동적 메시지: 정의되지 않은 상태 코드와 메시지를 직접 지정할 때
@@ -32,6 +36,7 @@ public class CustomException extends RuntimeException {
     this.httpStatus = httpStatus;
     this.message = message;
     this.context = null;
+    this.code = null;
   }
 
   // 디버깅 컨텍스트 포함: 로그에 부가 정보(ID, 파라미터 등)를 남길 때
@@ -44,6 +49,7 @@ public class CustomException extends RuntimeException {
     this.httpStatus = exceptionMessage.getHttpStatus();
     this.message = exceptionMessage.getMessage();
     this.context = context;
+    this.code = exceptionMessage.name();
   }
 
   // 원인 체이닝: 외부 라이브러리 예외를 래핑하여 원인을 보존할 때
@@ -58,6 +64,7 @@ public class CustomException extends RuntimeException {
     this.httpStatus = exceptionMessage.getHttpStatus();
     this.message = exceptionMessage.getMessage();
     this.context = null;
+    this.code = exceptionMessage.name();
   }
 
   // 컨텍스트 + 원인 체이닝: 디버깅 정보와 원인 예외를 모두 보존할 때
@@ -73,5 +80,6 @@ public class CustomException extends RuntimeException {
     this.httpStatus = exceptionMessage.getHttpStatus();
     this.message = exceptionMessage.getMessage();
     this.context = context;
+    this.code = exceptionMessage.name();
   }
 }

@@ -108,9 +108,8 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
             .sink(batchConsumer)
             .build();
 
-    int maxChunkCount;
     try {
-      maxChunkCount = aiServerAdapter.streamRequest(requestToAI);
+      aiServerAdapter.streamRequest(requestToAI);
     } catch (Exception e) {
       log.error("[AI 생성 실패] 퀴즈 생성 중 오류 발생 sessionId={}", sessionId, e);
       finalizeError(
@@ -132,8 +131,8 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
             ? (batchConsumer.lastConsumerNanos() - startNanos) / 1_000_000
             : -1;
 
-    // 요청/생성/실패 문제 수 메트릭 기록 (finalize 결과와 무관하게 항상 실행)
-    resultRecorder.recordQuizCounts(request.quizType(), quizCount, generatedCount, maxChunkCount);
+    // 요청 수 메트릭 기록 (finalize 결과와 무관하게 항상 실행). 생성 문제 수·max_chunks는 오케스트레이터 내부에서 기록한다.
+    resultRecorder.recordQuizCounts(request.quizType(), quizCount);
 
     if (generatedCount == 0) {
       finalizeError(

@@ -27,7 +27,7 @@ public class GlobalExceptionHandler {
     logCustomException(customException);
 
     return ResponseEntity.status(customException.getHttpStatus())
-        .body(new CustomErrorResponse(customException.getMessage()));
+        .body(new CustomErrorResponse(customException.getCode(), customException.getMessage()));
   }
 
   private void logCustomException(CustomException customException) {

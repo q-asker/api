@@ -21,7 +21,7 @@ public class MockAIServerAdapter extends AIServerAdapter {
   }
 
   @Override
-  public int streamRequest(GenerationRequestToAI request) {
+  public void streamRequest(GenerationRequestToAI request) {
     int quizCount = request.quizCount();
     List<Integer> pages =
         CollectionUtils.isEmpty(request.referencePages()) ? List.of(1) : request.referencePages();
@@ -50,6 +50,5 @@ public class MockAIServerAdapter extends AIServerAdapter {
       }
       problems.forEach(request.sink()::saveProblem);
     }
-    return 3;
   }
 }
