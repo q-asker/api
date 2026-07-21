@@ -14,6 +14,14 @@ LEVELS=(
 )
 
 want="${1:-all}"   # all | x1 | x10 | x100
+
+# 스윕 전 bootJar 1회 재빌드(최신 소스 반영) → 레벨별 run-level 은 LT_SKIP_BUILD 로 재빌드 생략.
+#  build/libs 에 남은 이전(예: enhancement 하네스) jar 오염을 원천 차단한다.
+cd "$HERE/../../.."
+echo "[run-all] bootJar 재빌드(1회)"
+./gradlew :quiz-set-impl:clean :app:bootJar -q
+export LT_SKIP_BUILD=1
+
 for spec in "${LEVELS[@]}"; do
   read -r label port container <<< "$spec"
   [ "$want" != "all" ] && [ "$want" != "$label" ] && continue

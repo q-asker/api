@@ -58,8 +58,8 @@ bash infra/scripts/query-tuning/seed-scale.sh local-mysql-prod 100
 > 손으로 `docker start/stop` 할 필요 없다.
 
 ```bash
-# 앱 jar 최신화 (최초 1회 또는 코드 변경 시 — run-level 은 java -jar 로 최신 jar 를 띄운다)
-./gradlew :app:bootJar
+# bootJar 는 run-all/run-level 이 실행 직전 자동 재빌드한다(build/libs 잔재 jar 오염 차단).
+#  run-all 은 스윕 전 1회, 단독 run-level 은 매 호출 재빌드(LT_SKIP_BUILD=1 로 생략 가능).
 # 레벨별 실행 (seed 라벨 자동, trace_snapshot 은 각 레벨 DB에 저장돼 안 덮인다)
 # 3레벨 한 번에 (레벨→포트→컨테이너 매핑 내장, 손 루프 불필요)
 ROUNDS=50 bash infra/scripts/query-tuning/run-all.sh          # 전 레벨

@@ -47,9 +47,9 @@ echo "════════ 인핸스먼트 $MODE — explanation-review 정�
 
 # 1) 빌드 — ON/OFF 어느 쪽이든 quiz-set-impl을 clean해 이전 모드의 계측 클래스가 섞이지 않게 한다
 if [ "$MODE" = on ]; then
-  ./gradlew :quiz-set-impl:clean :app:bootJar -PenableHibernateEnhancement -q
-else
   ./gradlew :quiz-set-impl:clean :app:bootJar -q
+else
+  ./gradlew :quiz-set-impl:clean :app:bootJar -PdisableHibernateEnhancement -q
 fi
 
 # 2) 인핸스 적용 여부 검증 — 잘못된 빌드로 측정하는 사고 차단
