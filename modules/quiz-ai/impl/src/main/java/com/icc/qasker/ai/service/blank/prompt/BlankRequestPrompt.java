@@ -8,6 +8,12 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class BlankRequestPrompt {
 
+  /** 청크 K(K≥2) 유저 프롬프트 꼬리에 붙는 중복 회피 지침. */
+  public static final String DEDUP_INSTRUCTION =
+      "\n\n> **CRITICAL RULE**: 위 직전 문항 목록과 빈칸 핵심 어휘·맥락·정답 분포(answerIndex)가 겹치지 않게 이번 청크 문항을 작성한다."
+          + " stemSummary와 동일·유사한 맥락은 다른 단원·다른 페이지에서 가져와 재구성하고,"
+          + " 정답 위치(answerIndex)가 직전 청크와 같은 쪽으로 쏠리지 않게 분산한다.";
+
   private static final String APPLIED_INSTRUCTION_SPEC =
       """
       # 사용자 지시 반영

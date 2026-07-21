@@ -264,4 +264,29 @@ public class GeminiMetricsRecorder {
         .register(registry)
         .increment(totalCost);
   }
+
+  /**
+   * 요청/생성 문제 수를 퀴즈 타입 + max_chunks 축으로 기록한다. recordRequestDuration과 같은 지점(요청 종료)에서 호출된다.
+   *
+   * @param quizType 퀴즈 타입 (MULTIPLE/OX/BLANK/ESSAY)
+   * @param quizCount 요청 문항 수
+   * @param generatedCount 실제 생성·전달된 문항 수
+   * @param maxChunkCount 이 요청에 적용된 최대 청크 수
+   */
+  public void recordQuizCounts(
+      String quizType, long quizCount, long generatedCount, int maxChunkCount) {
+    String chunks = String.valueOf(maxChunkCount);
+    Counter.builder("quiz.generation.quizzes.requested")
+        .description("요청된 퀴즈 문제 수 누적")
+        .tag("quiz_type", quizType)
+        .tag("max_chunks", chunks)
+        .register(registry)
+        .increment(quizCount);
+    Counter.builder("quiz.generation.quizzes.generated")
+        .description("실제 생성된 퀴즈 문제 수 누적")
+        .tag("quiz_type", quizType)
+        .tag("max_chunks", chunks)
+        .register(registry)
+        .increment(generatedCount);
+  }
 }

@@ -8,6 +8,13 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class MultipleRequestPrompt {
 
+  /** 청크 K(K≥2) 유저 프롬프트 꼬리에 붙는 중복 회피 지침. */
+  public static final String DEDUP_INSTRUCTION =
+      "\n\n> **CRITICAL RULE**: 위 직전 문항 목록과 주제·표현·정답 분포(answerIndex)·Bloom's 하위 과정이"
+          + " 겹치지 않게 이번 청크 문항을 작성한다."
+          + " stemSummary와 동일·유사한 주제는 다른 각도(다른 패턴 라벨, 다른 강의노트 페이지)로 재구성하고,"
+          + " 정답 위치(answerIndex)가 직전 청크와 같은 쪽으로 쏠리지 않게 분산한다.";
+
   public static String generate(List<Integer> referencePages, int quizCount) {
     return buildBase(referencePages, quizCount);
   }
