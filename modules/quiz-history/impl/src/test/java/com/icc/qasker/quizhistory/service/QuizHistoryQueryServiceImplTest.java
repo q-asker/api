@@ -11,6 +11,7 @@ import com.icc.qasker.ai.dto.EssayGradingResult;
 import com.icc.qasker.global.component.HashUtil;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
+import com.icc.qasker.quizhistory.dto.ferequest.HistoryScope;
 import com.icc.qasker.quizhistory.dto.feresponse.EssayHistoryDetailResponse;
 import com.icc.qasker.quizhistory.dto.feresponse.EssayHistoryDetailResponse.EssayProblemWithGrade;
 import com.icc.qasker.quizhistory.dto.feresponse.HistoryDetailResponse;
@@ -21,6 +22,7 @@ import com.icc.qasker.quizhistory.entity.EssayGradeLog;
 import com.icc.qasker.quizhistory.entity.QuizHistory;
 import com.icc.qasker.quizhistory.mapper.QuizHistoryMapper;
 import com.icc.qasker.quizhistory.repository.EssayGradeLogRepository;
+import com.icc.qasker.quizhistory.repository.QuizFolderRepository;
 import com.icc.qasker.quizhistory.repository.QuizHistoryRepository;
 import com.icc.qasker.quizset.ProblemSetReadService;
 import com.icc.qasker.quizset.dto.ferequest.enums.QuizType;
@@ -48,6 +50,7 @@ import org.springframework.data.domain.Pageable;
 class QuizHistoryQueryServiceImplTest {
 
   @Mock private QuizHistoryRepository quizHistoryRepository;
+  @Mock private QuizFolderRepository quizFolderRepository;
   @Mock private EssayGradeLogRepository essayGradeLogRepository;
   @Mock private ProblemSetReadService problemSetReadService;
   @Mock private HashUtil hashUtil;
@@ -65,6 +68,7 @@ class QuizHistoryQueryServiceImplTest {
     service =
         new QuizHistoryQueryServiceImpl(
             quizHistoryRepository,
+            quizFolderRepository,
             essayGradeLogRepository,
             problemSetReadService,
             hashUtil,
@@ -243,10 +247,73 @@ class QuizHistoryQueryServiceImplTest {
     when(problemSetReadService.findProblemSetsByIds(List.of(100L, 200L)))
         .thenReturn(List.of(summary(100L, QuizType.MULTIPLE, 3)));
 
-    HistoryPageResponse response = service.getHistoryList(userId, 0, 10);
+    HistoryPageResponse response = service.getHistoryList(userId, HistoryScope.ALL, null, 0, 10);
 
     assertThat(response.content()).hasSize(1);
     assertThat(response.content().get(0).title()).isEqualTo("kept");
+  }
+
+  @Test
+  @DisplayName("getHistoryList FOLDER: 특정 폴더 쿼리로 조회하고 folderId/folderName을 매핑한다")
+  void getHistoryList_folderScope_mapsFolderName() {
+    String userId = "user1";
+    QuizHistory h =
+        QuizHistory.builder()
+            .id(1L)
+            .userId(userId)
+            .problemSetId(100L)
+            .title("in-folder")
+            .folderId(5L)
+            .build();
+    Pageable pageable = Pageable.ofSize(10).withPage(0);
+    Page<QuizHistory> page = new PageImpl<>(List.of(h), pageable, 1);
+    when(hashUtil.decode("f5")).thenReturn(5L);
+    when(quizHistoryRepository.findAllByUserIdAndFolderIdOrderByCreatedAtDesc(
+            eq(userId), eq(5L), eq(pageable)))
+        .thenReturn(page);
+    when(problemSetReadService.findProblemSetsByIds(List.of(100L)))
+        .thenReturn(List.of(summary(100L, QuizType.MULTIPLE, 3)));
+    when(quizFolderRepository.findAllById(List.of(5L)))
+        .thenReturn(
+            List.of(
+                com.icc.qasker.quizhistory.entity.QuizFolder.builder().id(5L).name("수학").build()));
+
+    HistoryPageResponse response = service.getHistoryList(userId, HistoryScope.FOLDER, "f5", 0, 10);
+
+    assertThat(response.content()).hasSize(1);
+    assertThat(response.content().get(0).folderId()).isEqualTo("ENC");
+    assertThat(response.content().get(0).folderName()).isEqualTo("수학");
+  }
+
+  @Test
+  @DisplayName("getHistoryList UNCLASSIFIED: 미분류(folderId IS NULL) 쿼리로 조회한다")
+  void getHistoryList_unclassifiedScope_usesNullFolderQuery() {
+    String userId = "user1";
+    QuizHistory h =
+        QuizHistory.builder().id(1L).userId(userId).problemSetId(100L).title("none").build();
+    Pageable pageable = Pageable.ofSize(10).withPage(0);
+    Page<QuizHistory> page = new PageImpl<>(List.of(h), pageable, 1);
+    when(quizHistoryRepository.findAllByUserIdAndFolderIdIsNullOrderByCreatedAtDesc(
+            eq(userId), eq(pageable)))
+        .thenReturn(page);
+    when(problemSetReadService.findProblemSetsByIds(List.of(100L)))
+        .thenReturn(List.of(summary(100L, QuizType.MULTIPLE, 3)));
+
+    HistoryPageResponse response =
+        service.getHistoryList(userId, HistoryScope.UNCLASSIFIED, null, 0, 10);
+
+    assertThat(response.content()).hasSize(1);
+    assertThat(response.content().get(0).folderId()).isNull();
+    assertThat(response.content().get(0).folderName()).isNull();
+  }
+
+  @Test
+  @DisplayName("getHistoryList FOLDER: folderId 누락 시 400(BAD_REQUEST)")
+  void getHistoryList_folderScope_missingFolderId_throwsBadRequest() {
+    assertThatThrownBy(() -> service.getHistoryList("user1", HistoryScope.FOLDER, null, 0, 10))
+        .isInstanceOf(CustomException.class)
+        .extracting(e -> ((CustomException) e).getHttpStatus())
+        .isEqualTo(org.springframework.http.HttpStatus.BAD_REQUEST);
   }
 
   @Test

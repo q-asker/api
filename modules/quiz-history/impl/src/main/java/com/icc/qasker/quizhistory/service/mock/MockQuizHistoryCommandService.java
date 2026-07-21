@@ -44,6 +44,11 @@ public class MockQuizHistoryCommandService implements QuizHistoryCommandService 
   }
 
   @Override
+  public void assignFolder(String userId, String historyId, String folderId) {
+    selfCleanWrite(userId, "mock");
+  }
+
+  @Override
   public void deleteAllHistory(String userId) {
     selfCleanWrite(userId, "mock");
   }

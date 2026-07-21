@@ -8,6 +8,7 @@ import com.icc.qasker.quizhistory.dto.ferequest.InitHistoryRequest;
 import com.icc.qasker.quizhistory.dto.ferequest.SaveHistoryRequest;
 import com.icc.qasker.quizhistory.entity.AnswerSnapshot;
 import com.icc.qasker.quizhistory.entity.QuizHistory;
+import com.icc.qasker.quizhistory.repository.QuizFolderRepository;
 import com.icc.qasker.quizhistory.repository.QuizHistoryRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class QuizHistoryCommandServiceImpl implements QuizHistoryCommandService {
 
   private final QuizHistoryRepository quizHistoryRepository;
+  private final QuizFolderRepository quizFolderRepository;
   private final HashUtil hashUtil;
 
   @Override
@@ -76,6 +78,25 @@ public class QuizHistoryCommandServiceImpl implements QuizHistoryCommandService 
             .findByIdAndUserId(decodedHistoryId, userId)
             .orElseThrow(() -> new CustomException(ExceptionMessage.QUIZ_HISTORY_NOT_FOUND));
     history.updateTitle(title);
+  }
+
+  @Override
+  @Transactional
+  public void assignFolder(String userId, String historyId, String folderId) {
+    QuizHistory history =
+        quizHistoryRepository
+            .findByIdAndUserId(hashUtil.decode(historyId), userId)
+            .orElseThrow(() -> new CustomException(ExceptionMessage.QUIZ_HISTORY_NOT_FOUND));
+
+    Long targetFolderId = null;
+    if (folderId != null) {
+      targetFolderId =
+          quizFolderRepository
+              .findByIdAndUserId(hashUtil.decode(folderId), userId)
+              .orElseThrow(() -> new CustomException(ExceptionMessage.FOLDER_NOT_FOUND))
+              .getId();
+    }
+    history.assignFolder(targetFolderId);
   }
 
   @Override
