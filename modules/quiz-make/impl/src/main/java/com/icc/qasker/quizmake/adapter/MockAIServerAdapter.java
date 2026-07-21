@@ -50,7 +50,6 @@ public class MockAIServerAdapter extends AIServerAdapter {
       }
       problems.forEach(request.sink()::saveProblem);
     }
-    request.sink().markProblemsReady();
     return 3;
   }
 }

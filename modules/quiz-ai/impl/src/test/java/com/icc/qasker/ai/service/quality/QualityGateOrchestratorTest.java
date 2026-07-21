@@ -117,9 +117,11 @@ class QualityGateOrchestratorTest {
 
     orchestrator().generateQuiz(request(3, sink));
 
-    // v1 Q1은 저장되지 않고, 통과분(Q0,Q2) + 재생성본(Q1v2)만 저장
-    assertThat(sink.contents()).containsExactly("Q0", "Q2", "Q1v2");
+    // v1 Q1은 저장되지 않고, 통과분(Q0,Q2) + 재생성본(Q1v2)만 저장.
+    // 통과분은 비동기 검증 순서라 집합으로 검증하고, 재생성본은 배리어 이후 저장되므로 항상 마지막이다.
+    assertThat(sink.contents()).containsExactlyInAnyOrder("Q0", "Q2", "Q1v2");
     assertThat(sink.contents()).doesNotContain("Q1");
+    assertThat(sink.contents().getLast()).isEqualTo("Q1v2");
   }
 
   @Test
@@ -140,22 +142,19 @@ class QualityGateOrchestratorTest {
 
     orchestrator().generateQuiz(request(3, sink));
 
-    assertThat(sink.contents()).containsExactly("Q0", "Q2");
+    assertThat(sink.contents()).containsExactlyInAnyOrder("Q0", "Q2");
   }
 
-  /** 저장 순서를 기록하는 테스트용 sink. */
+  /** 저장을 기록하는 테스트용 sink. 비동기 검증 워커들이 동시에 호출하므로 스레드 안전하게 직렬화한다. */
   private static class FakeSink implements QuizBatchSink {
     final List<AIProblem> saved = new ArrayList<>();
     final AtomicInteger counter = new AtomicInteger(1);
 
     @Override
-    public int saveProblem(AIProblem problem) {
+    public synchronized int saveProblem(AIProblem problem) {
       saved.add(problem);
       return counter.getAndIncrement();
     }
-
-    @Override
-    public void markProblemsReady() {}
 
     List<String> contents() {
       return saved.stream().map(AIProblem::content).toList();

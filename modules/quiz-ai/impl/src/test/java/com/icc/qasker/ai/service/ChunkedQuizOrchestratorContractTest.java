@@ -44,8 +44,8 @@ import tools.jackson.databind.ObjectMapper;
 /**
  * 청크형 오케스트레이터(MULTIPLE/BLANK/OX) 공통 동작 회귀 테스트 — 배치 인터리빙 1-패스 생성.
  *
- * <p>문제+해설을 한 호출({@code chatModel.stream})로 스트리밍 생성한다. 본 테스트는 전달 계약(개수·순서·초과 drop·부분 보존·전량 실패 전파)과
- * 중복 회피 지침의 배치별 주입을 검증한다.
+ * <p>문제+해설을 한 호출({@code chatModel.stream})로 스트리밍 생성한다. 검증은 비동기로 수행되고 통과 순서대로 저장되므로 저장 순서는 생성 순서와
+ * 무관하다. 본 테스트는 전달 계약(개수·초과 drop·부분 보존·전량 실패 전파)과 중복 회피 지침의 배치별 주입을 검증한다.
  */
 class ChunkedQuizOrchestratorContractTest {
 
@@ -76,21 +76,15 @@ class ChunkedQuizOrchestratorContractTest {
     when(metricsRecorder.recordChunkResult(anyLong(), any())).thenReturn(0.0);
   }
 
-  /** Phase 1 저장을 순서대로 기록하는 테스트용 sink. */
+  /** 저장을 기록하는 테스트용 sink. 비동기 검증 워커들이 동시에 호출하므로 스레드 안전하게 직렬화한다. */
   private static class FakeSink implements QuizBatchSink {
     final List<AIProblem> saved = new ArrayList<>();
     final AtomicInteger counter = new AtomicInteger(1);
-    boolean readyMarked = false;
 
     @Override
-    public int saveProblem(AIProblem problem) {
+    public synchronized int saveProblem(AIProblem problem) {
       saved.add(problem);
       return counter.getAndIncrement();
-    }
-
-    @Override
-    public void markProblemsReady() {
-      readyMarked = true;
     }
 
     List<String> contents() {
@@ -161,14 +155,14 @@ class ChunkedQuizOrchestratorContractTest {
 
   @ParameterizedTest
   @ValueSource(strings = {"MULTIPLE", "BLANK", "OX"})
-  void deliversExactlyQuizCount_inOrder(String type) {
+  void deliversExactlyQuizCount(String type) {
     FakeSink sink = new FakeSink();
     when(chatModel.stream(any(Prompt.class))).thenReturn(fluxOf(questionsJson(List.of(1, 1, 1))));
 
     orchestrator(type).generateQuiz(request(type, 3, sink));
 
-    assertThat(sink.contents()).containsExactly("Q0", "Q1", "Q2");
-    assertThat(sink.readyMarked).isTrue();
+    // 검증이 비동기·병렬이라 저장 순서는 통과 순서(비결정적) → 집합으로만 검증한다.
+    assertThat(sink.contents()).containsExactlyInAnyOrder("Q0", "Q1", "Q2");
   }
 
   @ParameterizedTest
@@ -178,10 +172,10 @@ class ChunkedQuizOrchestratorContractTest {
     when(chatModel.stream(any(Prompt.class)))
         .thenReturn(fluxOf(questionsJson(List.of(1, 1, 1, 1))));
 
-    // quizCount=2 이지만 4문항 방출 → 2개로 잘림
+    // quizCount=2 이지만 4문항 방출 → 앞 2개(Q0,Q1)만 제출되고 Q2,Q3은 파싱 단계에서 잘림
     orchestrator(type).generateQuiz(request(type, 2, sink));
 
-    assertThat(sink.contents()).containsExactly("Q0", "Q1");
+    assertThat(sink.contents()).containsExactlyInAnyOrder("Q0", "Q1");
   }
 
   @ParameterizedTest
@@ -195,7 +189,7 @@ class ChunkedQuizOrchestratorContractTest {
 
     orchestrator(type).generateQuiz(request(type, 3, sink));
 
-    assertThat(sink.contents()).containsExactly("Q1", "Q2");
+    assertThat(sink.contents()).containsExactlyInAnyOrder("Q1", "Q2");
   }
 
   @ParameterizedTest

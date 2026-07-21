@@ -1,7 +1,6 @@
 package com.icc.qasker.quizmake.service.generation;
 
 import static com.icc.qasker.quizset.GenerationStatus.GENERATING;
-import static com.icc.qasker.quizset.GenerationStatus.PROBLEMS_READY;
 
 import com.icc.qasker.ai.QuizBatchSink;
 import com.icc.qasker.ai.dto.AIProblem;
@@ -29,14 +28,14 @@ import org.springframework.util.CollectionUtils;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * 배치 인터리빙 생성(Q9)의 저장 콜백 구현. 오케스트레이터가 Phase 1(문제)·Phase 2(해설)를 배치 단위로 교차 호출한다.
+ * 배치 인터리빙 생성의 저장 콜백 구현. 오케스트레이터가 문제·선지·해설을 한 호출로 생성해 문항 단위로 저장 콜백한다.
  *
  * <ul>
- *   <li>{@link #saveProblem}: 문제 1건을 저장하고 SSE로 통지한다. 선지는 오케스트레이터가 이미 최종 순서로 정렬했으므로 재정렬하지 않는다. 선지에
- *       해설이 인라인으로 포함된 단일 호출 타입(ESSAY)은 이 시점에 해설 마크다운까지 조립·저장한다.
+ *   <li>{@link #saveProblem}: 문항 1건을 저장하고 SSE로 통지한다. 선지는 오케스트레이터가 이미 최종 순서로 정렬했으므로 재정렬하지 않는다. 선지에
+ *       인라인으로 포함된 해설을 이 시점에 마크다운으로 조립·저장한다.
  * </ul>
  *
- * <p>여러 배치·단계가 동시에 도착해도 순번과 상태가 어긋나지 않도록 {@link ReentrantLock}으로 직렬화한다.
+ * <p>여러 검증 워커가 동시에 저장 콜백해도 순번과 상태가 어긋나지 않도록 {@link ReentrantLock}으로 직렬화한다.
  */
 @Slf4j
 class GenerationBatchConsumer implements QuizBatchSink {
@@ -82,7 +81,7 @@ class GenerationBatchConsumer implements QuizBatchSink {
     try {
       QuizGeneratedFromAI quiz = AIProblemSetMapper.toQuiz(problem);
 
-      // 단일 호출 타입(ESSAY): 선지에 해설이 인라인으로 있으면 즉시 마크다운 조립. 2단계 타입: 해설은 Phase 2까지 비워 둔다.
+      // 선지에 인라인 해설이 있으면 즉시 마크다운으로 조립한다(현행 전 타입). 없으면 비워 둔다(방어).
       if (hasInlineExplanation(quiz)) {
         quiz.setExplanation(ExplanationMarkdownBuilder.build(quiz, request.language()));
       } else {
@@ -142,11 +141,6 @@ class GenerationBatchConsumer implements QuizBatchSink {
             problem.selections() == null ? List.of() : problem.selections(),
             "appliedInstruction",
             problem.appliedInstruction() == null ? "" : problem.appliedInstruction()));
-  }
-
-  @Override
-  public void markProblemsReady() {
-    quizCommandService.updateStatus(problemSetId, PROBLEMS_READY);
   }
 
   private void sendCreated(List<Integer> savedNumbers) {

@@ -26,7 +26,4 @@ public interface QuizBatchSink {
 
   /** 재생성된 개선본(v2)을 해당 문항의 품질 로그 행에 부착한다. 기본 구현은 no-op. */
   default void recordV2(int number, AIProblem v2) {}
-
-  /** 모든 문제 저장이 끝나 세트가 풀이 가능함을 표시한다. */
-  void markProblemsReady();
 }

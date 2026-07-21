@@ -48,8 +48,7 @@ public class ExplanationServiceImpl implements ExplanationService {
 
   /**
    * FE 하위호환: 현행 FE는 explanation null 분기가 없어(키 존재 기준) 치환 문자열을 유지한다. 치환 문구는 세트 상태에 따라 다르다 — 생성이
-   * 종결(COMPLETED·FAILED)됐는데도 해설이 없으면 영구 부재이므로 "해설 없음", 아직 진행 중(GENERATING·PROBLEMS_READY)이면 곧 생성되므로
-   * "해설 준비 중" 안내.
+   * 종결(COMPLETED·FAILED)됐는데도 해설이 없으면 영구 부재이므로 "해설 없음", 아직 진행 중(GENERATING)이면 곧 생성되므로 "해설 준비 중" 안내.
    */
   private ResultResponse toResultResponse(Problem problem, GenerationStatus status) {
     String explanation = problem.getExplanationContent();
