@@ -17,7 +17,7 @@ public record QualityVerificationRequest(
     String appliedInstruction,
     Mode mode,
     String priorFeedback,
-    String cacheName) {
+    CacheRef cacheRef) {
 
   /**
    * 캐시 참조 검증용 생성자(priorFeedback=null). Pass 1 게이트가 컨텍스트 캐시(검증 루브릭+PDF 원문)를 참조해 원문 대조 검증을 수행할 때
@@ -32,7 +32,7 @@ public record QualityVerificationRequest(
       String customInstruction,
       String appliedInstruction,
       Mode mode,
-      String cacheName) {
+      CacheRef cacheRef) {
     this(
         quizType,
         language,
@@ -43,7 +43,7 @@ public record QualityVerificationRequest(
         appliedInstruction,
         mode,
         null,
-        cacheName);
+        cacheRef);
   }
 
   /** 캐시·priorFeedback 없는 검증용 편의 생성자(Pass 1 캐시 미생성 폴백). */

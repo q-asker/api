@@ -1,12 +1,12 @@
 package com.icc.qasker.ai.service.quality;
 
+import com.icc.qasker.ai.dto.CacheRef;
 import com.icc.qasker.ai.dto.QualityVerdict;
 import com.icc.qasker.ai.dto.QualityVerificationRequest;
 import com.icc.qasker.ai.dto.QualityVerificationRequest.Mode;
 import com.icc.qasker.ai.properties.QualityProperties;
 import com.icc.qasker.ai.service.QualityVerifier;
 import com.icc.qasker.ai.service.support.GeminiContextCacheManager;
-import com.icc.qasker.ai.service.support.GeminiContextCacheManager.CacheRef;
 import com.icc.qasker.ai.service.support.GeminiMetricsRecorder;
 import com.icc.qasker.ai.strategy.QuizType;
 import com.icc.qasker.ai.structure.GeminiVerificationResponse;
@@ -75,10 +75,10 @@ public class QualityVerifierImpl implements QualityVerifier {
             .responseSchema(verifySchema);
 
     List<Message> messages;
-    if (request.cacheName() != null) {
+    if (request.cacheRef() != null) {
       // 캐시 사용: 검증 루브릭+PDF 원문은 캐시 프리픽스에 있으므로 요청엔 대화 턴만
       // (Vertex는 캐시 사용 시 요청 systemInstruction 금지). 검증기가 PDF 원문과 직접 대조한다.
-      options.useCachedContent(true).cachedContentName(request.cacheName());
+      options.useCachedContent(true).cachedContentName(request.cacheRef().name());
       messages = List.of(userMessage);
     } else {
       // 폴백: 루브릭을 systemInstruction으로 붙이고 PDF 대조 없이 검증(현행).
@@ -130,19 +130,18 @@ public class QualityVerifierImpl implements QualityVerifier {
   }
 
   @Override
-  public Optional<String> createPass1Cache(String pdfUri, String quizType, String language) {
+  public Optional<CacheRef> createPass1Cache(String pdfUri, String quizType, String language) {
     // 검증 루브릭(PDF 대조 지시 포함)+PDF 원문을 캐시에 담는다. 세션 내 quizType·language·criteria가 고정이라
     // 루브릭도 고정 → 세트 전 문항 검증이 한 캐시를 재사용한다. 검증 모델(verifyModel)로 캐시를 생성한다.
     String systemPrompt =
         buildSystemPrompt(resolveQuizType(quizType), resolveLanguage(language), Mode.PASS_1, true);
-    return cacheManager
-        .create("Pass 1 검증", properties.getVerifyModel(), systemPrompt, pdfUri, PASS1_CACHE_TTL)
-        .map(CacheRef::name);
+    return cacheManager.create(
+        "Pass 1 검증", properties.getVerifyModel(), systemPrompt, pdfUri, PASS1_CACHE_TTL);
   }
 
   @Override
-  public void deletePass1Cache(String cacheName) {
-    cacheManager.delete("Pass 1 검증", cacheName);
+  public void deletePass1Cache(CacheRef cacheRef) {
+    cacheManager.delete("Pass 1 검증", cacheRef == null ? null : cacheRef.name());
   }
 
   /**

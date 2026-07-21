@@ -200,10 +200,9 @@ class ChunkedQuizOrchestratorContractTest {
     when(chatModel.stream(any(Prompt.class)))
         .thenReturn(fluxOf(questionsJson(List.of(1))), Flux.error(new RuntimeException("boom")));
 
-    int chunksDone = orchestrator(type).generateQuiz(request(type, 2, sink));
+    orchestrator(type).generateQuiz(request(type, 2, sink));
 
     assertThat(sink.contents()).containsExactly("Q0");
-    assertThat(chunksDone).isEqualTo(1);
   }
 
   @ParameterizedTest

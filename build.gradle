@@ -8,9 +8,114 @@ plugins {
 }
 
 group = "com.icc.qasker"
-// 프로젝트 버전 (Docker 이미지 태그, 배포 아티팩트 버전에 사용)
-// 예: jib으로 빌드하면 Docker 이미지에 "1.7.0" 태그가 붙음
+
 version = "3.3.1"
+
+subprojects {
+    tasks.configureEach { task ->
+        if (task.name == "compileJava") {
+            task.dependsOn(rootProject.tasks.named("installGitHooks"))
+        }
+    }
+
+    dependencyLocking {
+        lockAllConfigurations()
+    }
+
+    tasks.register("resolveAndLockAll") {
+        notCompatibleWithConfigurationCache("Filters configurations at execution time")
+        doFirst {
+            assert gradle.startParameter.writeDependencyLocks: "--write-locks 플래그와 함께 실행하세요"
+        }
+        doLast {
+            configurations.findAll { it.canBeResolved }*.resolve()
+        }
+    }
+
+    apply plugin: 'java'
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(25)
+        }
+    }
+
+    dependencies {
+
+        implementation platform(libs.spring.boot.bom)
+        annotationProcessor platform(libs.spring.boot.bom)
+        implementation platform(libs.spring.ai.bom)
+        implementation platform(libs.google.cloud.bom)
+
+        compileOnly "org.projectlombok:lombok"
+        annotationProcessor "org.projectlombok:lombok"
+        implementation "org.springframework.boot:spring-boot-starter-validation"
+    }
+
+    configurations {
+        compileOnly {
+            extendsFrom annotationProcessor
+        }
+    }
+
+    repositories {
+        mavenCentral()
+    }
+
+    apply plugin: 'com.diffplug.spotless'
+
+    spotless {
+        java {
+            googleJavaFormat(libs.versions.google.java.format.get())
+            removeUnusedImports()
+            endWithNewline()
+            trimTrailingWhitespace()
+        }
+    }
+
+    configurations.configureEach {
+        resolutionStrategy.eachDependency {
+            if (it.requested.group == 'org.hibernate.orm') {
+                it.useVersion(libs.versions.hibernate.orm.get())
+            }
+        }
+    }
+
+    apply plugin: 'org.hibernate.orm'
+    if (project.path == ':quiz-set-impl' && project.hasProperty('enableHibernateEnhancement')) {
+        hibernate {
+            enhancement {}
+        }
+    }
+
+    tasks.withType(Test).configureEach {
+        useJUnitPlatform()
+        testLogging {
+            showStandardStreams = true
+        }
+        if (project.hasProperty('testMaxHeap')) {
+            maxHeapSize = project.property('testMaxHeap')
+        }
+        if (project.hasProperty('testMinHeap')) {
+            minHeapSize = project.property('testMinHeap')
+        }
+        if (project.hasProperty('testGcLog')) {
+            jvmArgs += ['-Xlog:gc*:stdout:time,level,tags']
+        }
+    }
+
+    tasks.withType(JavaCompile).configureEach {
+        options.compilerArgs += '-parameters'
+    }
+
+    tasks.withType(Jar).configureEach {
+        duplicatesStrategy = DuplicatesStrategy.FAIL
+    }
+
+    tasks.withType(BootJar).configureEach {
+        duplicatesStrategy = DuplicatesStrategy.FAIL
+    }
+
+}
 
 tasks.register("installGitHooks") {
     description = "Git hooks 경로를 .githooks/로 설정"
@@ -182,110 +287,4 @@ tasks.register("dependencyGraphStyled") {
             logger.warn("   설치: brew install graphviz")
         }
     }
-}
-
-subprojects {
-    tasks.configureEach { task ->
-        if (task.name == "compileJava") {
-            task.dependsOn(rootProject.tasks.named("installGitHooks"))
-        }
-    }
-
-    dependencyLocking {
-        lockAllConfigurations()
-    }
-
-    tasks.register("resolveAndLockAll") {
-        notCompatibleWithConfigurationCache("Filters configurations at execution time")
-        doFirst {
-            assert gradle.startParameter.writeDependencyLocks: "--write-locks 플래그와 함께 실행하세요"
-        }
-        doLast {
-            configurations.findAll { it.canBeResolved }*.resolve()
-        }
-    }
-
-    apply plugin: 'java'
-    java {
-        toolchain {
-            languageVersion = JavaLanguageVersion.of(25)
-        }
-    }
-
-    dependencies {
-
-        implementation platform(libs.spring.boot.bom)
-        annotationProcessor platform(libs.spring.boot.bom)
-        implementation platform(libs.spring.ai.bom)
-        implementation platform(libs.google.cloud.bom)
-
-        compileOnly "org.projectlombok:lombok"
-        annotationProcessor "org.projectlombok:lombok"
-        implementation "org.springframework.boot:spring-boot-starter-validation"
-    }
-
-    configurations {
-        compileOnly {
-            extendsFrom annotationProcessor
-        }
-    }
-
-    repositories {
-        mavenCentral()
-    }
-
-    apply plugin: 'com.diffplug.spotless'
-
-    spotless {
-        java {
-            googleJavaFormat(libs.versions.google.java.format.get())
-            removeUnusedImports()
-            endWithNewline()
-            trimTrailingWhitespace()
-        }
-    }
-
-    configurations.configureEach {
-        resolutionStrategy.eachDependency {
-            if (it.requested.group == 'org.hibernate.orm') {
-                it.useVersion(libs.versions.hibernate.orm.get())
-            }
-        }
-    }
-
-    apply plugin: 'org.hibernate.orm'
-    if (project.path == ':quiz-set-impl' && project.hasProperty('enableHibernateEnhancement')) {
-        hibernate {
-            enhancement {}
-        }
-    }
-
-    tasks.withType(Test).configureEach {
-        useJUnitPlatform()
-        testLogging {
-            showStandardStreams = true
-        }
-        if (project.hasProperty('testMaxHeap')) {
-            maxHeapSize = project.property('testMaxHeap')
-        }
-        if (project.hasProperty('testMinHeap')) {
-            minHeapSize = project.property('testMinHeap')
-        }
-        if (project.hasProperty('testGcLog')) {
-            jvmArgs += ['-Xlog:gc*:stdout:time,level,tags']
-        }
-    }
-
-    tasks.withType(JavaCompile).configureEach {
-        options.compilerArgs += '-parameters'
-    }
-
-    tasks.withType(Jar).configureEach {
-        duplicatesStrategy = DuplicatesStrategy.FAIL
-    }
-
-    tasks.withType(BootJar).configureEach {
-        duplicatesStrategy = DuplicatesStrategy.FAIL
-    }
-
 }

@@ -2,6 +2,7 @@ package com.icc.qasker.ai.service.quality;
 
 import com.icc.qasker.ai.dto.AIProblem;
 import com.icc.qasker.ai.dto.AISelection;
+import com.icc.qasker.ai.dto.CacheRef;
 import com.icc.qasker.ai.dto.QualityVerdict;
 import com.icc.qasker.ai.dto.QualityVerificationRequest;
 import com.icc.qasker.ai.dto.QualityVerificationRequest.Mode;
@@ -28,25 +29,25 @@ public class QualityGate {
     return verify(problem, quizType, language, customInstruction, null);
   }
 
-  /** cacheName이 있으면 검증기가 해당 캐시(검증 루브릭+PDF 원문)로 원문 대조 검증한다(Pass 1). */
+  /** cacheRef가 있으면 검증기가 해당 캐시(검증 루브릭+PDF 원문)로 원문 대조 검증한다(Pass 1). */
   public QualityVerdict verify(
       AIProblem problem,
       String quizType,
       String language,
       String customInstruction,
-      String cacheName) {
+      CacheRef cacheRef) {
     return verifier.verify(
-        toRequest(problem, quizType, language, customInstruction, Mode.PASS_1, cacheName));
+        toRequest(problem, quizType, language, customInstruction, Mode.PASS_1, cacheRef));
   }
 
   /** Pass 1 원문 대조 검증 캐시를 세션당 1개 생성한다(실패 시 빈 값 → 캐시 없이 검증). */
-  public Optional<String> createPass1Cache(String pdfUri, String quizType, String language) {
+  public Optional<CacheRef> createPass1Cache(String pdfUri, String quizType, String language) {
     return verifier.createPass1Cache(pdfUri, quizType, language);
   }
 
   /** createPass1Cache로 만든 캐시를 삭제한다(세션 종료 시). */
-  public void deletePass1Cache(String cacheName) {
-    verifier.deletePass1Cache(cacheName);
+  public void deletePass1Cache(CacheRef cacheRef) {
+    verifier.deletePass1Cache(cacheRef);
   }
 
   private QualityVerificationRequest toRequest(
@@ -55,7 +56,7 @@ public class QualityGate {
       String language,
       String customInstruction,
       Mode mode,
-      String cacheName) {
+      CacheRef cacheRef) {
     List<QualityVerificationRequest.Selection> selections =
         problem.selections() == null
             ? List.of()
@@ -71,7 +72,7 @@ public class QualityGate {
         customInstruction,
         problem.appliedInstruction(),
         mode,
-        cacheName);
+        cacheRef);
   }
 
   /** ESSAY는 정답(correct=true) 선지 내용이 모범답안이다. 객관형은 모범답안 개념이 없어 null. */

@@ -7,5 +7,5 @@ public interface QuizTypeOrchestrator {
 
   String getSupportedType();
 
-  int generateQuiz(GenerationRequestToAI request);
+  void generateQuiz(GenerationRequestToAI request);
 }

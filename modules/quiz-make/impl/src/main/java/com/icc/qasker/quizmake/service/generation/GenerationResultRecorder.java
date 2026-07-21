@@ -58,12 +58,10 @@ public class GenerationResultRecorder {
     incrementOutcome("fail", quizType);
   }
 
-  /** 요청/생성 문제 수를 퀴즈 타입별로 기록한다. finalize 결과와 무관하게 호출된다. */
-  public void recordQuizCounts(
-      QuizType quizType, long quizCount, long generatedCount, int maxChunkCount) {
+  /** 퀴즈 타입 + 문제 수별 요청 횟수를 기록한다. finalize 결과와 무관하게 호출된다. */
+  public void recordQuizCounts(QuizType quizType, long quizCount) {
     String type = quizType.name();
     String count = String.valueOf(quizCount);
-    String chunks = String.valueOf(maxChunkCount);
 
     // 퀴즈 타입 + 문제 수별 요청 횟수 (예: MULTIPLE/10문제 → 20회)
     Counter.builder("quiz.generation.requests")
@@ -72,19 +70,6 @@ public class GenerationResultRecorder {
         .tag("quiz_count", count)
         .register(registry)
         .increment();
-
-    Counter.builder("quiz.generation.quizzes.requested")
-        .description("요청된 퀴즈 문제 수 누적")
-        .tag("quiz_type", type)
-        .tag("max_chunks", chunks)
-        .register(registry)
-        .increment(quizCount);
-    Counter.builder("quiz.generation.quizzes.generated")
-        .description("실제 생성된 퀴즈 문제 수 누적")
-        .tag("quiz_type", type)
-        .tag("max_chunks", chunks)
-        .register(registry)
-        .increment(generatedCount);
   }
 
   private void incrementOutcome(String outcome, QuizType quizType) {
