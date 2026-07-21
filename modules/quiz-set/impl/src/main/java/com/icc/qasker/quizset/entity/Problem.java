@@ -71,7 +71,7 @@ public class Problem extends CreatedAt {
     this.appliedInstruction = appliedInstruction;
   }
 
-  // Phase 2: 해설 후속 저장 시 호출
+  // 해설 저장·갱신 시 호출 (문항 매핑·해설 재검토)
   public void updateExplanation(String explanationContent) {
     this.explanationContent = explanationContent;
   }

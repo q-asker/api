@@ -47,8 +47,7 @@ public final class ProblemSetResponseMapper {
         problemSet.getSessionId(),
         hashUtil.encode(problemSet.getId()),
         problemSet.getTitle(),
-        // PROBLEMS_READY(내부 전용)는 COMPLETED로 번역 — 구 FE 로딩 hang 방지
-        problemSet.getGenerationStatus().toClientVisible(),
+        problemSet.getGenerationStatus(),
         problemSet.getQuizType(),
         problemSet.getTotalQuizCount(),
         quizzes);
