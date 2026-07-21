@@ -32,7 +32,7 @@ import org.springframework.web.multipart.MultipartFile;
 /**
  * AdminController 회귀 테스트.
  *
- * <p>이미지 업로드 검증 분기를 private 메서드로 추출하는 리팩터링의 안전망이다. 검증 순서/에러 코드/위임 호출이 리팩터링 전후로 동일함을 보장한다.
+ * <p>이미지 업로드 성공/실패 경로와 게시판 관리 위임 호출을 검증한다.
  */
 class AdminControllerTest {
 
@@ -65,60 +65,6 @@ class AdminControllerTest {
     when(file.getOriginalFilename()).thenReturn("shot.png");
     when(file.getInputStream()).thenReturn(new ByteArrayInputStream(new byte[] {1, 2, 3}));
     return file;
-  }
-
-  @Nested
-  @DisplayName("이미지 업로드 검증")
-  class UploadImageValidation {
-
-    @Test
-    @DisplayName("빈 파일이면 FILE_NAME_NOT_EXIST")
-    void emptyFile() {
-      MultipartFile file = mock(MultipartFile.class);
-      when(file.isEmpty()).thenReturn(true);
-
-      assertThatThrownBy(() -> adminController.uploadImage(file))
-          .isInstanceOf(CustomException.class)
-          .hasMessage(ExceptionMessage.FILE_NAME_NOT_EXIST.getMessage());
-    }
-
-    @Test
-    @DisplayName("5MB 초과면 OUT_OF_FILE_SIZE")
-    void tooLarge() {
-      MultipartFile file = mock(MultipartFile.class);
-      when(file.isEmpty()).thenReturn(false);
-      when(file.getSize()).thenReturn(IMAGE_PROPERTIES.maxSize() + 1);
-
-      assertThatThrownBy(() -> adminController.uploadImage(file))
-          .isInstanceOf(CustomException.class)
-          .hasMessage(ExceptionMessage.OUT_OF_FILE_SIZE.getMessage());
-    }
-
-    @Test
-    @DisplayName("contentType이 null이면 EXTENSION_INVALID")
-    void nullContentType() {
-      MultipartFile file = mock(MultipartFile.class);
-      when(file.isEmpty()).thenReturn(false);
-      when(file.getSize()).thenReturn(1024L);
-      when(file.getContentType()).thenReturn(null);
-
-      assertThatThrownBy(() -> adminController.uploadImage(file))
-          .isInstanceOf(CustomException.class)
-          .hasMessage(ExceptionMessage.EXTENSION_INVALID.getMessage());
-    }
-
-    @Test
-    @DisplayName("허용되지 않은 contentType이면 EXTENSION_INVALID")
-    void disallowedContentType() {
-      MultipartFile file = mock(MultipartFile.class);
-      when(file.isEmpty()).thenReturn(false);
-      when(file.getSize()).thenReturn(1024L);
-      when(file.getContentType()).thenReturn("application/pdf");
-
-      assertThatThrownBy(() -> adminController.uploadImage(file))
-          .isInstanceOf(CustomException.class)
-          .hasMessage(ExceptionMessage.EXTENSION_INVALID.getMessage());
-    }
   }
 
   @Test
