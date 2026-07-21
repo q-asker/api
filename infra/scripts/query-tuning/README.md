@@ -37,10 +37,10 @@ docker exec -e MYSQL_PWD=password local-mysql-prod mysql -uroot -e "DROP DATABAS
 docker exec -e MYSQL_PWD=password local-mysql-orig mysqldump --single-transaction --no-tablespaces --set-gtid-purged=OFF -uroot qaskerdb \
   | docker exec -i -e MYSQL_PWD=password local-mysql-prod mysql -uroot qaskerdb
 # (2) 전 테이블 배수 시딩 (검증 표 자동 출력)
-bash infra/scripts/perf-seed/seed-scale.sh local-mysql-prod 100
+bash infra/scripts/query-tuning/seed-scale.sh local-mysql-prod 100
 ```
 
-시딩 스크립트(`infra/scripts/perf-seed/`):
+시딩 스크립트(이 디렉토리):
 - `seed-scale-small.sql` — user·problem_set·quiz_history·refresh_token·essay_grade_log·board·feedback_board (단일 SQL)
 - `seed-scale-problem.sql` — problem (배치, 세트당 16)
 - `seed-scale.sh` — 오케스트레이션(작은 테이블 → problem 배치 → 검증)
@@ -51,6 +51,11 @@ bash infra/scripts/perf-seed/seed-scale.sh local-mysql-prod 100
 
 각 레벨에 앱을 붙여 **한 번에**: 무거운 부하로 스케일 지연(§①) + 가벼운 패스로 요청 귀속(§②③). 부하는 loadgen
 (단일 레시피)이 실 엔드포인트를 직접 태운다 — mock 서비스가 write 를 save→delete 로 자기정리(순증 0).
+
+> 레벨 DB **기동/정지는 자동**이다. `run-level.sh`는 실행 전 해당 컨테이너가 꺼져 있으면 `docker start` +
+> 준비 대기하고(컨테이너 자체가 없으면 1·2번 provision·시딩을 안내 후 중단), `run-all.sh`는 각 레벨을 마치면
+> 중간 레벨(x1·x10)을 정지해 RAM을 반환한다(한 번에 한 레벨). **x100(3307)만 유지** — 대시보드가 3307을 읽는다.
+> 손으로 `docker start/stop` 할 필요 없다.
 
 ```bash
 # 앱 jar 최신화 (최초 1회 또는 코드 변경 시 — run-level 은 java -jar 로 최신 jar 를 띄운다)
