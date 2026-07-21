@@ -4,6 +4,13 @@
 set -euo pipefail
 PORT="$1"; CONTAINER="$2"; LABEL="$3"
 cd /Users/ohyoungje/Desktop/Project/q-asker/api
+# 최신 소스로 bootJar 재빌드 — build/libs 에 남은 이전(예: enhancement 하네스) jar 를 주워
+#  오염된 측정을 하지 않도록 한다. quiz-set-impl clean 은 이전 인핸스먼트 모드 클래스 잔재 제거용.
+#  run-all 스윕은 앞단에서 한 번만 빌드하고 LT_SKIP_BUILD=1 로 레벨별 중복 빌드를 건너뛴다.
+if [ -z "${LT_SKIP_BUILD:-}" ]; then
+  echo "[$LABEL] bootJar 재빌드"
+  ./gradlew :quiz-set-impl:clean :app:bootJar -q
+fi
 # -plain.jar(Main-Class 없는 비실행 jar)는 제외 — 실행 가능한 bootJar 산출물만 고른다.
 JAR="$(ls -t app/build/libs/app-*.jar 2>/dev/null | grep -v -- '-plain\.jar$' | head -1)"
 LOG="/tmp/qasker-lt-$LABEL.log"
