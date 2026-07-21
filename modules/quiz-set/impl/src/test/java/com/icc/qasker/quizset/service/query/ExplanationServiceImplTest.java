@@ -73,15 +73,15 @@ class ExplanationServiceImplTest {
   }
 
   @Test
-  @DisplayName("PROBLEMS_READY(해설 생성 진행 중) 세트는 오류가 아닌 '준비 중' 상태(generationStatus)와 함께 응답한다")
-  void problems_ready_set_returns_status_instead_of_error() {
+  @DisplayName("GENERATING(해설 생성 진행 중) 세트는 오류가 아닌 '준비 중' 상태(generationStatus)와 함께 응답한다")
+  void generating_set_returns_status_instead_of_error() {
     Problem problem = TestEntityFactory.problem(1L, 1, "제목", List.of(), null, null, List.of());
     ProblemSet readySet =
         TestEntityFactory.problemSet(
             1L,
             "sess",
             "t",
-            com.icc.qasker.quizset.GenerationStatus.PROBLEMS_READY,
+            com.icc.qasker.quizset.GenerationStatus.GENERATING,
             com.icc.qasker.quizset.dto.ferequest.enums.QuizType.MULTIPLE,
             1,
             "u",
@@ -92,7 +92,7 @@ class ExplanationServiceImplTest {
     ExplanationResponse response = service.getExplanationByProblemSetId("enc");
 
     assertThat(response.generationStatus())
-        .isEqualTo(com.icc.qasker.quizset.GenerationStatus.PROBLEMS_READY);
+        .isEqualTo(com.icc.qasker.quizset.GenerationStatus.GENERATING);
     assertThat(response.results().get(0).explanation()).isEqualTo("해설 준비 중입니다. 잠시 후 기다려 주세요.");
   }
 

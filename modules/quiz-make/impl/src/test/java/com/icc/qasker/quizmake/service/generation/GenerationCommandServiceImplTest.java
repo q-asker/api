@@ -238,7 +238,6 @@ class GenerationCommandServiceImplTest {
               for (int i = 0; i < deliverCount; i++) {
                 req.sink().saveProblem(multipleProblem());
               }
-              req.sink().markProblemsReady();
               return 3;
             });
   }

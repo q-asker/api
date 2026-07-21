@@ -1,129 +1,63 @@
 plugins {
-    // Spring Boot 플러그인: 실행 가능 JAR(BootJar) 생성, 의존성 관리 등 부트 애플리케이션 빌드 지원
-    // 예: ./gradlew :app:bootJar → BOOT-INF/lib에 모든 의존성을 포함한 fat JAR 생성,
-    //     ./gradlew :app:bootRun → 애플리케이션을 로컬에서 바로 실행
     id 'org.springframework.boot'
-    // Jib: Docker 데몬 없이 컨테이너 이미지를 빌드·푸시하는 Google 제공 플러그인
-    // 예: ./gradlew jib → Dockerfile 없이 Docker Hub에 이미지를 빌드·푸시,
-    //     ./gradlew jibDockerBuild → 로컬 Docker 데몬에 이미지를 빌드
     alias(libs.plugins.jib)
 }
 
-// 루트 프로젝트의 version·group을 상속받아 일관된 아티팩트 좌표 유지
-// 예: rootProject.version이 "1.7.0"이면 app 모듈도 동일하게 "1.7.0",
-//     Docker 태그, JAR 파일명 등이 모두 이 버전을 사용
 version = rootProject.version
 group = rootProject.group
 
-
 dependencies {
 
-    // ────────────────────────────────
-    // 프로젝트 모듈
-    // 모든 impl 모듈을 조립하여 하나의 실행 가능 애플리케이션으로 구성
-    // 예: Spring Boot가 기동될 때 각 모듈의 @Component, @Service, @Repository를W
-    //     컴포넌트 스캔으로 자동 발견하여 Bean으로 등록
-    // ────────────────────────────────
-    // 인증 구현 모듈: JWT 발급·검증, OAuth2 소셜 로그인 처리
-    // 예: AuthServiceImpl, JwtTokenProvider 등이 이 모듈에 위치
     implementation project(':auth-impl')
-    // OCI 구현 모듈: OCI Object Storage 파일 업로드 처리
-    // 예: OciObjectStorageServiceImpl 등이 이 모듈에 위치
     implementation project(':oci-impl')
-    // 퀴즈 데이터 관리 모듈: 문제세트 CRUD, 조회, 해설
     implementation project(':quiz-set-impl')
-    // 퀴즈 생성 모듈: AI 기반 문제 생성, 파일 업로드, SSE 알림
     implementation project(':quiz-make-impl')
-    // 퀴즈 히스토리 구현 모듈: 퀴즈 풀이 기록 CRUD
     implementation project(':quiz-history-impl')
-    // 문서 변환 모듈: PPT/DOCX → PDF 변환 (JODConverter)
     implementation project(':document-impl')
-    // AI 모듈: Google Gemini 기반 AI 기능
-    // 예: AiService에서 ChatClient를 통해 Gemini API를 호출
     implementation project(':quiz-ai-impl')
-    // 공통 모듈: 전역 예외 처리, 공통 응답 DTO
-    // 예: GlobalExceptionHandler, ApiResponse<T>, BaseEntity 등이 이 모듈에 위치
     implementation project(':global')
     implementation project(':board-impl')
-    // 관리자 모듈: 어드민 전용 API 엔드포인트
     implementation project(':admin')
-    // 부하 테스트 쓰기 드라이버(LocalWriteController)가 참조하는 API DTO/enum (BoardCategory, QuizType)
-    // — *-impl→*-api는 implementation(비전이)이라 app에 노출되지 않으므로 명시.
     implementation project(':board-api')
     implementation project(':quiz-set-api')
     implementation project(':quiz-ai-api')
 
-
-    // ────────────────────────────────
-    // 스프링부트 Web & JPA
-    // ────────────────────────────────
-    // Spring MVC 기반 웹 애플리케이션 구성
-    // 예: 내장 Tomcat이 기동되고, DispatcherServlet이 모든 HTTP 요청을 라우팅
     implementation "org.springframework.boot:spring-boot-starter-web"
-    // Jasypt: application.yml의 민감한 값(DB 비밀번호, API 키 등)을 ENC()로 암호화하여 Git 커밋 가능하게 함
-    // 예: password: ENC(2kd9fj3k...) → Spring Boot 기동 시 자동 복호화
     implementation libs.jasypt.spring.boot.starter
-    // Spring Data JPA: JPA 기반 리포지토리 자동 생성, 엔티티 매핑 지원
-    // 예: spring.jpa.hibernate.ddl-auto=validate 설정으로 엔티티와 DB 스키마 일치 여부를 검증
     implementation "org.springframework.boot:spring-boot-starter-data-jpa"
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
-    // Prometheus 메트릭 엔드포인트 지원 (/actuator/prometheus)
     runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
-    // Flyway: DB 스키마 버전 관리 마이그레이션
-    // Boot 4는 자동설정이 모듈로 분리됨 — starter(spring-boot-flyway 자동설정 + flyway-core 포함)가
-    // 있어야 부팅 시 마이그레이션이 실행된다. flyway-mysql은 MySQL 전용 모듈로 별도 필요.
     implementation 'org.springframework.boot:spring-boot-starter-flyway'
     implementation 'org.flywaydb:flyway-mysql'
-    // H2: CI 환경에서 OpenAPI spec 추출 시 인메모리 DB로 사용
     runtimeOnly 'com.h2database:h2'
-    // Configuration Processor: @ConfigurationProperties 클래스의 메타데이터를 자동 생성
-    // 예: @ConfigurationProperties(prefix = "app.jwt")로 선언하면
-    //     IDE에서 application.yml의 app.jwt.* 속성을 자동완성·타입 검증 가능
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
 
-    // 테스트
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    // 부팅 회귀 테스트(ApplicationContextBootTest)에서 CircuitBreakerRegistry를 주입받기 위해 필요
     testImplementation libs.resilience4j.spring.boot3
 }
 
 springBoot {
-    // buildInfo(): META-INF/build-info.properties 파일을 생성
-    // 예: 빌드 후 파일에 build.version=1.7.0, build.time=2024-01-01T00:00:00Z 등이 기록되고,
-    //     Actuator /info 엔드포인트에서 {"build":{"version":"1.7.0",...}} 형태로 노출됨
     buildInfo()
 }
 
-
-// Jib 설정: jib 태스크 요청 시에만 평가하여 CI에서 프로퍼티 없이도 빌드 가능
 if (gradle.startParameter.taskNames.any { it.contains("jib") }) {
     jib {
         from {
-            // 베이스 이미지: Eclipse Temurin JRE 21 (벤더 중립 OpenJDK 배포판)
-            // 예: 최종 컨테이너는 eclipse-temurin:21-jre 위에 앱 JAR + 의존성이 레이어로 추가됨
-            //     JRE만 포함하여 이미지 크기를 최소화하고, 클라우드 벤더에 종속되지 않음
             image = "qasker/q-asker-api-server-base:latest"
             platforms {
                 platform { os = "linux"; architecture = "arm64" }
             }
         }
         to {
-            // 푸시할 Docker 이미지 이름: {DOCKER_ID}/{DOCKER_IMAGE_NAME}
-            // 예: DOCKER_ID=myuser, DOCKER_IMAGE_NAME=qasker → myuser/qasker
             image = "${project.property("DOCKER_ID")}/${project.property("DOCKER_IMAGE_NAME")}"
-            // latest 태그 + 프로젝트 버전 태그를 동시에 푸시
-            // 예: ["latest", "1.7.0"] → myuser/qasker:latest, myuser/qasker:1.7.0 두 태그 생성
             tags = ["latest", rootProject.version.toString()]
             auth {
-                // Docker Hub 인증 정보 (gradle.properties 또는 -P 옵션으로 전달)
-                // 예: -PDOCKER_ID=myuser -PDOCKER_PASSWORD=secret 으로 빌드 시 전달
                 username = project.property("DOCKER_ID")
                 password = project.property("DOCKER_PASSWORD")
             }
         }
         container {
             jvmFlags = baseJvmFlags()
-            // 서비스 포트(8080) + Actuator 전용 포트(9090)
             ports = ["8080", "9090"]
             user = "appuser"
             environment = [
@@ -133,13 +67,7 @@ if (gradle.startParameter.taskNames.any { it.contains("jib") }) {
     }
 }
 
-// ── 로컬 실행(bootRun) ──
-
-// Jasypt 복호화 키를 app/gradle.properties(JASYPT_ENCRYPTOR_PASSWORD)에서 앱으로 주입한다.
-// prod(docker-compose)와 동일한 환경변수명을 써서 로컬 디버그도 같은 출처를 참조한다.
-// 값이 없으면 주입하지 않으므로(부팅 시 명확히 실패) 별도 .env 파일이 필요 없다.
 tasks.named('bootRun') {
-    // 로컬 디버그 기본 프로파일 (필요 시 -Dspring.profiles.active=... 로 override)
     systemProperty 'spring.profiles.active', findProperty('SPRING_PROFILES_ACTIVE') ?: 'local'
     def jasyptPassword = project.findProperty('JASYPT_ENCRYPTOR_PASSWORD')
     if (jasyptPassword) {
@@ -147,21 +75,14 @@ tasks.named('bootRun') {
     }
 }
 
-// ── JVM 플래그 헬퍼 함수 ──
-
-// JVM 기본 설정: 힙 메모리 등 애플리케이션 런타임 옵션
 def baseJvmFlags() {
     def jvmHeapSize = project.property("JVM_HEAP_SIZE")
     def gcType = project.property("JVM_GC_TYPE")
     def maxGcPauseMillis = project.property("JVM_MAX_GC_PAUSE_MILLIS")
     return [
-        // 초기 힙과 최대 힙을 동일하게 설정하여 GC로 인한 힙 리사이징 오버헤드를 방지
         "-Xms${jvmHeapSize}", "-Xmx${jvmHeapSize}",
-        // GC 알고리즘
         "-XX:+Use${gcType}",
-        // GC pause 목표 (ms)
         "-XX:MaxGCPauseMillis=${maxGcPauseMillis}",
-        // OOM 발생 시 덤프
         "-XX:+HeapDumpOnOutOfMemoryError",
         "-XX:HeapDumpPath=/var/log/heapdump.hprof"
     ]

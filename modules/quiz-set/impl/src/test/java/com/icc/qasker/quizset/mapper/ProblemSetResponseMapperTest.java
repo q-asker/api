@@ -74,26 +74,6 @@ class ProblemSetResponseMapperTest {
   }
 
   @Test
-  @DisplayName("fromEntity(ProblemSet): PROBLEMS_READY(내부 상태)는 FE 노출 시 COMPLETED로 번역된다")
-  void from_problem_set_translates_problems_ready_to_completed() {
-    when(hashUtil.encode(10L)).thenReturn("ENC-10");
-    ProblemSet set =
-        TestEntityFactory.problemSet(
-            10L,
-            "sess-1",
-            "세트 제목",
-            GenerationStatus.PROBLEMS_READY,
-            QuizType.MULTIPLE,
-            5,
-            "user-1",
-            List.of(sampleProblem()));
-
-    ProblemSetResponse response = mapper.fromEntity(set);
-
-    assertThat(response.generationStatus()).isEqualTo(GenerationStatus.COMPLETED);
-  }
-
-  @Test
   @DisplayName("fromEntity(ProblemSet): hashUtil.encode 적용 및 세트 필드 매핑")
   void from_problem_set_maps_fields_with_encoded_id() {
     when(hashUtil.encode(10L)).thenReturn("ENC-10");

@@ -8,8 +8,8 @@ import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
 /**
- * 배치 인터리빙 Phase 1에서 선지 저장 순서를 확정하는 정렬 유틸. 저장 순서 = 대화 히스토리(어시스턴트 턴) 순서 = Phase 2 해설 정렬 기준이므로,
- * 오케스트레이터가 저장 직전에 이 순서를 확정한다.
+ * 선지 저장 순서를 확정하는 정렬 유틸. 저장 순서 = 대화 히스토리(어시스턴트 턴) 순서 = 선지에 인라인으로 붙는 해설 정렬 기준이므로, 오케스트레이터가 저장 직전에 이
+ * 순서를 확정한다.
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class SelectionArrangement {

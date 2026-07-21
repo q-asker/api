@@ -23,11 +23,10 @@ class StaleGenerationRecoverySchedulerTest extends JpaIntegrationTestBase {
   @Autowired private ProblemRepository problemRepository;
 
   @Test
-  @DisplayName("10분 초과 방치 세트 중 FAILED/GENERATING만 삭제되고 PROBLEMS_READY(풀이 가능)와 COMPLETED는 생존한다")
-  void scheduler_keeps_problems_ready_sets() {
+  @DisplayName("10분 초과 방치 세트 중 FAILED/GENERATING만 삭제되고 COMPLETED는 생존한다")
+  void scheduler_keeps_completed_sets() {
     persistSet("s-failed", GenerationStatus.FAILED);
     persistSet("s-generating", GenerationStatus.GENERATING);
-    persistSet("s-ready", GenerationStatus.PROBLEMS_READY);
     persistSet("s-completed", GenerationStatus.COMPLETED);
     flushAndClear();
     backdateAllSets(Instant.now().minus(20, ChronoUnit.MINUTES));
@@ -37,14 +36,14 @@ class StaleGenerationRecoverySchedulerTest extends JpaIntegrationTestBase {
 
     assertThat(problemSetRepository.findAll())
         .extracting(ProblemSet::getGenerationStatus)
-        .containsExactlyInAnyOrder(GenerationStatus.PROBLEMS_READY, GenerationStatus.COMPLETED);
+        .containsExactly(GenerationStatus.COMPLETED);
   }
 
   @Test
   @DisplayName("stale 세트 삭제 시 자식 Problem도 함께 삭제되고 생존 세트의 자식은 유지된다")
   void scheduler_deletes_child_problems_of_stale_sets() {
     ProblemSet stale = persistSet("s-failed", GenerationStatus.FAILED);
-    ProblemSet survivor = persistSet("s-ready", GenerationStatus.PROBLEMS_READY);
+    ProblemSet survivor = persistSet("s-completed", GenerationStatus.COMPLETED);
     persistProblem(stale, 1);
     persistProblem(survivor, 1);
     flushAndClear();

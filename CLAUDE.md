@@ -9,7 +9,7 @@
 
 | 분류            | 기술                                                                    | 버전             |
 |---------------|-----------------------------------------------------------------------|----------------|
-| 언어            | Java                                                                  | 21             |
+| 언어            | Java                                                                  | 25             |
 | 프레임워크         | Spring Boot                                                           | 4.1.0          |
 | AI            | Spring AI (Google Gemini via Vertex AI)                               | 2.0.0          |
 | ORM           | Spring Data JPA + Hibernate                                           | (Boot BOM)     |
@@ -139,7 +139,7 @@ q-asker/api/
 ## 개발 도구 및 설정
 
 - **빌드**: Gradle 8.14.3 (Groovy DSL)
-- **JDK**: 21 (Gradle Toolchain 자동 관리)
+- **JDK**: 25 (Gradle Toolchain 자동 관리, 런타임 eclipse-temurin:25 `infra/base-image`)
 - **Version Catalog**: `gradle/libs.versions.toml`이 모든 의존성·플러그인 버전의 SSOT
     - 모듈 build.gradle에서는 `libs.xxx` 참조로 사용
     - 새 의존성/버전 변경은 반드시 catalog에서 시작

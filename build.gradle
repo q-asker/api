@@ -1,29 +1,17 @@
-// BootJar 태스크 클래스를 import (하단에서 duplicatesStrategy 설정에 사용)
 import org.springframework.boot.gradle.tasks.bundling.BootJar
 
 plugins {
-    // Spring Boot Gradle 플러그인 선언
-    // apply false: 루트에서는 적용하지 않고, 서브모듈(app)에서만 활성화하기 위해 버전만 등록
-    // 버전은 gradle/libs.versions.toml(Version Catalog)에서 중앙 관리
     alias(libs.plugins.spring.boot) apply false
-    // Spotless: 코드 포맷팅 자동화 플러그인 (subprojects에서 apply)
     alias(libs.plugins.spotless) apply false
-    // 모듈 간 의존성 그래프 시각화 플러그인
-    // 예: ./gradlew generateDependencyGraph → build/reports/dependency-graph/ 에 PNG/SVG 생성
     alias(libs.plugins.hibernate.orm) apply false
     alias(libs.plugins.dependency.graph.generator)
 }
 
-// 프로젝트 그룹 ID (Maven 좌표에서 groupId 역할)
-// 예: 빌드된 아티팩트가 com.icc.qasker:app:1.7.0 형태로 식별됨
 group = "com.icc.qasker"
 // 프로젝트 버전 (Docker 이미지 태그, 배포 아티팩트 버전에 사용)
 // 예: jib으로 빌드하면 Docker 이미지에 "1.7.0" 태그가 붙음
-version = "3.3.0"
+version = "3.3.1"
 
-// Git hooks 경로를 .githooks/로 자동 설정
-// 예: ./gradlew build 실행 시 자동으로 git config core.hooksPath .githooks 적용
-//     팀원이 프로젝트를 클론한 뒤 별도 설정 없이 pre-commit, prepare-commit-msg 훅이 동작함
 tasks.register("installGitHooks") {
     description = "Git hooks 경로를 .githooks/로 설정"
     group = "setup"
@@ -35,10 +23,6 @@ tasks.register("installGitHooks") {
     }
 }
 
-// 스타일이 적용된 모듈 의존성 그래프 생성
-// 예: ./gradlew dependencyGraphStyled → build/reports/dependency-graph-styled/ 에 SVG 생성
-//     vanniktech 플러그인이 생성한 DOT 파일을 읽어 계층별 색상·스타일을 적용한 뒤
-//     Graphviz(dot)로 렌더링한다. Graphviz 미설치 시 DOT 파일만 생성된다.
 tasks.register("dependencyGraphStyled") {
     dependsOn("generateProjectDependencyGraph")
     group = "reporting"
@@ -55,14 +39,12 @@ tasks.register("dependencyGraphStyled") {
 
         outputDir.mkdirs()
 
-        // 원본 DOT 파싱: 노드와 엣지 추출
         def dotContent = dotFile.text
         def edges = []
         def nodes = [] as Set
 
         dotContent.eachLine { line ->
             line = line.trim()
-            // 엣지: ":a" -> ":b" [...]
             def edgeMatcher = line =~ /^"([^"]+)"\s*->\s*"([^"]+)"(.*)$/
             if (edgeMatcher.matches()) {
                 def from = edgeMatcher[0][1]
@@ -72,20 +54,17 @@ tasks.register("dependencyGraphStyled") {
                 nodes << to
                 edges << [from: from, to: to, attrs: attrs]
             }
-            // 노드 선언: ":name" [...]
             def nodeMatcher = line =~ /^"([^"]+)"\s*\[.*$/
             if (nodeMatcher.matches() && !line.contains("->")) {
                 nodes << nodeMatcher[0][1]
             }
         }
 
-        // 노드 분류
         def implNodes = nodes.findAll { it.endsWith("-impl") }
         def apiNodes = nodes.findAll { it.endsWith("-api") }
         def appNode = nodes.find { it == ":app" }
         def globalNode = nodes.find { it == ":global" }
 
-        // 엣지 분류
         def appToImpl = edges.findAll { it.from == ":app" && it.to.endsWith("-impl") }
         def implToOwnApi = edges.findAll { e ->
             e.from.endsWith("-impl") && e.to.endsWith("-api") &&
@@ -99,13 +78,12 @@ tasks.register("dependencyGraphStyled") {
             e.from.endsWith("-api") && e.to.endsWith("-api")
         }
         def toGlobal = edges.findAll { e ->
-            e.to == ":global" && !e.from.endsWith("-api")  // api→global만 표시
+            e.to == ":global" && !e.from.endsWith("-api")
         }
         def apiToGlobal = edges.findAll { e ->
             e.to == ":global" && e.from.endsWith("-api")
         }
 
-        // 스타일 적용된 DOT 생성
         def styled = new StringBuilder()
         styled.append("""digraph {
   graph [
@@ -138,7 +116,6 @@ tasks.register("dependencyGraphStyled") {
 
 """)
 
-        // 노드 스타일
         if (appNode) {
             styled.append("""  "${appNode}" [label="app" fillcolor="#1A237E" fontcolor="white" pencolor="#0D47A1" fontsize="16"]\n""")
         }
@@ -154,11 +131,9 @@ tasks.register("dependencyGraphStyled") {
             styled.append("""  "${globalNode}" [label="global" fillcolor="#FFB74D" fontcolor="#E65100" pencolor="#FFA726" fontsize="16"]\n""")
         }
 
-        // 계층 정렬
         styled.append("\n  { rank=\"same\"; ${implNodes.sort().collect { "\"${it}\"" }.join("; ")} }\n")
         styled.append("  { rank=\"same\"; ${apiNodes.sort().collect { "\"${it}\"" }.join("; ")} }\n\n")
 
-        // 엣지 출력
         appToImpl.each { e -> styled.append("  \"${e.from}\" -> \"${e.to}\"\n") }
         styled.append("\n")
         implToOwnApi.each { e -> styled.append("  \"${e.from}\" -> \"${e.to}\"\n") }
@@ -170,7 +145,6 @@ tasks.register("dependencyGraphStyled") {
         apiToGlobal.each { e -> styled.append("  \"${e.from}\" -> \"${e.to}\" [style=\"dotted\" color=\"#BDBDBD\"]\n") }
         styled.append("\n")
 
-        // 범례
         styled.append("""
   subgraph cluster_legend {
     label="Legend"
@@ -195,12 +169,10 @@ tasks.register("dependencyGraphStyled") {
         styledDot.text = styled.toString()
         logger.lifecycle("✅ DOT 파일 생성: ${styledDot}")
 
-        // Graphviz 렌더링
         try {
             exec {
                 commandLine("dot", "-Tsvg", "-o", "${outputDir}/dependency-graph-styled.svg", styledDot.absolutePath)
             }
-            // SVG에 width="100%" 적용
             def svgFile = new File(outputDir, "dependency-graph-styled.svg")
             def svgContent = svgFile.text
             svgFile.text = svgContent.replaceFirst(/<svg width="[^"]*" height="[^"]*"/, '<svg width="100%" height="100vh"')
@@ -213,23 +185,16 @@ tasks.register("dependencyGraphStyled") {
 }
 
 subprojects {
-    // compileJava 실행 전에 Git hooks 설정이 자동 적용되도록 연결
     tasks.configureEach { task ->
         if (task.name == "compileJava") {
             task.dependsOn(rootProject.tasks.named("installGitHooks"))
         }
     }
 
-    // Dependency Locking: 모든 transitive 의존성의 resolved 버전을 gradle.lockfile에 박제
-    // 예: spring-boot patch 업그레이드 시 따라 움직이는 hibernate, jackson 등 50+ transitive 버전이
-    //     lockfile diff로 PR에 노출되어 변화 범위를 즉시 파악 가능
-    // 갱신: ./gradlew resolveAndLockAll --write-locks
     dependencyLocking {
         lockAllConfigurations()
     }
 
-    // 모든 resolvable configuration을 한 번에 lock — Gradle 공식 권장 패턴
-    // 예: ./gradlew resolveAndLockAll --write-locks 한 번에 모든 모듈의 lockfile 재생성
     tasks.register("resolveAndLockAll") {
         notCompatibleWithConfigurationCache("Filters configurations at execution time")
         doFirst {
@@ -240,87 +205,42 @@ subprojects {
         }
     }
 
-    // java 플러그인: 컴파일·테스트·JAR 패키징 등 Java 빌드 라이프사이클을 제공
-    // 예: compileJava, test, jar 등의 태스크가 자동 생성되고,
-    //     src/main/java, src/main/resources 디렉토리 구조를 인식함
     apply plugin: 'java'
     java {
         toolchain {
-            // 빌드·컴파일에 사용할 JDK 버전 지정
-            // 예: 21로 설정하면 record, sealed class, pattern matching 등 Java 21 문법 사용 가능
-            //     로컬에 JDK 21이 없으면 Gradle이 자동으로 다운로드하여 사용함
-            languageVersion = JavaLanguageVersion.of(21)
+            languageVersion = JavaLanguageVersion.of(25)
         }
     }
 
     dependencies {
-        // ────────────────────────────────
-        // BOM (Bill of Materials): 라이브러리 버전 일괄 관리
-        // platform()으로 선언하면 실제 라이브러리는 추가되지 않고,
-        // 해당 BOM에 정의된 버전 번호만 프로젝트에 적용된다
-        // ────────────────────────────────
 
-        // BOM 버전은 gradle/libs.versions.toml(Version Catalog)에서 중앙 관리
-        // 예: spring-boot 버전 업그레이드 시 libs.versions.toml의 spring-boot 값만 수정하면
-        //     모든 모듈에 일괄 적용됨. Renovate가 Version Catalog를 표준으로 인식하여
-        //     BOM 업데이트 PR을 자동 생성한다.
-
-        // Spring Boot BOM: Spring Boot 관련 라이브러리 버전 통합 관리
         implementation platform(libs.spring.boot.bom)
-        // annotationProcessor에도 동일 BOM 적용 (spring-boot-configuration-processor 버전 일치)
         annotationProcessor platform(libs.spring.boot.bom)
-        // Spring AI BOM: Spring AI 모듈 간 호환성 보장
         implementation platform(libs.spring.ai.bom)
-        // Google Cloud BOM: Google Cloud 서비스 클라이언트 버전 통합 관리
         implementation platform(libs.google.cloud.bom)
 
-        // ────────────────────────────────
-        // 전 모듈 공통 라이브러리
-        // ────────────────────────────────
-
-        // Lombok: 어노테이션으로 보일러플레이트 코드를 자동 생성
-        // 예: @Getter를 붙이면 getField() 메서드가 컴파일 시 자동 생성,
-        //     @Builder를 붙이면 Builder 패턴 코드가 생성됨
-        // compileOnly: 컴파일 시에만 사용되고 런타임 JAR에는 포함되지 않음
-        // 예: 생성된 getter/setter는 .class에 이미 포함되므로 런타임에 Lombok JAR 불필요
         compileOnly "org.projectlombok:lombok"
-        // Lombok 어노테이션 프로세서: 컴파일 단계에서 코드를 생성하는 역할
-        // 예: javac가 @Getter 어노테이션을 만나면 이 프로세서가 getter 바이트코드를 삽입함
         annotationProcessor "org.projectlombok:lombok"
-        // Bean Validation: DTO 필드 검증 어노테이션 제공
-        // 예: @NotNull String name → name이 null이면 MethodArgumentNotValidException 발생,
-        //     @Size(min=1, max=100) → 문자열 길이 범위를 벗어나면 검증 실패
         implementation "org.springframework.boot:spring-boot-starter-validation"
     }
 
     configurations {
         compileOnly {
-            // annotationProcessor에 선언된 의존성을 compileOnly에서도 참조할 수 있도록 확장
-            // 예: 이 설정이 없으면 IDE에서 Lombok 어노테이션(@Getter 등)을 "찾을 수 없는 심볼"로 표시함
-            //     extendsFrom으로 연결하면 annotationProcessor의 Lombok을 컴파일 클래스패스에서도 인식
             extendsFrom annotationProcessor
         }
     }
 
     repositories {
-        // Maven Central: 오픈소스 라이브러리를 다운로드하는 공개 저장소
-        // 예: org.springframework.boot:spring-boot-starter-web 등 외부 라이브러리를
-        //     https://repo.maven.apache.org/maven2 에서 다운로드
         mavenCentral()
     }
 
-    // Spotless 포맷팅 플러그인을 전 서브모듈에 적용
     apply plugin: 'com.diffplug.spotless'
 
     spotless {
         java {
-            // Google Java Format: Google 코딩 스타일에 맞춰 자동 포맷팅 (버전은 catalog 관리)
             googleJavaFormat(libs.versions.google.java.format.get())
-            // import 순서 제거 후 Google 스타일로 재정렬
             removeUnusedImports()
-            // 파일 끝에 개행 추가
             endWithNewline()
-            // 줄 끝 공백 제거
             trimTrailingWhitespace()
         }
     }
@@ -333,20 +253,6 @@ subprojects {
         }
     }
 
-    // Hibernate 바이트코드 인핸스먼트 — 컴파일타임 계측(dirty tracking + 필드 지연 로딩).
-    // 플러그인은 모든 모듈에 항상 적용해 의존성·gradle.lockfile 상태를 고정한다(플러그인을 통째로 빼면
-    // hibernate-core 등 의존성이 사라져 lock 불일치로 빌드 실패).
-    //
-    // 계측(`enhancement {}`)은 **기본 OFF**이며 `-PenableHibernateEnhancement`로만 켠다. 이유:
-    //   - 인핸서는 모듈 내 엔티티가 아닌 클래스(서비스·설정 등)까지 훑는데, Gradle 데몬 JVM에 따라
-    //     특정 클래스(예: QualityReviewServiceImpl, QAskerAiProperties$Chunk)에서
-    //     "Unable to enhance class"로 컴파일이 깨진다(IntelliJ 데몬에서 재현, CLI에서는 통과 — 환경 편차).
-    //   - 쓰기 축 이득은 이 규모에서 무시할 수준으로 실측됨(perf-seed 조사). 상시 켤 가치가 낮다.
-    //   - @DynamicUpdate(부분 컬럼 UPDATE)는 인핸스먼트 없이도 동작하고, 미변경 행 UPDATE 스킵도
-    //     표준 dirty-check로 동일하게 성립한다. @LazyGroup는 계측이 없으면 즉시 로딩으로 폴백(무해).
-    // A/B 측정 시에만 `-PenableHibernateEnhancement`로 계측 켠 빌드를 산출한다
-    // (infra/scripts/perf-seed/measure-write.sh). **켠 빌드는 반드시 `clean` 후 재빌드**해야
-    // 이전 계측 클래스 캐시와 섞이지 않는다. 계측 의존 기능은 현재 quiz-set-impl에만 존재한다.
     apply plugin: 'org.hibernate.orm'
     if (project.path == ':quiz-set-impl' && project.hasProperty('enableHibernateEnhancement')) {
         hibernate {
@@ -355,14 +261,10 @@ subprojects {
     }
 
     tasks.withType(Test).configureEach {
-        // JUnit 5(Jupiter) 테스트 엔진 활성화
-        // 예: 이 설정이 없으면 @Test 어노테이션을 찾지 못해 "No tests found" 오류 발생
         useJUnitPlatform()
-        // 테스트 실행 중 System.out/err 출력을 콘솔에 표시
         testLogging {
             showStandardStreams = true
         }
-        // 벤치마크용 옵트인 튜닝(기본 CI 메모리 불변) — `-PtestMaxHeap=2g`, `-PtestMinHeap=2g`, `-PtestGcLog`
         if (project.hasProperty('testMaxHeap')) {
             maxHeapSize = project.property('testMaxHeap')
         }
@@ -375,25 +277,14 @@ subprojects {
     }
 
     tasks.withType(JavaCompile).configureEach {
-        // -parameters: 컴파일된 .class에 메서드 파라미터 이름을 보존
-        // 예: void findById(Long id) 컴파일 시 파라미터 이름 "id"가 .class에 기록됨
-        //     → @PathVariable Long id 에서 @PathVariable("id") 처럼 이름을 명시하지 않아도 자동 매핑
-        //     이 옵션이 없으면 파라미터 이름이 arg0, arg1로 저장되어 이름 기반 바인딩 실패
         options.compilerArgs += '-parameters'
     }
 
     tasks.withType(Jar).configureEach {
-        // JAR 패키징 시 동일 경로의 파일이 중복되면 빌드 실패 (조기 감지)
-        // 예: 모듈 A와 모듈 B가 동일 패키지에 같은 이름의 클래스를 가진 경우,
-        //     또는 여러 의존성이 META-INF/ 아래 같은 파일명(LICENSE, NOTICE 등)을 포함하는 경우
-        //     FAIL로 설정하지 않으면 어느 파일이 최종 JAR에 포함될지 비결정적(non-deterministic)이 됨
         duplicatesStrategy = DuplicatesStrategy.FAIL
     }
 
     tasks.withType(BootJar).configureEach {
-        // 실행 가능 JAR(BootJar) 패키징 시에도 동일한 중복 파일 방지 정책 적용
-        // 예: app 모듈이 여러 impl 모듈을 조립할 때, 각 모듈의 리소스 파일
-        //     (application.yml, logback.xml 등)이 충돌하면 즉시 빌드 실패로 알려줌
         duplicatesStrategy = DuplicatesStrategy.FAIL
     }
 
