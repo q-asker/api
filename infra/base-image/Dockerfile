@@ -1,4 +1,4 @@
-# eclipse-temurin:21-jdk-noble: arm64v8 공식 지원, Ubuntu 24.04(Noble) 기반
+# eclipse-temurin:25.0.2_10-jdk-noble: arm64v8 공식 지원, Ubuntu 24.04(Noble) 기반
 # bookworm(Debian) 태그는 deprecated → noble 사용
 FROM eclipse-temurin:25.0.2_10-jdk-noble
 
