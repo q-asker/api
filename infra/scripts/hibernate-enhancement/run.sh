@@ -20,7 +20,7 @@
 #   (Grafana qasker-enh-rw, instance=springboot-local — 앱 액추에이터를 기존
 #    spring-boot 스크레이프 잡이 수집하므로 별도 설정 불필요)
 #
-# 조절 env: DB_PORT(3308=x1; 3309=x10, 3307=x100), SEED_SETS(50) PER_SET(16)
+# 조절 env: DB_PORT(3307=x1; 3308=x10, 3309=x100), SEED_SETS(50) PER_SET(16)
 #           ROUNDS(100) — 요청당 SEED_SETS개 세트 × PER_SET행을 읽는다
 # 사전: 대상 MySQL 컨테이너(provision-level.sh)와 로컬 PLG 스택 기동, jq 설치
 # =============================================================
@@ -30,11 +30,11 @@ MODE="${1:-}"
 [ "$MODE" = off ] || [ "$MODE" = on ] || { echo "사용: run.sh <off|on>" >&2; exit 64; }
 
 cd "$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
-DB_PORT="${DB_PORT:-3308}"
+DB_PORT="${DB_PORT:-3307}"
 case "$DB_PORT" in
-  3308) DB_CONTAINER="${DB_CONTAINER:-local-mysql-orig}" ;;
-  3309) DB_CONTAINER="${DB_CONTAINER:-local-mysql-x10}" ;;
-  3307) DB_CONTAINER="${DB_CONTAINER:-local-mysql-prod}" ;;
+  3307) DB_CONTAINER="${DB_CONTAINER:-local-mysql-x1}" ;;
+  3308) DB_CONTAINER="${DB_CONTAINER:-local-mysql-x10}" ;;
+  3309) DB_CONTAINER="${DB_CONTAINER:-local-mysql-x100}" ;;
   *)    DB_CONTAINER="${DB_CONTAINER:?DB_PORT가 표준 레벨이 아니면 DB_CONTAINER 지정}" ;;
 esac
 SEED_SETS="${SEED_SETS:-50}"
