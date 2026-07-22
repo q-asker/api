@@ -2,8 +2,10 @@ package com.icc.qasker.quizset.entity;
 
 import com.icc.qasker.global.entity.CreatedAt;
 import com.icc.qasker.quizset.GenerationStatus;
+import com.icc.qasker.quizset.converter.IntegerListConverter;
 import com.icc.qasker.quizset.dto.ferequest.enums.QuizType;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -61,6 +63,16 @@ public class ProblemSet extends CreatedAt {
 
   @Column(columnDefinition = "TEXT")
   private String customInstruction;
+
+  // 동일 재현용 생성 조건 — 생성 시점에만 알 수 있어 세트에 함께 저장한다(조회 응답엔 없어 복원 불가).
+  // V19 이전 legacy 세트는 null(컬럼 NULL). IntegerListConverter는 NULL을 빈 리스트로 읽는다.
+  @Convert(converter = IntegerListConverter.class)
+  @Column(columnDefinition = "TEXT")
+  private List<Integer> pageNumbers;
+
+  // 요청 Language enum(quiz-make 모듈)을 이 모듈이 의존하지 않아 문자열("KO"/"EN")로 저장한다.
+  @Column(length = 8)
+  private String language;
 
   // 이하 헬퍼 함수
   public void updateStatus(GenerationStatus status) {

@@ -10,6 +10,7 @@ import com.icc.qasker.quizset.dto.ferequest.enums.QuizType;
 import com.icc.qasker.quizset.dto.feresponse.ProblemSetResponse;
 import com.icc.qasker.quizset.dto.feresponse.ProblemSetResponse.QuizForFe;
 import com.icc.qasker.quizset.dto.feresponse.ProblemSetResponse.QuizForFe.SelectionForFE;
+import com.icc.qasker.quizset.dto.feresponse.RegenerationConditionResponse;
 import com.icc.qasker.quizset.entity.Problem;
 import com.icc.qasker.quizset.entity.ProblemSet;
 import com.icc.qasker.quizset.entity.Selection;
@@ -99,6 +100,60 @@ class ProblemSetResponseMapperTest {
     assertThat(response.totalCount()).isEqualTo(5);
     assertThat(response.quiz()).hasSize(1);
     assertThat(response.quiz().get(0).number()).isEqualTo(3);
+  }
+
+  @Test
+  @DisplayName("toRegenerationCondition: 저장된 조건이 온전하면 그대로 싣고 documentAvailable=true")
+  void regeneration_condition_carries_stored_conditions() {
+    ProblemSet set =
+        ProblemSet.builder()
+            .id(10L)
+            .sessionId("sess-1")
+            .title("세트 제목")
+            .generationStatus(GenerationStatus.COMPLETED)
+            .quizType(QuizType.MULTIPLE)
+            .totalQuizCount(5)
+            .userId("user-1")
+            .fileUrl("file-url")
+            .customInstruction("지침")
+            .pageNumbers(List.of(2, 3))
+            .language("EN")
+            .build();
+
+    RegenerationConditionResponse response = mapper.toRegenerationCondition(set);
+
+    assertThat(response.quizType()).isEqualTo(QuizType.MULTIPLE);
+    assertThat(response.quizCount()).isEqualTo(5);
+    assertThat(response.pageNumbers()).containsExactly(2, 3);
+    assertThat(response.language()).isEqualTo("EN");
+    assertThat(response.customInstruction()).isEqualTo("지침");
+    assertThat(response.uploadedUrl()).isEqualTo("file-url");
+    assertThat(response.title()).isEqualTo("세트 제목");
+    assertThat(response.documentAvailable()).isTrue();
+  }
+
+  @Test
+  @DisplayName("toRegenerationCondition: legacy 세트(pageNumbers 빈/ language 빈)는 두 값을 null로 내려 폴백 유도")
+  void regeneration_condition_nulls_for_legacy_set() {
+    ProblemSet legacy =
+        ProblemSet.builder()
+            .id(11L)
+            .sessionId("sess-2")
+            .title("legacy")
+            .generationStatus(GenerationStatus.COMPLETED)
+            .quizType(QuizType.OX)
+            .totalQuizCount(10)
+            .userId("user-1")
+            .fileUrl("file-url")
+            .pageNumbers(List.of())
+            .language(null)
+            .build();
+
+    RegenerationConditionResponse response = mapper.toRegenerationCondition(legacy);
+
+    assertThat(response.pageNumbers()).isNull();
+    assertThat(response.language()).isNull();
+    assertThat(response.documentAvailable()).isTrue();
   }
 
   @Test

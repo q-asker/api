@@ -53,7 +53,8 @@ class GenerationCommandServiceImplTest {
     hashUtil = mock(HashUtil.class);
     resultRecorder = mock(GenerationResultRecorder.class);
 
-    when(quizCommandService.initProblemSet(any(), any(), any(), anyInt(), any(), any(), any()))
+    when(quizCommandService.initProblemSet(
+            any(), any(), any(), anyInt(), any(), any(), any(), any(), any()))
         .thenReturn(1L);
 
     service =
@@ -76,7 +77,27 @@ class GenerationCommandServiceImplTest {
 
     verify(quizCommandService, timeout(2000))
         .initProblemSet(
-            eq("user-1"), any(), any(), anyInt(), eq(QuizType.REAL_BLANK), any(), any());
+            eq("user-1"),
+            any(),
+            any(),
+            anyInt(),
+            eq(QuizType.REAL_BLANK),
+            any(),
+            any(),
+            any(),
+            any());
+  }
+
+  @Test
+  @DisplayName("동일 재현용: pageNumbers와 language(문자열)를 세트 저장에 그대로 전달한다")
+  void forwards_page_numbers_and_language_to_problem_set() {
+    GenerationRequest request = request(QuizType.MULTIPLE);
+
+    service.triggerGeneration("user-1", request);
+
+    verify(quizCommandService, timeout(2000))
+        .initProblemSet(
+            eq("user-1"), any(), any(), anyInt(), any(), any(), any(), eq(List.of(1, 2)), eq("KO"));
   }
 
   @Test

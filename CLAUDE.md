@@ -64,13 +64,13 @@
 ```
 q-asker/api/
 ├── app/                          # 진입점 (Spring Boot Application)
-│   ├── src/main/java/com/icc/qasker/loadtest/  # loadtest 전용 드라이버 (@Profile("loadtest")): LocalSchedulerController(비-controller 스케줄러 로직을 온디맨드 1회 호출해 백그라운드 쿼리 트레이스). read/write 부하는 loadgen.sh가 실 엔드포인트를 직접 태운다(mock 자기정리로 순증 0 — 별도 드라이버 불필요)
+│   ├── src/main/java/com/icc/qasker/loadtest/  # loadtest 전용 드라이버 (@Profile("loadtest")): LocalSchedulerController(비-controller 스케줄러 로직을 온디맨드 1회 호출해 백그라운드 쿼리 트레이스), RequestResourceMetricsFilter/Config(요청 스레드의 CPU 시간·힙 할당 바이트 델타를 uri별 카운터 request.thread.cpu.seconds·request.thread.allocated.bytes로 누적 — 플랫폼 스레드+동기 MVC 전제, 가상 스레드에선 무효). read/write 부하는 loadgen.sh가 실 엔드포인트를 직접 태운다(mock 자기정리로 순증 0 — 별도 드라이버 불필요)
 │   ├── src/main/java/com/icc/qasker/dev/  # 로컬 전용(@Profile("local")) 벤치 훅 (ExplanationReviewBenchController)
 │   └── src/main/resources/
 │       ├── application.yml       # 설정 진입점 (config/ import)
 │       ├── application-secrets.yml  # 암호화된 시크릿
 │       ├── application-test.yml  # test 프로파일 (CI/JUnit, H2 + 더미 Jasypt/OCI)
-│       ├── db/migration/         # Flyway 마이그레이션 SQL (V1~V15)
+│       ├── db/migration/         # Flyway 마이그레이션 SQL (V1~V16)
 │       └── config/               # 분리된 설정 파일들
 │           ├── database-config.yml   # 서버, DB, JPA, 캐시
 │           ├── ai-setting.yml        # Google Gemini AI 설정 (생성/ESSAY 채점/품질 검증 모델, 토큰 단가)
@@ -82,16 +82,16 @@ q-asker/api/
 │           ├── github.yml            # 피드백 → GitHub 이슈 자동 등록 (owner/repo/토큰/라벨)
 │           ├── resilience.yml        # Circuit Breaker
 │           ├── spring-doc.yml        # Swagger/OpenAPI
-│           └── loadtest.yml          # loadtest 프로파일 (분석 DB 3307 override, 레이트리밋 비활성)
+│           └── loadtest.yml          # loadtest 프로파일 (분석 DB 3309 override, 레이트리밋 비활성)
 ├── modules/
 │   ├── global/                   # 공통 (CreatedAt, CustomException/CustomErrorResponse, GlobalExceptionHandler, Boot4CompatConfig, RateLimitPlanResolver, HashUtil, SlackNotifier, GithubIssueClient, loadtest 쿼리 계측)
-│   ├── auth/     (api + impl)    # 인증 (JWT, OAuth2, RateLimitFilter, JwtProvider, PrincipalExtractor, SecurityErrorResponder, TokenCrypto, LocalTokenController=@Profile("loadtest") 토큰 발급 헬퍼)
+│   ├── auth/     (api + impl)    # 인증 (JWT, OAuth2, RateLimitFilter, JwtProvider, PrincipalExtractor, SecurityErrorResponder, TokenCrypto, LocalTokenController=@Profile("local") 토큰 발급 헬퍼)
 │   ├── oci/      (api + impl)    # OCI Object Storage 파일 업로드
 │   ├── board/    (api + impl)    # 게시판
 │   ├── quiz-ai/  (api + impl)    # AI 퀴즈 생성 (Gemini 호출, 청크 분할 스트리밍(ChunkPlanner/AbstractChunkedQuizOrchestrator)·컨텍스트 캐시(GeminiContextCacheManager), 메트릭, 품질 검증 QualityVerifier/QualityGate)
 │   ├── quiz-make/(api + impl)    # 퀴즈 생성 흐름 (파일업로드, SSE, 생성결과)
 │   ├── quiz-set/ (api + impl)    # 퀴즈 세트 CRUD, 품질 리뷰(QualityReviewService, problemSetIds 배치 재검토)·해설 재검토(ExplanationReviewService/ExplanationFormatValidator)·품질 로그(QualityLogService/ProblemQualityLog, v1 생성본·v2 재생성본 함께 보관)·스테일 생성 복구 스케줄러
-│   ├── quiz-history/(api + impl) # 풀이 히스토리
+│   ├── quiz-history/(api + impl) # 풀이 히스토리 + 기록 폴더 분류(QuizFolder 엔티티, /folders CRUD[POST·GET·PATCH·DELETE], PATCH /history/{id}/folder 배정·해제, GET /history?scope=ALL|UNCLASSIFIED|FOLDER&folderId= 필터링; QuizFolderCommand/QueryService, QuizHistory.folder_id)
 │   ├── document/ (api + impl)    # 문서 변환 (PPT/DOCX → PDF)
 │   └── admin/                    # 관리자 전용 API
 ├── infra/
@@ -101,7 +101,7 @@ q-asker/api/
 │   ├── blue-green/               # Blue-Green 무중단 배포 (Nginx 트래픽 스위칭, docker-compose, deploy.sh)
 │   └── scripts/
 │       ├── query-tuning/         # 쿼리 튜닝 부하 하네스 (스케일 스윕 x1/x10/x100 DB 대상, README.md에 실행 가이드): provision-level.sh(prod-matched config로 127.0.0.1 레벨 컨테이너 생성), loadgen.sh(실 엔드포인트 타격 단일 레시피 — 읽기 GET·실 write[mock 순증 0]·스케줄러·refresh·SSE 생성구독·로그아웃; admin·/local·/upload-doc[외부IO]·/auth/test 외 전 엔드포인트 요청), run-level.sh(레벨별 실행 — 무거운 패스=§① Micrometer seed + 가벼운 패스=§②③ trace_snapshot 귀속 + slow_log 수집), run-all.sh(3레벨 순차 스윕 오케스트레이터 — 레벨→포트→컨테이너 매핑 내장, ROUNDS 등 env 통과), seed-scale.sh + seed-scale-{small,problem}.sql(스케일 시딩 — x1 원본 복원본에 배수 시드 추가·FK 정합 유지·총량 검증)
-│       └── hibernate-enhancement/ # Hibernate 바이트코드 인핸스먼트 A/B 측정 하네스 (run.sh <off|on>): quiz-set-impl을 OFF / `-PenableHibernateEnhancement` ON 두 빌드로 clean 재빌드→javap로 계측 적용 검증→local,loadtest,mock 기동(query-tuning 스케일 DB 연결)→problem_quality_log 멱등 시딩(대형 질문 JSON=lazy 대상 + 형식 통과 정형 해설=쓰기 배제)→admin 토큰 자동 발급→POST /admin/problem-sets/explanation-review 반복 부하(pass2 lazy 그룹이 ON에서만 SELECT 제외되는 경로 정조준)→구간 끝 epoch 출력. 계측(dirty tracking·지연 로딩)은 기본 OFF·quiz-set-impl에만 적용(build.gradle §Hibernate 인핸스먼트 참고)
+│       └── hibernate-enhancement/ # Hibernate 바이트코드 인핸스먼트 A/B 측정 하네스 (run.sh <off|on>): quiz-set-impl을 `-PdisableHibernateEnhancement` OFF / 무플래그 ON 두 빌드로 clean 재빌드→javap로 계측 적용 검증→local,loadtest,mock 기동(query-tuning 스케일 DB 연결)→problem_quality_log 멱등 시딩(대형 질문 JSON=lazy 대상 + 형식 통과 정형 해설=쓰기 배제)→admin 토큰 자동 발급→POST /admin/problem-sets/explanation-review 반복 부하(pass2 lazy 그룹이 ON에서만 SELECT 제외되는 경로 정조준)→구간 끝 epoch 출력. 계측(dirty tracking·지연 로딩)은 기본 ON·quiz-set-impl에만 적용(`-PdisableHibernateEnhancement`로 OFF; build.gradle §Hibernate 인핸스먼트 참고)
 ├── docs/                         # 문서, 분석 자료
 ├── gradle/
 │   ├── libs.versions.toml        # Version Catalog: 모든 의존성/플러그인 버전 SSOT
@@ -116,10 +116,26 @@ q-asker/api/
     └── feedback-review.yml       # 피드백 이슈 /review 시 Claude가 FE/BE 작업 분석, @claude 멘션 시 후속 Q&A
 ```
 
+## 인증 / JWT (작업 가이드)
+
+JWT 관련 작업 시 아래 위치만 보면 된다. 서명·검증 로직을 여기저기서 재구현하지 말 것 — **단일 진입점은 `JwtProvider`**.
+
+- **서명·검증 단일 진입점**: `modules/auth/impl/.../component/JwtProvider.java`
+  - 알고리즘 **HMAC512**. `sign(User)` → 액세스 토큰. 클레임: `subject`·`userId`(둘 다 userId), `nickname`, `role`, `exp`.
+  - `verifyAndExtractUserId(token)` → 성공 시 userId, **실패(만료·위조·손상)는 모두 `null`로 흡수**(익명 통과 정책). 예외를 던지지 않는다.
+  - 알고리즘·시크릿·클레임을 바꿔야 하면 **이 클래스만** 수정한다.
+- **설정(시크릿·만료)**: `JwtProperties`(`modules/global/.../properties/JwtProperties.java`, `@ConfigurationProperties("spring.security.jwt")`) — `secret`, `accessExpirationSecond`, `refreshExpirationSecond`. 값은 `app/src/main/resources/config/spring-security.yml`(secret은 Jasypt `ENC()`).
+- **요청 인증 필터**: `modules/auth/impl/.../config/security/filter/JwtTokenAuthenticationFilter.java` — 헤더 토큰을 검증해 SecurityContext에 인증을 심는다. 검증 실패는 익명으로 통과(위 정책).
+- **컨트롤러에서 userId 받기**: 파라미터에 `@UserId String userId`(`modules/global/.../annotation/UserId.java`) — `UserIdArgumentResolver`(`modules/auth/impl/.../util/`)가 SecurityContext에서 주입. 컨트롤러가 직접 토큰을 파싱하지 않는다.
+- **리프레시·회전**: `TokenRotationService`(api) + `RefreshToken` 엔티티/`RefreshTokenRepository`, 암호화는 `TokenCrypto`/`RefreshTokenUtil`.
+- **로컬/부하 토큰 발급 (OAuth 우회)**: `LocalTokenController` → `GET /local/token?userId=<기존 User id>` 가 `jwtProvider.sign` 결과(액세스 토큰 문자열)를 반환. **`@Profile("local")` 에서만 등록되고 `prod` 에는 절대 노출되지 않는다**(loadtest는 항상 `local`에 얹어 실행되므로 부하 테스트에서도 활성). 인증이 필요한 API를 로그인 없이 태울 때(로컬 개발·**E2E**·부하 테스트) 사용. userId는 DB에 이미 존재해야 함(없으면 404).
+
 ## 환경 변수
 
 - 민감한 값은 `application-secrets.yml`에 Jasypt `ENC()`로 암호화하여 관리
-- Jasypt 복호화 키: `JASYPT_PASSWORD` 환경변수 또는 JVM 옵션으로 전달
+- Jasypt 복호화 키: `JASYPT_ENCRYPTOR_PASSWORD` 환경변수 또는 JVM 옵션으로 전달
+  - **로컬에서는 이 값을 찾아 헤매지 말 것** — `app/gradle.properties` 의 `JASYPT_ENCRYPTOR_PASSWORD` 에 이미 있고,
+    `app/build.gradle`(run/test 태스크)이 이 프로퍼티를 읽어 실행 환경변수로 자동 주입한다. 즉 `./gradlew :app:bootRun`(또는 `:app:test`)은 별도 export 없이 복호화된다. 셸에 직접 export하거나 secret 저장소를 뒤질 필요 없다.
 - 프로파일: `local` (개발), `prod` (운영), `test` (CI/JUnit), `loadtest` (부하 테스트, `local`에 얹어 실행 — `SPRING_PROFILES_ACTIVE=local,loadtest`), `mock` (AI 외부 호출 우회, 선택적으로 얹어 실행 — MockAIServerAdapter·MockEssayGradingService가 `@Profile("mock")`으로 Gemini 호출 없이 고정 결과 반환)
 - Actuator 포트: 9090 (서비스 포트와 분리)
 - Virtual Threads 활성화 (`spring.threads.virtual.enabled: true`)

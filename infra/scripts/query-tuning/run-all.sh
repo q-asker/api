@@ -8,18 +8,26 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 
 # 레벨 정의: "LABEL PORT CONTAINER"
 LEVELS=(
-  "x1   3308 local-mysql-orig"
-  "x10  3309 local-mysql-x10"
-  "x100 3307 local-mysql-prod"
+  "x1   3307 local-mysql-x1"
+  "x10  3308 local-mysql-x10"
+  "x100 3309 local-mysql-x100"
 )
 
 want="${1:-all}"   # all | x1 | x10 | x100
+
+# 스윕 전 bootJar 1회 재빌드(최신 소스 반영) → 레벨별 run-level 은 LT_SKIP_BUILD 로 재빌드 생략.
+#  build/libs 에 남은 이전(예: enhancement 하네스) jar 오염을 원천 차단한다.
+cd "$HERE/../../.."
+echo "[run-all] bootJar 재빌드(1회)"
+./gradlew :quiz-set-impl:clean :app:bootJar -q
+export LT_SKIP_BUILD=1
+
 for spec in "${LEVELS[@]}"; do
   read -r label port container <<< "$spec"
   [ "$want" != "all" ] && [ "$want" != "$label" ] && continue
   echo "════════════════ run-all: $label ════════════════"
   bash "$HERE/run-level.sh" "$port" "$container" "$label"
-  # 중간 레벨(x1·x10)은 정지해 RAM 반환(한 번에 한 레벨). x100은 대시보드가 3307을 읽으므로 유지.
+  # 중간 레벨(x1·x10)은 정지해 RAM 반환(한 번에 한 레벨). x100은 대시보드가 3309를 읽으므로 유지.
   if [ "$label" != "x100" ]; then
     docker stop "$container" >/dev/null 2>&1 && echo "[run-all] $container 정지(RAM 반환)"
   fi

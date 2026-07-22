@@ -81,7 +81,7 @@ subprojects {
     }
 
     apply plugin: 'org.hibernate.orm'
-    if (project.path == ':quiz-set-impl' && project.hasProperty('enableHibernateEnhancement')) {
+    if (project.path == ':quiz-set-impl' && !project.hasProperty('disableHibernateEnhancement')) {
         hibernate {
             enhancement {}
         }

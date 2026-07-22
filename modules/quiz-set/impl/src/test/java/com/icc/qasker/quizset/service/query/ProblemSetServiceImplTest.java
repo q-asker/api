@@ -12,6 +12,7 @@ import com.icc.qasker.quizset.TestEntityFactory;
 import com.icc.qasker.quizset.dto.ferequest.ChangeTitleRequest;
 import com.icc.qasker.quizset.dto.ferequest.enums.QuizType;
 import com.icc.qasker.quizset.dto.feresponse.ChangeTitleResponse;
+import com.icc.qasker.quizset.dto.feresponse.RegenerationConditionResponse;
 import com.icc.qasker.quizset.entity.ProblemSet;
 import com.icc.qasker.quizset.mapper.ProblemSetResponseMapper;
 import com.icc.qasker.quizset.repository.ProblemSetRepository;
@@ -53,6 +54,31 @@ class ProblemSetServiceImplTest {
         service.changeProblemSetTitle("user-1", "enc", new ChangeTitleRequest("new"));
 
     assertThat(response.title()).isEqualTo("new");
+  }
+
+  @Test
+  @DisplayName("재생성 조건: 인코딩 id를 디코드해 세트를 찾고 매퍼 결과를 반환한다")
+  void returns_regeneration_condition() {
+    ProblemSet set = setOwnedBy("user-1");
+    RegenerationConditionResponse expected =
+        new RegenerationConditionResponse(
+            QuizType.MULTIPLE, 5, List.of(1, 2), "KO", null, "file-url", "old", true);
+    when(hashUtil.decode("enc")).thenReturn(1L);
+    when(problemSetRepository.findById(1L)).thenReturn(Optional.of(set));
+    when(problemSetResponseMapper.toRegenerationCondition(set)).thenReturn(expected);
+
+    assertThat(service.getRegenerationCondition("enc")).isSameAs(expected);
+  }
+
+  @Test
+  @DisplayName("재생성 조건: 세트가 없으면 PROBLEM_SET_NOT_FOUND")
+  void throws_when_set_not_found_for_regeneration() {
+    when(hashUtil.decode("enc")).thenReturn(1L);
+    when(problemSetRepository.findById(1L)).thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> service.getRegenerationCondition("enc"))
+        .isInstanceOf(CustomException.class)
+        .hasMessage(ExceptionMessage.PROBLEM_SET_NOT_FOUND.getMessage());
   }
 
   @Test

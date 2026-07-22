@@ -2,6 +2,7 @@ package com.icc.qasker.quizset.controller;
 
 import com.icc.qasker.quizset.ProblemSetService;
 import com.icc.qasker.quizset.dto.feresponse.ProblemSetResponse;
+import com.icc.qasker.quizset.dto.feresponse.RegenerationConditionResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -23,5 +24,12 @@ public class ProblemSetQueryController {
   @GetMapping("/{id}")
   public ResponseEntity<ProblemSetResponse> getProblemSet(@PathVariable("id") String problemSetId) {
     return ResponseEntity.ok(problemSetService.getProblemSet(problemSetId));
+  }
+
+  @Operation(summary = "세트의 생성 조건을 되돌려준다(동일 재현용)")
+  @GetMapping("/{id}/regeneration-condition")
+  public ResponseEntity<RegenerationConditionResponse> getRegenerationCondition(
+      @PathVariable("id") String problemSetId) {
+    return ResponseEntity.ok(problemSetService.getRegenerationCondition(problemSetId));
   }
 }
