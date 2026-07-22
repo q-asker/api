@@ -1,69 +1,69 @@
 -- =============================================================
--- 전 테이블 스케일업 (작은 테이블) — 각 테이블 seed = x1실측 × (scale-1)
---   원본(비-seed) 유지 + seed 추가 → 총량 = x1 × scale.
---   FK 정합: user → problem_set → (quiz_history·essay_grade_log·refresh_token·board·feedback_board).
---   problem 은 규모가 커 seed-scale-problem.sql(배치)로 별도.
--- 입력: @scale (기본 10). 식별: user_id LIKE 'seed-u-%' / session_id LIKE 'seed-%'.
--- 마스킹 컬럼(STEP1 REDACT)은 seed 합성값(''·NULL·'[]')으로 채운다.
+-- 전 테이블 스케일업 (problem 제외) — 원본 행을 그대로 (scale-1)번 복제한다.
+--   제약키만 새로 생성: 숫자 PK/FK = 원본 + k×@base, user_id = 'c{k}_' 접두,
+--   session_id(UNIQUE) = '-c{k}' 접미. 나머지 컬럼(제목·내용 등)은 원본 그대로 복사.
+--   같은 copy(k)끼리 오프셋이 일치해 FK·UNIQUE 정합이 유지된다. problem 은 규모가 커 별도 파일.
+-- 전제: x1 순수 원본(복제 없음 → 모든 숫자 PK < @base). 입력: @scale.
 -- =============================================================
 SET NAMES utf8mb4;
 SET @scale = COALESCE(@scale, 10);
-SET @mult  = @scale - 1;                 -- seed 배수
-SET @base  = 1000000;                    -- seed PK 오프셋(원본 max id ~16000과 무충돌)
--- x1 실측 행수
-SET @u=166, @ps=4553, @qh=1828, @rt=155, @eg=642, @bd=11, @fb=21;
-SET @uN = @u*@mult;                      -- seed user 수(라운드로빈 분모)
-SET @psN = @ps*@mult;                    -- seed problem_set 수(라운드로빈 분모)
+SET @mult  = @scale - 1;          -- 복제 배수(0이면 원본만 유지)
+SET @base  = 1000000;             -- copy 오프셋(원본 max id ≪ @base)
 
--- 0..(psN-1) 시퀀스 (6자리 크로스조인 = 최대 100만; problem_set seed 최대 x100=450,747 < 100만)
-DROP TEMPORARY TABLE IF EXISTS seq;
-CREATE TEMPORARY TABLE seq (n INT PRIMARY KEY);
-INSERT INTO seq
-SELECT g.seq FROM (
-  SELECT d0.n + d1.n*10 + d2.n*100 + d3.n*1000 + d4.n*10000 + d5.n*100000 AS seq
-  FROM (SELECT 0 n UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9) d0
-  CROSS JOIN (SELECT 0 n UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9) d1
-  CROSS JOIN (SELECT 0 n UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9) d2
-  CROSS JOIN (SELECT 0 n UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9) d3
-  CROSS JOIN (SELECT 0 n UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9) d4
-  CROSS JOIN (SELECT 0 n UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9) d5
-) g WHERE g.seq < @psN;
+-- copy 번호 1..@mult (최대 99 = x100)
+DROP TEMPORARY TABLE IF EXISTS kmult;
+CREATE TEMPORARY TABLE kmult (k INT PRIMARY KEY);
+INSERT INTO kmult (k)
+SELECT k FROM (
+  SELECT a.n + b.n*10 AS k
+  FROM (SELECT 0 n UNION SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5 UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION SELECT 9) a
+  CROSS JOIN (SELECT 0 n UNION SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5 UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION SELECT 9) b
+) t WHERE k BETWEEN 1 AND @mult;
 
--- ── user ──
+-- varchar PK(user·refresh_token) 은 자기복제 피드백을 막으려 원본을 스냅샷 후 복사한다.
+DROP TEMPORARY TABLE IF EXISTS _u;  CREATE TEMPORARY TABLE _u  AS SELECT * FROM user;
+DROP TEMPORARY TABLE IF EXISTS _rt; CREATE TEMPORARY TABLE _rt AS SELECT * FROM refresh_token;
+
+-- ── user (PK user_id) ──
 INSERT INTO user (user_id, created_at, nickname, provider, role)
-SELECT CONCAT('seed-u-', n), NOW(6), CONCAT('u_seed', n), 'seed', 'ROLE_USER'
-FROM seq WHERE n < @uN;
+SELECT CONCAT('c',k.k,'_',u.user_id), u.created_at, u.nickname, u.provider, u.role
+FROM _u u CROSS JOIN kmult k;
 
--- ── refresh_token (user_id 가 PK → seed user 처음 rt*mult 개에 1:1) ──
+-- ── refresh_token (PK user_id → 복제 user 와 1:1) ──
 INSERT INTO refresh_token (user_id, created_at, expires_at, rt_hash)
-SELECT CONCAT('seed-u-', n), NOW(6), DATE_ADD(NOW(6), INTERVAL 14 DAY), SHA2(CONCAT('seed-rt-', n), 256)
-FROM seq WHERE n < @rt*@mult;
+SELECT CONCAT('c',k.k,'_',r.user_id), r.created_at, r.expires_at, r.rt_hash
+FROM _rt r CROSS JOIN kmult k;
 
--- ── problem_set (user_id 라운드로빈, session_id='seed-<id>') ──
+-- ── problem_set (PK id, UNIQUE session_id) ──
 INSERT INTO problem_set (id, title, user_id, generation_status, quiz_type, total_quiz_count, session_id, file_url, custom_instruction, created_at)
-SELECT @base+n, CONCAT('시드 세트 ', n), CONCAT('seed-u-', n % @uN), 'COMPLETED',
-  CASE WHEN (n%200)<86 THEN 'MULTIPLE' WHEN (n%200)<154 THEN 'BLANK' WHEN (n%200)<188 THEN 'OX' WHEN (n%200)<197 THEN 'ESSAY' ELSE 'REAL_BLANK' END,
-  16, CONCAT('seed-', @base+n), 'seed://perf', NULL, NOW(6)
-FROM seq WHERE n < @psN;
+SELECT ps.id + k.k*@base, ps.title, CONCAT('c',k.k,'_',ps.user_id), ps.generation_status, ps.quiz_type,
+       ps.total_quiz_count, CONCAT(ps.session_id,'-c',k.k), ps.file_url, ps.custom_instruction, ps.created_at
+FROM problem_set ps CROSS JOIN kmult k WHERE ps.id < @base;
 
--- ── quiz_history (answers 마스킹 → NULL) ──
+-- ── quiz_history (PK id, UNIQUE(user_id, problem_set_id)) ──
 INSERT INTO quiz_history (id, score, created_at, problem_set_id, title, answers, total_time, user_id, status)
-SELECT @base+n, 80, NOW(6), @base+(n % @psN), CONCAT('시드 풀이 ', n), NULL, '00:10:00', CONCAT('seed-u-', n % @uN), 'COMPLETED'
-FROM seq WHERE n < @qh*@mult;
+SELECT q.id + k.k*@base, q.score, q.created_at, q.problem_set_id + k.k*@base, q.title, q.answers,
+       q.total_time, CONCAT('c',k.k,'_',q.user_id), q.status
+FROM quiz_history q CROSS JOIN kmult k WHERE q.id < @base;
 
--- ── essay_grade_log (student_answer='' · element_scores='[]' 마스킹) ──
+-- ── essay_grade_log (PK id) ──
 INSERT INTO essay_grade_log (id, user_id, problem_set_id, problem_number, question, student_answer, attempt_count, total_score, max_score, element_scores, overall_feedback, evidence_json, created_at)
-SELECT @base+n, CONCAT('seed-u-', n % @uN), @base+(n % @psN), 1, '시드 질문', '', 1, 7, 10, '[]', NULL, NULL, NOW(6)
-FROM seq WHERE n < @eg*@mult;
+SELECT e.id + k.k*@base, CONCAT('c',k.k,'_',e.user_id), e.problem_set_id + k.k*@base, e.problem_number,
+       e.question, e.student_answer, e.attempt_count, e.total_score, e.max_score, e.element_scores,
+       e.overall_feedback, e.evidence_json, e.created_at
+FROM essay_grade_log e CROSS JOIN kmult k WHERE e.id < @base;
 
--- ── board (title·content 마스킹 → '') ──
+-- ── board (PK board_id) ──
 INSERT INTO board (board_id, created_at, updated_at, view_count, title, user_id, content, status, category)
-SELECT @base+n, NOW(6), NOW(6), 0, '', CONCAT('seed-u-', n % @uN), '', 'IN_PROGRESS', 'INQUIRY'
-FROM seq WHERE n < @bd*@mult;
+SELECT b.board_id + k.k*@base, b.created_at, b.updated_at, b.view_count, b.title,
+       CONCAT('c',k.k,'_',b.user_id), b.content, b.status, b.category
+FROM board b CROSS JOIN kmult k WHERE b.board_id < @base;
 
--- ── feedback_board (content 마스킹 → '') ──
+-- ── feedback_board (PK feedback_board_id) ──
 INSERT INTO feedback_board (feedback_board_id, user_id, content, created_at)
-SELECT @base+n, CONCAT('seed-u-', n % @uN), '', NOW(6)
-FROM seq WHERE n < @fb*@mult;
+SELECT f.feedback_board_id + k.k*@base, CONCAT('c',k.k,'_',f.user_id), f.content, f.created_at
+FROM feedback_board f CROSS JOIN kmult k WHERE f.feedback_board_id < @base;
 
-DROP TEMPORARY TABLE IF EXISTS seq;
+DROP TEMPORARY TABLE IF EXISTS kmult;
+DROP TEMPORARY TABLE IF EXISTS _u;
+DROP TEMPORARY TABLE IF EXISTS _rt;

@@ -7,9 +7,9 @@
 
 | 레벨 | 컨테이너 | 포트 | 크기(problem) | 용도 |
 |---|---|---|--:|---|
-| **x1** | `local-mysql-orig` | 3308 | 71,244 | 원본 마스킹본 — **재시딩 소스** |
-| **x10** | `local-mysql-x10` | 3309 | 726,876 | 중간 스케일 |
-| **x100** | `local-mysql-prod` | 3307 | 7,283,196 | 최대 스케일(분석 대상) |
+| **x1** | `local-mysql-x1` | 3307 | 71,244 | 원본 마스킹본 — **재시딩 소스** |
+| **x10** | `local-mysql-x10` | 3308 | 726,876 | 중간 스케일 |
+| **x100** | `local-mysql-x100` | 3309 | 7,283,196 | 최대 스케일(분석 대상) |
 
 - 전부 `root`/`password`, `qaskerdb`. 각 테이블 = x1 실측 × 배수(전 테이블 FK 정합).
 - 컨테이너는 **`provision-level.sh`로 127.0.0.1 바인딩 + `local_local-monitoring` 네트워크**에 생성.
@@ -22,28 +22,27 @@
 ```bash
 cd api
 # 새 볼륨(빈 DB → 복원·시딩 대상)
-bash infra/scripts/query-tuning/provision-level.sh local-mysql-prod 3307
+bash infra/scripts/query-tuning/provision-level.sh local-mysql-x100 3309
 # 기존 볼륨 보존(데이터 유지 재생성) — 볼륨명은 docker volume ls / inspect 로 확인
-bash infra/scripts/query-tuning/provision-level.sh local-mysql-x10 3309 <볼륨명>
+bash infra/scripts/query-tuning/provision-level.sh local-mysql-x10 3308 <볼륨명>
 ```
 
 ## 2. 재시딩 (배수 변경 / 복구)
 
-x1 원본을 대상에 복원한 뒤 배수 시딩한다. `seed-scale.sh <컨테이너> <배수>` — 배수만 바꾸면 어떤 스케일도 재현.
+`seed-scale.sh <컨테이너> <배수>` **한 방으로 초기화(DROP + x1 복원)까지** 한다 — 재실행해도 항상 fresh x<배수>(누적·중복키 없음). 배수만 바꾸면 어떤 스케일도 재현.
 
 ```bash
-# (1) x1 → 대상 복원
-docker exec -e MYSQL_PWD=password local-mysql-prod mysql -uroot -e "DROP DATABASE IF EXISTS qaskerdb; CREATE DATABASE qaskerdb;"
-docker exec -e MYSQL_PWD=password local-mysql-orig mysqldump --single-transaction --no-tablespaces --set-gtid-purged=OFF -uroot qaskerdb \
-  | docker exec -i -e MYSQL_PWD=password local-mysql-prod mysql -uroot qaskerdb
-# (2) 전 테이블 배수 시딩 (검증 표 자동 출력)
-bash infra/scripts/query-tuning/seed-scale.sh local-mysql-prod 100
+# 초기화(DROP DATABASE + x1 덤프 복원) + 전 테이블 배수 복제 + 충분성 가드 + 검증 — seed-scale 이 전부 수행
+bash infra/scripts/query-tuning/seed-scale.sh local-mysql-x100 100   # x1 소스 기본 local-mysql-x1 (정지 시 자동 기동·원복)
 ```
 
 시딩 스크립트(이 디렉토리):
+- `download-masked.sh` — OCI 마스킹본 **다운로드**(--latest/객체키) + sha256 → 파일 경로 출력. 마스킹 다운로드는 api 소유(plg 는 생성만).
+- `restore-x1.sh` — 마스킹 덤프 **파일**을 `local-mysql-x1` 복원 + row·FK 정합 검증(x1 세팅). 다운로드와 **독립** — `download-masked.sh` 로 받은 파일을 넘긴다. `restore-x1.sh <dump.sql.gz>`.
+- `seed-scale.sh` — 오케스트레이션(**대상 DROP+x1 복원** → 작은 테이블 복제 → problem 배치 → 검증). x1 소스는 3번째 인자(기본 local-mysql-x1).
 - `seed-scale-small.sql` — user·problem_set·quiz_history·refresh_token·essay_grade_log·board·feedback_board (단일 SQL)
-- `seed-scale-problem.sql` — problem (배치, 세트당 16)
-- `seed-scale.sh` — 오케스트레이션(작은 테이블 → problem 배치 → 검증)
+- `seed-scale-problem.sql` — problem (copy 단위 배치)
+- `check-x1-scale.sh` — x1 충분성 가드(경고 전용): x1×100이 10K 미만인 도메인 테이블 자동 발견·경고. seed-scale 이 자동 호출.
 
 > `reply`는 x1 실측 0이라 시딩 대상 없음. `problem`은 세트당 16 고정이라 원본(15.65) 대비 근사.
 
@@ -54,7 +53,7 @@ bash infra/scripts/query-tuning/seed-scale.sh local-mysql-prod 100
 
 > 레벨 DB **기동/정지는 자동**이다. `run-level.sh`는 실행 전 해당 컨테이너가 꺼져 있으면 `docker start` +
 > 준비 대기하고(컨테이너 자체가 없으면 1·2번 provision·시딩을 안내 후 중단), `run-all.sh`는 각 레벨을 마치면
-> 중간 레벨(x1·x10)을 정지해 RAM을 반환한다(한 번에 한 레벨). **x100(3307)만 유지** — 대시보드가 3307을 읽는다.
+> 중간 레벨(x1·x10)을 정지해 RAM을 반환한다(한 번에 한 레벨). **x100(3309)만 유지** — 대시보드가 3309를 읽는다.
 > 손으로 `docker start/stop` 할 필요 없다.
 
 ```bash
@@ -67,9 +66,9 @@ ROUNDS=50 bash infra/scripts/query-tuning/run-all.sh          # 전 레벨
 bash infra/scripts/query-tuning/run-all.sh x100
 
 # (개별 호출도 가능)
-bash infra/scripts/query-tuning/run-level.sh 3308 local-mysql-orig x1
-bash infra/scripts/query-tuning/run-level.sh 3309 local-mysql-x10  x10
-bash infra/scripts/query-tuning/run-level.sh 3307 local-mysql-prod x100
+bash infra/scripts/query-tuning/run-level.sh 3307 local-mysql-x1   x1
+bash infra/scripts/query-tuning/run-level.sh 3308 local-mysql-x10  x10
+bash infra/scripts/query-tuning/run-level.sh 3309 local-mysql-x100 x100
 ```
 
 각 실행이 하는 일:
