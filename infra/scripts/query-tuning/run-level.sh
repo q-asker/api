@@ -113,8 +113,10 @@ SELECT
       WHEN SQL_TEXT LIKE '%quiz_history%'    THEN 'QuizHistoryRepository'
       WHEN SQL_TEXT LIKE '%essay_grade_log%' THEN 'EssayGradeLogRepository'
       WHEN SQL_TEXT LIKE '%feedback_board%'  THEN 'FeedbackBoardRepository'
-      WHEN SQL_TEXT LIKE '%problem_set%'     THEN 'ProblemSetRepository'
-      WHEN SQL_TEXT LIKE '%problem%'         THEN 'ProblemRepository'
+      -- 테이블명 뒤 경계(공백/괄호)로 앵커링한다. 컬럼명 problem_set_id 가 %problem_set% 에 걸려
+      --  problem 테이블 SQL(lazy explanation 로딩 등)이 ProblemSet 으로 오귀속되던 버그 방지.
+      WHEN SQL_TEXT LIKE '%problem\_set %' OR SQL_TEXT LIKE '%problem\_set(%' THEN 'ProblemSetRepository'
+      WHEN SQL_TEXT LIKE '%problem %'      OR SQL_TEXT LIKE '%problem(%'      THEN 'ProblemRepository'
       WHEN SQL_TEXT LIKE '%board%'           THEN 'BoardRepository'
       WHEN SQL_TEXT LIKE '%reply%'           THEN 'ReplyRepository'
       WHEN SQL_TEXT LIKE '%user%'            THEN 'UserRepository'
