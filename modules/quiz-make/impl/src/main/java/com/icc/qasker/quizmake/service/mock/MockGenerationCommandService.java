@@ -33,7 +33,9 @@ public class MockGenerationCommandService implements GenerationCommandService {
         request.quizCount(),
         request.quizType(),
         request.uploadedUrl(),
-        request.customInstruction());
+        request.customInstruction(),
+        request.pageNumbers(),
+        request.language().name());
     // 자기정리: 롤백으로 problem_set INSERT를 되돌린다(트레이스엔 남고 DB엔 안 남음).
     TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
   }

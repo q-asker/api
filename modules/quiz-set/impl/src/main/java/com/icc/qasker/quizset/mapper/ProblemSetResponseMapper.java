@@ -4,12 +4,14 @@ import com.icc.qasker.global.component.HashUtil;
 import com.icc.qasker.quizset.dto.feresponse.ProblemSetResponse;
 import com.icc.qasker.quizset.dto.feresponse.ProblemSetResponse.QuizForFe;
 import com.icc.qasker.quizset.dto.feresponse.ProblemSetResponse.QuizForFe.SelectionForFE;
+import com.icc.qasker.quizset.dto.feresponse.RegenerationConditionResponse;
 import com.icc.qasker.quizset.entity.Problem;
 import com.icc.qasker.quizset.entity.ProblemSet;
 import java.util.List;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 @Component
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
@@ -51,5 +53,31 @@ public final class ProblemSetResponseMapper {
         problemSet.getQuizType(),
         problemSet.getTotalQuizCount(),
         quizzes);
+  }
+
+  /**
+   * 세트의 생성 조건을 동일 재현용 응답으로 조립한다. 즉시 재생성 vs 폴백 판정은 프론트가 {@code documentAvailable &&
+   * pageNumbers?.length && language}로 하므로 서버는 조건 값만 되돌려 준다. 문서 만료 능동검사는 미도입이라 현 단계
+   * documentAvailable은 항상 true. legacy 세트(두 조건 미저장)는 pageNumbers/language를 null로 내려 프론트 옵션 화면 폴백으로
+   * 유도한다.
+   */
+  public RegenerationConditionResponse toRegenerationCondition(ProblemSet problemSet) {
+    List<Integer> pageNumbers =
+        problemSet.getPageNumbers() == null || problemSet.getPageNumbers().isEmpty()
+            ? null
+            : problemSet.getPageNumbers();
+    String language =
+        StringUtils.hasText(problemSet.getLanguage()) ? problemSet.getLanguage() : null;
+    boolean documentAvailable = true;
+
+    return new RegenerationConditionResponse(
+        problemSet.getQuizType(),
+        problemSet.getTotalQuizCount(),
+        pageNumbers,
+        language,
+        problemSet.getCustomInstruction(),
+        problemSet.getFileUrl(),
+        problemSet.getTitle(),
+        documentAvailable);
   }
 }

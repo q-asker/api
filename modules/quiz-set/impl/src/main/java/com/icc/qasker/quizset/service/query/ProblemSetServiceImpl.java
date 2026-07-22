@@ -7,6 +7,7 @@ import com.icc.qasker.quizset.ProblemSetService;
 import com.icc.qasker.quizset.dto.ferequest.ChangeTitleRequest;
 import com.icc.qasker.quizset.dto.feresponse.ChangeTitleResponse;
 import com.icc.qasker.quizset.dto.feresponse.ProblemSetResponse;
+import com.icc.qasker.quizset.dto.feresponse.RegenerationConditionResponse;
 import com.icc.qasker.quizset.entity.ProblemSet;
 import com.icc.qasker.quizset.mapper.ProblemSetResponseMapper;
 import com.icc.qasker.quizset.repository.ProblemSetRepository;
@@ -29,6 +30,13 @@ public class ProblemSetServiceImpl implements ProblemSetService {
     Assert.hasText(problemSetId, "problemSetId must not be blank");
     ProblemSet problemSet = getProblemSetEntityByEncoded(problemSetId);
     return problemSetResponseMapper.fromEntity(problemSet);
+  }
+
+  @Override
+  public RegenerationConditionResponse getRegenerationCondition(String problemSetId) {
+    Assert.hasText(problemSetId, "problemSetId must not be blank");
+    ProblemSet problemSet = getProblemSetEntityByEncoded(problemSetId);
+    return problemSetResponseMapper.toRegenerationCondition(problemSet);
   }
 
   @Override
