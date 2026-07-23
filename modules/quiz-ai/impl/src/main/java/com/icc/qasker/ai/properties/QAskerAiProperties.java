@@ -16,6 +16,12 @@ public class QAskerAiProperties {
   /** 컨텍스트 캐시 TTL — q-asker.ai.cache-ttl. 한 세트 생성 세션(인터리빙 전체)을 커버하고, 종료 시 명시적으로 삭제한다. */
   private Duration cacheTtl;
 
+  /**
+   * 즉석 서빙 문항 수 — q-asker.ai.fast-serve-count. 처음 N문항은 생성 게이트(Pass 1) 검증 없이 파싱 즉시 저장·전송한다(0=비활성).
+   * 품질은 사후 Pass 2 재검토가 판정한다.
+   */
+  private int fastServeCount;
+
   /** Gemini HTTP 클라이언트 시한 계층 (connect < read < call) */
   private GeminiHttp geminiHttp = new GeminiHttp();
 

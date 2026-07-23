@@ -6,6 +6,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -235,6 +237,36 @@ class ChunkedQuizOrchestratorContractTest {
     // 첫 호출(청크0 Phase 1)엔 dedup 지침 없음, 이후 청크1 Phase 1엔 있음
     assertThat(userTexts.get(0)).doesNotContain(typeSpecificDedupMarker(type));
     assertThat(userTexts).anyMatch(t -> t.contains(typeSpecificDedupMarker(type)));
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"MULTIPLE", "BLANK", "OX"})
+  void fastServesFirstNWithoutGate(String type) {
+    aiProperties.setFastServeCount(2);
+    FakeSink sink = new FakeSink();
+    when(chatModel.stream(any(Prompt.class))).thenReturn(fluxOf(questionsJson(List.of(1, 1, 1))));
+
+    orchestrator(type).generateQuiz(request(type, 3, sink));
+
+    assertThat(sink.contents()).containsExactlyInAnyOrder("Q0", "Q1", "Q2");
+    // 처음 2문항은 게이트를 우회하므로 검증 콜은 3번째 문항 1건뿐이다.
+    verify(qualityGate, times(1)).verify(any(), any(), any(), any(), any());
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"MULTIPLE", "BLANK", "OX"})
+  void fastServedProblemsAreStoredEvenIfGateWouldReject(String type) {
+    // 게이트가 전량 미달 판정을 내려도 즉석 서빙분은 게이트를 타지 않으므로 그대로 저장된다.
+    aiProperties.setFastServeCount(3);
+    when(qualityGate.verify(any(), any(), any(), any(), any()))
+        .thenReturn(QualityVerdict.below("bad"));
+    FakeSink sink = new FakeSink();
+    when(chatModel.stream(any(Prompt.class))).thenReturn(fluxOf(questionsJson(List.of(1, 1, 1))));
+
+    orchestrator(type).generateQuiz(request(type, 3, sink));
+
+    assertThat(sink.contents()).containsExactlyInAnyOrder("Q0", "Q1", "Q2");
+    verify(qualityGate, never()).verify(any(), any(), any(), any(), any());
   }
 
   private String typeSpecificDedupMarker(String type) {
