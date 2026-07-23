@@ -267,11 +267,16 @@ public abstract class AbstractChunkedQuizOrchestrator<T> implements QuizTypeOrch
                 if (!accept(question)) return;
 
                 AIProblem arranged = toProblem(question, metadata.sourcePages());
-                submitted.incrementAndGet();
+                int order = submitted.incrementAndGet();
                 generated.add(arranged);
 
-                // 생성 게이트를 비동기로 제출하고 즉시 리턴한다 — 스트림 소비를 검증이 붙잡지 않는다.
-                verifyFutures.add(submitVerification(arranged));
+                // 처음 fast-serve-count개는 생성 게이트 없이 즉시 저장한다(즉석 서빙 — 사후 Pass 2가 판정).
+                // 그 외엔 생성 게이트를 비동기로 제출하고 즉시 리턴한다 — 스트림 소비를 검증이 붙잡지 않는다.
+                if (order <= aiProperties.getFastServeCount()) {
+                  verifyFutures.add(submitFastServe(arranged));
+                } else {
+                  verifyFutures.add(submitVerification(arranged));
+                }
               },
               tag);
 
@@ -281,6 +286,19 @@ public abstract class AbstractChunkedQuizOrchestrator<T> implements QuizTypeOrch
       conversation.add(phase1User);
       conversation.add(new AssistantMessage(serializeProblems(generated)));
       return generated;
+    }
+
+    /** 즉석 서빙: 생성 게이트 검증 없이 저장·통지한다. 처음 문항들의 체감 지연(TTFQ)에서 검증 콜 지연을 제거한다. */
+    private CompletableFuture<Void> submitFastServe(AIProblem problem) {
+      return CompletableFuture.runAsync(
+          () -> {
+            try {
+              store(problem, null);
+            } catch (Exception e) {
+              log.warn("{} 즉석 서빙 저장 실패 — 문항 제외", tag, e);
+            }
+          },
+          verifyExecutor);
     }
 
     /**

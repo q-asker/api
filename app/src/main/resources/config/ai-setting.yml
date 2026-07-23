@@ -38,6 +38,9 @@ q-asker:
       call-timeout: 300s
     chunk:
       chunk-size: 15
+    # 즉석 서빙: 처음 N문항은 생성 게이트(Pass 1) 검증 없이 파싱 즉시 저장·전송한다 (0 = 비활성).
+    # 첫 문항 체감 지연(TTFQ)에서 검증 콜 지연을 제거하는 목적 — 품질은 사후 Pass 2 재검토가 판정.
+    fast-serve-count: ${FAST_SERVE_COUNT:3}
     multiple:
       chunk-mode: 1  # 1: 단일 호출, 2: 멀티턴 순차 (A→B→C 중복방지), 3: 패턴별 병렬 (A/B/C)
     essay:
