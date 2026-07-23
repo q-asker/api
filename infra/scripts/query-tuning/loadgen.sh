@@ -8,13 +8,14 @@
 # 하는 일: 토큰 → GET 열거·id 수확 → (읽기+쓰기) xROUNDS → 스케줄러 → refresh 경합 → SSE 생성구독 → 로그아웃.
 set -euo pipefail
 BASE="${BASE:-http://localhost:8080}"
-USER_ID="${USER_ID:-h_e9887d1d5b31f89c3101b5732df92f4c}"
+USER_ID="${USER_ID:-}"   # 유효 user_id 필수(run-level.sh 가 대상 DB 에서 자동 주입; standalone 이면 직접 지정)
 ROUNDS="${ROUNDS:-10}"                  # 읽기+쓰기 엔드포인트 반복(각 엔드포인트 호출 횟수)
 DETAIL_SAMPLE="${DETAIL_SAMPLE:-25}"    # templated GET당 대입 id 표본
 SCHED_ROUNDS="${SCHED_ROUNDS:-10}"      # 스케줄러 트리거 반복
 REFRESH_CONC="${REFRESH_CONC:-20}"      # refresh 동시 요청 수
 REFRESH_ROUNDS="${REFRESH_ROUNDS:-50}"  # refresh 버스트 라운드
 command -v jq >/dev/null || { echo "jq 필요" >&2; exit 1; }
+[ -n "$USER_ID" ] || { echo "[mint] USER_ID 미설정 — run-level.sh 가 자동 주입하거나, DB 에 존재하는 user_id 를 USER_ID 로 넘기세요" >&2; exit 1; }
 
 # ── 1) 토큰 ──
 TOKEN=$(curl -s "$BASE/local/token?userId=$USER_ID")
@@ -38,7 +39,7 @@ done
 BOARD_CATS=(INQUIRY UPDATE_LOG)  # GET /boards?category= 필수값(미지정 시 400 → findByCategory 미실행)
 echo "[enum] static GET=${#STATIC[@]}  templated GET=${#TEMPLATED[@]}  board cats=${#BOARD_CATS[@]}"
 
-# ── 실 write 엔드포인트(mock 자기정리, 순증 0). __ID__→수확 id, __SID__→uuid ──
+# ── 실 write 엔드포인트(mock 자기정리, 순증 0). __ID__→수확 id, __BID__→숫자 boardId, __SID__→uuid ──
 WRITES=(
   "POST|/boards|{\"title\":\"mock\",\"content\":\"mock\"}"
   "PUT|/boards/__BID__|{\"title\":\"mock\",\"content\":\"mock\"}"
@@ -52,6 +53,10 @@ WRITES=(
   "PATCH|/history/__ID__/title|{\"title\":\"mock\"}"
   "DELETE|/history/__ID__|"
   "DELETE|/history/all|"
+  "POST|/folders|{\"name\":\"mock\"}"
+  "PATCH|/folders/__ID__|{\"name\":\"mock\"}"
+  "PATCH|/history/__ID__/folder|{\"folderId\":null}"
+  "DELETE|/folders/__ID__|"
   "POST|/generation|{\"sessionId\":\"__SID__\",\"uploadedUrl\":\"mock\",\"title\":\"mock\",\"quizCount\":5,\"quizType\":\"MULTIPLE\",\"pageNumbers\":[1],\"language\":\"KO\"}"
 )
 

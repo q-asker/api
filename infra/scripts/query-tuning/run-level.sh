@@ -76,6 +76,12 @@ TRUNCATE mysql.slow_log;
 SQL
 echo "[$LABEL] slow log 수집 ON (0.1s) + 리셋"
 
+# 유효 user_id 를 대상 DB 에서 동적 선택(하드코딩 방지 — 마스킹/시딩으로 user_id 가 바뀌어도 안전)
+USER_ID=$(docker exec -e MYSQL_PWD=password "$CONTAINER" mysql -uroot -N qaskerdb -e "SELECT user_id FROM user LIMIT 1" 2>/dev/null)
+[ -n "$USER_ID" ] || { echo "[$LABEL] user 테이블에서 user_id 를 못 가져옴 — 시딩(seed-scale) 확인"; exit 1; }
+export USER_ID
+echo "[$LABEL] loadgen USER_ID=$USER_ID"
+
 # 2) 무거운 부하 — loadgen(실 엔드포인트) → Micrometer seed 라벨 → §① 스케일 지연곡선
 export ROUNDS="${ROUNDS:-50}" DETAIL_SAMPLE="${DETAIL_SAMPLE:-25}" REFRESH_ROUNDS="${REFRESH_ROUNDS:-60}" REFRESH_CONC="${REFRESH_CONC:-20}" SCHED_ROUNDS="${SCHED_ROUNDS:-10}"
 T0=$(($(date +%s) * 1000))
