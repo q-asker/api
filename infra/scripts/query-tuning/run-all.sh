@@ -26,6 +26,12 @@ for spec in "${LEVELS[@]}"; do
   read -r label port container <<< "$spec"
   [ "$want" != "all" ] && [ "$want" != "$label" ] && continue
   echo "════════════════ run-all: $label ════════════════"
+  # 다른 레벨 컨테이너 정지 — 4G 버퍼풀 MySQL 이 동시 상주하면 RAM 압박으로 네이티브 JVM 이
+  #  OS 에 강제종료(SIGKILL)되고, 이어지는 가벼운 패스가 죽은 앱에 붙지 못해 스윕이 중단된다.
+  for other in "${LEVELS[@]}"; do
+    read -r _ol _op oc <<< "$other"
+    [ "$oc" != "$container" ] && docker stop "$oc" >/dev/null 2>&1 || true
+  done
   bash "$HERE/run-level.sh" "$port" "$container" "$label"
   # 중간 레벨(x1·x10)은 정지해 RAM 반환(한 번에 한 레벨). x100은 대시보드가 3309를 읽으므로 유지.
   if [ "$label" != "x100" ]; then
