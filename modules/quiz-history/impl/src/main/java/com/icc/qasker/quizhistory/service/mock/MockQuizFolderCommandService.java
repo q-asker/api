@@ -5,6 +5,7 @@ import com.icc.qasker.quizhistory.QuizFolderCommandService;
 import com.icc.qasker.quizhistory.dto.feresponse.FolderResponse;
 import com.icc.qasker.quizhistory.entity.QuizFolder;
 import com.icc.qasker.quizhistory.repository.QuizFolderRepository;
+import com.icc.qasker.quizhistory.repository.QuizHistoryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
@@ -23,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class MockQuizFolderCommandService implements QuizFolderCommandService {
 
   private final QuizFolderRepository quizFolderRepository;
+  private final QuizHistoryRepository quizHistoryRepository;
   private final HashUtil hashUtil;
 
   @Override
@@ -41,8 +43,15 @@ public class MockQuizFolderCommandService implements QuizFolderCommandService {
   }
 
   @Override
+  @Transactional
   public void deleteFolder(String userId, String folderId) {
-    selfCleanWrite(userId, "mock");
+    // 실 deleteFolder 경로를 그대로 태운다: throwaway 폴더 생성 → 히스토리 folder 해제 UPDATE
+    //  (throwaway 폴더엔 배정 히스토리가 없어 매칭 0행 → 순증 0) → 폴더 삭제.
+    //  clearFolderByFolderIdAndUserId(quiz_history 를 folder_id 로 UPDATE)까지 스케일별로 계측된다.
+    QuizFolder folder = QuizFolder.builder().userId(userId).name("mock").build();
+    quizFolderRepository.save(folder);
+    quizHistoryRepository.clearFolderByFolderIdAndUserId(folder.getId(), userId);
+    quizFolderRepository.delete(folder);
   }
 
   /** throwaway QuizFolder를 save→delete로 태워 종단 write SQL을 실 URI에 태그하되 데이터는 남기지 않는다. */
