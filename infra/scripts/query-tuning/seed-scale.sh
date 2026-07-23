@@ -53,6 +53,8 @@ UNION ALL SELECT 'quiz_history', COUNT(*) FROM quiz_history
 UNION ALL SELECT 'refresh_token', COUNT(*) FROM refresh_token
 UNION ALL SELECT 'essay_grade_log', COUNT(*) FROM essay_grade_log
 UNION ALL SELECT 'board', COUNT(*) FROM board
-UNION ALL SELECT 'feedback_board', COUNT(*) FROM feedback_board;
+UNION ALL SELECT 'feedback_board', COUNT(*) FROM feedback_board
+UNION ALL SELECT 'quiz_folder', COUNT(*) FROM quiz_folder
+UNION ALL SELECT 'reply', COUNT(*) FROM reply;
 SQL
 echo "[seed] done ($C x$SCALE)"

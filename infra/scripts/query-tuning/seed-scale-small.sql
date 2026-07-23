@@ -64,6 +64,16 @@ INSERT INTO feedback_board (feedback_board_id, user_id, content, created_at)
 SELECT f.feedback_board_id + k.k*@base, CONCAT('c',k.k,'_',f.user_id), f.content, f.created_at
 FROM feedback_board f CROSS JOIN kmult k WHERE f.feedback_board_id < @base;
 
+-- ── quiz_folder (PK id, FK user_id → 복제 user) ──
+INSERT INTO quiz_folder (id, user_id, name, created_at)
+SELECT qf.id + k.k*@base, CONCAT('c',k.k,'_',qf.user_id), qf.name, qf.created_at
+FROM quiz_folder qf CROSS JOIN kmult k WHERE qf.id < @base;
+
+-- ── reply (PK reply_id, FK board_id → 복제 board, admin_id → 복제 user) ──
+INSERT INTO reply (reply_id, board_id, admin_id, content, created_at)
+SELECT r.reply_id + k.k*@base, r.board_id + k.k*@base, CONCAT('c',k.k,'_',r.admin_id), r.content, r.created_at
+FROM reply r CROSS JOIN kmult k WHERE r.reply_id < @base;
+
 DROP TEMPORARY TABLE IF EXISTS kmult;
 DROP TEMPORARY TABLE IF EXISTS _u;
 DROP TEMPORARY TABLE IF EXISTS _rt;
