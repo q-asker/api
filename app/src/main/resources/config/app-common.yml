@@ -5,7 +5,9 @@ q-asker:
   async:
     task-termination-timeout-ms: 10000
   sse:
-    timeout-ms: 600000
+    # emitter 절대 시한. 최악 정상 생성(30문항=청크 2회 × gemini-http.call-timeout 300s + 보류 재생성 1콜 300s)을 커버
+    # — ai-setting.yml call-timeout 변경 시 함께 재산정
+    timeout-ms: 900000
 
   # 파일 업로드 검증
   file-validation:
