@@ -29,6 +29,7 @@ public class QuizViewToQuizForFeMapper {
         false,
         selections,
         null,
-        quizView.getAppliedInstruction());
+        quizView.getAppliedInstruction(),
+        quizView.getAcceptedAnswers());
   }
 }

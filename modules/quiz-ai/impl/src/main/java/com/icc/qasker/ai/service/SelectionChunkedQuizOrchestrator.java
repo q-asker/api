@@ -49,8 +49,8 @@ public abstract class SelectionChunkedQuizOrchestrator
   }
 
   @Override
-  protected String responseSchema(String customInstruction) {
-    return GeminiResponseSchema.forInstruction(customInstruction);
+  protected String responseSchema(String customInstruction, boolean realBlank) {
+    return GeminiResponseSchema.forInstruction(customInstruction, realBlank);
   }
 
   @Override

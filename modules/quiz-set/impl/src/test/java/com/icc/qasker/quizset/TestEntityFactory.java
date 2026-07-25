@@ -6,6 +6,7 @@ import com.icc.qasker.quizset.entity.Problem;
 import com.icc.qasker.quizset.entity.ProblemId;
 import com.icc.qasker.quizset.entity.ProblemSet;
 import com.icc.qasker.quizset.entity.Selection;
+import com.icc.qasker.quizset.mapper.ProblemMapper;
 import com.icc.qasker.quizset.mapper.ProblemSetResponseMapper;
 import java.lang.reflect.Constructor;
 import java.util.List;
@@ -65,6 +66,17 @@ public final class TestEntityFactory {
       return constructor.newInstance(hashUtil);
     } catch (ReflectiveOperationException e) {
       throw new IllegalStateException("테스트용 ProblemSetResponseMapper 생성 실패", e);
+    }
+  }
+
+  /** private 무인자 생성자를 가진 ProblemMapper를 리플렉션으로 생성한다. */
+  public static ProblemMapper problemMapper() {
+    try {
+      Constructor<ProblemMapper> constructor = ProblemMapper.class.getDeclaredConstructor();
+      constructor.setAccessible(true);
+      return constructor.newInstance();
+    } catch (ReflectiveOperationException e) {
+      throw new IllegalStateException("테스트용 ProblemMapper 생성 실패", e);
     }
   }
 }

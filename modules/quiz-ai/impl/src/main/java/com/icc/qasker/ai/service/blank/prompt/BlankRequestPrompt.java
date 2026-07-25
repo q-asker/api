@@ -8,6 +8,24 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class BlankRequestPrompt {
 
+  /**
+   * REAL_BLANK 전용 꼬리 지침. 정답 선지의 {@code acceptedAnswers}(빈칸별 인정 답)를 함께 생성하도록 지시한다. 스키마에 필드가 존재할
+   * 때만(realBlank) 부착된다.
+   */
+  public static final String REAL_BLANK_ACCEPTED_ANSWERS_INSTRUCTION =
+      """
+
+      > **REAL_BLANK 인정 답 생성 규칙 (정답 선지의 `acceptedAnswers` 필드)**
+      > 이 퀴즈는 사용자가 정답을 **직접 타이핑**한다. 표기만 다른 답이 오답 처리되지 않도록, 정답 선지(`correct: true`)에만
+      > 빈칸별 인정 답 목록을 `acceptedAnswers`에 채운다. (오답 선지는 빈 배열 `[]`.)
+      > - **형태**: 빈칸별 배열의 배열. 외곽 배열의 index는 정답 `content`의 **콤마 구분 빈칸 순서와 1:1**. 단일 빈칸이면 `[[...]]`,
+      >   2빈칸이면 `[[...빈칸1...], [...빈칸2...]]`.
+      > - **넣을 것**: 완전 동의어, 통용되는 약어·정식명칭 상호(예: `이벤트 루프`↔`event loop`), 한↔영 표기(예: `운동량`↔`momentum`).
+      > - **넣지 말 것**: ① 정답 자신(중복), ② 이 문항의 **오답(함정) 선지와 뜻이 겹치는 표현**, ③ 상위/하위/인접 개념,
+      >   ④ 오탈자·철자 변형, ⑤ 애매하면 넣지 않는다(보수적). 표기 차이(공백·대소문자·문장부호)는 시스템이 자동 관용하므로 목록에 넣지 않는다.
+      > - 확신하는 인정 답이 없으면 해당 빈칸은 빈 배열 `[]`로 둔다.
+      """;
+
   /** 청크 K(K≥2) 유저 프롬프트 꼬리에 붙는 중복 회피 지침. */
   public static final String DEDUP_INSTRUCTION =
       "\n\n> **CRITICAL RULE**: 위 직전 문항 목록과 빈칸 핵심 어휘·맥락·정답 분포(answerIndex)가 겹치지 않게 이번 청크 문항을 작성한다."

@@ -1,6 +1,7 @@
 package com.icc.qasker.quizset.mapper;
 
 import com.icc.qasker.quizset.entity.Problem;
+import com.icc.qasker.quizset.grading.AcceptedAnswerExtractor;
 import com.icc.qasker.quizset.view.QuizView;
 import com.icc.qasker.quizset.view.QuizView.SelectionView;
 import java.util.List;
@@ -22,6 +23,7 @@ public class ProblemToQuizViewMapper {
         QuizMappingSupport.UNANSWERED_USER_ANSWER,
         QuizMappingSupport.UNCHECKED,
         selections,
-        problem.getAppliedInstruction());
+        problem.getAppliedInstruction(),
+        AcceptedAnswerExtractor.fromSelections(problem.getSelections()));
   }
 }

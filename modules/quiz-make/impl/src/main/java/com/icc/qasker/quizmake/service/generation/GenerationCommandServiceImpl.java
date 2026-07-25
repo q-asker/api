@@ -106,6 +106,7 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
             .referencePages(request.pageNumbers())
             .customInstruction(request.customInstruction())
             .sink(batchConsumer)
+            .realBlank(request.quizType() == QuizType.REAL_BLANK)
             .build();
 
     try {

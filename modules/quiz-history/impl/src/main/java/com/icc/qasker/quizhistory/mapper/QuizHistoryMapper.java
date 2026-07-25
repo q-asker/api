@@ -69,7 +69,8 @@ public final class QuizHistoryMapper {
         correct,
         answers.inReview(problem.number()),
         selections,
-        answers.textAnswer(problem.number()));
+        answers.textAnswer(problem.number()),
+        problem.acceptedAnswers());
   }
 
   /** ProblemDetail + 답안 스냅샷 + 최신 채점 로그 → EssayProblemWithGrade(서술형 상세) 변환. */

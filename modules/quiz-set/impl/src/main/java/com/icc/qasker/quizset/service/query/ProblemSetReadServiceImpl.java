@@ -6,6 +6,7 @@ import com.icc.qasker.quizset.dto.readonly.ProblemSetSummary;
 import com.icc.qasker.quizset.dto.readonly.SelectionDetail;
 import com.icc.qasker.quizset.entity.Problem;
 import com.icc.qasker.quizset.entity.ProblemSet;
+import com.icc.qasker.quizset.grading.AcceptedAnswerExtractor;
 import com.icc.qasker.quizset.repository.ProblemRepository;
 import com.icc.qasker.quizset.repository.ProblemSetRepository;
 import java.util.List;
@@ -48,6 +49,10 @@ public class ProblemSetReadServiceImpl implements ProblemSetReadService {
     List<SelectionDetail> selections =
         p.getSelections().stream().map(s -> new SelectionDetail(s.content(), s.correct())).toList();
     return new ProblemDetail(
-        p.getId().getNumber(), p.getTitle(), selections, p.getExplanationContent());
+        p.getId().getNumber(),
+        p.getTitle(),
+        selections,
+        p.getExplanationContent(),
+        AcceptedAnswerExtractor.fromSelections(p.getSelections()));
   }
 }

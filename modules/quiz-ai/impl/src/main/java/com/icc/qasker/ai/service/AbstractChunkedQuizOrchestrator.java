@@ -9,6 +9,7 @@ import com.icc.qasker.ai.dto.GenerationRequestToAI;
 import com.icc.qasker.ai.dto.QualityVerdict;
 import com.icc.qasker.ai.exception.GeminiInfraException;
 import com.icc.qasker.ai.properties.QAskerAiProperties;
+import com.icc.qasker.ai.service.blank.prompt.BlankRequestPrompt;
 import com.icc.qasker.ai.service.prompt.RegenerationPrompt;
 import com.icc.qasker.ai.service.quality.QualityGate;
 import com.icc.qasker.ai.service.support.ChunkPlanner;
@@ -82,8 +83,11 @@ public abstract class AbstractChunkedQuizOrchestrator<T> implements QuizTypeOrch
   /** 스트리밍 JSON 배열 요소 타입 — {@link StreamingJsonArrayExtractor} 구성용(제네릭 타입 소거 우회). */
   protected abstract Class<T> elementType();
 
-  /** 응답 JSON 스키마. customInstruction 반영(선지형/서술형별). */
-  protected abstract String responseSchema(String customInstruction);
+  /**
+   * 응답 JSON 스키마. customInstruction 반영(선지형/서술형별). {@code realBlank}이면 선지형 스키마에 REAL_BLANK 정답 인정 답
+   * 필드(acceptedAnswers)를 포함한다(그 외에는 제외해 다른 타입 생성에 영향 없음).
+   */
+  protected abstract String responseSchema(String customInstruction, boolean realBlank);
 
   /**
    * 파싱된 질문 1개를 저장용 {@link AIProblem}으로 변환한다. 선지형은 선지 정렬을 흡수하고, 서술형은 항등 매핑한다. 저장 순서 = 대화 히스토리 순서
@@ -236,6 +240,12 @@ public abstract class AbstractChunkedQuizOrchestrator<T> implements QuizTypeOrch
         userPrompt = userPrompt + dedupInstruction();
       }
 
+      // REAL_BLANK 전용: 정답 선지에 빈칸별 인정 답(acceptedAnswers)을 함께 생성하도록 지시. realBlank일 때만 켜져 다른 타입 생성엔 영향
+      // 없다.
+      if (request.realBlank()) {
+        userPrompt = userPrompt + BlankRequestPrompt.REAL_BLANK_ACCEPTED_ANSWERS_INSTRUCTION;
+      }
+
       // 캐시가 있으면 PDF는 캐시 프리픽스에 있으므로 첨부하지 않는다. 폴백(캐시 없음) 시 첫 사용자 턴에만 첨부한다.
       UserMessage.Builder ub = UserMessage.builder().text(userPrompt);
       if (genCache == null && chunkIndex == 0) {
@@ -252,7 +262,7 @@ public abstract class AbstractChunkedQuizOrchestrator<T> implements QuizTypeOrch
       messages.add(phase1User);
 
       // 전체 스키마(선지별 해설 포함) — 문제·해설을 한 응답에 생성한다. 저장 시 sink가 인라인 해설을 마크다운으로 조립한다.
-      String schema = responseSchema(request.customInstruction());
+      String schema = responseSchema(request.customInstruction(), request.realBlank());
       Prompt prompt = new Prompt(messages, buildOptions(schema, genCache));
 
       // 이 청크에서 생성된(검증 이전) 문항 — 생성 순서. 대화 히스토리 구성과 청크 진행 판단에 쓴다.
@@ -404,7 +414,7 @@ public abstract class AbstractChunkedQuizOrchestrator<T> implements QuizTypeOrch
       messages.addAll(conversation);
       messages.add(new UserMessage(buildRegenerationPrompt(held)));
 
-      String schema = responseSchema(request.customInstruction());
+      String schema = responseSchema(request.customInstruction(), request.realBlank());
       ChatResponse response = chatModel.call(new Prompt(messages, buildOptions(schema, genCache)));
       recordUsage(response, tag + " regenerate");
 

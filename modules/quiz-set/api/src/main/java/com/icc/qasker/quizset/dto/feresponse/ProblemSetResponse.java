@@ -20,7 +20,9 @@ public record ProblemSetResponse(
       boolean check,
       List<SelectionForFE> selections,
       String explanation,
-      String appliedInstruction) {
+      String appliedInstruction,
+      // REAL_BLANK 정답 선지의 빈칸별 인정 답(quiz-level lift, contract.md §7.2). 그 외 null.
+      List<List<String>> acceptedAnswers) {
 
     public record SelectionForFE(int id, String content, String explanation, boolean correct) {}
   }

@@ -16,6 +16,8 @@ public class QuizView {
   private boolean check;
   private List<SelectionView> selections;
   private String appliedInstruction;
+  // REAL_BLANK 정답 선지의 빈칸별 인정 답(quiz-level). 그 외 null.
+  private List<List<String>> acceptedAnswers;
 
   @Getter
   @NoArgsConstructor

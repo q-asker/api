@@ -6,6 +6,7 @@ import com.icc.qasker.quizset.dto.feresponse.ProblemSetResponse.QuizForFe;
 import com.icc.qasker.quizset.dto.feresponse.ProblemSetResponse.QuizForFe.SelectionForFE;
 import com.icc.qasker.quizset.entity.Problem;
 import com.icc.qasker.quizset.entity.ProblemSet;
+import com.icc.qasker.quizset.grading.AcceptedAnswerExtractor;
 import java.util.List;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -32,7 +33,8 @@ public final class ProblemSetResponseMapper {
         QuizMappingSupport.UNCHECKED,
         selections,
         null,
-        problem.getAppliedInstruction());
+        problem.getAppliedInstruction(),
+        AcceptedAnswerExtractor.fromSelections(problem.getSelections()));
   }
 
   public ProblemSetResponse fromEntity(ProblemSet problemSet) {

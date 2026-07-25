@@ -10,4 +10,6 @@ public record ProblemWithAnswer(
     boolean correct,
     boolean inReview,
     List<Selection> selections,
-    String textAnswer) {}
+    String textAnswer,
+    // REAL_BLANK 정답 선지의 빈칸별 인정 답(quiz-level lift, contract.md §7.2). 그 외 null.
+    List<List<String>> acceptedAnswers) {}

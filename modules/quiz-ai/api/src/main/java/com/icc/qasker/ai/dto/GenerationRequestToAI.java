@@ -12,4 +12,6 @@ public record GenerationRequestToAI(
     int quizCount,
     List<Integer> referencePages,
     QuizBatchSink sink,
-    String customInstruction) {}
+    String customInstruction,
+    // 원본 quizType이 REAL_BLANK인지 — AI 전략명은 BLANK로 붕괴되므로(toAiStrategyName) 인정 답 생성 분기용으로 별도 전달.
+    boolean realBlank) {}

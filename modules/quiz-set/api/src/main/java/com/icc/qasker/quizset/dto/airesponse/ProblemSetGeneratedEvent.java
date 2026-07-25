@@ -29,6 +29,8 @@ public class ProblemSetGeneratedEvent {
       private String content;
       private String explanation;
       private boolean correct;
+      // REAL_BLANK 정답 선지 전용 빈칸별 인정 답 목록(원문). 그 외 null.
+      private List<List<String>> acceptedAnswers;
     }
   }
 }

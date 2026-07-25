@@ -16,5 +16,9 @@ public record GeminiQuestion(
   public record GeminiSelection(
       @JsonPropertyDescription("선택지 텍스트") String content,
       @JsonPropertyDescription("정답 여부") boolean correct,
-      @JsonPropertyDescription("선택지별 해설") String explanation) {}
+      @JsonPropertyDescription("선택지별 해설") String explanation,
+      @JsonPropertyDescription(
+              "REAL_BLANK 정답 선지 전용 — 빈칸별 인정 답 배열의 배열. 외곽은 정답의 콤마 구분 빈칸 순서와 1:1, 내부는 그 빈칸의 동의어·통용 약어·한↔영 표기."
+                  + " 오답 선지·정답 자신·함정과 겹치는 표현·오탈자는 넣지 않는다.")
+          List<List<String>> acceptedAnswers) {}
 }

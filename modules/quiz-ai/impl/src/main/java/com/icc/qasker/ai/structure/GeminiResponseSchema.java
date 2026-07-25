@@ -18,27 +18,44 @@ import tools.jackson.databind.node.ObjectNode;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class GeminiResponseSchema {
 
-  /** appliedInstruction 포함 스키마 (사용자 지시사항 있을 때) */
+  /** appliedInstruction 포함 스키마 (사용자 지시사항 있을 때). GeminiSelection.acceptedAnswers도 포함. */
   private static final String WITH_INSTRUCTION =
       new BeanOutputConverter<>(GeminiResponse.class).getJsonSchema();
 
   /** appliedInstruction 제외 스키마 (사용자 지시사항 없을 때) */
-  private static final String WITHOUT_INSTRUCTION = stripAppliedInstruction(WITH_INSTRUCTION);
+  private static final String WITHOUT_INSTRUCTION =
+      stripField(WITH_INSTRUCTION, "appliedInstruction");
 
-  /** customInstruction 유무에 따라 적절한 스키마를 반환한다. */
+  /** acceptedAnswers 제외 — 비 REAL_BLANK 기본값(다른 타입 생성에 새 필드 영향 없음). */
+  private static final String WITH_INSTRUCTION_NO_ACCEPTED =
+      stripField(WITH_INSTRUCTION, "acceptedAnswers");
+
+  private static final String WITHOUT_INSTRUCTION_NO_ACCEPTED =
+      stripField(WITHOUT_INSTRUCTION, "acceptedAnswers");
+
+  /** customInstruction 유무에 따라 적절한 스키마를 반환한다(acceptedAnswers 제외 = 기본). */
   public static String forInstruction(String customInstruction) {
-    if (customInstruction == null || customInstruction.isBlank()) {
-      return WITHOUT_INSTRUCTION;
-    }
-    return WITH_INSTRUCTION;
+    return forInstruction(customInstruction, false);
   }
 
-  /** JSON 스키마에서 appliedInstruction 프로퍼티와 required 항목을 제거한다. */
-  private static String stripAppliedInstruction(String schema) {
+  /**
+   * customInstruction 유무 + acceptedAnswers 포함 여부에 따라 스키마를 반환한다. {@code includeAcceptedAnswers}는
+   * REAL_BLANK일 때만 true — 그 외에는 acceptedAnswers를 스키마에서 제거해 모델이 불필요한 값을 생성하지 않도록 한다.
+   */
+  public static String forInstruction(String customInstruction, boolean includeAcceptedAnswers) {
+    boolean hasInstruction = customInstruction != null && !customInstruction.isBlank();
+    if (includeAcceptedAnswers) {
+      return hasInstruction ? WITH_INSTRUCTION : WITHOUT_INSTRUCTION;
+    }
+    return hasInstruction ? WITH_INSTRUCTION_NO_ACCEPTED : WITHOUT_INSTRUCTION_NO_ACCEPTED;
+  }
+
+  /** JSON 스키마에서 지정 프로퍼티와 required 항목을 재귀 제거한다. */
+  private static String stripField(String schema, String fieldName) {
     try {
       ObjectMapper om = new ObjectMapper();
       JsonNode root = om.readTree(schema);
-      stripFieldRecursive(root, "appliedInstruction");
+      stripFieldRecursive(root, fieldName);
       return om.writeValueAsString(root);
     } catch (JacksonException e) {
       // 스키마 조작 실패 시 원본 반환 (안전 폴백)

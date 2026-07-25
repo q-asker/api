@@ -46,7 +46,8 @@ public class GeminiQuestionMapper {
                                         new AISelection(
                                             s.content(),
                                             remapText(s.explanation(), sourcePages),
-                                            s.correct()))
+                                            s.correct(),
+                                            s.acceptedAnswers()))
                                 .toList(),
                         remapPages(q.referencedPages(), sourcePages),
                         remapText(q.appliedInstruction(), sourcePages)))

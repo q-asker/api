@@ -48,7 +48,8 @@ public class EssayQuizOrchestrator extends AbstractChunkedQuizOrchestrator<Gemin
   }
 
   @Override
-  protected String responseSchema(String customInstruction) {
+  protected String responseSchema(String customInstruction, boolean realBlank) {
+    // 서술형은 선지·인정 답 개념이 없어 realBlank를 사용하지 않는다.
     return GeminiEssayResponseSchema.forInstruction(customInstruction);
   }
 

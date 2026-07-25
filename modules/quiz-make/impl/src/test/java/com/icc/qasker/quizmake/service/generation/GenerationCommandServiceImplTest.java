@@ -259,7 +259,7 @@ class GenerationCommandServiceImplTest {
   }
 
   private QuizView quizView(int number) {
-    return new QuizView(number, "title-" + number, 0, false, List.of(), null);
+    return new QuizView(number, "title-" + number, 0, false, List.of(), null, null);
   }
 
   private GenerationRequest request(QuizType quizType) {
