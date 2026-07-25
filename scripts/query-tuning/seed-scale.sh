@@ -14,6 +14,44 @@ MULT=$((SCALE - 1))
 wait_ready(){ until docker exec -e MYSQL_PWD=password "$1" mysql -uroot -N -e "SELECT 1" 2>/dev/null | grep -q 1; do sleep 1; done; }
 ensure_up(){ [ "$(docker inspect -f '{{.State.Running}}' "$1" 2>/dev/null)" = "true" ] || { docker start "$1" >/dev/null; wait_ready "$1"; }; }
 
+# x1 스케일 충분성 가드(경고 전용, 구 check-x1-scale.sh 인라인) — x1 행수를 x<SCALE>(기본 ×100)로 투영해
+#  FLOOR(기본 10,000) 미만 도메인 테이블을 ⚠️ 로 알린다. information_schema 자동 발견이라 새 테이블도 자동 포함.
+#  () 서브셸 본문이라 set/MY 재정의·exit 가 본체에 새지 않는다. 절대 진행을 막지 않는다(항상 종료코드 0).
+#  제외: 스케일 대상 아닌 flyway_schema_history(마이그레이션 이력)·trace_snapshot(분석 산출물).
+check_x1_scale() (
+  set -uo pipefail
+  C="${1:?container}"; FLOOR="${2:-10000}"; SCALE="${3:-100}"
+  MY(){ docker exec -i -e MYSQL_PWD=password "$C" mysql -uroot -N qaskerdb; }
+  EXCLUDE=" flyway_schema_history trace_snapshot "
+  TABLES=$(echo "SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA='qaskerdb' AND TABLE_TYPE='BASE TABLE' ORDER BY TABLE_NAME;" | MY 2>/dev/null || true)
+  if [ -z "$TABLES" ]; then
+    echo "[check] $C — 테이블 조회 실패(컨테이너/DB 확인). 경고만이므로 건너뜀."; exit 0
+  fi
+  echo "[check] $C — x1 → x${SCALE} 투영, FLOOR=${FLOOR} (경고 전용, 자동 발견)"
+  printf '%-24s %10s %13s  %s\n' "table" "rows" "x${SCALE}_proj" "status"
+  printf '%.0s-' {1..66}; echo
+  warn=0
+  for t in $TABLES; do
+    [[ "$EXCLUDE" == *" $t "* ]] && continue
+    n=$(echo "SELECT COUNT(*) FROM \`$t\`;" | MY 2>/dev/null || echo NA)
+    [ "$n" = NA ] && continue
+    proj=$((n * SCALE))
+    if [ "$proj" -ge "$FLOOR" ]; then
+      status="OK"
+    else
+      status="⚠️ FLOOR 미만"; warn=$((warn + 1))
+    fi
+    printf '%-24s %10s %13s  %s\n' "$t" "$n" "$proj" "$status"
+  done
+  echo
+  if [ "$warn" -gt 0 ]; then
+    echo "⚠️  ${warn}개 테이블이 x${SCALE}에서 ${FLOOR} 미만 — 스케일 신호 약함(경고만, 진행엔 영향 없음)."
+  else
+    echo "✅ 전 도메인 테이블이 x${SCALE}에서 ${FLOOR} 이상."
+  fi
+  exit 0
+)
+
 # ── 0) 초기화: 대상을 x1 원본으로 리셋 (항상 fresh — "날리고 시딩") ──
 [ "$C" != "$X1" ] || { echo "[seed] x1 소스($X1)를 대상으로 줄 수 없음 — 원본 보호" >&2; exit 1; }
 docker inspect "$C"  >/dev/null 2>&1 || { echo "[seed] $C 없음 — provision-level.sh 로 먼저 생성" >&2; exit 1; }
@@ -30,7 +68,7 @@ docker exec -e MYSQL_PWD=password "$X1" \
 [ "$x1_was_stopped" = 1 ] && { docker stop "$X1" >/dev/null; echo "[seed] $X1 정지(원복)"; }
 
 # ── 1) x1 충분성 가드 (경고 전용) ──
-bash "$DIR/check-x1-scale.sh" "$C" || true
+check_x1_scale "$C" || true
 
 # ── 2) 배수 복제 ──
 echo "[seed] $C scale=$SCALE — 작은 테이블 복제(원본 × $MULT)"

@@ -64,7 +64,7 @@
 ```
 q-asker/api/
 ├── app/                          # 진입점 (Spring Boot Application)
-│   ├── src/main/java/com/icc/qasker/loadtest/  # loadtest 전용 드라이버 (@Profile("loadtest")): LocalSchedulerController(비-controller 스케줄러 로직을 온디맨드 1회 호출해 백그라운드 쿼리 트레이스), RequestResourceMetricsFilter/Config(요청 스레드의 CPU 시간·힙 할당 바이트 델타를 uri별 카운터 request.thread.cpu.seconds·request.thread.allocated.bytes로 누적 — 플랫폼 스레드+동기 MVC 전제, 가상 스레드에선 무효). read/write 부하는 loadgen.sh가 실 엔드포인트를 직접 태운다(mock 자기정리로 순증 0 — 별도 드라이버 불필요)
+│   ├── src/main/java/com/icc/qasker/loadtest/  # 측정 드라이버 (패키지명은 loadtest이나 전부 @Profile("local") — loadtest는 local에 얹혀 실행되므로 부하 시에도 활성): LocalSchedulerController(타이머 @Profile("!local")로 꺼진 스케줄러 로직을 온디맨드 1회 호출해 백그라운드 쿼리 트레이스), RequestResourceMetricsFilter/Config(요청 스레드의 CPU 시간·힙 할당 바이트 델타를 uri별 카운터 request.thread.cpu.seconds·request.thread.allocated.bytes로 누적 — 플랫폼 스레드+동기 MVC 전제, 가상 스레드에선 무효), JfrMethodTimingExporter(JEP 520 jdk.MethodTiming 이벤트를 JFR 스트리밍으로 구독해 게이지 jfr.method.invocations·jfr.method.time.total로 노출 — run.sh MT_FILTER 6종과 동기 유지, qasker-enh-rw가 mode 라벨로 비교). read/write 부하는 run.sh 내장 loadgen 함수가 실 엔드포인트를 직접 태운다(mock 자기정리로 순증 0 — 별도 드라이버 불필요)
 │   ├── src/main/java/com/icc/qasker/dev/  # 로컬 전용(@Profile("local")) 벤치 훅 (ExplanationReviewBenchController)
 │   └── src/main/resources/
 │       ├── application.yml       # 설정 진입점 (config/ import)
@@ -84,7 +84,7 @@ q-asker/api/
 │           ├── spring-doc.yml        # Swagger/OpenAPI
 │           └── loadtest.yml          # loadtest 프로파일 (분석 DB 3309 override, 레이트리밋 비활성)
 ├── modules/
-│   ├── global/                   # 공통 (CreatedAt, CustomException/CustomErrorResponse, GlobalExceptionHandler, Boot4CompatConfig, RateLimitPlanResolver, HashUtil, SlackNotifier, GithubIssueClient, loadtest 쿼리 계측)
+│   ├── global/                   # 공통 (CreatedAt, CustomException/CustomErrorResponse, GlobalExceptionHandler, Boot4CompatConfig, RateLimitPlanResolver, HashUtil, SlackNotifier, GithubIssueClient, 로컬 쿼리 계측(@Profile("local")))
 │   ├── auth/     (api + impl)    # 인증 (JWT, OAuth2, RateLimitFilter, JwtProvider, PrincipalExtractor, SecurityErrorResponder, TokenCrypto, LocalTokenController=@Profile("local") 토큰 발급 헬퍼)
 │   ├── oci/      (api + impl)    # OCI Object Storage 파일 업로드
 │   ├── board/    (api + impl)    # 게시판
@@ -98,10 +98,10 @@ q-asker/api/
 │   ├── monitoring/               # Grafana Alloy 설정
 │   ├── mysql/                    # MySQL Docker 설정
 │   ├── base-image/               # Docker 베이스 이미지
-│   ├── blue-green/               # Blue-Green 무중단 배포 (Nginx 트래픽 스위칭, docker-compose, deploy.sh)
-│   └── scripts/
-│       ├── query-tuning/         # 쿼리 튜닝 부하 하네스 (스케일 스윕 x1/x10/x100 DB 대상, README.md에 실행 가이드): provision-level.sh(prod-matched config로 127.0.0.1 레벨 컨테이너 생성), loadgen.sh(실 엔드포인트 타격 단일 레시피 — 읽기 GET·실 write[mock 순증 0]·스케줄러·refresh·SSE 생성구독·로그아웃; admin·/local·/upload-doc[외부IO]·/auth/test 외 전 엔드포인트 요청), run-level.sh(레벨별 실행 — 무거운 패스=§① Micrometer seed + 가벼운 패스=§②③ trace_snapshot 귀속 + slow_log 수집), run-all.sh(3레벨 순차 스윕 오케스트레이터 — 레벨→포트→컨테이너 매핑 내장, ROUNDS 등 env 통과), download-masked.sh(OCI 마스킹 덤프 다운로드+sha256 검증 → 파일 경로 출력), restore-x1.sh(마스킹 덤프 파일을 local-mysql-x1 복원 + row·FK 정합 검증 + x1 베이스 top-up, 다운로드와 독립), seed-x1-base.sql(FLOOR 미달 소형 테이블 board·feedback_board·quiz_folder·reply 를 x1 에서 100행으로 맞춤 — 부족분만 user·board FK 재사용해 합성, 오프셋 <@base 라 ×scale 복제 대상에 포함 → x100 에서 10,000), seed-scale.sh + seed-scale-{small,problem}.sql(스케일 시딩 — 대상 DROP+x1 복원 → 전 테이블 배수 복제[quiz_folder·reply 포함] → FK 정합·총량 검증), check-x1-scale.sh(x1 충분성 가드 — x<배수> 투영이 FLOOR 미만인 도메인 테이블 경고 전용, seed-scale 자동 호출)
-│       └── hibernate-enhancement/ # Hibernate 바이트코드 인핸스먼트 A/B 측정 하네스 (run.sh <off|on>): quiz-set-impl을 `-PdisableHibernateEnhancement` OFF / 무플래그 ON 두 빌드로 clean 재빌드→javap로 계측 적용 검증→local,loadtest,mock 기동(query-tuning 스케일 DB 연결)→problem_quality_log 멱등 시딩(대형 질문 JSON=lazy 대상 + 형식 통과 정형 해설=쓰기 배제)→admin 토큰 자동 발급→POST /admin/problem-sets/explanation-review 반복 부하(pass2 lazy 그룹이 ON에서만 SELECT 제외되는 경로 정조준)→구간 끝 epoch 출력. 계측(dirty tracking·지연 로딩)은 기본 ON·quiz-set-impl에만 적용(`-PdisableHibernateEnhancement`로 OFF; build.gradle §Hibernate 인핸스먼트 참고)
+│   └── blue-green/               # Blue-Green 무중단 배포 (Nginx 트래픽 스위칭, docker-compose, deploy.sh)
+├── scripts/                      # 로컬 측정 하네스 (부하 스윕·A/B, api 루트 기준 실행)
+│   ├── query-tuning/         # 쿼리 튜닝 부하 하네스 (스케일 스윕 x1/x10/x100 DB 대상, README.md에 실행 가이드): provision-level.sh(prod-matched config로 127.0.0.1 레벨 컨테이너 생성), run.sh(3레벨 순차 스윕 오케스트레이터 — 내장 () 서브셸 함수 loadgen()[실 엔드포인트 타격 단일 레시피: 읽기 GET·실 write(mock 순증 0)·스케줄러·refresh·SSE 생성구독·로그아웃; admin·/local·/upload-doc(외부IO)·/auth/test 외 전 엔드포인트; USER_ID 는 run_level 이 대상 DB 에서 자동 주입]·run_level()[레벨별 실행: 무거운 패스=§① Micrometer seed + 가벼운 패스=§②③ trace_snapshot 귀속 + slow_log 수집]; 레벨→포트→컨테이너 매핑 내장, 레벨 실행 전 다른 레벨 컨테이너 정지[RAM 압박 JVM 강제종료 방지], ROUNDS 등 env 통과, `run.sh <레벨>`로 단일 레벨 실행=옛 loadgen.sh·run-level.sh 를 인라인 통합), download-masked.sh(OCI 마스킹 덤프 다운로드+sha256 검증 → 파일 경로 출력), restore-x1.sh(마스킹 덤프 파일을 local-mysql-x1 복원 + row·FK 정합 검증 + x1 베이스 top-up + 성공 시 masked 덤프 삭제[로컬 파일+버킷 객체], 다운로드와 독립), seed-x1-base.sql(FLOOR 미달 소형 테이블 board·feedback_board·quiz_folder·reply 를 x1 에서 100행으로 맞춤 — 부족분만 user·board FK 재사용해 합성, 오프셋 <@base 라 ×scale 복제 대상에 포함 → x100 에서 10,000), seed-scale.sh + seed-scale-{small,problem}.sql(스케일 시딩 — 대상 DROP+x1 복원 → 전 테이블 배수 복제[quiz_folder·reply 포함] → FK 정합·총량 검증; 내장 check_x1_scale 로 x<배수> 투영이 FLOOR 미만인 도메인 테이블 경고=옛 check-x1-scale.sh 인라인 통합)
+│   └── hibernate-enhancement/ # Hibernate 바이트코드 인핸스먼트 A/B 측정 하네스 (run.sh [off|on] — 무인자면 off→on 통합 실행으로 A/B 한 번에, Grafana qasker-enh-rw가 mode 라벨로 자동 비교): quiz-set-impl을 `-PdisableHibernateEnhancement` OFF / 무플래그 ON 두 빌드로 clean 재빌드→javap로 계측 적용 검증→local,loadtest,mock 기동(query-tuning 스케일 DB 연결, 기본 x100=3309·정지 상태면 자동 기동)→problem_quality_log 리플레이 시딩(합성 세트 DELETE→INSERT 로 매 실행 동일 초기 상태, x100 실측 크기 분포 — 대형 질문 JSON=lazy 대상 + 세트당 일부 망가진 해설=마킹 쓰기)→admin 토큰 자동 발급→POST /admin/problem-sets/explanation-review 반복 부하(pass2 lazy 그룹이 ON에서만 SELECT 제외되는 경로 정조준)→구간 끝 epoch 출력(기록용)→JFR 덤프 집계(jdk.MethodTiming 확정 필터 6종=순수 CPU 5종[더티체크 4+조립 창 readRow]+혼합 창 executeQuery 1종[대기 포함 wall이라 CPU 주장 금지, 지연 분해용] — 창 밖 혼입되는 소켓 read류는 제외; 실행 중엔 JfrMethodTimingExporter가 같은 필터를 게이지로 실시간 노출). 계측(dirty tracking·지연 로딩)은 기본 ON·quiz-set-impl에만 적용(`-PdisableHibernateEnhancement`로 OFF; build.gradle §Hibernate 인핸스먼트 참고)
 ├── docs/                         # 문서, 분석 자료
 ├── gradle/
 │   ├── libs.versions.toml        # Version Catalog: 모든 의존성/플러그인 버전 SSOT
@@ -136,7 +136,7 @@ JWT 관련 작업 시 아래 위치만 보면 된다. 서명·검증 로직을 �
 - Jasypt 복호화 키: `JASYPT_ENCRYPTOR_PASSWORD` 환경변수 또는 JVM 옵션으로 전달
   - **로컬에서는 이 값을 찾아 헤매지 말 것** — `app/gradle.properties` 의 `JASYPT_ENCRYPTOR_PASSWORD` 에 이미 있고,
     `app/build.gradle`(run/test 태스크)이 이 프로퍼티를 읽어 실행 환경변수로 자동 주입한다. 즉 `./gradlew :app:bootRun`(또는 `:app:test`)은 별도 export 없이 복호화된다. 셸에 직접 export하거나 secret 저장소를 뒤질 필요 없다.
-- 프로파일: `local` (개발), `prod` (운영), `test` (CI/JUnit), `loadtest` (부하 테스트, `local`에 얹어 실행 — `SPRING_PROFILES_ACTIVE=local,loadtest`), `mock` (AI 외부 호출 우회, 선택적으로 얹어 실행 — MockAIServerAdapter·MockEssayGradingService가 `@Profile("mock")`으로 Gemini 호출 없이 고정 결과 반환)
+- 프로파일: `local` (개발), `prod` (운영), `test` (CI/JUnit), `loadtest` (부하 테스트, `local`에 얹어 실행 — `SPRING_PROFILES_ACTIVE=local,loadtest`), `mock` (외부 호출·실쓰기 우회, 선택적으로 얹어 실행 — MockAIServerAdapter·MockEssayGradingService가 `@Profile("mock")`으로 Gemini 호출 없이 고정 결과 반환, 도메인별 write mock(board·feedback·user·history·folder·problem-set·generation 등 `service/mock/Mock*Service`)이 write를 자기정리(save→delete 또는 롤백)로 순증 0으로 태움 — loadgen의 실 write 계측 전제)
 - Actuator 포트: 9090 (서비스 포트와 분리)
 - Virtual Threads 활성화 (`spring.threads.virtual.enabled: true`)
 - OCI Object Storage: `~/.oci/config` 파일 기반 인증, `OCI_NAMESPACE`, `OCI_IMAGE_BUCKET_NAME`,
