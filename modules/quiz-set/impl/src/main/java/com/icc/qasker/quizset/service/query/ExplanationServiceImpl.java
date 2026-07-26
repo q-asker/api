@@ -30,7 +30,7 @@ public class ExplanationServiceImpl implements ExplanationService {
   public ExplanationResponse getExplanationByProblemSetId(String problemSetId) {
     long id = hashUtil.decode(problemSetId);
 
-    List<Problem> problems = problemRepository.findByIdProblemSetId(id);
+    List<Problem> problems = problemRepository.findExplanationsBySetId(id);
     ProblemSet problemSet =
         problemSetRepository
             .findById(id)

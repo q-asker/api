@@ -1,6 +1,7 @@
 package com.icc.qasker.auth.entity;
 
 import com.icc.qasker.global.entity.CreatedAt;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import java.time.Instant;
@@ -13,7 +14,10 @@ import lombok.NoArgsConstructor;
 public class RefreshToken extends CreatedAt {
 
   @Id private String userId;
+
+  @Column(unique = true)
   private String rtHash;
+
   private Instant expiresAt;
 
   public RefreshToken(String userId, String rtHash, Instant expiresAt) {

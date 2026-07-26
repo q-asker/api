@@ -36,6 +36,7 @@ public class Problem extends CreatedAt {
   @EmbeddedId private ProblemId id;
 
   @Column(columnDefinition = "TEXT")
+  @LazyGroup("serving")
   private String title;
 
   @ManyToOne(fetch = LAZY)
@@ -46,6 +47,7 @@ public class Problem extends CreatedAt {
   @Convert(converter = SelectionListConverter.class)
   @Column(columnDefinition = "TEXT", nullable = false)
   @Builder.Default
+  @LazyGroup("serving")
   private List<Selection> selections = new ArrayList<>();
 
   @Basic(fetch = LAZY)
@@ -53,12 +55,15 @@ public class Problem extends CreatedAt {
   @Column(columnDefinition = "TEXT")
   private String explanationContent;
 
+  @Basic(fetch = LAZY)
   @Convert(converter = IntegerListConverter.class)
   @Column(columnDefinition = "TEXT", nullable = false)
   @Builder.Default
+  @LazyGroup("meta")
   private List<Integer> referencedPages = new ArrayList<>();
 
   @Column(columnDefinition = "TEXT")
+  @LazyGroup("meta")
   private String appliedInstruction;
 
   // Phase 1: 문제 생성 시 선택지와 참조 페이지를 바인딩

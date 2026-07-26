@@ -23,6 +23,8 @@ public interface ProblemRepository extends JpaRepository<Problem, ProblemId> {
   List<Problem> findRemainingProblems(
       @Param("problemSetId") Long problemSetId, @Param("number") Integer number);
 
+  // 조회(풀이) 경로는 해설까지 함께 쓴다 → explanationContent 를 그래프로 당겨 문항별 지연로드 N+1 을 없앤다.
+  @EntityGraph(attributePaths = {"explanationContent"})
   List<Problem> findByIdProblemSetId(Long problemSetId);
 
   // Pass 2 재검토용 — 세트/묶음 전량을 managed 상태로 로드한다.
@@ -30,7 +32,8 @@ public interface ProblemRepository extends JpaRepository<Problem, ProblemId> {
 
   List<Problem> findByIdInOrderByIdNumberAsc(Collection<ProblemId> id);
 
-  @EntityGraph(attributePaths = {"explanationContent"})
+  // 해설뷰는 해설 본문 + 참조 페이지를 쓴다 → 둘 다 그래프로 당겨 지연로드 N+1 을 없앤다(title·selections 는 미사용→미페치).
+  @EntityGraph(attributePaths = {"explanationContent", "referencedPages"})
   @Query("SELECT p FROM Problem p where p.id.problemSetId=:setId ORDER BY p.id.number")
   List<Problem> findExplanationsBySetId(@Param("setId") Long setId);
 

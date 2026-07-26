@@ -1,8 +1,11 @@
 package com.icc.qasker.quizset.entity;
 
+import static jakarta.persistence.FetchType.LAZY;
+
 import com.icc.qasker.global.entity.CreatedAt;
 import com.icc.qasker.quizset.GenerationStatus;
 import com.icc.qasker.quizset.dto.ferequest.enums.QuizType;
+import jakarta.persistence.Basic;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -19,6 +22,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.LazyGroup;
 
 @Entity
 @Getter
@@ -60,6 +64,8 @@ public class ProblemSet extends CreatedAt {
   private String fileUrl;
 
   @Column(columnDefinition = "TEXT")
+  @Basic(fetch = LAZY)
+  @LazyGroup("customInstruction")
   private String customInstruction;
 
   // 이하 헬퍼 함수
