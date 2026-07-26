@@ -1,0 +1,113 @@
+-- =============================================================
+-- seed-scale.sql — 전 테이블 ×배수 복제를 저장 프로시저 하나로 통합.
+--   원본 행을 (scale-1)번 복제한다. 제약키(PK/UK/FK)만 새로: 숫자 PK = 원본 + k×@base,
+--   user_id = 'c{k}_' 접두, session_id = '-c{k}' 접미. 나머지 컬럼(제목·내용 등)은 원본 그대로.
+--   실행 모양이 테이블별로 다르다:
+--     · 소형 테이블  : CROSS JOIN kmult 로 전 copy 를 한 문장에 복제(작아서 한 방).
+--     · problem     : 규모가 커(x100 = 원본×99) copy(k=1..mult) WHILE 루프로 청킹.
+--       autocommit=1 이라 루프의 각 INSERT 가 copy 마다 커밋 → 거대 단일 트랜잭션(undo/redo 폭주)을 피한다.
+--   전제: 대상에 x1 순수 원본(모든 숫자 PK < @base)이 있어야 한다. 입력: 세션변수 @scale.
+-- =============================================================
+SET NAMES utf8mb4;
+
+DROP PROCEDURE IF EXISTS seed_scale;
+DELIMITER $$
+CREATE PROCEDURE seed_scale(IN p_scale INT)
+BEGIN
+  SET @base = 1000000;          -- copy 오프셋(원본 max id ≪ @base)
+  SET @mult = p_scale - 1;      -- 복제 배수(0이면 원본만 유지)
+
+  -- copy 번호 1..@mult (최대 99 = x100)
+  DROP TEMPORARY TABLE IF EXISTS kmult;
+  CREATE TEMPORARY TABLE kmult (k INT PRIMARY KEY);
+  INSERT INTO kmult (k)
+  SELECT k FROM (
+    SELECT a.n + b.n*10 AS k
+    FROM (SELECT 0 n UNION SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5 UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION SELECT 9) a
+    CROSS JOIN (SELECT 0 n UNION SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5 UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION SELECT 9) b
+  ) t WHERE k BETWEEN 1 AND @mult;
+
+  -- varchar PK(user·refresh_token) 은 자기복제 피드백을 막으려 원본을 스냅샷 후 복사한다.
+  DROP TEMPORARY TABLE IF EXISTS _u;  CREATE TEMPORARY TABLE _u  AS SELECT * FROM user;
+  DROP TEMPORARY TABLE IF EXISTS _rt; CREATE TEMPORARY TABLE _rt AS SELECT * FROM refresh_token;
+
+  -- ══ 소형 테이블: 전 copy 한 방 (CROSS JOIN kmult) ══
+  -- user (PK user_id)
+  INSERT INTO user (user_id, created_at, nickname, provider, role)
+  SELECT CONCAT('c',k.k,'_',u.user_id), u.created_at, u.nickname, u.provider, u.role
+  FROM _u u CROSS JOIN kmult k;
+
+  -- refresh_token (PK user_id → 복제 user 와 1:1)
+  INSERT INTO refresh_token (user_id, created_at, expires_at, rt_hash)
+  SELECT CONCAT('c',k.k,'_',r.user_id), r.created_at, r.expires_at, r.rt_hash
+  FROM _rt r CROSS JOIN kmult k;
+
+  -- problem_set (PK id, UNIQUE session_id)
+  INSERT INTO problem_set (id, title, user_id, generation_status, quiz_type, total_quiz_count, session_id, file_url, custom_instruction, created_at)
+  SELECT ps.id + k.k*@base, ps.title, CONCAT('c',k.k,'_',ps.user_id), ps.generation_status, ps.quiz_type,
+         ps.total_quiz_count, CONCAT(ps.session_id,'-c',k.k), ps.file_url, ps.custom_instruction, ps.created_at
+  FROM problem_set ps CROSS JOIN kmult k WHERE ps.id < @base;
+
+  -- quiz_history (PK id, UNIQUE(user_id, problem_set_id))
+  INSERT INTO quiz_history (id, score, created_at, problem_set_id, title, answers, total_time, user_id, status)
+  SELECT q.id + k.k*@base, q.score, q.created_at, q.problem_set_id + k.k*@base, q.title, q.answers,
+         q.total_time, CONCAT('c',k.k,'_',q.user_id), q.status
+  FROM quiz_history q CROSS JOIN kmult k WHERE q.id < @base;
+
+  -- essay_grade_log (PK id)
+  INSERT INTO essay_grade_log (id, user_id, problem_set_id, problem_number, question, student_answer, attempt_count, total_score, max_score, element_scores, overall_feedback, evidence_json, created_at)
+  SELECT e.id + k.k*@base, CONCAT('c',k.k,'_',e.user_id), e.problem_set_id + k.k*@base, e.problem_number,
+         e.question, e.student_answer, e.attempt_count, e.total_score, e.max_score, e.element_scores,
+         e.overall_feedback, e.evidence_json, e.created_at
+  FROM essay_grade_log e CROSS JOIN kmult k WHERE e.id < @base;
+
+  -- board (PK board_id)
+  INSERT INTO board (board_id, created_at, updated_at, view_count, title, user_id, content, status, category)
+  SELECT b.board_id + k.k*@base, b.created_at, b.updated_at, b.view_count, b.title,
+         CONCAT('c',k.k,'_',b.user_id), b.content, b.status, b.category
+  FROM board b CROSS JOIN kmult k WHERE b.board_id < @base;
+
+  -- feedback_board (PK feedback_board_id)
+  INSERT INTO feedback_board (feedback_board_id, user_id, content, created_at)
+  SELECT f.feedback_board_id + k.k*@base, CONCAT('c',k.k,'_',f.user_id), f.content, f.created_at
+  FROM feedback_board f CROSS JOIN kmult k WHERE f.feedback_board_id < @base;
+
+  -- quiz_folder (PK id, FK user_id → 복제 user)
+  INSERT INTO quiz_folder (id, user_id, name, created_at)
+  SELECT qf.id + k.k*@base, CONCAT('c',k.k,'_',qf.user_id), qf.name, qf.created_at
+  FROM quiz_folder qf CROSS JOIN kmult k WHERE qf.id < @base;
+
+  -- reply (PK reply_id, FK board_id → 복제 board, admin_id → 복제 user)
+  INSERT INTO reply (reply_id, board_id, admin_id, content, created_at)
+  SELECT r.reply_id + k.k*@base, r.board_id + k.k*@base, CONCAT('c',k.k,'_',r.admin_id), r.content, r.created_at
+  FROM reply r CROSS JOIN kmult k WHERE r.reply_id < @base;
+
+  -- problem_quality_log (PK id, UNIQUE(problem_set_id, number), FK problem_set_id → 복제 problem_set / 앱관리)
+  --  copy k 의 problem_set_id = 원본 + k*@base 로 복제 problem_set 과 1:1. number 원본 유지 → UNIQUE 충돌 없음.
+  --  질문 JSON·해설(대형 SAFE 원문)까지 복제 → admin quality-review 읽기 비용이 스케일에 비례.
+  INSERT INTO problem_quality_log
+    (id, problem_set_id, number, v1_question_json, v1_explanation, v1_feedback, v2_question_json, v2_explanation, v2_feedback, review, created_at)
+  SELECT pql.id + k.k*@base, pql.problem_set_id + k.k*@base, pql.number,
+         pql.v1_question_json, pql.v1_explanation, pql.v1_feedback,
+         pql.v2_question_json, pql.v2_explanation, pql.v2_feedback, pql.review, pql.created_at
+  FROM problem_quality_log pql CROSS JOIN kmult k WHERE pql.id < @base;
+
+  -- ══ problem: copy 루프(청킹) — copy 마다 커밋되어 거대 단일 트랜잭션을 피한다 ══
+  --  problem_set_id = 원본 + k*@base(같은 copy 의 problem_set 참조 → FK 정합). 나머지 컬럼은 원본 그대로.
+  SET @k = 1;
+  WHILE @k <= @mult DO
+    INSERT INTO problem (problem_set_id, number, title, selections, explanation_content, referenced_pages, applied_instruction, created_at)
+    SELECT p.problem_set_id + @k*@base, p.number, p.title, p.selections, p.explanation_content,
+           p.referenced_pages, p.applied_instruction, p.created_at
+    FROM problem p WHERE p.problem_set_id < @base;
+    SET @k = @k + 1;
+  END WHILE;
+
+  DROP TEMPORARY TABLE IF EXISTS kmult;
+  DROP TEMPORARY TABLE IF EXISTS _u;
+  DROP TEMPORARY TABLE IF EXISTS _rt;
+END$$
+DELIMITER ;
+
+CALL seed_scale(@scale);
+DROP PROCEDURE seed_scale;

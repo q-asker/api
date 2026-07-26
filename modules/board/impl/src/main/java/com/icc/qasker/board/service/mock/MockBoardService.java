@@ -42,24 +42,25 @@ public class MockBoardService implements BoardService {
   @Override
   @Transactional
   public void createPost(PostRequest request, String userId) {
-    selfCleanWrite(userId);
+    // 요청 바디(제목·본문)를 그대로 태워 실측 크기의 INSERT 비용을 반영한다(자유텍스트 SAFE 실측).
+    selfCleanWrite(userId, request.title(), request.content());
   }
 
   @Override
   @Transactional
   public void updatePost(Long boardId, PostRequest request, String userId) {
-    selfCleanWrite(userId);
+    selfCleanWrite(userId, request.title(), request.content());
   }
 
   @Override
   @Transactional
   public void deletePost(Long boardId, String userId) {
-    selfCleanWrite(userId);
+    selfCleanWrite(userId, "mock", "mock"); // 삭제는 바디 없음 — 크기 무의미
   }
 
-  /** save→delete로 board write SQL을 실 URI에 태그하되 순증 0을 유지한다. */
-  private void selfCleanWrite(String userId) {
-    Board board = Board.builder().title("mock").content("mock").userId(userId).build();
+  /** save→delete로 board write SQL을 실 URI에 태그하되 순증 0을 유지한다(내용은 요청 바디 그대로 → 실측 크기 반영). */
+  private void selfCleanWrite(String userId, String title, String content) {
+    Board board = Board.builder().title(title).content(content).userId(userId).build();
     boardRepository.save(board);
     boardRepository.delete(board);
   }
