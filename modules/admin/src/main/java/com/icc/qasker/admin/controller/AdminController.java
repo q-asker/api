@@ -66,7 +66,7 @@ public class AdminController {
   public ResponseEntity<List<ExplanationReviewResult>> requestExplanationReview(
       @RequestBody Map<String, List<Long>> body) {
     List<Long> setIds = body.getOrDefault("setIds", List.of());
-    return ResponseEntity.ok(setIds.stream().map(explanationReviewService::review).toList());
+    return ResponseEntity.ok(explanationReviewService.review(setIds));
   }
 
   @Operation(summary = "업데이트 로그를 작성한다")
