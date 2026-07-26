@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
  */
 @Aspect
 @Component
-@Profile("loadtest")
+@Profile("local")
 public class ScheduledTraceAspect {
 
   @Around("@annotation(org.springframework.scheduling.annotation.Scheduled)")

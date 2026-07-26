@@ -3,6 +3,7 @@ package com.icc.qasker.global.query;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.Map;
 import org.hibernate.cfg.AvailableSettings;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.hibernate.autoconfigure.HibernatePropertiesCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -11,11 +12,11 @@ import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
- * 부하 테스트 전용 쿼리 계측 배선. Hibernate에 CountingInspector를 꽂고, 요청 라이프사이클에 QueryCountInterceptor를
- * 등록한다. @Profile("loadtest")이라 부하 테스트 프로파일에서만 로드되고, 일반 local·prod에는 영향이 없다.
+ * 로컬 측정 전용 쿼리 계측 배선. Hibernate에 CountingInspector를 꽂고, 요청 라이프사이클에 QueryCountInterceptor를
+ * 등록한다. @Profile("local")이라 로컬 프로파일에서만 로드되고, prod에는 영향이 없다.
  */
 @Configuration
-@Profile("loadtest")
+@Profile("local")
 public class QueryInstrumentationConfig implements WebMvcConfigurer {
 
   private final MeterRegistry meterRegistry;
@@ -24,15 +25,21 @@ public class QueryInstrumentationConfig implements WebMvcConfigurer {
     this.meterRegistry = meterRegistry;
   }
 
-  /** Hibernate SessionFactory에 StatementInspector를 등록 — 모든 SQL이 inspect()를 거친다. */
+  /**
+   * Hibernate SessionFactory에 StatementInspector를 등록 — 모든 SQL이 inspect()를 거친다.
+   *
+   * @param mode 인핸스먼트 A/B 런이 주는 모드 태그(run.sh의 MANAGEMENT_METRICS_TAGS_MODE). 일반 로컬 구동에선 비어 있어 주석에
+   *     붙지 않는다.
+   */
   @Bean
-  public HibernatePropertiesCustomizer statementInspectorCustomizer() {
-    CountingInspector inspector = new CountingInspector();
+  public HibernatePropertiesCustomizer statementInspectorCustomizer(
+      @Value("${management.metrics.tags.mode:}") String mode) {
+    CountingInspector inspector = new CountingInspector(mode);
     return (Map<String, Object> props) ->
         props.put(AvailableSettings.STATEMENT_INSPECTOR, inspector);
   }
 
-  /** reqId·uri를 MDC에 싣는 필터. @Profile("loadtest")이라 부하 테스트 때만 체인에 오른다. */
+  /** reqId·uri를 MDC에 싣는 필터. @Profile("local")이라 로컬에서만 체인에 오른다. */
   @Bean
   public MdcRequestFilter mdcRequestFilter() {
     return new MdcRequestFilter();

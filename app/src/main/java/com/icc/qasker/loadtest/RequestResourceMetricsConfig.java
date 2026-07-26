@@ -11,7 +11,7 @@ import org.springframework.core.Ordered;
  * (Boot4CompatConfig와 같은 부류의 보완) FilterRegistrationBean으로 직접 서블릿 체인에 건다.
  */
 @Configuration
-@Profile("loadtest")
+@Profile("local")
 public class RequestResourceMetricsConfig {
 
   @Bean
