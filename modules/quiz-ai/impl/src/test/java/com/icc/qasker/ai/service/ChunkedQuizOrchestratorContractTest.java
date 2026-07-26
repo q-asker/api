@@ -23,6 +23,7 @@ import com.icc.qasker.ai.service.blank.BlankQuizOrchestrator;
 import com.icc.qasker.ai.service.multiple.MultipleQuizOrchestrator;
 import com.icc.qasker.ai.service.ox.OXQuizOrchestrator;
 import com.icc.qasker.ai.service.quality.QualityGate;
+import com.icc.qasker.ai.service.realblank.RealBlankQuizOrchestrator;
 import com.icc.qasker.ai.service.support.GeminiMetricsRecorder;
 import java.util.ArrayList;
 import java.util.List;
@@ -44,7 +45,7 @@ import reactor.core.publisher.Flux;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * 청크형 오케스트레이터(MULTIPLE/BLANK/OX) 공통 동작 회귀 테스트 — 배치 인터리빙 1-패스 생성.
+ * 청크형 오케스트레이터(MULTIPLE/BLANK/OX/REAL_BLANK) 공통 동작 회귀 테스트 — 배치 인터리빙 1-패스 생성.
  *
  * <p>문제+해설을 한 호출({@code chatModel.stream})로 스트리밍 생성한다. 검증은 비동기로 수행되고 통과 순서대로 저장되므로 저장 순서는 생성 순서와
  * 무관하다. 본 테스트는 전달 계약(개수·초과 drop·부분 보존·전량 실패 전파)과 중복 회피 지침의 배치별 주입을 검증한다.
@@ -105,12 +106,19 @@ class ChunkedQuizOrchestratorContractTest {
       case "OX" ->
           new OXQuizOrchestrator(
               fileService, chatModel, objectMapper, metricsRecorder, aiProperties, qualityGate);
+      case "REAL_BLANK" ->
+          new RealBlankQuizOrchestrator(
+              fileService, chatModel, objectMapper, metricsRecorder, aiProperties, qualityGate);
       default -> throw new IllegalArgumentException(type);
     };
   }
 
   private int maxSelection(String type) {
-    return "OX".equals(type) ? 2 : 4;
+    return switch (type) {
+      case "OX" -> 2;
+      case "REAL_BLANK" -> 1;
+      default -> 4;
+    };
   }
 
   private GenerationRequestToAI request(String type, int quizCount, QuizBatchSink sink) {
@@ -156,7 +164,7 @@ class ChunkedQuizOrchestratorContractTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"MULTIPLE", "BLANK", "OX"})
+  @ValueSource(strings = {"MULTIPLE", "BLANK", "OX", "REAL_BLANK"})
   void deliversExactlyQuizCount(String type) {
     FakeSink sink = new FakeSink();
     when(chatModel.stream(any(Prompt.class))).thenReturn(fluxOf(questionsJson(List.of(1, 1, 1))));
@@ -168,7 +176,7 @@ class ChunkedQuizOrchestratorContractTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"MULTIPLE", "BLANK", "OX"})
+  @ValueSource(strings = {"MULTIPLE", "BLANK", "OX", "REAL_BLANK"})
   void truncatesWhenChunkOverProduces(String type) {
     FakeSink sink = new FakeSink();
     when(chatModel.stream(any(Prompt.class)))
@@ -181,7 +189,7 @@ class ChunkedQuizOrchestratorContractTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"MULTIPLE", "BLANK", "OX"})
+  @ValueSource(strings = {"MULTIPLE", "BLANK", "OX", "REAL_BLANK"})
   void dropsQuestionsExceedingMaxSelectionCount(String type) {
     FakeSink sink = new FakeSink();
     int oversize = maxSelection(type) + 1;
@@ -195,7 +203,7 @@ class ChunkedQuizOrchestratorContractTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"MULTIPLE", "BLANK", "OX"})
+  @ValueSource(strings = {"MULTIPLE", "BLANK", "OX", "REAL_BLANK"})
   void preservesEarlierChunk_whenLaterChunkFails(String type) {
     aiProperties.getChunk().setChunkSize(1); // quizCount=2 → 청크 2개
     FakeSink sink = new FakeSink();
@@ -208,7 +216,7 @@ class ChunkedQuizOrchestratorContractTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"MULTIPLE", "BLANK", "OX"})
+  @ValueSource(strings = {"MULTIPLE", "BLANK", "OX", "REAL_BLANK"})
   void rethrows_whenNothingDelivered(String type) {
     FakeSink sink = new FakeSink();
     when(chatModel.stream(any(Prompt.class))).thenReturn(Flux.error(new RuntimeException("boom")));
@@ -219,7 +227,7 @@ class ChunkedQuizOrchestratorContractTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"MULTIPLE", "BLANK", "OX"})
+  @ValueSource(strings = {"MULTIPLE", "BLANK", "OX", "REAL_BLANK"})
   void injectsDedupInstructionOnSecondChunkUserPromptOnly(String type) {
     aiProperties.getChunk().setChunkSize(1); // quizCount=2 → 청크 2개
     FakeSink sink = new FakeSink();
@@ -240,7 +248,7 @@ class ChunkedQuizOrchestratorContractTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"MULTIPLE", "BLANK", "OX"})
+  @ValueSource(strings = {"MULTIPLE", "BLANK", "OX", "REAL_BLANK"})
   void fastServesFirstNWithoutGate(String type) {
     aiProperties.setFastServeCount(2);
     FakeSink sink = new FakeSink();
@@ -254,7 +262,7 @@ class ChunkedQuizOrchestratorContractTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"MULTIPLE", "BLANK", "OX"})
+  @ValueSource(strings = {"MULTIPLE", "BLANK", "OX", "REAL_BLANK"})
   void fastServedProblemsAreStoredEvenIfGateWouldReject(String type) {
     // 게이트가 전량 미달 판정을 내려도 즉석 서빙분은 게이트를 타지 않으므로 그대로 저장된다.
     aiProperties.setFastServeCount(3);
@@ -274,6 +282,7 @@ class ChunkedQuizOrchestratorContractTest {
       case "MULTIPLE" -> "다른 패턴 라벨";
       case "BLANK" -> "빈칸 핵심 어휘";
       case "OX" -> "O/X 분포";
+      case "REAL_BLANK" -> "핵심 정답 어휘";
       default -> throw new IllegalArgumentException(type);
     };
   }

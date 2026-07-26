@@ -9,6 +9,8 @@ import com.icc.qasker.ai.service.multiple.prompt.MultipleGuideLine;
 import com.icc.qasker.ai.service.multiple.prompt.MultipleRequestPrompt;
 import com.icc.qasker.ai.service.ox.prompt.OXGuideLine;
 import com.icc.qasker.ai.service.ox.prompt.OXRequestPrompt;
+import com.icc.qasker.ai.service.realblank.prompt.RealBlankGuideLine;
+import com.icc.qasker.ai.service.realblank.prompt.RealBlankRequestPrompt;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import java.util.List;
@@ -36,6 +38,13 @@ public enum QuizType implements QuizPromptStrategy {
         List<Integer> referencePages, int quizCount, String planExtra) {
       // customInstruction이 있으면 XML 태그로 감싸 유저 프롬프트 끝에 우선 삽입
       return OXRequestPrompt.generateWithUserInstruction(referencePages, quizCount, planExtra);
+    }
+  },
+  REAL_BLANK(RealBlankGuideLine.content) {
+    @Override
+    public String generateRequestPrompt(
+        List<Integer> referencePages, int quizCount, String planExtra) {
+      return RealBlankRequestPrompt.generate(referencePages, quizCount, planExtra);
     }
   },
   ESSAY(EssayGuideLine.content) {

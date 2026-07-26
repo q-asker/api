@@ -18,9 +18,10 @@ import org.springframework.ai.converter.BeanOutputConverter;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * 선지형(MULTIPLE/BLANK/OX) 오케스트레이터의 공통 훅 구현. 제네릭 골격 {@link AbstractChunkedQuizOrchestrator}를 {@code
- * GeminiQuestion}으로 고정하고, 선지(AISelection) 기반 스키마·매핑·drop 규칙을 채운다. 타입별로 달라지는 선지 상한·정렬은 하위 구현체가 제공하도록
- * {@link #maxSelectionCount()}·{@link #arrangeSelections(List)}를 다시 추상으로 남긴다.
+ * 선지형(MULTIPLE/BLANK/OX/REAL_BLANK) 오케스트레이터의 공통 훅 구현. 제네릭 골격 {@link
+ * AbstractChunkedQuizOrchestrator}를 {@code GeminiQuestion}으로 고정하고, 선지(AISelection) 기반 스키마·매핑·drop
+ * 규칙을 채운다. 타입별로 달라지는 선지 상한·정렬은 하위 구현체가 제공하도록 {@link #maxSelectionCount()}·{@link
+ * #arrangeSelections(List)}를 다시 추상으로 남긴다.
  */
 public abstract class SelectionChunkedQuizOrchestrator
     extends AbstractChunkedQuizOrchestrator<GeminiQuestion> {
@@ -44,6 +45,11 @@ public abstract class SelectionChunkedQuizOrchestrator
    */
   protected abstract List<AISelection> arrangeSelections(List<AISelection> selections);
 
+  /** 응답 스키마에 {@code acceptedAnswers} 필드를 노출할지(REAL_BLANK만 true). 나머지 유형은 모델이 그 필드를 아예 볼 수 없다. */
+  protected boolean includeAcceptedAnswers() {
+    return false;
+  }
+
   @Override
   protected Class<GeminiQuestion> elementType() {
     return GeminiQuestion.class;
@@ -51,7 +57,7 @@ public abstract class SelectionChunkedQuizOrchestrator
 
   @Override
   protected String responseSchema(String customInstruction) {
-    return GeminiResponseSchema.forInstruction(customInstruction);
+    return GeminiResponseSchema.forInstruction(customInstruction, includeAcceptedAnswers());
   }
 
   @Override

@@ -164,7 +164,7 @@ public class QualityReviewServiceImpl implements QualityReviewService {
 
   /** 재검토 요청을 서빙 problem이 아니라 로그 행에서 재구성한다(로그 자기완결). 개선본(v2) 우선, 없으면 첫 생성본(v1). */
   private QualityVerificationRequest toRequest(ProblemQualityLog quality, ProblemSet set) {
-    String quizType = set.getQuizType() == null ? "MULTIPLE" : set.getQuizType().toAiStrategyName();
+    String quizType = set.getQuizType() == null ? "MULTIPLE" : set.getQuizType().name();
     QuestionSnapshot snapshot = deserializeQuestion(quality);
     List<QualityVerificationRequest.Selection> selections =
         snapshot.selections().stream()
