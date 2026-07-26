@@ -1,0 +1,97 @@
+# 쿼리 튜닝 환경 — 사용 가이드
+
+스케일 스윕(x1/x10/x100) DB + 요청 트레이스 + 통합 진단 대시보드를 재현·운용하는 실행 가이드.
+원리·설계는 `../../docs/query-tuning/STEP1~4` 참조. 이 문서는 "무엇을 어떻게 실행하나"만 다룬다.
+
+## 구성 (127.0.0.1 바인딩 + 모니터링 네트워크)
+
+| 레벨 | 컨테이너 | 포트 | 크기(problem) | 용도 |
+|---|---|---|--:|---|
+| **x1** | `local-mysql-x1` | 3307 | 71,244 | 원본 마스킹본 — **재시딩 소스** |
+| **x10** | `local-mysql-x10` | 3308 | 726,876 | 중간 스케일 |
+| **x100** | `local-mysql-x100` | 3309 | 7,283,196 | 최대 스케일(분석 대상) |
+
+- 전부 `root`/`password`, `qaskerdb`. 각 테이블 = x1 실측 × 배수(전 테이블 FK 정합).
+- 컨테이너는 **`provision-level.sh`로 127.0.0.1 바인딩 + `local_local-monitoring` 네트워크**에 생성.
+  포트를 `0.0.0.0`으로 열면 공개 MySQL 랜섬 스캔의 표적이 되므로 **절대 열지 않는다**.
+
+---
+
+## 1. 컨테이너 만들기 / 재생성
+
+```bash
+cd api
+# 새 볼륨(빈 DB → 복원·시딩 대상)
+bash scripts/query-tuning/provision-level.sh local-mysql-x100 3309
+# 기존 볼륨 보존(데이터 유지 재생성) — 볼륨명은 docker volume ls / inspect 로 확인
+bash scripts/query-tuning/provision-level.sh local-mysql-x10 3308 <볼륨명>
+```
+
+## 2. 재시딩 (배수 변경 / 복구)
+
+`seed-scale.sh <컨테이너> <배수>` **한 방으로 볼륨 fresh 재생성 + x1 복원까지** 한다 — 재실행해도 항상 fresh x<배수>(누적·중복키 없음). 배수만 바꾸면 어떤 스케일도 재현.
+
+```bash
+# 볼륨 fresh 재생성(provision-level, 시리얼 누적 리셋) + x1 복원 + 전 테이블 배수 복제 + 충분성 가드 + 검증 — seed-scale 이 전부 수행
+bash scripts/query-tuning/seed-scale.sh local-mysql-x100 100   # x1 소스 기본 local-mysql-x1 (정지 시 자동 기동·원복)
+```
+
+시딩 스크립트(이 디렉토리):
+- `download-masked.sh` — OCI 마스킹본 **다운로드**(--latest/객체키) + sha256 → 파일 경로 출력. 마스킹 다운로드는 api 소유(plg 는 생성만).
+- `restore-x1.sh` — 마스킹 덤프를 `local-mysql-x1` 복원 + row·FK 정합 검증(x1 세팅). **무인자면 최신 마스킹본 자동 다운로드**(내부에서 `download-masked.sh --latest` 위임), 파일 경로를 주면 그 파일 복원.
+- `seed-scale.sh` — 오케스트레이션(**대상 볼륨 fresh 재생성+x1 복원** → 작은 테이블 복제 → problem 배치 → 검증). x1 소스는 3번째 인자(기본 local-mysql-x1).
+- `seed-scale.sql` — 전 테이블 ×배수 복제 프로시저 `seed_scale`(소형=CROSS JOIN 한 방, problem=copy WHILE 루프 청킹). seed-scale.sh 가 `CALL` 한 번으로 실행.
+- x1 충분성 가드(경고 전용) — **`seed-scale.sh` 내장 `check_x1_scale`**(구 check-x1-scale.sh): x1×100이 10K 미만인 도메인 테이블 자동 발견·경고. seed-scale 이 매 실행 자동 수행.
+
+> `reply`는 x1 실측 0이라 시딩 대상 없음. `problem`은 세트당 16 고정이라 원본(15.65) 대비 근사.
+
+## 3. 스케일 스윕 + 요청 귀속 → 대시보드 §①②③ (`run.sh`)
+
+각 레벨에 앱을 붙여 **한 번에**: 무거운 부하로 스케일 지연(§①) + 가벼운 패스로 요청 귀속(§②③). 부하는 `run.sh`
+내장 `loadgen` 함수(단일 레시피)가 실 엔드포인트를 직접 태운다 — mock 서비스가 write 를 save→delete 로 자기정리(순증 0).
+레벨 1개 실행(`run_level`)·부하 레시피(`loadgen`)는 `run.sh` 안에 () 서브셸 함수로 통합돼 있다.
+
+> 레벨 DB **기동/정지는 자동**이다. `run.sh`는 각 레벨 실행 전 해당 컨테이너가 꺼져 있으면 `docker start` +
+> 준비 대기하고(컨테이너 자체가 없으면 1·2번 provision·시딩을 안내 후 중단), 각 레벨을 마치면
+> 중간 레벨(x1·x10)을 정지해 RAM을 반환한다(한 번에 한 레벨). **x100(3309)만 유지** — 대시보드가 3309를 읽는다.
+> 손으로 `docker start/stop` 할 필요 없다.
+
+```bash
+# bootJar 는 run.sh 이 스윕 전 1회 재빌드한다(build/libs 잔재 jar 오염 차단; 레벨별은 LT_SKIP_BUILD=1 로 생략).
+# seed 라벨 자동, trace_snapshot 은 각 레벨 DB에 저장돼 안 덮인다. 레벨→포트→컨테이너 매핑 내장(손 루프 불필요).
+ROUNDS=50 bash scripts/query-tuning/run.sh          # 전 레벨(x1→x10→x100 순차)
+# 또는 특정 레벨만 (옛 run-level.sh 직접 실행을 대체)
+bash scripts/query-tuning/run.sh x100
+```
+
+각 실행이 하는 일:
+1. 앱을 레벨 DB에 붙여 기동 (`local,loadtest,mock` — Gemini·GitHub 호출 없이 실 write 순증 0)
+2. **loadgen 무거운 패스** → Micrometer `seed` 라벨 → **§①** 스케일 지연 곡선
+3. `/auth/refresh` p95 + refresh_token digest
+4. **loadgen 가벼운 패스 + trace_snapshot** → **§②③** uri·repo.method별 요청당 쿼리·examined
+
+→ §① 막대가 `x1→x10→x100`로 **계단 상승**하면 O(n)(무인덱스 풀스캔). `findByRtHash` `155→1,550→15,500`
+정확 비례가 그 예. 평평하면 인덱스 정상 룩업.
+`trace_snapshot`은 `repoMethod=` 주석(RepoMethodAspect)에서 레포·메서드를 파싱하고, 레포를 안 거친
+SQL(lazy-load·dirty-check)은 테이블명 복원 + `method='Hibernate query'`로 표시.
+
+---
+
+## 대시보드
+
+Grafana → **[쿼리튜닝] 통합 진단**(`q-asker-unified-diagnosis`). `$repo` 하나로 4섹션 관통:
+
+| 섹션 | 내용 | 채우는 법 |
+|---|---|---|
+| **§①** 스케일 축 | Micrometer seed 지연 곡선 | 3번(run.sh, 무거운 패스) |
+| **§②③** 귀속·시퀀스 | trace_snapshot | 3번(run.sh, 가벼운 패스) |
+| **§④** 읽기/쓰기 비율 | 프로덕션 실측(springboot-oci) | 상시(Prometheus) |
+
+---
+
+## 흔한 함정
+
+- **`Table 'qaskerdb.trace_snapshot' doesn't exist`** → 재시딩(DB 재생성)으로 날아간 것. **3번(run.sh) 재실행**하면 복구(분석 파생 테이블이라 Flyway 밖, 정상 동작).
+- **§① No data** → seed 데이터 없음. **3번(run.sh)**을 각 레벨로 돌려야 seed 축이 생긴다.
+- **exporter mysql 메트릭 끊김** → 컨테이너가 `local_local-monitoring` 네트워크에 없거나 127.0.0.1 바인딩 후 `host.docker.internal`로 붙는 옛 설정. `provision-level.sh`로 `local_local-monitoring` 네트워크에 생성한다. `mysql_*` 지표는 alloy 내장 mysql exporter(`MYSQL_DSN`)가 공급하며 통합 진단 대시보드(§①②③)는 이를 읽지 않는다(Micrometer·trace_snapshot 기반).
+- **포트를 `0.0.0.0`으로 열지 말 것** — 항상 `provision-level.sh`(127.0.0.1). 공개 MySQL은 랜섬 스캔 표적이다.

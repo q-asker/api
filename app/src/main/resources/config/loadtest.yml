@@ -1,5 +1,5 @@
 # 부하 테스트 전용 프로파일 — local 위에 얹어 실행: SPRING_PROFILES_ACTIVE=local,loadtest
-#  - datasource를 분석 DB(3307)로 override
+#  - datasource를 분석 DB(3309)로 override
 #  - 레이트리밋 비활성 (refresh 버스트가 429로 막히지 않게)
 #  - QueryInstrumentationConfig·LocalTokenController(@Profile("loadtest"))가 이 프로파일에서만 활성
 # application.yml에서 secrets.yml '다음'에 import되어 datasource를 확실히 덮어쓴다(뒤 import 우선).
@@ -8,7 +8,7 @@ spring:
     activate:
       on-profile: loadtest
   datasource:
-    url: jdbc:mysql://127.0.0.1:3307/qaskerdb
+    url: jdbc:mysql://127.0.0.1:3309/qaskerdb
     username: root
     password: password
 q-asker:
