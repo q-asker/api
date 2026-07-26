@@ -38,7 +38,7 @@ class EssayGradeServiceTest {
   @InjectMocks private EssayGradeServiceImpl service;
 
   private ProblemDetail problem(List<SelectionDetail> selections, String explanation) {
-    return new ProblemDetail(1, "essay-title", selections, explanation);
+    return new ProblemDetail(1, "essay-title", selections, explanation, null);
   }
 
   @Test

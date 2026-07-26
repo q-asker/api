@@ -6,6 +6,7 @@ import com.icc.qasker.ai.dto.AISelection;
 import com.icc.qasker.ai.mapper.GeminiQuestionMapper;
 import com.icc.qasker.ai.properties.QAskerAiProperties;
 import com.icc.qasker.ai.service.quality.QualityGate;
+import com.icc.qasker.ai.service.support.AcceptedAnswerSanitizer;
 import com.icc.qasker.ai.service.support.GeminiMetricsRecorder;
 import com.icc.qasker.ai.structure.GeminiQuestion;
 import com.icc.qasker.ai.structure.GeminiResponse;
@@ -63,12 +64,16 @@ public abstract class SelectionChunkedQuizOrchestrator
     AIProblem mapped = GeminiQuestionMapper.toDto(List.of(question), sourcePages).quiz().getFirst();
     List<AISelection> arranged =
         mapped.selections() == null ? List.of() : arrangeSelections(mapped.selections());
+    // 오답 보호(FR-005): 허용변형에 섞인 오답선지·빈값·중복을 저장 전에 제거한다.
+    List<List<String>> sanitizedAccepted =
+        AcceptedAnswerSanitizer.sanitize(mapped.acceptedAnswers(), arranged);
     return new AIProblem(
         mapped.content(),
         mapped.bloomsLevel(),
         arranged,
         mapped.referencedPages(),
-        mapped.appliedInstruction());
+        mapped.appliedInstruction(),
+        sanitizedAccepted);
   }
 
   @Override

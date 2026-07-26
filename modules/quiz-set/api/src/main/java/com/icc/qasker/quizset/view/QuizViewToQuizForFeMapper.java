@@ -22,6 +22,7 @@ public class QuizViewToQuizForFeMapper {
                 })
             .toList();
 
+    // 생성 진행 SSE 스트리밍 미리보기 경로. 허용답안은 완성 문항 조회(GET /problem-set/{id})에서 내려가므로 여기선 생략(null).
     return new QuizForFe(
         quizView.getNumber(),
         quizView.getTitle(),
@@ -29,6 +30,7 @@ public class QuizViewToQuizForFeMapper {
         false,
         selections,
         null,
-        quizView.getAppliedInstruction());
+        quizView.getAppliedInstruction(),
+        null);
   }
 }

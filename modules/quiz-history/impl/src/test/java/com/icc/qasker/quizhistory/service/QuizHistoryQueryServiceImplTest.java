@@ -109,13 +109,15 @@ class QuizHistoryQueryServiceImplTest {
                 new SelectionDetail("a", false),
                 new SelectionDetail("b", true),
                 new SelectionDetail("c", false)),
-            "expl-1");
+            "expl-1",
+            null);
     ProblemDetail p2 =
         new ProblemDetail(
             2,
             "problem-2",
             List.of(new SelectionDetail("x", true), new SelectionDetail("y", false)),
-            "expl-2");
+            "expl-2",
+            null);
     when(problemSetReadService.findProblemsByProblemSetId(100L)).thenReturn(List.of(p1, p2));
 
     HistoryDetailResponse response = service.getHistoryDetail(userId, "h10");
@@ -160,7 +162,8 @@ class QuizHistoryQueryServiceImplTest {
             1,
             "problem-1",
             List.of(new SelectionDetail("a", false), new SelectionDetail("b", false)),
-            "expl");
+            "expl",
+            null);
     when(problemSetReadService.findProblemsByProblemSetId(101L)).thenReturn(List.of(p1));
 
     HistoryDetailResponse response = service.getHistoryDetail(userId, "h11");
@@ -188,9 +191,11 @@ class QuizHistoryQueryServiceImplTest {
     when(problemSetReadService.findProblemSetById(200L))
         .thenReturn(Optional.of(summary(200L, QuizType.ESSAY, 2)));
     ProblemDetail p1 =
-        new ProblemDetail(1, "essay-1", List.of(new SelectionDetail("model-1", true)), "rubric-1");
+        new ProblemDetail(
+            1, "essay-1", List.of(new SelectionDetail("model-1", true)), "rubric-1", null);
     ProblemDetail p2 =
-        new ProblemDetail(2, "essay-2", List.of(new SelectionDetail("model-2", true)), "rubric-2");
+        new ProblemDetail(
+            2, "essay-2", List.of(new SelectionDetail("model-2", true)), "rubric-2", null);
     when(problemSetReadService.findProblemsByProblemSetId(200L)).thenReturn(List.of(p1, p2));
 
     EssayGradeLog log =

@@ -255,6 +255,7 @@ class GenerationCommandServiceImplTest {
             new AISelection("C", null, false),
             new AISelection("D", null, false)),
         List.of(1),
+        null,
         null);
   }
 

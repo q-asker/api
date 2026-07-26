@@ -1,5 +1,6 @@
 package com.icc.qasker.quizhistory.dto.feresponse;
 
+import com.icc.qasker.quizset.dto.feresponse.AcceptedAnswer;
 import com.icc.qasker.quizset.dto.feresponse.Selection;
 import java.util.List;
 
@@ -10,4 +11,5 @@ public record ProblemWithAnswer(
     boolean correct,
     boolean inReview,
     List<Selection> selections,
-    String textAnswer) {}
+    String textAnswer,
+    List<AcceptedAnswer> acceptedAnswers) {}

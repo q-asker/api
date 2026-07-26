@@ -20,7 +20,8 @@ public record ProblemSetResponse(
       boolean check,
       List<SelectionForFE> selections,
       String explanation,
-      String appliedInstruction) {
+      String appliedInstruction,
+      List<AcceptedAnswer> acceptedAnswers) {
 
     public record SelectionForFE(int id, String content, String explanation, boolean correct) {}
   }

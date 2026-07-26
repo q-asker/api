@@ -37,6 +37,7 @@ public final class AIProblemSetMapper {
         problem.selections() == null
             ? List.of()
             : problem.selections().stream().map(AIProblemSetMapper::toSelectionsOfAI).toList());
+    quiz.setAcceptedAnswers(problem.acceptedAnswers());
     return quiz;
   }
 

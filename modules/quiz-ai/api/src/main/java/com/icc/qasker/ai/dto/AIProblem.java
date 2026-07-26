@@ -7,4 +7,5 @@ public record AIProblem(
     String bloomsLevel,
     List<AISelection> selections,
     List<Integer> referencedPages,
-    String appliedInstruction) {}
+    String appliedInstruction,
+    List<List<String>> acceptedAnswers) {}

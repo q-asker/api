@@ -32,7 +32,8 @@ public final class ProblemSetResponseMapper {
         QuizMappingSupport.UNCHECKED,
         selections,
         null,
-        problem.getAppliedInstruction());
+        problem.getAppliedInstruction(),
+        AcceptedAnswerMapper.toResponse(problem.getAcceptedAnswers()));
   }
 
   public ProblemSetResponse fromEntity(ProblemSet problemSet) {

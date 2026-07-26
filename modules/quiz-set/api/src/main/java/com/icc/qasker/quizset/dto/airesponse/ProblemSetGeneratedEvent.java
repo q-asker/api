@@ -21,6 +21,8 @@ public class ProblemSetGeneratedEvent {
     private String bloomsLevel;
     private List<Integer> referencedPages;
     private String appliedInstruction;
+    // 빈칸 순서대로의 허용변형(동의어). 정답 콤마 토큰과 짝지어 Problem.acceptedAnswers로 조립된다. null이면 허용변형 없음.
+    private List<List<String>> acceptedAnswers;
 
     @Getter
     @Setter
