@@ -9,11 +9,11 @@ import org.springframework.stereotype.Component;
 
 /**
  * Spring Data 레포 메서드 호출을 가로채, "레포.메서드"(repoMethod)를 RepoMethodContext에 싣는다. CountingInspector가 이 값을
- * SQL 주석의 repoMethod=에 붙인다. @Profile("loadtest") 전용.
+ * SQL 주석의 repoMethod=에 붙인다. @Profile("local") 전용.
  */
 @Aspect
 @Component
-@Profile("loadtest")
+@Profile("local")
 public class RepoMethodAspect {
 
   @Around("this(org.springframework.data.repository.Repository)")

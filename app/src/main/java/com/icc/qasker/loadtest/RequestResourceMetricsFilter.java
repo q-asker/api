@@ -26,16 +26,25 @@ import org.springframework.web.servlet.HandlerMapping;
  * 가상 스레드 전환 시 이 지표는 무효가 된다.
  */
 @Component
-@Profile("loadtest")
+@Profile("local")
 public class RequestResourceMetricsFilter extends OncePerRequestFilter {
 
   private static final com.sun.management.ThreadMXBean THREADS =
       (com.sun.management.ThreadMXBean) ManagementFactory.getThreadMXBean();
 
+  /** 측정 엔드포인트 — 아래 선등록의 대상. */
+  private static final String MEASURED_URI = "/admin/problem-sets/explanation-review";
+
   private final MeterRegistry registry;
 
   public RequestResourceMetricsFilter(MeterRegistry registry) {
     this.registry = registry;
+    // 측정 uri의 카운터 3종을 앱 시작 시 0으로 선등록 — 시리즈가 부하 시작 전부터 존재해야
+    // 대시보드의 increase() 계산이 "첫 스크레이프 이전 증가분(머리)"을 잃지 않는다.
+    // (JfrMethodTimingExporter의 게이지 선등록과 같은 이유 — 분자·분모의 출생 시점을 맞춘다.)
+    registry.counter("request.count", "uri", MEASURED_URI);
+    registry.counter("request.thread.cpu.seconds", "uri", MEASURED_URI);
+    registry.counter("request.thread.allocated.bytes", "uri", MEASURED_URI);
   }
 
   @Override
@@ -48,6 +57,7 @@ public class RequestResourceMetricsFilter extends OncePerRequestFilter {
       filterChain.doFilter(request, response);
     } finally {
       String uri = templatedUri(request);
+      registry.counter("request.count", "uri", uri).increment();
       if (cpu0 >= 0) {
         long cpuDelta = THREADS.getCurrentThreadCpuTime() - cpu0;
         if (cpuDelta > 0) {
