@@ -14,7 +14,7 @@ import org.springframework.context.annotation.Profile;
 
 @Configuration
 @RequiredArgsConstructor
-@Profile("!stress-test & !test")
+@Profile("!stress-test & !test & !mock")
 public class OciObjectStorageConfig {
 
   private final OciObjectStorageProperties properties;
