@@ -8,6 +8,6 @@ public enum QuizType {
   ESSAY;
 
   public String toAiStrategyName() {
-    return this == REAL_BLANK ? BLANK.name() : name();
+    return name();
   }
 }

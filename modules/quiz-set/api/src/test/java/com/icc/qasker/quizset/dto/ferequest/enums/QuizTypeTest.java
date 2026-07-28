@@ -8,9 +8,9 @@ import org.junit.jupiter.api.Test;
 class QuizTypeTest {
 
   @Test
-  @DisplayName("REAL_BLANK는 AI 전략 이름을 BLANK로 매핑한다")
-  void real_blank_maps_to_blank() {
-    assertThat(QuizType.REAL_BLANK.toAiStrategyName()).isEqualTo("BLANK");
+  @DisplayName("REAL_BLANK는 전용 전략 이름 REAL_BLANK를 반환한다")
+  void real_blank_uses_own_strategy() {
+    assertThat(QuizType.REAL_BLANK.toAiStrategyName()).isEqualTo("REAL_BLANK");
   }
 
   @Test

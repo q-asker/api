@@ -136,7 +136,9 @@ public class QuizHistoryQueryServiceImpl implements QuizHistoryQueryService {
 
     AnswerSnapshotView answers = AnswerSnapshotView.from(history.getAnswers());
     List<ProblemWithAnswer> problemWithAnswers =
-        problems.stream().map(p -> quizHistoryMapper.toProblemWithAnswer(p, answers)).toList();
+        problems.stream()
+            .map(p -> quizHistoryMapper.toProblemWithAnswer(p, answers, problemSet.quizType()))
+            .toList();
 
     return new HistoryDetailResponse(
         hashUtil.encode(history.getId()),

@@ -1,6 +1,7 @@
 package com.icc.qasker.quizset.mapper;
 
 import com.icc.qasker.global.component.HashUtil;
+import com.icc.qasker.quizset.dto.ferequest.enums.QuizType;
 import com.icc.qasker.quizset.dto.feresponse.ProblemSetResponse;
 import com.icc.qasker.quizset.dto.feresponse.ProblemSetResponse.QuizForFe;
 import com.icc.qasker.quizset.dto.feresponse.ProblemSetResponse.QuizForFe.SelectionForFE;
@@ -18,12 +19,22 @@ public final class ProblemSetResponseMapper {
   private final HashUtil hashUtil;
 
   public QuizForFe fromEntity(Problem problem) {
+    return toQuiz(problem, false);
+  }
+
+  /**
+   * REAL_BLANK 풀이 화면은 입력창만 필요하므로 선택지를 노출하지 않는다(정답·인정집합 유출 방지, 채점은 서버 SSOT). {@code hideSelections}면
+   * selections를 빈 배열로 투영한다.
+   */
+  private QuizForFe toQuiz(Problem problem, boolean hideSelections) {
     // 풀이 응답 경량화: 문항 해설·선지별 해설은 FE 미사용(실증)이므로 값을 비운다.
     // getExplanationContent()를 호출하지 않아 lazy 컬럼 초기화(N+1)를 유발하지 않는다 — Q6 lazy의 성립 조건.
     List<SelectionForFE> selections =
-        QuizMappingSupport.mapSelections(
-            problem.getSelections(),
-            (id, sel) -> new SelectionForFE(id, sel.content(), null, sel.correct()));
+        hideSelections
+            ? List.of()
+            : QuizMappingSupport.mapSelections(
+                problem.getSelections(),
+                (id, sel) -> new SelectionForFE(id, sel.content(), null, sel.correct()));
 
     return new QuizForFe(
         problem.getId().getNumber(),
@@ -41,7 +52,8 @@ public final class ProblemSetResponseMapper {
 
   /** 세트 메타데이터는 problemSet에서, 문항 목록은 전달받은 problems에서 조립한다. */
   public ProblemSetResponse toResponse(ProblemSet problemSet, List<Problem> problems) {
-    List<QuizForFe> quizzes = problems.stream().map(this::fromEntity).toList();
+    boolean hideSelections = problemSet.getQuizType() == QuizType.REAL_BLANK;
+    List<QuizForFe> quizzes = problems.stream().map(p -> toQuiz(p, hideSelections)).toList();
 
     return new ProblemSetResponse(
         problemSet.getSessionId(),

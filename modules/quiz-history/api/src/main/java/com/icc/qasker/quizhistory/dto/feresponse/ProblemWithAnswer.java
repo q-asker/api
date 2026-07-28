@@ -10,4 +10,5 @@ public record ProblemWithAnswer(
     boolean correct,
     boolean inReview,
     List<Selection> selections,
-    String textAnswer) {}
+    String textAnswer,
+    String answer) {}
