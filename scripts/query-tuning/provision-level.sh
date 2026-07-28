@@ -2,14 +2,16 @@
 # MySQL 스케일 레벨 컨테이너를 127.0.0.1 바인딩 + 모니터링 네트워크로 (재)생성.
 #  - 127.0.0.1 전용 바인딩: 외부 노출 차단(공개 MySQL 랜섬 스캔 방지). 절대 0.0.0.0 으로 열지 않는다.
 #  - local_local-monitoring 네트워크 연결: mysqld-exporter 가 host 포트가 아니라 <컨테이너명>:3306 으로
-#    내부 접근하므로, 포트를 loopback 에 묶어도 메트릭 수집이 끊기지 않는다(run-level.sh 참조).
+#    내부 접근하므로, 포트를 loopback 에 묶어도 메트릭 수집이 끊기지 않는다(run.sh 의 run_level 참조).
 # 사용: provision-level.sh <name> <hostPort> [volume]
 #  - volume 지정 시 기존 데이터 보존(x1/x10 재생성), 생략 시 새 볼륨(빈 DB → 복원/시딩 대상, 예: x100).
 set -euo pipefail
 NAME="${1:?container name}"; PORT="${2:?host port}"; VOL="${3:-}"
 NET=local_local-monitoring
 
-docker rm -f "$NAME" 2>/dev/null || true
+# -v: 재생성 시 이전 익명 볼륨을 함께 제거해 고아 볼륨이 쌓이지 않게 한다(SSD 누수 방지).
+#  명명 볼륨($VOL 보존 재생성)은 -v 가 건드리지 않아 데이터가 안전하다.
+docker rm -f -v "$NAME" 2>/dev/null || true
 VOLOPT=(); [ -n "$VOL" ] && VOLOPT=(-v "$VOL:/var/lib/mysql")
 
 # 프로덕션 MySQL 스펙에 맞춘 startup 파라미터(prod SHOW VARIABLES 기준).

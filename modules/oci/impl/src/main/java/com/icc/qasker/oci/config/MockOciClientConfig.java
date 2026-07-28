@@ -11,10 +11,10 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
 
-/** stress-test 및 test 프로파일에서 실제 OCI 연결 없이 업로드를 시뮬레이션한다. */
+/** stress-test·test·mock 프로파일에서 실제 OCI 연결 없이 업로드를 시뮬레이션한다. */
 @Slf4j
 @Configuration
-@Profile({"stress-test", "test"})
+@Profile({"stress-test", "test", "mock"})
 public class MockOciClientConfig {
 
   @Bean

@@ -64,7 +64,7 @@ class ExplanationReviewServiceTest extends JpaIntegrationTestBase {
     flushAndClear();
 
     statistics().clear();
-    ExplanationReviewResult result = service.review(setId);
+    ExplanationReviewResult result = service.review(java.util.List.of(setId)).get(0);
     flushAndClear();
 
     assertThat(result.reviewedCount()).isEqualTo(3);
@@ -90,7 +90,7 @@ class ExplanationReviewServiceTest extends JpaIntegrationTestBase {
     em.persist(row);
     flushAndClear();
 
-    ExplanationReviewResult result = service.review(setId);
+    ExplanationReviewResult result = service.review(java.util.List.of(setId)).get(0);
     flushAndClear();
 
     assertThat(result.violationCount()).isEqualTo(1);

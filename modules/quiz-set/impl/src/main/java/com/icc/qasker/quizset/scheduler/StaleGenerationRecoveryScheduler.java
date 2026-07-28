@@ -8,11 +8,11 @@ import org.springframework.stereotype.Component;
 
 /**
  * 방치된 ProblemSet을 주기적으로 정리한다. 실제 정리 로직은 {@link StaleGenerationRecoveryService}에 있고 여기서는 주기 발화만
- * 담당한다. loadtest 프로파일에서는 타이머를 비활성화한다 — 부하 트레이스가 순증 0을 유지하도록 백그라운드 삭제를 막는다(로직은 온디맨드 트리거가 호출).
+ * 담당한다. local 프로파일에서는 타이머를 비활성화한다 — 부하 트레이스가 순증 0을 유지하도록 백그라운드 삭제를 막는다(로직은 온디맨드 트리거가 호출).
  */
 @Slf4j
 @Component
-@Profile("!loadtest")
+@Profile("!local")
 @RequiredArgsConstructor
 public class StaleGenerationRecoveryScheduler {
 

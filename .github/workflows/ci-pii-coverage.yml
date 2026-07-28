@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       mysql:
-        image: mysql:8.0
+        image: mysql:8.4@sha256:8dbcf531a03aade657e181b9cf2f1d1803ce621a1d55610cb44cb531ab7d7db6
         env:
           MYSQL_ROOT_PASSWORD: password
           MYSQL_DATABASE: qaskerdb
@@ -30,7 +30,7 @@ jobs:
 
     steps:
       - name: 코드 체크아웃
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: 마이그레이션 적용 (V1..최신, 버전 순서)
         run: |

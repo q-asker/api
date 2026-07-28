@@ -9,12 +9,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 부하 테스트용 스케줄러 드라이버. 타이머(@Profile("!loadtest"))가 꺼진 loadtest에서 스케줄러 로직을 온디맨드로 1회 태운다. 그
+ * 부하 테스트용 스케줄러 드라이버. 타이머(@Profile("!local"))가 꺼진 local에서 스케줄러 로직을 온디맨드로 1회 태운다. 그
  * SELECT(findByGenerationStatusInAndCreatedAtBefore 스캔)가 계측 파이프라인에 잡혀, 비-controller 백그라운드 쿼리도 실
- * uri로 트레이스된다. @Profile("loadtest").
+ * uri로 트레이스된다. @Profile("local").
  */
 @RestController
-@Profile("loadtest")
+@Profile("local")
 @RequiredArgsConstructor
 @RequestMapping("/local/scheduler")
 public class LocalSchedulerController {
