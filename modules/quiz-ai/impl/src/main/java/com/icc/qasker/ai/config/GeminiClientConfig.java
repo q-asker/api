@@ -19,7 +19,7 @@ public class GeminiClientConfig {
   private final QAskerAiProperties aiProperties;
 
   @Bean
-  @org.springframework.context.annotation.Profile("!test")
+  @org.springframework.context.annotation.Profile("!test & !mock")
   public Client googleGenAiClient(GoogleGenAiConnectionProperties properties) {
     QAskerAiProperties.GeminiHttp http = aiProperties.getGeminiHttp();
     OkHttpClient httpClient =
@@ -38,7 +38,7 @@ public class GeminiClientConfig {
   }
 
   @Bean
-  @org.springframework.context.annotation.Profile("test")
+  @org.springframework.context.annotation.Profile({"test", "mock"})
   public Client googleGenAiClientTest() {
     return Client.builder()
         .apiKey("ci-dummy-key")
