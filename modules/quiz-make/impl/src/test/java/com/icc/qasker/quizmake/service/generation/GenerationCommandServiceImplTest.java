@@ -53,7 +53,8 @@ class GenerationCommandServiceImplTest {
     hashUtil = mock(HashUtil.class);
     resultRecorder = mock(GenerationResultRecorder.class);
 
-    when(quizCommandService.initProblemSet(any(), any(), any(), anyInt(), any(), any(), any()))
+    when(quizCommandService.initProblemSet(
+            any(), any(), any(), anyInt(), any(), any(), any(), any(), any()))
         .thenReturn(1L);
 
     service =
@@ -76,7 +77,15 @@ class GenerationCommandServiceImplTest {
 
     verify(quizCommandService, timeout(2000))
         .initProblemSet(
-            eq("user-1"), any(), any(), anyInt(), eq(QuizType.REAL_BLANK), any(), any());
+            eq("user-1"),
+            any(),
+            any(),
+            anyInt(),
+            eq(QuizType.REAL_BLANK),
+            any(),
+            any(),
+            any(),
+            any());
   }
 
   @Test

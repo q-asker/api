@@ -33,7 +33,9 @@ public class QuizCommandServiceImpl implements QuizCommandService {
       Integer totalQuizCount,
       QuizType quizType,
       String uploadUrl,
-      String customInstruction) {
+      String customInstruction,
+      List<Integer> pageNumbers,
+      String language) {
     ProblemSet problemSet =
         ProblemSet.builder()
             .sessionId(sessionId)
@@ -43,6 +45,8 @@ public class QuizCommandServiceImpl implements QuizCommandService {
             .quizType(quizType)
             .fileUrl(uploadUrl)
             .customInstruction(customInstruction)
+            .pageNumbers(pageNumbers)
+            .language(language)
             .build();
     ProblemSet saved = problemSetRepository.save(problemSet);
     return saved.getId();
