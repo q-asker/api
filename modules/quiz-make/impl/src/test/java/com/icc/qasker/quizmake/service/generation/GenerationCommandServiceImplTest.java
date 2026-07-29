@@ -80,8 +80,8 @@ class GenerationCommandServiceImplTest {
   }
 
   @Test
-  @DisplayName("REAL_BLANK 요청은 AI 서버에 strategyValue=BLANK로 전달한다")
-  void real_blank_request_calls_ai_with_blank_strategy() {
+  @DisplayName("REAL_BLANK 요청은 AI 서버에 strategyValue=REAL_BLANK로 전달한다 (전용 전략)")
+  void real_blank_request_calls_ai_with_real_blank_strategy() {
     GenerationRequest request = request(QuizType.REAL_BLANK);
 
     service.triggerGeneration("user-1", request);
@@ -89,7 +89,7 @@ class GenerationCommandServiceImplTest {
     ArgumentCaptor<GenerationRequestToAI> captor =
         ArgumentCaptor.forClass(GenerationRequestToAI.class);
     verify(aiServerAdapter, timeout(2000)).streamRequest(captor.capture());
-    assertThat(captor.getValue().strategyValue()).isEqualTo("BLANK");
+    assertThat(captor.getValue().strategyValue()).isEqualTo("REAL_BLANK");
   }
 
   @Test

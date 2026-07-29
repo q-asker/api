@@ -29,6 +29,8 @@ public class ProblemSetGeneratedEvent {
       private String content;
       private String explanation;
       private boolean correct;
+      // REAL_BLANK 정답 선택지의 빈칸별 인정 표현 집합(서버 채점용). 타 유형·정보 없으면 null.
+      private List<List<String>> acceptedAnswers;
     }
   }
 }

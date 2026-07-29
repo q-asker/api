@@ -45,6 +45,7 @@ public final class AIProblemSetMapper {
     sel.setContent(selection.content());
     sel.setExplanation(selection.explanation());
     sel.setCorrect(selection.correct());
+    sel.setAcceptedAnswers(selection.acceptedAnswers());
     return sel;
   }
 }

@@ -10,7 +10,13 @@ import com.icc.qasker.quizhistory.entity.AnswerSnapshot;
 import com.icc.qasker.quizhistory.entity.QuizHistory;
 import com.icc.qasker.quizhistory.repository.QuizFolderRepository;
 import com.icc.qasker.quizhistory.repository.QuizHistoryRepository;
+import com.icc.qasker.quizset.ProblemSetReadService;
+import com.icc.qasker.quizset.dto.ferequest.enums.QuizType;
+import com.icc.qasker.quizset.dto.readonly.ProblemSetSummary;
+import com.icc.qasker.quizset.grading.RealBlankGrader;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -22,6 +28,7 @@ public class QuizHistoryCommandServiceImpl implements QuizHistoryCommandService 
 
   private final QuizHistoryRepository quizHistoryRepository;
   private final QuizFolderRepository quizFolderRepository;
+  private final ProblemSetReadService problemSetReadService;
   private final HashUtil hashUtil;
 
   @Override
@@ -49,24 +56,52 @@ public class QuizHistoryCommandServiceImpl implements QuizHistoryCommandService 
   @Override
   @Transactional
   public String saveHistory(String userId, SaveHistoryRequest request) {
+    Long problemSetId = hashUtil.decode(request.problemSetId());
     List<AnswerSnapshot> snapshots =
         request.userAnswers().stream()
             .map(a -> new AnswerSnapshot(a.number(), a.userAnswer(), a.inReview(), a.textAnswer()))
             .toList();
 
+    int score = resolveScore(problemSetId, request);
+
     QuizHistory history =
         quizHistoryRepository
-            .findByUserIdAndProblemSetId(userId, hashUtil.decode(request.problemSetId()))
+            .findByUserIdAndProblemSetId(userId, problemSetId)
             .orElseGet(
                 () ->
                     quizHistoryRepository.save(
                         QuizHistory.builder()
                             .userId(userId)
-                            .problemSetId(hashUtil.decode(request.problemSetId()))
+                            .problemSetId(problemSetId)
                             .title(request.title())
                             .build()));
-    history.completeQuiz(snapshots, request.score(), request.totalTime());
+    history.completeQuiz(snapshots, score, request.totalTime());
     return hashUtil.encode(history.getId());
+  }
+
+  /**
+   * REAL_BLANK 세트는 서버 grader로 맞힌 문항 수를 재계산해 저장한다(클라 score 맹신 폐기, FR-006). 타 유형은 클라가 보낸 score를 그대로
+   * 유지한다(채점 동작 불변, FR-007).
+   */
+  private int resolveScore(Long problemSetId, SaveHistoryRequest request) {
+    ProblemSetSummary summary = problemSetReadService.findProblemSetById(problemSetId).orElse(null);
+    if (summary == null || summary.quizType() != QuizType.REAL_BLANK) {
+      return request.score();
+    }
+    Map<Integer, String> inputByNumber =
+        request.userAnswers().stream()
+            .collect(
+                Collectors.toMap(
+                    a -> a.number(),
+                    a -> a.textAnswer() == null ? "" : a.textAnswer(),
+                    (a, b) -> a));
+    return (int)
+        problemSetReadService.findProblemsByProblemSetId(problemSetId).stream()
+            .filter(
+                p ->
+                    RealBlankGrader.grade(p.selections(), inputByNumber.get(p.number()))
+                        .isCorrect())
+            .count();
   }
 
   @Override
