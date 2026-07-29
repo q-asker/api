@@ -11,13 +11,17 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.interceptor.TransactionAspectSupport;
 
 /**
- * 부하 트레이스용 생성 mock(@Profile("mock")). AI 스트리밍·가상스레드·SSE는 전부 건너뛰고 동기로 {@code initProblemSet}만 태운다.
- * problem_set 삭제 메서드가 다른 모듈에 없어(cross-module) 트랜잭션 롤백으로 순증 0을 달성한다 — INSERT는 performance_schema에 남아
- * 실 URI로 트레이스되고, 커밋은 되지 않아 DB 상태는 불변이다.
+ * 부하 트레이스용 생성 mock(@Profile("mock & !mockai")). AI 스트리밍·가상스레드·SSE는 전부 건너뛰고 동기로 {@code
+ * initProblemSet}만 태운다. problem_set 삭제 메서드가 다른 모듈에 없어(cross-module) 트랜잭션 롤백으로 순증 0을 달성한다 — INSERT는
+ * performance_schema에 남아 실 URI로 트레이스되고, 커밋은 되지 않아 DB 상태는 불변이다.
+ *
+ * <p>{@code mockai}가 함께 활성이면 이 스텁은 비활성화되어 실제 생성 흐름({@code GenerationCommandServiceImpl})이 살아난다 —
+ * {@code MockAIServerAdapter}(Gemini 없이 마크다운 픽스처 생성)와 결합해 결정론적 E2E 시드를 만든다(기능 005). 부하 트레이스는 여전히
+ * {@code mockai} 없는 {@code mock}으로 동작한다.
  */
 @Service
 @Primary
-@Profile("mock")
+@Profile("mock & !mockai")
 @RequiredArgsConstructor
 public class MockGenerationCommandService implements GenerationCommandService {
 

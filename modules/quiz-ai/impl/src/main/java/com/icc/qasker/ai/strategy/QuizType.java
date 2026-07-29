@@ -9,6 +9,7 @@ import com.icc.qasker.ai.service.multiple.prompt.MultipleGuideLine;
 import com.icc.qasker.ai.service.multiple.prompt.MultipleRequestPrompt;
 import com.icc.qasker.ai.service.ox.prompt.OXGuideLine;
 import com.icc.qasker.ai.service.ox.prompt.OXRequestPrompt;
+import com.icc.qasker.ai.service.prompt.MarkdownFormatGuideLine;
 import com.icc.qasker.ai.service.realblank.prompt.RealBlankGuideLine;
 import com.icc.qasker.ai.service.realblank.prompt.RealBlankRequestPrompt;
 import com.icc.qasker.global.error.CustomException;
@@ -72,9 +73,11 @@ public enum QuizType implements QuizPromptStrategy {
   }
 
   private String withLanguage(String base, String language) {
+    // 전 타입 공통 출력 서식 규약을 최상단에 prepend한다(SSOT 단일 주입점 — getSystemGuideLine·getProblemGuideLine 모두 통과).
+    String withFormat = MarkdownFormatGuideLine.content + base;
     return switch (language) {
-      case "EN" -> base + ENGLISH.content;
-      case "KO" -> base;
+      case "EN" -> withFormat + ENGLISH.content;
+      case "KO" -> withFormat;
       default -> throw new CustomException(ExceptionMessage.AI_SERVER_RESPONSE_ERROR);
     };
   }
