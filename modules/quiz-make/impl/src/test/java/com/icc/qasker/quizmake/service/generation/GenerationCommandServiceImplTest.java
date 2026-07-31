@@ -1,14 +1,17 @@
 package com.icc.qasker.quizmake.service.generation;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.after;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -53,7 +56,8 @@ class GenerationCommandServiceImplTest {
     hashUtil = mock(HashUtil.class);
     resultRecorder = mock(GenerationResultRecorder.class);
 
-    when(quizCommandService.initProblemSet(any(), any(), any(), anyInt(), any(), any(), any()))
+    when(quizCommandService.initProblemSet(
+            any(), any(), any(), anyInt(), any(), any(), any(), any(), any()))
         .thenReturn(1L);
 
     service =
@@ -76,12 +80,20 @@ class GenerationCommandServiceImplTest {
 
     verify(quizCommandService, timeout(2000))
         .initProblemSet(
-            eq("user-1"), any(), any(), anyInt(), eq(QuizType.REAL_BLANK), any(), any());
+            eq("user-1"),
+            any(),
+            any(),
+            anyInt(),
+            eq(QuizType.REAL_BLANK),
+            any(),
+            any(),
+            any(),
+            any());
   }
 
   @Test
-  @DisplayName("REAL_BLANK 요청은 AI 서버에 strategyValue=BLANK로 전달한다")
-  void real_blank_request_calls_ai_with_blank_strategy() {
+  @DisplayName("REAL_BLANK 요청은 AI 서버에 strategyValue=REAL_BLANK로 전달한다 (전용 전략)")
+  void real_blank_request_calls_ai_with_real_blank_strategy() {
     GenerationRequest request = request(QuizType.REAL_BLANK);
 
     service.triggerGeneration("user-1", request);
@@ -89,7 +101,7 @@ class GenerationCommandServiceImplTest {
     ArgumentCaptor<GenerationRequestToAI> captor =
         ArgumentCaptor.forClass(GenerationRequestToAI.class);
     verify(aiServerAdapter, timeout(2000)).streamRequest(captor.capture());
-    assertThat(captor.getValue().strategyValue()).isEqualTo("BLANK");
+    assertThat(captor.getValue().strategyValue()).isEqualTo("REAL_BLANK");
   }
 
   @Test
@@ -215,6 +227,22 @@ class GenerationCommandServiceImplTest {
 
     verify(quizCommandService, timeout(2000)).updateStatus(eq(1L), eq(GenerationStatus.FAILED));
     verify(resultRecorder, timeout(2000)).recordError(eq(1L), eq(QuizType.MULTIPLE), any());
+  }
+
+  @Test
+  @DisplayName("멱등: 같은 sessionId 재-POST(중복 제약 위반)는 예외 없이 무시하고 새 생성을 시작하지 않는다")
+  void duplicate_session_repost_is_idempotent_noop() {
+    GenerationRequest request = request(QuizType.REAL_BLANK);
+    when(quizCommandService.initProblemSet(
+            any(), any(), any(), anyInt(), any(), any(), any(), any(), any()))
+        .thenThrow(new org.springframework.dao.DataIntegrityViolationException("dup sessionId"));
+
+    // 예외를 밖으로 던지지 않는다(컨트롤러는 기존과 동일 202 유지).
+    assertThatCode(() -> service.triggerGeneration("user-1", request)).doesNotThrowAnyException();
+
+    // 진행 중 생성을 재기동하지 않는다: AI 스트림·상태 변경이 일어나지 않는다.
+    verify(aiServerAdapter, after(500).never()).streamRequest(any());
+    verify(quizCommandService, never()).updateStatus(anyLong(), any());
   }
 
   // ── helpers ────────────────────────────────────────────────

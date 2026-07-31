@@ -4,6 +4,7 @@ import com.icc.qasker.quizset.ProblemSetService;
 import com.icc.qasker.quizset.dto.ferequest.ChangeTitleRequest;
 import com.icc.qasker.quizset.dto.feresponse.ChangeTitleResponse;
 import com.icc.qasker.quizset.dto.feresponse.ProblemSetResponse;
+import com.icc.qasker.quizset.dto.feresponse.RegenerationConditionResponse;
 import com.icc.qasker.quizset.entity.ProblemSet;
 import com.icc.qasker.quizset.repository.ProblemSetRepository;
 import com.icc.qasker.quizset.service.query.ProblemSetServiceImpl;
@@ -32,6 +33,11 @@ public class MockProblemSetService implements ProblemSetService {
   @Override
   public ProblemSetResponse getProblemSet(String problemSetId) {
     return real.getProblemSet(problemSetId);
+  }
+
+  @Override
+  public RegenerationConditionResponse getRegenerationCondition(String problemSetId) {
+    return real.getRegenerationCondition(problemSetId);
   }
 
   @Override

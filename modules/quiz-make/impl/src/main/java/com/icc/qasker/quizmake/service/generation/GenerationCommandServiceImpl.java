@@ -5,7 +5,6 @@ import static com.icc.qasker.quizset.GenerationStatus.FAILED;
 
 import com.icc.qasker.ai.dto.GenerationRequestToAI;
 import com.icc.qasker.global.component.HashUtil;
-import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.quizmake.GenerationCommandService;
 import com.icc.qasker.quizmake.SseNotificationService;
@@ -62,9 +61,15 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
               request.quizCount(),
               request.quizType(),
               request.uploadedUrl(),
-              request.customInstruction());
+              request.customInstruction(),
+              request.pageNumbers(),
+              request.language().name());
     } catch (DataIntegrityViolationException e) {
-      throw new CustomException(ExceptionMessage.AI_DUPLICATED_GENERATION);
+      // 같은 sessionId 재-POST는 멱등 no-op으로 흡수한다(sessionId unique 위반). SSE 재연결 시 클라이언트가
+      // onopen에서 생성을 재발사할 수 있는데, 최초 요청의 생성이 이미 진행/완료 중이므로 새 생성을 시작하지 않는다.
+      // 재연결된 스트림은 subscribe의 재부착 + Last-Event-ID 리플레이로 남은 이벤트를 이어받아 정상 완료된다.
+      log.info("[생성 멱등] 같은 sessionId 재요청 무시 — 진행 중 생성 유지 sessionId={}", request.sessionId());
+      return;
     }
 
     Map<String, String> contextMap = MDC.getCopyOfContextMap();

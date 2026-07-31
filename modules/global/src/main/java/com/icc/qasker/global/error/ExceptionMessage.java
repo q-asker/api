@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 public enum ExceptionMessage {
   // ## 공통 (global)
   DEFAULT_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 오류가 발생했습니다."),
+  INVALID_REQUEST(HttpStatus.BAD_REQUEST, "잘못된 요청입니다."),
   FILE_SIZE_EXCEEDED(HttpStatus.PAYLOAD_TOO_LARGE, "파일 크기가 제한을 초과했습니다."),
 
   // ## 파일 업로드/변환 (oci, quiz-make, util)
@@ -26,6 +27,7 @@ public enum ExceptionMessage {
   PROBLEM_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 문제를 찾을 수 없습니다."),
   PROBLEM_SET_NOT_FOUND(HttpStatus.NOT_FOUND, "문제 세트를 찾을 수 없습니다."),
   QUALITY_REVIEW_NO_TARGET(HttpStatus.BAD_REQUEST, "품질 재검토할 문항이 없는 세트입니다."),
+  GRADE_UNSUPPORTED_QUIZ_TYPE(HttpStatus.BAD_REQUEST, "REAL_BLANK 유형만 채점할 수 있습니다."),
   FAIL_CONVERT(HttpStatus.INTERNAL_SERVER_ERROR, "컨버팅에 실패했습니다."),
 
   // ## 퀴즈 히스토리 (quiz-history)

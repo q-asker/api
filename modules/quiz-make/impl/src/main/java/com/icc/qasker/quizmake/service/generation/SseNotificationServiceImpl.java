@@ -11,9 +11,13 @@ import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
+import jakarta.annotation.PreDestroy;
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
 import org.springframework.stereotype.Service;
@@ -27,6 +31,7 @@ public class SseNotificationServiceImpl implements SseNotificationService {
   private final Map<String, SseEmitter> emitterMap = new ConcurrentHashMap<>();
   private final CircuitBreakerRegistry circuitBreakerRegistry;
   private final Counter sseTimeoutCounter;
+  private final ScheduledExecutorService heartbeatScheduler;
 
   public SseNotificationServiceImpl(
       QAskerSseProperties sseProperties,
@@ -42,6 +47,35 @@ public class SseNotificationServiceImpl implements SseNotificationService {
         Counter.builder("sse.connections.timeout")
             .description("SSE 연결 타임아웃 발생 횟수")
             .register(registry);
+
+    // heartbeat: 무음 구간에 keep-alive comment를 주기적으로 흘려 중간 프록시의 idle 절단(→클라이언트 재연결→중복 생성 트리거)을 예방한다.
+    this.heartbeatScheduler =
+        Executors.newSingleThreadScheduledExecutor(
+            r -> {
+              Thread t = new Thread(r, "sse-heartbeat");
+              t.setDaemon(true);
+              return t;
+            });
+    long intervalMs = sseProperties.getHeartbeatIntervalMs();
+    heartbeatScheduler.scheduleAtFixedRate(
+        this::sendHeartbeats, intervalMs, intervalMs, TimeUnit.MILLISECONDS);
+  }
+
+  /** 활성 emitter에 keep-alive comment를 보낸다. 전송 실패(끊긴 연결)면 맵에서 정리한다 — 다음 재연결 시 새 emitter가 등록된다. */
+  private void sendHeartbeats() {
+    emitterMap.forEach(
+        (sessionId, emitter) -> {
+          try {
+            emitter.send(SseEmitter.event().comment("keep-alive"));
+          } catch (Exception e) {
+            emitterMap.remove(sessionId, emitter);
+          }
+        });
+  }
+
+  @PreDestroy
+  void shutdownHeartbeat() {
+    heartbeatScheduler.shutdownNow();
   }
 
   @Override

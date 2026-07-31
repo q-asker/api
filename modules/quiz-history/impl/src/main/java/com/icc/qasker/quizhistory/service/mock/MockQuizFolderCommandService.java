@@ -13,13 +13,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 부하 트레이스용 quiz-folder 커맨드 mock(@Profile("mock")). 다른 도메인 mock(MockQuizHistoryCommandService 등)과 동일
- * 패턴 — findByIdAndUserId·소유검증 없이 모든 write를 자기정리(save→delete) throwaway로 순증 0으로 태운다. folder만 이 mock이
- * 없어 실 서비스(조건부 delete)를 타 스케일마다 종단 write가 들쭉날쭉했다.
+ * 부하 트레이스용 quiz-folder 커맨드 mock(@Profile("mock & !mockai")). 다른 도메인
+ * mock(MockQuizHistoryCommandService 등)과 동일 패턴 — findByIdAndUserId·소유검증 없이 모든 write를
+ * 자기정리(save→delete) throwaway로 순증 0으로 태운다. folder만 이 mock이 없어 실 서비스(조건부 delete)를 타 스케일마다 종단 write가
+ * 들쭉날쭉했다.
  */
 @Service
 @Primary
-@Profile("mock")
+@Profile("mock & !mockai")
 @RequiredArgsConstructor
 public class MockQuizFolderCommandService implements QuizFolderCommandService {
 
