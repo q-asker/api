@@ -54,7 +54,6 @@ public class QuizHistoryCommandServiceImpl implements QuizHistoryCommandService 
   }
 
   @Override
-  @Transactional
   public String saveHistory(String userId, SaveHistoryRequest request) {
     Long problemSetId = hashUtil.decode(request.problemSetId());
     List<AnswerSnapshot> snapshots =
@@ -64,19 +63,39 @@ public class QuizHistoryCommandServiceImpl implements QuizHistoryCommandService 
 
     int score = resolveScore(problemSetId, request);
 
-    QuizHistory history =
-        quizHistoryRepository
-            .findByUserIdAndProblemSetId(userId, problemSetId)
-            .orElseGet(
-                () ->
-                    quizHistoryRepository.save(
-                        QuizHistory.builder()
-                            .userId(userId)
-                            .problemSetId(problemSetId)
-                            .title(request.title())
-                            .build()));
+    QuizHistory history = findOrCreateHistory(userId, problemSetId, request.title());
     history.completeQuiz(snapshots, score, request.totalTime());
+    quizHistoryRepository.save(history);
     return hashUtil.encode(history.getId());
+  }
+
+  /**
+   * (user, problemSet) 이력 행을 찾거나 없으면 생성한다. 같은 세트의 결과 화면이 병렬로 열려 이력 저장이 동시에 일어나면 둘 다 INSERT를 시도해 유니크
+   * 제약 {@code (user_id, problem_set_id)}에 걸릴 수 있는데, 충돌을 재조회로 흡수해 500 대신 먼저 만들어진 행을 재사용한다({@link
+   * #initHistory}와 동일 패턴).
+   *
+   * <p>메서드-레벨 {@code @Transactional}을 두지 않는 것이 핵심이다 — 각 리포지토리 호출이 독립 트랜잭션이라 한 요청의 INSERT 충돌이 이 흐름을
+   * 오염시키지 않아 이어지는 재조회가 정상 동작한다(같은 트랜잭션 안에서 잡으면 rollback-only로 오염돼 재조회가 실패한다). 이후 {@code
+   * completeQuiz} 변경은 호출부의 명시적 {@code save}(merge)로 영속한다.
+   */
+  private QuizHistory findOrCreateHistory(String userId, Long problemSetId, String title) {
+    return quizHistoryRepository
+        .findByUserIdAndProblemSetId(userId, problemSetId)
+        .orElseGet(
+            () -> {
+              try {
+                return quizHistoryRepository.save(
+                    QuizHistory.builder()
+                        .userId(userId)
+                        .problemSetId(problemSetId)
+                        .title(title)
+                        .build());
+              } catch (DataIntegrityViolationException e) {
+                return quizHistoryRepository
+                    .findByUserIdAndProblemSetId(userId, problemSetId)
+                    .orElseThrow(() -> new CustomException(ExceptionMessage.PROBLEM_SET_NOT_FOUND));
+              }
+            });
   }
 
   /**
