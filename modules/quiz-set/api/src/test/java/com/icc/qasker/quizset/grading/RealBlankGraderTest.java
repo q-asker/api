@@ -2,6 +2,7 @@ package com.icc.qasker.quizset.grading;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.icc.qasker.quizset.dto.readonly.SelectionDetail;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -149,6 +150,78 @@ class RealBlankGraderTest {
     void fallback_still_normalizes() {
       List<List<String>> accepted = RealBlankGrader.fallbackAccepted("운동량");
       assertThat(RealBlankGrader.isCorrect(List.of(" 운동량 "), accepted)).isTrue();
+    }
+  }
+
+  @Nested
+  @DisplayName("grade — 인정 집합 노출 + index 0 = canonical 모범답 (FR-006·US3)")
+  class GradeExposure {
+
+    private static SelectionDetail correct(String content, List<List<String>> accepted) {
+      return new SelectionDetail(content, true, accepted);
+    }
+
+    @Test
+    @DisplayName("정답 판정과 함께 채점에 쓰인 인정 집합을 그대로 돌려준다")
+    void grade_exposes_accepted_answers() {
+      RealBlankGrader.GradeOutcome outcome =
+          RealBlankGrader.grade(
+              List.of(correct("미토콘드리아", List.of(List.of("미토콘드리아", "mitochondria")))),
+              "mitochondria");
+
+      assertThat(outcome.isCorrect()).isTrue();
+      assertThat(outcome.answer()).isEqualTo("미토콘드리아");
+      assertThat(outcome.acceptedAnswers()).containsExactly(List.of("미토콘드리아", "mitochondria"));
+    }
+
+    @Test
+    @DisplayName("모범답안이 인정 집합 맨 앞이 아니면 index 0으로 끌어올린다")
+    void grade_hoists_canonical_to_index0() {
+      RealBlankGrader.GradeOutcome outcome =
+          RealBlankGrader.grade(
+              List.of(correct("운영체제", List.of(List.of("OS", "operating system", "운영체제")))), "OS");
+
+      assertThat(outcome.acceptedAnswers().get(0).get(0)).isEqualTo("운영체제");
+      assertThat(outcome.acceptedAnswers().get(0))
+          .containsExactly("운영체제", "OS", "operating system");
+    }
+
+    @Test
+    @DisplayName("모범답안이 인정 집합에 빠져 있으면 index 0에 보강하고 채점 멤버십도 보장된다")
+    void grade_inserts_missing_canonical() {
+      RealBlankGrader.GradeOutcome outcome =
+          RealBlankGrader.grade(
+              List.of(correct("미토콘드리아", List.of(List.of("mitochondria")))), "미토콘드리아");
+
+      assertThat(outcome.acceptedAnswers().get(0)).containsExactly("미토콘드리아", "mitochondria");
+      assertThat(outcome.isCorrect()).isTrue(); // 모범답 타이핑이 정답으로 인정됨
+    }
+
+    @Test
+    @DisplayName("다중 빈칸: 각 빈칸 index 0이 그 빈칸의 모범답으로 고정된다")
+    void grade_multi_blank_canonical_per_blank() {
+      RealBlankGrader.GradeOutcome outcome =
+          RealBlankGrader.grade(
+              List.of(
+                  correct(
+                      "감수분열, 체세포분열",
+                      List.of(List.of("meiosis", "감수분열"), List.of("유사분열", "mitosis", "체세포분열")))),
+              "감수분열" + RealBlankGrader.BLANK_DELIMITER + "체세포분열");
+
+      assertThat(outcome.acceptedAnswers()).hasSize(2);
+      assertThat(outcome.acceptedAnswers().get(0).get(0)).isEqualTo("감수분열");
+      assertThat(outcome.acceptedAnswers().get(1).get(0)).isEqualTo("체세포분열");
+      assertThat(outcome.isCorrect()).isTrue();
+    }
+
+    @Test
+    @DisplayName("legacy(acceptedAnswers null): content 기반 폴백을 index 0으로 노출한다 (FR-009)")
+    void grade_legacy_fallback_exposed() {
+      RealBlankGrader.GradeOutcome outcome =
+          RealBlankGrader.grade(List.of(new SelectionDetail("광합성", true)), "광합성");
+
+      assertThat(outcome.acceptedAnswers()).containsExactly(List.of("광합성"));
+      assertThat(outcome.isCorrect()).isTrue();
     }
   }
 }
