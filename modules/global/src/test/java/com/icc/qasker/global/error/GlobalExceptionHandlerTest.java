@@ -2,6 +2,7 @@ package com.icc.qasker.global.error;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -12,6 +13,8 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import org.apache.catalina.connector.ClientAbortException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,6 +24,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
@@ -126,6 +131,15 @@ class GlobalExceptionHandlerTest {
         .andExpect(jsonPath("$.message").value(ExceptionMessage.DEFAULT_ERROR.getMessage()));
   }
 
+  @Test
+  @DisplayName("요청 바디 검증 실패(@NotBlank) → 400 + 필드 오류 메시지 (500 아님)")
+  void bodyValidationFails() throws Exception {
+    mockMvc
+        .perform(post("/validate").contentType("application/json").content("{\"url\":\"\"}"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.message").value("url이 존재하지 않습니다."));
+  }
+
   @RestController
   static class TestController {
 
@@ -169,5 +183,10 @@ class GlobalExceptionHandlerTest {
     public void boom() {
       throw new RuntimeException("unexpected");
     }
+
+    @PostMapping("/validate")
+    public void validate(@Valid @RequestBody ValidateRequest request) {}
   }
+
+  record ValidateRequest(@NotBlank(message = "url이 존재하지 않습니다.") String url) {}
 }
