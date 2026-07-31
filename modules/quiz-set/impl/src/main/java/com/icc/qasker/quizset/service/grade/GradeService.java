@@ -54,6 +54,7 @@ public class GradeService {
 
   private GradeResult gradeProblem(ProblemDetail problem, String textAnswer) {
     RealBlankGrader.GradeOutcome outcome = RealBlankGrader.grade(problem.selections(), textAnswer);
-    return new GradeResult(problem.number(), outcome.isCorrect(), outcome.answer());
+    return new GradeResult(
+        problem.number(), outcome.isCorrect(), outcome.answer(), outcome.acceptedAnswers());
   }
 }

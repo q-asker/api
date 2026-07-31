@@ -15,8 +15,10 @@ public record GeminiRealBlankQuestion(
     @JsonPropertyDescription("참조한 강의노트 페이지 번호") List<Integer> referencedPages,
     @JsonPropertyDescription("모범답안. 다중 빈칸이면 빈칸 등장 순서대로 콤마(,)와 공백으로 구분") String answer,
     @JsonPropertyDescription(
-            "빈칸별 정답 인정 표현 목록. 바깥 배열=빈칸 순서, 안쪽 배열=그 빈칸에서 정답으로 인정할 표현들"
-                + "(모범답안 자신 + 동의어·이표기·약어·영↔한 표기). 표기 차이와 동의어까지만 포함하고 오탈자·인접/상하위 개념은 절대 포함 금지")
+            "빈칸별 정답 인정 표현 목록. 바깥 배열=빈칸 순서, 안쪽 배열=그 빈칸에서 정답으로 인정할 표현들."
+                + " 각 안쪽 배열의 첫 원소(index 0)는 반드시 그 빈칸의 모범답안 자신. 이어서 통용 변형을 적극적으로 나열:"
+                + " 완전 동의어·약어↔완전형(양방향)·영↔한 표기(양쪽)·도메인 표준 이명."
+                + " 표기 차이(공백·대소문자·전각반각)는 자동 정규화되니 제외. 오탈자·인접 개념·상위/하위/부분 개념·뜻이 조금이라도 다른 표현은 절대 포함 금지(애매하면 제외).")
         List<List<String>> acceptedAnswers,
     @JsonPropertyDescription("해설 (정답 추론·근거)") String explanation,
     @JsonPropertyDescription("사용자 지시 반영 결과") String appliedInstruction) {}

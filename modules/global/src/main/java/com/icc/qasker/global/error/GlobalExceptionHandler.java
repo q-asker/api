@@ -1,10 +1,13 @@
 package com.icc.qasker.global.error;
 
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
+import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.catalina.connector.ClientAbortException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
@@ -55,6 +58,23 @@ public class GlobalExceptionHandler {
 
     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
         .body(new CustomErrorResponse(ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR.getMessage()));
+  }
+
+  /**
+   * 요청 바디 Bean Validation 실패(`@Valid @RequestBody`). 잘못된 요청이므로 400으로 응답한다(미처리 시 catch-all의 500으로
+   * 샘). 첫 필드 오류 메시지를 그대로 노출하고, 없으면 기본 메시지로 대체한다.
+   */
+  @ExceptionHandler(MethodArgumentNotValidException.class)
+  public ResponseEntity<CustomErrorResponse> handleMethodArgumentNotValid(
+      MethodArgumentNotValidException e) {
+    String message =
+        e.getBindingResult().getFieldErrors().stream()
+            .map(FieldError::getDefaultMessage)
+            .filter(Objects::nonNull)
+            .findFirst()
+            .orElse(ExceptionMessage.INVALID_REQUEST.getMessage());
+    log.warn("[요청 검증 실패] {}", message);
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new CustomErrorResponse(message));
   }
 
   @ExceptionHandler(MaxUploadSizeExceededException.class)

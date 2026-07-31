@@ -13,12 +13,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 부하 트레이스용 quiz-history 커맨드 mock(@Profile("mock")). 모든 write를 자기정리(save→delete) throwaway로 순증 0으로
- * 태운다. problemSetId는 FK가 없는 일반 컬럼이라 실 데이터와 겹치지 않는 sentinel({@code 0})을 써 unique 충돌을 피한다.
+ * 부하 트레이스용 quiz-history 커맨드 mock(@Profile("mock & !mockai")). 모든 write를 자기정리(save→delete)
+ * throwaway로 순증 0으로 태운다. problemSetId는 FK가 없는 일반 컬럼이라 실 데이터와 겹치지 않는 sentinel({@code 0})을 써 unique
+ * 충돌을 피한다.
  */
 @Service
 @Primary
-@Profile("mock")
+@Profile("mock & !mockai")
 @RequiredArgsConstructor
 public class MockQuizHistoryCommandService implements QuizHistoryCommandService {
 

@@ -26,6 +26,13 @@ public class MockAIServerAdapter extends AIServerAdapter {
     List<Integer> pages =
         CollectionUtils.isEmpty(request.referencePages()) ? List.of(1) : request.referencePages();
 
+    // REAL_BLANK는 선택형과 산출물 형태가 달라(정답 1선지 + acceptedAnswers 2차원, 오답 선지 없음) 전용 목업을 낸다.
+    // 단일 빈칸 + 다중 빈칸(≥2)을 모두 포함해 빈칸별 인정 목록 노출(FR-008) E2E를 실 Gemini 없이 검증한다.
+    if ("REAL_BLANK".equals(request.strategyValue())) {
+      realBlankMocks(quizCount, pages).forEach(request.sink()::saveProblem);
+      return;
+    }
+
     // 3개 청크로 나누어 전송
     int[][] ranges = {
       {1, quizCount / 3},
@@ -41,6 +48,47 @@ public class MockAIServerAdapter extends AIServerAdapter {
       }
       problems.forEach(request.sink()::saveProblem);
     }
+  }
+
+  /** REAL_BLANK 목업 세트: 2번 문항은 다중 빈칸(≥2), 나머지는 단일 빈칸. 정답 1선지 + acceptedAnswers 2차원(index 0=모범답). */
+  private static List<AIProblem> realBlankMocks(int quizCount, List<Integer> pages) {
+    List<AIProblem> problems = new ArrayList<>();
+    for (int i = 1; i <= quizCount; i++) {
+      problems.add(i == 2 ? realBlankMultiBlank(pages) : realBlankSingle(i, pages));
+    }
+    return problems;
+  }
+
+  /** 단일 빈칸 REAL_BLANK 목업. acceptedAnswers=[[모범답, 영문 이표기]]. */
+  private static AIProblem realBlankSingle(int i, List<Integer> pages) {
+    return new AIProblem(
+        "진핵세포에서 이중막으로 둘러싸이고 산화적 인산화로 ATP를 합성하는 소기관을 _______(이)라 한다. (mock " + i + ")",
+        "Remember — 명칭형",
+        List.of(
+            new AISelection(
+                "미토콘드리아",
+                "- **정답 추론**: 이중막·산화적 인산화·ATP 합성은 미토콘드리아의 고유 단서입니다. (mock " + i + ")",
+                true,
+                List.of(List.of("미토콘드리아", "mitochondria")))),
+        pages,
+        null);
+  }
+
+  /**
+   * 다중 빈칸(2칸) REAL_BLANK 목업. acceptedAnswers=[[모범답1,변형...],[모범답2,변형...]] — 빈칸별 구분 렌더(FR-008) 검증용.
+   */
+  private static AIProblem realBlankMultiBlank(List<Integer> pages) {
+    return new AIProblem(
+        "세포 분열에서 ①_______은(는) 생식세포 4개를, ②_______은(는) 유전적으로 동일한 딸세포 2개를 만든다.",
+        "Understand — 비교형",
+        List.of(
+            new AISelection(
+                "감수분열, 체세포분열",
+                "- **정답 추론**: ①은 감수분열, ②는 체세포분열입니다. (mock 다중 빈칸)",
+                true,
+                List.of(List.of("감수분열", "meiosis"), List.of("체세포분열", "유사분열", "mitosis")))),
+        pages,
+        null);
   }
 
   private static AIProblem plainMock(int i, List<Integer> pages) {

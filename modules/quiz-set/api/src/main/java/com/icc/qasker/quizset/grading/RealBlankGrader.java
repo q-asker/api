@@ -2,6 +2,7 @@ package com.icc.qasker.quizset.grading;
 
 import com.icc.qasker.quizset.dto.readonly.SelectionDetail;
 import java.text.Normalizer;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
@@ -130,13 +131,50 @@ public final class RealBlankGrader {
             : selections.stream().filter(SelectionDetail::correct).findFirst().orElse(null);
     String answer = correct == null ? "" : correct.content();
     List<List<String>> accepted =
-        correct != null && correct.acceptedAnswers() != null
-            ? correct.acceptedAnswers()
-            : fallbackAccepted(answer);
+        canonicalize(
+            answer,
+            correct != null && correct.acceptedAnswers() != null
+                ? correct.acceptedAnswers()
+                : fallbackAccepted(answer));
     boolean isCorrect = isCorrect(splitInputs(textAnswer), accepted);
-    return new GradeOutcome(isCorrect, answer);
+    return new GradeOutcome(isCorrect, answer, accepted);
   }
 
-  /** 채점 결과: 정오답 + 표시용 대표정답. */
-  public record GradeOutcome(boolean isCorrect, String answer) {}
+  /**
+   * 각 빈칸 인정 집합의 index 0을 canonical 모범답(대표정답의 그 빈칸)으로 고정한다(FR-006 노출 관례). 모범답이 집합에 없으면 앞에 넣고, 이미
+   * 있으면(정규화 동일) 맨 앞으로 끌어올린다 — 모범답은 언제나 정답이어야 하므로 채점 멤버십도 함께 보장된다. 대표정답 빈칸 수보다 인정 집합이 길면 초과분은 원본 순서를
+   * 유지한다.
+   */
+  private static List<List<String>> canonicalize(String answer, List<List<String>> accepted) {
+    if (accepted == null || accepted.isEmpty()) {
+      return accepted;
+    }
+    String[] answerBlanks = (answer == null ? "" : answer).split(CONTENT_BLANK_DELIMITER, -1);
+    List<List<String>> result = new ArrayList<>(accepted.size());
+    for (int i = 0; i < accepted.size(); i++) {
+      List<String> blank = accepted.get(i);
+      String canonical = i < answerBlanks.length ? answerBlanks[i].trim() : "";
+      if (blank == null || canonical.isEmpty()) {
+        result.add(blank);
+        continue;
+      }
+      String normalizedCanonical = normalize(canonical);
+      List<String> reordered = new ArrayList<>(blank.size() + 1);
+      reordered.add(canonical);
+      for (String variant : blank) {
+        if (variant != null && !normalize(variant).equals(normalizedCanonical)) {
+          reordered.add(variant);
+        }
+      }
+      result.add(List.copyOf(reordered));
+    }
+    return List.copyOf(result);
+  }
+
+  /**
+   * 채점 결과: 정오답 + 표시용 대표정답 + 빈칸별 인정 집합. {@code acceptedAnswers}는 채점에 실제로 쓰인 집합(없으면 content 기반 폴백)이며,
+   * 각 빈칸 배열의 index 0은 canonical 모범답이다(FR-006 노출용).
+   */
+  public record GradeOutcome(
+      boolean isCorrect, String answer, List<List<String>> acceptedAnswers) {}
 }

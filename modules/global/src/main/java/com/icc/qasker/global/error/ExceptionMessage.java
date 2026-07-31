@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 public enum ExceptionMessage {
   // ## 공통 (global)
   DEFAULT_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 오류가 발생했습니다."),
+  INVALID_REQUEST(HttpStatus.BAD_REQUEST, "잘못된 요청입니다."),
   FILE_SIZE_EXCEEDED(HttpStatus.PAYLOAD_TOO_LARGE, "파일 크기가 제한을 초과했습니다."),
 
   // ## 파일 업로드/변환 (oci, quiz-make, util)

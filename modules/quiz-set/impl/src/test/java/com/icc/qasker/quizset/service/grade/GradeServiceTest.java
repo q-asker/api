@@ -105,4 +105,27 @@ class GradeServiceTest {
 
     assertThatThrownBy(() -> grade(1, "x")).isInstanceOf(CustomException.class);
   }
+
+  @Test
+  @DisplayName("응답에 빈칸별 허용 정답 목록을 실어 준다 — index 0 = 모범답 (FR-006·FR-008·US3)")
+  void response_carries_accepted_answers_with_canonical_first() {
+    givenSet(
+        QuizType.REAL_BLANK,
+        List.of(realBlankProblem(1, "운영체제", List.of(List.of("OS", "operating system", "운영체제")))));
+
+    GradeResult result = grade(1, "OS").results().getFirst();
+
+    assertThat(result.acceptedAnswers()).hasSize(1);
+    assertThat(result.acceptedAnswers().get(0)).containsExactly("운영체제", "OS", "operating system");
+  }
+
+  @Test
+  @DisplayName("legacy 문항(인정범위 null)도 응답에 대표정답 폴백 목록을 실어 준다 (FR-009)")
+  void response_carries_fallback_for_legacy() {
+    givenSet(QuizType.REAL_BLANK, List.of(realBlankProblem(1, "운동량", null)));
+
+    GradeResult result = grade(1, "운동량").results().getFirst();
+
+    assertThat(result.acceptedAnswers()).containsExactly(List.of("운동량"));
+  }
 }
