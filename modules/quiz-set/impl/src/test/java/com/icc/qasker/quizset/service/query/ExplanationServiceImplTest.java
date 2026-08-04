@@ -53,7 +53,7 @@ class ExplanationServiceImplTest {
   @Test
   @DisplayName("세트가 없으면 PROBLEM_SET_NOT_FOUND")
   void throws_when_set_not_found() {
-    when(problemRepository.findByIdProblemSetId(1L)).thenReturn(List.of());
+    when(problemRepository.findExplanationsBySetId(1L)).thenReturn(List.of());
     when(problemSetRepository.findById(1L)).thenReturn(Optional.empty());
 
     assertThatThrownBy(() -> service.getExplanationByProblemSetId("enc"))
@@ -64,7 +64,7 @@ class ExplanationServiceImplTest {
   @Test
   @DisplayName("문항이 없으면 PROBLEM_NOT_FOUND")
   void throws_when_problem_not_found() {
-    when(problemRepository.findByIdProblemSetId(1L)).thenReturn(List.of());
+    when(problemRepository.findExplanationsBySetId(1L)).thenReturn(List.of());
     when(problemSetRepository.findById(1L)).thenReturn(Optional.of(setWithFileUrl()));
 
     assertThatThrownBy(() -> service.getExplanationByProblemSetId("enc"))
@@ -86,7 +86,7 @@ class ExplanationServiceImplTest {
             1,
             "u",
             List.of());
-    when(problemRepository.findByIdProblemSetId(1L)).thenReturn(List.of(problem));
+    when(problemRepository.findExplanationsBySetId(1L)).thenReturn(List.of(problem));
     when(problemSetRepository.findById(1L)).thenReturn(Optional.of(readySet));
 
     ExplanationResponse response = service.getExplanationByProblemSetId("enc");
@@ -110,7 +110,7 @@ class ExplanationServiceImplTest {
             1,
             "u",
             List.of());
-    when(problemRepository.findByIdProblemSetId(1L)).thenReturn(List.of(problem));
+    when(problemRepository.findExplanationsBySetId(1L)).thenReturn(List.of(problem));
     when(problemSetRepository.findById(1L)).thenReturn(Optional.of(generatingSet));
 
     ExplanationResponse response = service.getExplanationByProblemSetId("enc");
@@ -122,7 +122,7 @@ class ExplanationServiceImplTest {
   @DisplayName("COMPLETED 세트는 COMPLETED 상태를 함께 응답한다")
   void completed_set_returns_completed_status() {
     Problem problem = TestEntityFactory.problem(1L, 1, "제목", List.of(), "완성된 해설", null, List.of());
-    when(problemRepository.findByIdProblemSetId(1L)).thenReturn(List.of(problem));
+    when(problemRepository.findExplanationsBySetId(1L)).thenReturn(List.of(problem));
     when(problemSetRepository.findById(1L)).thenReturn(Optional.of(setWithFileUrl()));
 
     ExplanationResponse response = service.getExplanationByProblemSetId("enc");
@@ -137,7 +137,7 @@ class ExplanationServiceImplTest {
       "explanationContent가 null이고 종결(COMPLETED) 상태면 '해설 없음'으로 치환한다 — 현행 FE가 null 분기 없이 문자열을 기대(하위호환)")
   void null_explanation_falls_back_to_default() {
     Problem problem = TestEntityFactory.problem(1L, 1, "제목", List.of(), null, "지침", List.of(2, 5));
-    when(problemRepository.findByIdProblemSetId(1L)).thenReturn(List.of(problem));
+    when(problemRepository.findExplanationsBySetId(1L)).thenReturn(List.of(problem));
     when(problemSetRepository.findById(1L)).thenReturn(Optional.of(setWithFileUrl()));
 
     ExplanationResponse response = service.getExplanationByProblemSetId("enc");

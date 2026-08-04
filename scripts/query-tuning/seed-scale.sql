@@ -38,8 +38,10 @@ BEGIN
   FROM _u u CROSS JOIN kmult k;
 
   -- refresh_token (PK user_id → 복제 user 와 1:1)
+  --  rt_hash 도 copy 접두로 고유화한다: refresh_token(rt_hash) UNIQUE 인덱스 대상이므로 원본 그대로면
+  --  copy 간 충돌(×scale 중복)로 인덱스 생성이 실패한다. user_id 와 동일 규칙(c{k}_ 접두)으로 정합.
   INSERT INTO refresh_token (user_id, created_at, expires_at, rt_hash)
-  SELECT CONCAT('c',k.k,'_',r.user_id), r.created_at, r.expires_at, r.rt_hash
+  SELECT CONCAT('c',k.k,'_',r.user_id), r.created_at, r.expires_at, CONCAT('c',k.k,'_',r.rt_hash)
   FROM _rt r CROSS JOIN kmult k;
 
   -- problem_set (PK id, UNIQUE session_id)

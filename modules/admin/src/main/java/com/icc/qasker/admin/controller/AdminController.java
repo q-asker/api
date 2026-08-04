@@ -1,6 +1,5 @@
 package com.icc.qasker.admin.controller;
 
-import com.icc.qasker.admin.properties.ImageUploadProperties;
 import com.icc.qasker.board.BoardAdminService;
 import com.icc.qasker.board.dto.request.PostRequest;
 import com.icc.qasker.board.dto.request.ReplyRequest;
@@ -40,7 +39,6 @@ public class AdminController {
 
   private final BoardAdminService boardAdminService;
   private final ObjectStorageService objectStorageService;
-  private final ImageUploadProperties imageUploadProperties;
   private final QualityReviewService qualityReviewService;
   private final ExplanationReviewService explanationReviewService;
 

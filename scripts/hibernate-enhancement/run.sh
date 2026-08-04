@@ -8,23 +8,18 @@
 #   @Basic(LAZY) @LazyGroup("pass2")인 대형 질문 JSON(v1/v2)·피드백 4컬럼이
 #   인핸스먼트 ON에서만 SELECT에서 제외된다 — OFF는 전량 즉시 로딩 폴백.
 #
-# 시드는 운영 실데이터(마스킹본) 복제: problem_quality_log의 실제 행(x1 원본 205행)을
-#   순환 복제해 합성 세트를 채운다 — 크기·null 분포(재생성 행 ≈9%)가 합성이 아니라 실물.
-#   세트당 앞 BROKEN_PER_SET행은 실데이터 해설에서 마크다운 헤더·인용을 제거해 형식 검증 실패를 유도.
-#
 # 리플레이 가능: 매 실행마다 합성 세트(problem_set_id > SET_BASE)를 DELETE→재시딩하므로
 #   off/on·재실행이 항상 동일 초기 상태에서 시작한다(마킹 잔재 없음, 재현 가능).
 #
 # 흐름: 해당 모드로 bootJar 빌드(quiz-set-impl clean 포함, 캐시 혼입 방지)
 #       → 인핸스 적용 여부를 클래스 멤버($$_hibernate)로 검증
-#       → local,loadtest,mock 프로파일로 기동(쿼리 튜닝 스케일 DB에 연결)
+#       → local,mock 프로파일로 기동(쿼리 튜닝 스케일 DB에 연결)
 #       → problem_quality_log 리플레이 시딩(합성 세트 DELETE→INSERT, 세트당 BROKEN_PER_SET개 망가진 해설)
 #       → admin 토큰 발급(ROLE_ADMIN 사용자 자동 조회)
 #       → explanation-review 반복 부하 → 구간 끝 epoch 출력 → 앱 종료
 #
 # 사용:  run.sh            — 인자 없으면 off→on 쌍을 PAIRS회 반복(기본 5) — 런 간 노이즈 평균화
 #        run.sh <off|on>   — 한쪽 런(총 ROUNDS요청)만 1회 실행
-#        PAIRS=1 run.sh    — 빠른 스모크(1쌍만)
 #   Grafana qasker-enh-rw가 mode 라벨로 두 모드를 자동 비교한다 — 런마다 run 라벨이 붙어
 #   "런별 최종 누적값 합산"으로 집계되므로, 시간 범위가 런들을 포함하기만 하면 됨(epoch은 기록·재현용).
 #
@@ -49,7 +44,10 @@ if [ -z "$MODE" ]; then
   while [ "$p" -le "$PAIRS" ]; do
     echo ""
     echo "──────── 쌍 $p/$PAIRS ────────"
-    bash "${BASH_SOURCE[0]}" off
+    # 첫 off 런에서만 측정 테이블(enh_snapshot·mem_probe)을 DROP→CREATE 로 fresh 재생성 — 세션 멱등:
+    #  재실행이 항상 깨끗한 초기 상태에서 시작(옛 "날리고 다시"를 자동화). 이후 9런은 append 돼 5쌍이 누적된다
+    #  (대시보드의 런 간 평균화·모드당 500요청 유지). invocation마다 DROP하면 마지막 1런만 남아 대시보드가 깨진다.
+    if [ "$p" -eq 1 ]; then ENH_RESET=1 bash "${BASH_SOURCE[0]}" off; else bash "${BASH_SOURCE[0]}" off; fi
     bash "${BASH_SOURCE[0]}" on
     p=$((p + 1))
   done
@@ -101,8 +99,6 @@ for i in $(seq 1 30); do
   [ "$i" = 30 ] && { echo "🛑 $DB_CONTAINER 준비 시간 초과" >&2; exit 1; }
   sleep 2
 done
-# 문장별 서버 CPU(events_statements_*.CPU_TIME) 수집 활성화 — 기본 OFF이고 컨테이너 재기동마다 초기화된다
-echo "UPDATE performance_schema.setup_consumers SET ENABLED='YES' WHERE NAME='events_statements_cpu';" | MY
 
 # ═══════════════════════════════════════════════════════════════════════════
 # STEP 2 │ 모드별 bootJar 빌드 (off는 -PdisableHibernateEnhancement)
@@ -125,13 +121,13 @@ if [ "$MODE" = off ] && [ "$CNT" -gt 0 ]; then echo "🛑 off인데 인핸스 �
 echo "[$MODE] 인핸스먼트 상태 확인 (\$\$_hibernate 멤버 ${CNT}개)"
 
 # ═══════════════════════════════════════════════════════════════════════════
-# STEP 4 │ 앱 기동 — 프로파일(local,loadtest,mock) + JFR 메서드 계측 플래그
+# STEP 4 │ 앱 기동 — 프로파일(local,mock) + JFR 메서드 계측 플래그
 # ═══════════════════════════════════════════════════════════════════════════
 # mock: 외부 부수효과 차단
 JAR="$(ls -t app/build/libs/app-*.jar | head -1)"
 lsof -ti:8080 2>/dev/null | xargs kill -9 2>/dev/null || true
 export JASYPT_ENCRYPTOR_PASSWORD="$(grep '^JASYPT_ENCRYPTOR_PASSWORD=' app/gradle.properties | cut -d= -f2-)"
-export SPRING_PROFILES_ACTIVE=local,loadtest,mock
+export SPRING_PROFILES_ACTIVE=local,mock  # mock: 외부 호출·실쓰기 mock + 레이트리밋 off·분석 DB(구 loadtest 흡수)
 export SPRING_DATASOURCE_URL="jdbc:mysql://127.0.0.1:$DB_PORT/qaskerdb"
 # 모든 Micrometer 메트릭에 mode=off|on 태그 부여 → 대시보드가 모드별로 분리 표시
 export MANAGEMENT_METRICS_TAGS_MODE="$MODE"
@@ -243,8 +239,16 @@ echo "$BODY" | jq -c .
 # 이 시점 이후 이 DB에 오는 트래픽은 사실상 부하 요청과 커넥션 풀 유지뿐이므로,
 # 아래 Bytes_sent 차분은 rate() 창 없이 부하 구간을 정확히 감싼다.
 MY <<'SQL'
+-- ── perf_schema 활성화 (한곳 집약) — 컨테이너 재기동마다 초기화되므로 매 런 재설정. 전부 기본 YES/OFF 무관하게 멱등 ──
+--  소비자(수집처)
+UPDATE performance_schema.setup_consumers SET ENABLED='YES'
+  WHERE NAME IN ('events_statements_history_long',  -- 문장 링버퍼: enh_snapshot 소스
+                 'events_statements_cpu');           -- 문장별 CPU_TIME(cpu_ms)
+--  계측기(생산자)
+UPDATE performance_schema.setup_instruments SET ENABLED='YES' WHERE NAME LIKE 'memory/%';  -- MAX_TOTAL_MEMORY·mem_probe HIGH
+-- ── 창 리셋 (부하 직전 — 이 시점 이후 트래픽만 집계) ──
 TRUNCATE performance_schema.events_statements_history_long;
-TRUNCATE performance_schema.events_statements_summary_by_digest;
+TRUNCATE performance_schema.memory_summary_global_by_event_name;
 SQL
 BYTES_SENT0=$(echo "SELECT VARIABLE_VALUE FROM performance_schema.global_status WHERE VARIABLE_NAME='Bytes_sent';" | MY)
 
@@ -274,7 +278,7 @@ done
 BYTES_SENT1=$(echo "SELECT VARIABLE_VALUE FROM performance_schema.global_status WHERE VARIABLE_NAME='Bytes_sent';" | MY)
 echo ""
 # 런 경계 오염 감시 — 집계 창(TRUNCATE~지금)에 다른 모드의 문장이 있으면 안 된다.
-# digest·Bytes_sent는 주석이 없어 이 검사를 못 하지만, 같은 창을 공유하므로 이 값이 0이면 그쪽도 깨끗하다.
+# Bytes_sent·형태별 집계는 주석이 없어 이 검사를 못 하지만, 같은 창을 공유하므로 이 값이 0이면 그쪽도 깨끗하다.
 XMODE=$(echo "SELECT COUNT(*) FROM performance_schema.events_statements_history_long
   WHERE SQL_TEXT LIKE '/* reqId=%$ENDPOINT%' AND SQL_TEXT NOT LIKE '%mode=$MODE%';" | MY)
 [ "$XMODE" = 0 ] || echo "⚠️  [$MODE] 집계 창에 다른 모드 문장 ${XMODE}건 혼입 — 런 경계 오염, 수치 신뢰 불가"
@@ -283,23 +287,56 @@ XMODE=$(echo "SELECT COUNT(*) FROM performance_schema.events_statements_history_
 # 굳혀두면 Grafana가 MySQL 데이터소스로 직접 조회할 수 있고, 주석의 mode가 컬럼이 되므로
 # 시간 게이팅 없이 WHERE mode='off'로 정확히 갈린다(구간 귀속의 경계 번짐이 사라짐).
 MY <<SQL
+${ENH_RESET:+DROP TABLE IF EXISTS enh_snapshot;}
 CREATE TABLE IF NOT EXISTS enh_snapshot (
   ts DATETIME(3) NOT NULL, run BIGINT NOT NULL, mode VARCHAR(3) NOT NULL,
   reqId VARCHAR(16) NOT NULL, sql_stripped VARCHAR(150),
-  ms DECIMAL(14,3), cpu_ms DECIMAL(14,3),
+  ms DECIMAL(14,3), cpu_ms DECIMAL(14,3), mem_bytes BIGINT,
   sent BIGINT, examined BIGINT, no_index TINYINT, event_id BIGINT,
   INDEX(ts), INDEX(run), INDEX(mode)
 );
-INSERT INTO enh_snapshot
+INSERT INTO enh_snapshot (ts,run,mode,reqId,sql_stripped,ms,cpu_ms,mem_bytes,sent,examined,no_index,event_id)
 SELECT NOW(3), $RUN_TAG, '$MODE',
   SUBSTRING_INDEX(SUBSTRING_INDEX(SQL_TEXT,'reqId=',-1),' ',1),
   LEFT(TRIM(SUBSTRING_INDEX(SQL_TEXT,'*/',-1)),150),
-  TIMER_WAIT/1e9, CPU_TIME/1e9,
+  TIMER_WAIT/1e9, CPU_TIME/1e9, MAX_TOTAL_MEMORY,
   ROWS_SENT, ROWS_EXAMINED, NO_INDEX_USED, EVENT_ID
 FROM performance_schema.events_statements_history_long
 WHERE SQL_TEXT LIKE '/* reqId=%$ENDPOINT%' AND SQL_TEXT LIKE '%mode=$MODE%';
 SQL
 echo "[$MODE] enh_snapshot 적재: $(echo "SELECT COUNT(*) FROM enh_snapshot WHERE run=$RUN_TAG;" | MY)문장 (run=$RUN_TAG)"
+# 하드 가드 — history_long(1만행 링버퍼) 단일 집계라 밀리면 유실분을 복원할 길이 없다.
+# 밀림이 나면 요청이 통째로 유실돼 집계가 조용히 과소가 되므로, 캡처 요청수 != ROUNDS면 신뢰 불가로 보고 중단한다.
+# (현재 파라미터에선 런당 ~183문장이라 여유가 크지만, ROUNDS·SEED_SETS 상향 시 이 가드가 유실을 잡는다.)
+CAPTURED=$(echo "SELECT COUNT(DISTINCT reqId) FROM enh_snapshot WHERE run=$RUN_TAG;" | MY)
+if [ "$CAPTURED" != "$ROUNDS" ]; then
+  echo "🛑 [$MODE] 캡처 ${CAPTURED}/${ROUNDS} 요청 — history_long 링버퍼 밀림(문장 유실)." >&2
+  echo "   history_long 단일 집계라 유실분을 복원 못 한다. 수치 신뢰 불가 — 중단." >&2
+  echo "   대처: ROUNDS·SEED_SETS·PER_SET를 낮추거나 provision-level.sh의 history_long_size를 키울 것." >&2
+  exit 1
+fi
+# 계측기별 메모리 창 스냅샷(mem_probe) — 인핸스먼트 전용. 단일 엔드포인트 부하라 창이 사실상 그 엔드포인트다
+#  (배경 폴링·풀 검증은 mode-invariant라 off/on 차분에서 상쇄). String::value·temptable·Filesort HIGH =
+#  대형 질문 JSON 지연로딩이 줄이는 메모리의 계측기별 내역. 3계측기는 문장 단위로 안 쪼개져 런/모드당 1행(누적).
+#  total_bytes = 이 모드 요청 문장의 총 메모리 피크(= memory/% 합, query-tuning의 trace_snapshot.mem_bytes와 같은 공통 지표).
+# 각 값을 세션 변수로 따로 계산한 뒤 INSERT ... VALUES 로 넣는다. events_statements_history_long(MESSAGE_TEXT
+#  varchar128 컬럼 보유)에 대한 스칼라 서브쿼리를 INSERT ... SELECT 안에서 다른 서브쿼리와 섞으면
+#  performance_schema 버그로 ERROR 1406(Data too long for 'MESSAGE_TEXT')가 난다 — 분리하면 회피된다.
+MY <<SQL
+${ENH_RESET:+DROP TABLE IF EXISTS mem_probe;}
+CREATE TABLE IF NOT EXISTS mem_probe (
+  ts DATETIME(3) NOT NULL, run BIGINT NOT NULL, mode VARCHAR(3) NOT NULL,
+  string_value_bytes BIGINT, temptable_bytes BIGINT, filesort_bytes BIGINT, total_bytes BIGINT,
+  INDEX(ts), INDEX(run), INDEX(mode)
+);
+SET @sv  := (SELECT HIGH_NUMBER_OF_BYTES_USED FROM performance_schema.memory_summary_global_by_event_name WHERE EVENT_NAME='memory/sql/String::value');
+SET @tt  := (SELECT COALESCE(SUM(HIGH_NUMBER_OF_BYTES_USED),0) FROM performance_schema.memory_summary_global_by_event_name WHERE EVENT_NAME IN ('memory/temptable/physical_ram','memory/temptable/physical_disk'));
+SET @fs  := (SELECT HIGH_NUMBER_OF_BYTES_USED FROM performance_schema.memory_summary_global_by_event_name WHERE EVENT_NAME='memory/sql/Filesort_buffer::sort_keys');
+SET @tot := (SELECT MAX(MAX_TOTAL_MEMORY) FROM performance_schema.events_statements_history_long WHERE SQL_TEXT LIKE '/* reqId=%$ENDPOINT%' AND SQL_TEXT LIKE '%mode=$MODE%');
+INSERT INTO mem_probe (ts,run,mode,string_value_bytes,temptable_bytes,filesort_bytes,total_bytes)
+VALUES (NOW(3), $RUN_TAG, '$MODE', @sv, @tt, @fs, @tot);
+SQL
+echo "[$MODE] mem_probe 적재: String::value·temptable·Filesort HIGH + 총피크 (run=$RUN_TAG)"
 echo "[$MODE] MySQL 문장 단위 귀속 — 요청당 평균 (주석 reqId·mode 기준, 구간 추정 없음)"
 MYT <<SQL
 SELECT COUNT(*) AS 집계요청수, ROUND(AVG(stmts),1) AS 문장수,
@@ -314,20 +351,10 @@ FROM (
   GROUP BY req
 ) t;
 SQL
-echo "[$MODE] 문장 형태별 (digest 집계 — 커밋·풀 검증까지 포함, 부하 구간 전체)"
-MYT <<SQL
-SELECT LEFT(DIGEST_TEXT,44) AS 문장, COUNT_STAR AS 실행수,
-       ROUND(COUNT_STAR/$ROUNDS,1) AS 요청당,
-       ROUND(SUM_TIMER_WAIT/1e9/$ROUNDS,2) AS 요청당ms,
-       ROUND(SUM_CPU_TIME/1e9/$ROUNDS,2) AS 요청당CPU_ms,
-       SUM_ROWS_SENT AS 총반환행
-FROM performance_schema.events_statements_summary_by_digest
-WHERE DIGEST_TEXT IS NOT NULL ORDER BY SUM_TIMER_WAIT DESC LIMIT 6;
-SQL
 echo "[$MODE] 요청당 DB 송신 바이트: $(( (BYTES_SENT1 - BYTES_SENT0) / ROUNDS )) B (부하 구간 Bytes_sent 차분 / $ROUNDS)"
 echo "[$MODE] 실제 발행된 SELECT의 컬럼 목록 (off/on 차이의 직접 증거):"
-echo "SELECT SUBSTRING(QUERY_SAMPLE_TEXT, LOCATE('*/', QUERY_SAMPLE_TEXT) + 2, 400) FROM performance_schema.events_statements_summary_by_digest
-      WHERE DIGEST_TEXT LIKE 'SELECT%problem_quality_log%' ORDER BY COUNT_STAR DESC LIMIT 1;" | MY
+echo "SELECT SUBSTRING(SQL_TEXT, LOCATE('*/', SQL_TEXT) + 2, 400) FROM performance_schema.events_statements_history_long
+      WHERE SQL_TEXT LIKE '%from problem_quality_log%' ORDER BY TIMER_WAIT DESC LIMIT 1;" | MY
 
 sleep 8 # JFR Exporter 발행(5s 주기) → Prometheus 스크레이프(1s 간격)의 마지막 사이클까지 수집되도록 대기
 END=$(date +%s)

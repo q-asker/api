@@ -5,7 +5,7 @@
 #   파일 경로를 주면 그 파일을 복원한다(다운로드 생략 — 이미 받아둔 덤프 재사용).
 #   흐름: (다운로드) → DROP → 복원 → row 카운트 + FK 정합 → x1 베이스 top-up(소형 테이블 100행) → masked 덤프 삭제(로컬 파일 + 버킷 객체).
 #   버킷 삭제: 로컬 파일명(qasker-masked-<시각>.sql.gz)에서 masked/YYYY/MM/DD/ 키를 유도해
-#             .sql.gz + .sha256 을 지운다. env: BUCKET(기본 qasker-mysql-backup)·OCI_PROFILE(기본 DEFAULT).
+#             .sql.gz 를 지운다. env: BUCKET(기본 qasker-mysql-backup)·OCI_PROFILE(기본 DEFAULT).
 # 사용: restore-x1.sh [dump.sql|dump.sql.gz] [--container=local-mysql-x1]
 #   예) restore-x1.sh                                  # 최신 마스킹본 자동 다운로드+복원
 #       restore-x1.sh /tmp/qasker-masked-....sql.gz    # 받아둔 파일 복원
@@ -68,11 +68,9 @@ BN=$(basename "$DUMP"); TS=${BN#qasker-masked-}
 if [[ "$BN" == qasker-masked-* && "$TS" =~ ^([0-9]{4})([0-9]{2})([0-9]{2})T ]]; then
   KEY="masked/${BASH_REMATCH[1]}/${BASH_REMATCH[2]}/${BASH_REMATCH[3]}/$BN"
   command -v oci >/dev/null || { echo "[restore-x1] oci CLI 없음 — 버킷 삭제 불가" >&2; exit 1; }
-  echo "[restore-x1] 버킷 객체 삭제: $BUCKET/$KEY (+ .sha256, profile=$OCI_PROFILE)"
+  echo "[restore-x1] 버킷 객체 삭제: $BUCKET/$KEY (profile=$OCI_PROFILE)"
   oci --profile "$OCI_PROFILE" os object delete -bn "$BUCKET" --name "$KEY" --force \
     || { echo "⚠️ [restore-x1] 버킷 삭제 실패: $KEY" >&2; exit 1; }
-  oci --profile "$OCI_PROFILE" os object delete -bn "$BUCKET" --name "${KEY%.sql.gz}.sha256" --force \
-    || echo "⚠️ [restore-x1] .sha256 삭제 실패(무시): ${KEY%.sql.gz}.sha256" >&2
 else
   echo "[restore-x1] $BN 은 qasker-masked-<시각> 패턴 아님 — 버킷 삭제 건너뜀(로컬 생성 덤프로 판단)"
 fi
