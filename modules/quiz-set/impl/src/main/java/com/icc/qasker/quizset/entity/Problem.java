@@ -22,6 +22,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.DynamicUpdate;
 import org.hibernate.annotations.LazyGroup;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 @Entity
 @Getter
@@ -41,6 +43,7 @@ public class Problem extends CreatedAt {
   @ManyToOne(fetch = LAZY)
   @MapsId("problemSetId")
   @JoinColumn(name = "problem_set_id")
+  @OnDelete(action = OnDeleteAction.CASCADE)
   private ProblemSet problemSet;
 
   @Convert(converter = SelectionListConverter.class)

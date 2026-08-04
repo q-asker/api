@@ -30,7 +30,8 @@ public class ExplanationServiceImpl implements ExplanationService {
   public ExplanationResponse getExplanationByProblemSetId(String problemSetId) {
     long id = hashUtil.decode(problemSetId);
 
-    List<Problem> problems = problemRepository.findByIdProblemSetId(id);
+    // 해설 경로는 explanation_content 를 전량 읽으므로 @EntityGraph 로 lazy 그룹을 한 쿼리에 eager 조회(N+1 제거)
+    List<Problem> problems = problemRepository.findExplanationsBySetId(id);
     ProblemSet problemSet =
         problemSetRepository
             .findById(id)

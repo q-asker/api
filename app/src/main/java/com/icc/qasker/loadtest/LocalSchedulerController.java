@@ -1,6 +1,6 @@
 package com.icc.qasker.loadtest;
 
-import com.icc.qasker.quizset.scheduler.StaleGenerationRecoveryService;
+import com.icc.qasker.quizset.scheduler.StaleGenerationRecovery;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.ResponseEntity;
@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/local/scheduler")
 public class LocalSchedulerController {
 
-  private final StaleGenerationRecoveryService staleGenerationRecoveryService;
+  private final StaleGenerationRecovery staleGenerationRecoveryService;
 
   @PostMapping("/stale-generation")
   public ResponseEntity<Integer> purgeStale() {

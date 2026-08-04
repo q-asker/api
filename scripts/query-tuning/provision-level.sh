@@ -30,9 +30,18 @@ PROD_CONF=(
   --innodb_io_capacity_max=10000
   --innodb_flush_neighbors=0
 )
+# 관측 버퍼 — 프로덕션 스펙과 무관(쿼리 실행·플랜에 영향 없음, 순수 observability).
+#  hibernate 하네스(enh_snapshot·mem_probe)와 query-tuning run.sh(trace_snapshot)가 모두
+#  events_statements_history_long 단일 링버퍼로 문장 단위 집계를 한다. query-tuning 은 단일 패스를
+#  통째로 담아야 하므로 10만행으로 잡는다(≈ +150MB, RAM 여유 안에서 안전) — 기본 CONC×ROUNDS=500요청
+#  × ~3.4문장 ≈ 6만 귀속 문장이 담긴다(트랜잭션 제어문은 run.sh 가 부하 동안 계측 제외). 런타임 변경 불가
+#  (startup-only)라 여기서만 잡힌다. 두 하네스의 포화/캡처 가드와 짝.
+OBS_CONF=(
+  --performance_schema_events_statements_history_long_size=100000
+)
 docker run -d --name "$NAME" --network "$NET" \
   -p "127.0.0.1:$PORT:3306" "${VOLOPT[@]}" \
-  -e MYSQL_ROOT_PASSWORD=password mysql:8.0 "${PROD_CONF[@]}" >/dev/null
+  -e MYSQL_ROOT_PASSWORD=password mysql:8.0 "${PROD_CONF[@]}" "${OBS_CONF[@]}" >/dev/null
 
 echo "[provision] $NAME → 127.0.0.1:$PORT (net=$NET, vol=${VOL:-new})"
 echo -n "[provision] 기동 대기"

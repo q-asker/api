@@ -5,6 +5,7 @@ import java.util.Map;
 import org.hibernate.cfg.AvailableSettings;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.hibernate.autoconfigure.HibernatePropertiesCustomizer;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -41,8 +42,11 @@ public class QueryInstrumentationConfig implements WebMvcConfigurer {
 
   /** reqId·uri를 MDC에 싣는 필터. @Profile("local")이라 로컬에서만 체인에 오른다. */
   @Bean
-  public MdcRequestFilter mdcRequestFilter() {
-    return new MdcRequestFilter();
+  public FilterRegistrationBean<MdcRequestFilter> mdcRequestFilter() {
+    FilterRegistrationBean<MdcRequestFilter> reg =
+        new FilterRegistrationBean<>(new MdcRequestFilter());
+    reg.setOrder(-101);
+    return reg;
   }
 
   @Override

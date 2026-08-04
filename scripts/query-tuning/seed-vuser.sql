@@ -11,6 +11,11 @@ SET @vu = COALESCE(@vu, 'vu_loadtest');
 SET @k  = COALESCE(@k, 30);
 
 -- ── 재실행 결정성: vu 소유 리소스·유저 제거 후 재생성 ──
+-- 이전 부하가 vu 로 생성한 세트(POST /generation 실 저장분 — mock 생성은 커밋됨) 정리. FK 순서상 problem 먼저.
+DELETE p FROM problem p
+  JOIN problem_set ps ON ps.id = p.problem_set_id
+ WHERE ps.user_id = @vu;
+DELETE FROM problem_set     WHERE user_id = @vu;
 DELETE FROM quiz_history    WHERE user_id = @vu;
 DELETE FROM quiz_folder     WHERE user_id = @vu;
 DELETE FROM essay_grade_log WHERE user_id = @vu;

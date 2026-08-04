@@ -65,7 +65,7 @@ bash scripts/query-tuning/run.sh x100
 ```
 
 각 실행이 하는 일:
-1. 앱을 레벨 DB에 붙여 기동 (`local,loadtest,mock` — Gemini·GitHub 호출 없이 실 write 순증 0)
+1. 앱을 레벨 DB에 붙여 기동 (`local,mock` — Gemini·GitHub 호출 없이 실 write 순증 0)
 2. **loadgen 무거운 패스** → Micrometer `seed` 라벨 → **§①** 스케일 지연 곡선
 3. `/auth/refresh` p95 + refresh_token digest
 4. **loadgen 가벼운 패스 + trace_snapshot** → **§②③** uri·repo.method별 요청당 쿼리·examined

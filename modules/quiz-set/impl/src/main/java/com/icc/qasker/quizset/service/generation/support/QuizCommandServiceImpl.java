@@ -63,10 +63,7 @@ public class QuizCommandServiceImpl implements QuizCommandService {
 
   @Override
   public List<Integer> saveBatch(List<QuizGeneratedFromAI> generatedProblems, Long problemSetId) {
-    ProblemSet problemSet =
-        problemSetRepository
-            .findById(problemSetId)
-            .orElseThrow(() -> new CustomException(ExceptionMessage.PROBLEM_SET_NOT_FOUND));
+    ProblemSet problemSet = problemSetRepository.getReferenceById(problemSetId);
 
     List<Problem> problems =
         generatedProblems.stream()

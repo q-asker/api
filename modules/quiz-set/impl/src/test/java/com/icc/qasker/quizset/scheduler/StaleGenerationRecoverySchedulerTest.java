@@ -58,7 +58,7 @@ class StaleGenerationRecoverySchedulerTest extends JpaIntegrationTestBase {
 
   private StaleGenerationRecoveryScheduler scheduler() {
     return new StaleGenerationRecoveryScheduler(
-        new StaleGenerationRecoveryService(problemSetRepository, problemRepository));
+        new StaleGenerationRecoveryService(problemSetRepository));
   }
 
   private ProblemSet persistSet(String sessionId, GenerationStatus status) {

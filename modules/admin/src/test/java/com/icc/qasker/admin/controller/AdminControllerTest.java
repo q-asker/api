@@ -9,7 +9,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.icc.qasker.admin.properties.ImageUploadProperties;
 import com.icc.qasker.board.BoardAdminService;
 import com.icc.qasker.board.dto.request.PostRequest;
 import com.icc.qasker.board.dto.request.ReplyRequest;
@@ -21,7 +20,6 @@ import com.icc.qasker.quizset.QualityReviewService;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.Map;
-import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -36,10 +34,6 @@ import org.springframework.web.multipart.MultipartFile;
  */
 class AdminControllerTest {
 
-  private static final ImageUploadProperties IMAGE_PROPERTIES =
-      new ImageUploadProperties(
-          5 * 1024 * 1024, Set.of("image/jpeg", "image/png", "image/gif", "image/webp"));
-
   private BoardAdminService boardAdminService;
   private ObjectStorageService objectStorageService;
   private AdminController adminController;
@@ -52,7 +46,6 @@ class AdminControllerTest {
         new AdminController(
             boardAdminService,
             objectStorageService,
-            IMAGE_PROPERTIES,
             mock(QualityReviewService.class),
             mock(ExplanationReviewService.class));
   }
