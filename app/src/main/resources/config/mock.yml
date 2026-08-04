@@ -1,0 +1,16 @@
+# mock 프로파일 — local 위에 얹어 실행: SPRING_PROFILES_ACTIVE=local,mock
+#  (구 loadtest 프로파일을 흡수 통일: 외부 호출·실쓰기 mock(@Profile("mock"))에 더해 아래 부하 환경 설정도 이 프로파일이 담당)
+#  - datasource를 분석 DB(3309)로 override (하네스는 env SPRING_DATASOURCE_URL로 레벨별 재override)
+#  - 레이트리밋 비활성 (부하 버스트가 429로 막히지 않게)
+# application.yml에서 secrets.yml '다음'에 import되어 datasource를 확실히 덮어쓴다(뒤 import 우선).
+spring:
+  config:
+    activate:
+      on-profile: mock
+  datasource:
+    url: jdbc:mysql://127.0.0.1:3309/qaskerdb
+    username: root
+    password: password
+q-asker:
+  rate-limit:
+    enabled: false

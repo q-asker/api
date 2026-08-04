@@ -4,11 +4,24 @@
 #   볼륨 재생성으로 매 시딩마다 AUTO_INCREMENT·시리얼·ibdata 파일 누적을 리셋한다(시리얼 폭증 방지).
 #   복제는 제약키(PK/UK/FK)만 새로 생성, 내용은 원본 그대로.
 #   전제: x1 소스 컨테이너(기본 local-mysql-x1)에 순수 원본이 있어야 한다. x1 정지 상태면 자동 기동 후 원복.
-# 사용: seed-scale.sh <level|container> [scale] [x1_source=local-mysql-x1]
+# 사용: seed-scale.sh [level|container] [scale] [x1_source=local-mysql-x1]
+#   무인자:   seed-scale.sh              → x10, x100 을 순차 시딩(각 레벨 자기 재호출, 레벨마다 RAM 가드 적용)
 #   레벨 축약: seed-scale.sh x100        → 컨테이너 local-mysql-x100, scale 100 자동
 #             seed-scale.sh x10          → local-mysql-x10, scale 10
 #   명시:     seed-scale.sh local-mysql-x100 100   /   seed-scale.sh local-mysql-x100 200(=x200 재현)
 set -euo pipefail
+DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# 무인자 → x10, x100 순차 시딩(각각 단일 대상 경로로 자기 재호출). x1 은 원본이라 대상 아님.
+if [ "$#" -eq 0 ]; then
+  for lvl in x10 x100; do
+    echo "════════════════ seed-scale: $lvl ════════════════"
+    bash "$DIR/seed-scale.sh" "$lvl"
+  done
+  echo "[seed] all done (x10, x100)"
+  exit 0
+fi
+
 C="${1:?사용: seed-scale.sh <x100|local-mysql-x100> [scale]}"; SCALE="${2:-}"; X1="${3:-local-mysql-x1}"
 # 레벨 축약(x100)·컨테이너명 끝 숫자에서 컨테이너·scale 유도(scale 명시하면 그 값 우선).
 case "$C" in
@@ -16,7 +29,6 @@ case "$C" in
   local-mysql-x[0-9]*) SCALE="${SCALE:-${C##*-x}}" ;;
 esac
 [ -n "$SCALE" ] || { echo "[seed] scale 을 못 정함 — 사용: seed-scale.sh <x100|local-mysql-x100> [scale]" >&2; exit 1; }
-DIR="$(cd "$(dirname "$0")" && pwd)"
 MY(){ docker exec -i -e MYSQL_PWD=password "$C" mysql --default-character-set=utf8mb4 -uroot qaskerdb; }
 MULT=$((SCALE - 1))
 
@@ -26,12 +38,13 @@ ensure_up(){ [ "$(docker inspect -f '{{.State.Running}}' "$1" 2>/dev/null)" = "t
 # x1 스케일 충분성 가드(경고 전용, 구 check-x1-scale.sh 인라인) — x1 행수를 x<SCALE>(기본 ×100)로 투영해
 #  FLOOR(기본 10,000) 미만 도메인 테이블을 ⚠️ 로 알린다. information_schema 자동 발견이라 새 테이블도 자동 포함.
 #  () 서브셸 본문이라 set/MY 재정의·exit 가 본체에 새지 않는다. 절대 진행을 막지 않는다(항상 종료코드 0).
-#  제외: 스케일 대상 아닌 flyway_schema_history(마이그레이션 이력)·trace_snapshot(분석 산출물).
+#  제외: 스케일 대상 아닌 flyway_schema_history(마이그레이션 이력)·trace_snapshot(분석 산출물)·
+#        pii_classification(HASH/SAFE 분류 참조 테이블 — 행수 고정, 복제 대상 아님).
 check_x1_scale() (
   set -uo pipefail
   C="${1:?container}"; FLOOR="${2:-10000}"; SCALE="${3:-100}"
   MY(){ docker exec -i -e MYSQL_PWD=password "$C" mysql -uroot -N qaskerdb; }
-  EXCLUDE=" flyway_schema_history trace_snapshot "
+  EXCLUDE=" flyway_schema_history trace_snapshot pii_classification "
   TABLES=$(echo "SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA='qaskerdb' AND TABLE_TYPE='BASE TABLE' ORDER BY TABLE_NAME;" | MY 2>/dev/null || true)
   if [ -z "$TABLES" ]; then
     echo "[check] $C — 테이블 조회 실패(컨테이너/DB 확인). 경고만이므로 건너뜀."; exit 0
