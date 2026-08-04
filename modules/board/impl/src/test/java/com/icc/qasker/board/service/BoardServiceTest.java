@@ -76,7 +76,8 @@ class BoardServiceTest {
       Pageable pageable = PageRequest.of(0, 10);
       Page<Board> page = new PageImpl<>(List.of(board), pageable, 1);
 
-      when(boardRepository.findByCategory(BoardCategory.INQUIRY, pageable)).thenReturn(page);
+      when(boardRepository.findByCategoryOrderByCreatedAtDesc(BoardCategory.INQUIRY, pageable))
+          .thenReturn(page);
       when(userService.getNickNames(List.of("user1"))).thenReturn(Map.of("user1", "닉네임1"));
 
       PostPageResponse result = boardService.getPosts(BoardCategory.INQUIRY, pageable);
@@ -92,7 +93,8 @@ class BoardServiceTest {
       Pageable pageable = PageRequest.of(0, 10);
       Page<Board> page = new PageImpl<>(List.of(board), pageable, 1);
 
-      when(boardRepository.findByCategory(BoardCategory.INQUIRY, pageable)).thenReturn(page);
+      when(boardRepository.findByCategoryOrderByCreatedAtDesc(BoardCategory.INQUIRY, pageable))
+          .thenReturn(page);
       when(userService.getNickNames(any())).thenReturn(Map.of());
 
       PostPageResponse result = boardService.getPosts(BoardCategory.INQUIRY, pageable);
@@ -107,7 +109,8 @@ class BoardServiceTest {
       Pageable pageable = PageRequest.of(1, 5);
       Page<Board> page = new PageImpl<>(List.of(board), pageable, 6);
 
-      when(boardRepository.findByCategory(BoardCategory.INQUIRY, pageable)).thenReturn(page);
+      when(boardRepository.findByCategoryOrderByCreatedAtDesc(BoardCategory.INQUIRY, pageable))
+          .thenReturn(page);
       when(userService.getNickNames(any())).thenReturn(Map.of("user1", "닉1"));
 
       PostPageResponse result = boardService.getPosts(BoardCategory.INQUIRY, pageable);
@@ -125,7 +128,8 @@ class BoardServiceTest {
       Pageable pageable = PageRequest.of(0, 10);
       Page<Board> page = new PageImpl<>(List.of(board), pageable, 1);
 
-      when(boardRepository.findByCategory(BoardCategory.UPDATE_LOG, pageable)).thenReturn(page);
+      when(boardRepository.findByCategoryOrderByCreatedAtDesc(BoardCategory.UPDATE_LOG, pageable))
+          .thenReturn(page);
 
       PostPageResponse result = boardService.getPosts(BoardCategory.UPDATE_LOG, pageable);
 
@@ -139,7 +143,8 @@ class BoardServiceTest {
       Pageable pageable = PageRequest.of(0, 10);
       Page<Board> page = new PageImpl<>(List.of(board), pageable, 1);
 
-      when(boardRepository.findByCategory(BoardCategory.UPDATE_LOG, pageable)).thenReturn(page);
+      when(boardRepository.findByCategoryOrderByCreatedAtDesc(BoardCategory.UPDATE_LOG, pageable))
+          .thenReturn(page);
 
       PostPageResponse result = boardService.getPosts(BoardCategory.UPDATE_LOG, pageable);
 
