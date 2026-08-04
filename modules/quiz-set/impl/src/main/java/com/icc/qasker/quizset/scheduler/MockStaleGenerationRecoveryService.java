@@ -1,7 +1,6 @@
 package com.icc.qasker.quizset.scheduler;
 
 import com.icc.qasker.quizset.GenerationStatus;
-import com.icc.qasker.quizset.entity.ProblemSet;
 import com.icc.qasker.quizset.repository.ProblemSetRepository;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -35,13 +34,11 @@ public class MockStaleGenerationRecoveryService implements StaleGenerationRecove
   @Transactional
   public int purgeStaleProblemSets() {
     Instant threshold = Instant.now().minus(STALE_THRESHOLD_MINUTES, ChronoUnit.MINUTES);
-    List<ProblemSet> stale =
-        problemSetRepository.findByGenerationStatusInAndCreatedAtBefore(TARGET_STATUSES, threshold);
-    List<Long> problemSetIds = stale.stream().map(ProblemSet::getId).toList();
+    List<Long> problemSetIds = problemSetRepository.findStaleIds(TARGET_STATUSES, threshold);
     if (!problemSetIds.isEmpty()) {
       problemSetRepository.deleteBulkByProblemSetIds(problemSetIds);
     }
     TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
-    return stale.size();
+    return problemSetIds.size();
   }
 }

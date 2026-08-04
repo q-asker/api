@@ -34,7 +34,7 @@ public class BoardServiceImpl implements BoardService {
 
   @Override
   public PostPageResponse getPosts(BoardCategory category, Pageable pageable) {
-    Page<Board> boards = boardRepository.findByCategory(category, pageable);
+    Page<Board> boards = boardRepository.findByCategoryOrderByCreatedAtDesc(category, pageable);
 
     if (category == BoardCategory.UPDATE_LOG) {
       List<PostResponse> posts =

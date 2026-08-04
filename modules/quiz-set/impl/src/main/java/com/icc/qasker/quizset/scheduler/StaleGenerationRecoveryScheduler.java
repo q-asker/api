@@ -16,7 +16,7 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class StaleGenerationRecoveryScheduler {
 
-  private final StaleGenerationRecoveryService staleGenerationRecoveryService;
+  private final StaleGenerationRecovery staleGenerationRecoveryService;
 
   @Scheduled(fixedRate = 60_000)
   public void deleteStaleProblemSets() {
