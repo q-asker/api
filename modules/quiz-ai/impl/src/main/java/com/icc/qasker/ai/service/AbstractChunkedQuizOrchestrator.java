@@ -73,7 +73,7 @@ public abstract class AbstractChunkedQuizOrchestrator<T> implements QuizTypeOrch
     this.metricsRecorder = metricsRecorder;
     this.aiProperties = aiProperties;
     this.qualityGate = qualityGate;
-    this.cacheManager = new GeminiContextCacheManager(chatModel);
+    this.cacheManager = new GeminiContextCacheManager(chatModel, metricsRecorder);
   }
 
   /** 청크 K(K≥2) 사용자 프롬프트 꼬리에 붙는 타입별 중복 회피 지침 문구. */
@@ -158,10 +158,7 @@ public abstract class AbstractChunkedQuizOrchestrator<T> implements QuizTypeOrch
               .create(tag, genGuideLine, metadata.uri(), aiProperties.getCacheTtl())
               .orElse(null);
       // 검증 모델이 사용하는 캐시
-      this.verifyCache =
-          qualityGate
-              .createPass1Cache(metadata.uri(), quizType.name(), request.language())
-              .orElse(null);
+      this.verifyCache = qualityGate.createPass1Cache(metadata.uri(), quizType.name()).orElse(null);
     }
 
     private void run() {

@@ -40,6 +40,8 @@ public class GeminiMetricsRecorder {
   private final Counter verifyCost;
   private final Counter verifyCount;
   private final Counter verifyFailure;
+  private final Counter cacheCreateSuccess;
+  private final Counter cacheCreateFailure;
 
   private static final String[] QUIZ_TYPES = {"MULTIPLE", "OX", "BLANK", "ESSAY"};
 
@@ -93,6 +95,19 @@ public class GeminiMetricsRecorder {
         Counter.builder("gemini.verify.count").description("문항 품질 검증 요청 횟수").register(registry);
     this.verifyFailure =
         Counter.builder("gemini.verify.failure").description("문항 품질 검증 실패 횟수").register(registry);
+    // 컨텍스트 캐시 생성 성패. 실패하면 시스템 프리픽스가 매 호출 재전송되어 토큰이 급증하는데,
+    // 지금까지 로그로만 남아 감지되지 않았다. 프롬프트 길이를 줄일 때 최소 토큰 하한에 걸리는지
+    // 보는 것이 이 카운터의 주 용도다.
+    this.cacheCreateSuccess =
+        Counter.builder("gemini.cache.create")
+            .tag("result", "success")
+            .description("컨텍스트 캐시 생성 성공 횟수")
+            .register(registry);
+    this.cacheCreateFailure =
+        Counter.builder("gemini.cache.create")
+            .tag("result", "failure")
+            .description("컨텍스트 캐시 생성 실패 횟수(캐시 없이 폴백 — 프리픽스 매 호출 전송)")
+            .register(registry);
 
     this.chunkDuration =
         Timer.builder("gemini.chunk.duration")
@@ -207,6 +222,18 @@ public class GeminiMetricsRecorder {
   /** 문항 품질 검증 실패(검증 불가)를 기록한다. */
   public void recordVerifyFailure() {
     verifyFailure.increment();
+  }
+
+  /**
+   * 컨텍스트 캐시 생성 성패를 기록한다. 실패는 곧 "시스템 프리픽스를 매 호출 전송"으로의 강등이므로, 프롬프트 길이를 조정한 뒤 이 카운터가 0을 유지하는지 확인해야
+   * 한다.
+   */
+  public void recordCacheCreate(boolean success) {
+    if (success) {
+      cacheCreateSuccess.increment();
+    } else {
+      cacheCreateFailure.increment();
+    }
   }
 
   /** 스트리밍 타임아웃 발생을 기록한다. */

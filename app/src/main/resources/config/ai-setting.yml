@@ -6,7 +6,7 @@ spring:
     google:
       genai:
         chat:
-          model: gemini-3-flash-preview
+          model: gemini-3.5-flash-lite
           temperature: 1.0
           max-output-tokens: 20000
           thinking-level: MINIMAL
@@ -44,22 +44,22 @@ q-asker:
     multiple:
       chunk-mode: 1  # 1: 단일 호출, 2: 멀티턴 순차 (A→B→C 중복방지), 3: 패턴별 병렬 (A/B/C)
     essay:
-      grading-model: gemini-3.1-flash-lite
+      grading-model: gemini-3.5-flash-lite
       # 채점 모델 토큰 단가 (USD per 1M tokens)
-      price-input-per-1m: 0.25
-      price-output-per-1m: 1.50
+      price-input-per-1m: 0.30
+      price-output-per-1m: 2.50
     generation:
-      # 생성 모델(Gemini 3 Flash Preview) 토큰 단가 (USD per 1M tokens)
-      price-input-per-1m: 0.50
-      price-cache-read-per-1m: 0.050
-      price-output-per-1m: 3.00
+      # 생성 모델(Gemini 3.5 Flash-Lite) 토큰 단가 (USD per 1M tokens)
+      price-input-per-1m: 0.30
+      price-cache-read-per-1m: 0.030
+      price-output-per-1m: 2.50
     quality:
       # 문항 품질 검증 모델 — 경량 flash-lite 계열(저비용·저지연)
-      verify-model: gemini-3.1-flash-lite
+      verify-model: gemini-3.5-flash-lite
       # 검증 모델 토큰 단가 (USD per 1M tokens)
-      price-input-per-1m: 0.25
-      price-cache-read-per-1m: 0.025  # Pass 1 원문 대조 캐시 읽기 단가(추정) — 입력의 10%
-      price-output-per-1m: 1.50
+      price-input-per-1m: 0.30
+      price-cache-read-per-1m: 0.030  # Pass 1 원문 대조 캐시 읽기 단가
+      price-output-per-1m: 2.50
       # 적용 검증 항목·항목별 엄격도 — 운영자가 조절(FR-011)
       # 값: strict(엄격) / normal(보통) / off(미적용). 필수 항목은 항상 평가됨.
       criteria:
@@ -71,7 +71,7 @@ q-asker:
         answer-grounded-in-source: strict  # 정답이 sourceAnchor 원문 근거에 부합하는가
         distractors-plausible: normal      # 오답이 그럴듯한가
         no-outside-knowledge: normal       # 문항 밖 지식이 불필요한가
-        shortcut-prevention: normal        # 내용 없이 어조·선지길이·정답 온건함으로 정답을 고를 수 없는가(트레이드오프 오답 위험도 대칭)
+        shortcut-prevention: strict        # 내용 없이 선지 형태만으로 정답을 고를 수 없는가 — ①정답이 최장 ②절대어가 오답에만 편중 ③정답만 온건·위험도 비대칭
         cognitive-depth: normal            # 단일 사실 암기가 아니라 교차 대조·다단계 추론을 요구하는가
         # 서술형(ESSAY)
         model-answer-basis: strict         # 모범답안이 원문에 근거하는가
