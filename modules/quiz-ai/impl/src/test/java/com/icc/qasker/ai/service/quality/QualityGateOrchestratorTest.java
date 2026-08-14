@@ -66,7 +66,7 @@ class QualityGateOrchestratorTest {
   private GenerationRequestToAI request(int quizCount, QuizBatchSink sink) {
     return GenerationRequestToAI.builder()
         .fileUrl("http://f/x.pdf")
-        .strategyValue("MULTIPLE")
+        .quizType("MULTIPLE")
         .language("KO")
         .quizCount(quizCount)
         .referencePages(List.of(1))

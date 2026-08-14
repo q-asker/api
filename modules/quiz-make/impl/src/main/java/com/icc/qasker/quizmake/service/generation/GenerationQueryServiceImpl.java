@@ -20,7 +20,6 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 @AllArgsConstructor
 public class GenerationQueryServiceImpl implements GenerationQueryService {
 
-  // 핵심
   private final SseNotificationService notificationService;
   private final QuizQueryService quizQueryService;
 

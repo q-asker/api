@@ -116,7 +116,7 @@ class ChunkedQuizOrchestratorContractTest {
   private GenerationRequestToAI request(String type, int quizCount, QuizBatchSink sink) {
     return GenerationRequestToAI.builder()
         .fileUrl("http://f/x.pdf")
-        .strategyValue(type)
+        .quizType(type)
         .language("KO")
         .quizCount(quizCount)
         .referencePages(List.of(1, 2))

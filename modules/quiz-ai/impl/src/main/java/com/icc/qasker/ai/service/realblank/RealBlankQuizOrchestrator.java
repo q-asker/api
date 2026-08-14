@@ -8,6 +8,7 @@ import com.icc.qasker.ai.service.AbstractChunkedQuizOrchestrator;
 import com.icc.qasker.ai.service.quality.QualityGate;
 import com.icc.qasker.ai.service.realblank.prompt.RealBlankRequestPrompt;
 import com.icc.qasker.ai.service.support.GeminiMetricsRecorder;
+import com.icc.qasker.ai.strategy.QuizType;
 import com.icc.qasker.ai.structure.GeminiRealBlankQuestion;
 import com.icc.qasker.ai.structure.GeminiRealBlankResponse;
 import com.icc.qasker.ai.structure.GeminiRealBlankResponseSchema;
@@ -38,8 +39,8 @@ public class RealBlankQuizOrchestrator
   }
 
   @Override
-  public String getSupportedType() {
-    return "REAL_BLANK";
+  public QuizType getSupportedType() {
+    return QuizType.REAL_BLANK;
   }
 
   @Override

@@ -26,7 +26,7 @@ class MockAIServerAdapterTest {
         };
     adapter.streamRequest(
         GenerationRequestToAI.builder()
-            .strategyValue(strategyValue)
+            .quizType(strategyValue)
             .quizCount(quizCount)
             .referencePages(List.of(1, 2))
             .sink(sink)
