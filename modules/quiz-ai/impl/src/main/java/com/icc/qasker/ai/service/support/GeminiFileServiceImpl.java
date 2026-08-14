@@ -15,6 +15,7 @@ import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -158,23 +159,27 @@ public class GeminiFileServiceImpl implements GeminiFileService {
     Timer.Sample sample = Timer.start();
 
     String blobName = UUID.randomUUID() + "/" + displayName;
-    byte[] pdfBytes = Files.readAllBytes(pdfFile);
 
     BlobInfo blobInfo =
         BlobInfo.newBuilder(bucketName, blobName).setContentType("application/pdf").build();
-    storage.create(blobInfo, pdfBytes);
+    try (InputStream in = Files.newInputStream(pdfFile)) {
+      storage.createFrom(blobInfo, in);
+    }
 
     String gcsUri = "gs://" + bucketName + "/" + blobName;
 
     sample.stop(uploadTimer);
     log.info(
-        "GCS PDF 업로드 완료: bucket={}, blob={}, size={}bytes", bucketName, blobName, pdfBytes.length);
+        "GCS PDF 업로드 완료: bucket={}, blob={}, size={}bytes",
+        bucketName,
+        blobName,
+        Files.size(pdfFile));
 
     return new FileMetadata(
         blobName,
         displayName,
         "application/pdf",
-        String.valueOf(pdfBytes.length),
+        String.valueOf(Files.size(pdfFile)),
         null,
         null,
         "ACTIVE",
