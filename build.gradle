@@ -9,7 +9,7 @@ plugins {
 
 group = "com.icc.qasker"
 
-version = "3.5.1"
+version = "3.5.2"
 
 subprojects {
     tasks.configureEach { task ->
