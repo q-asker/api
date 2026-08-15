@@ -48,7 +48,7 @@ public class SseNotificationServiceImpl implements SseNotificationService {
             .description("SSE 연결 타임아웃 발생 횟수")
             .register(registry);
 
-    // heartbeat: 무음 구간에 keep-alive comment를 주기적으로 흘려 중간 프록시의 idle 절단(→클라이언트 재연결→중복 생성 트리거)을 예방한다.
+    // 주기적으로 하트비트를 보내서 중간 프록시(클라우드플레어, Nginx)에서 세션을 끊는 것을 막는다
     this.heartbeatScheduler =
         Executors.newSingleThreadScheduledExecutor(
             r -> {

@@ -18,7 +18,7 @@ public interface QualityVerifier {
    * QualityVerificationRequest#cacheRef()}로 넘기면 검증기가 PDF 원문과 직접 대조해 환각·출처 이탈을 잡는다. 비지원 ChatModel·최소
    * 토큰 미달 등으로 실패하면 빈 값을 반환한다(캐시 없이 원문 대조 없는 검증으로 폴백).
    */
-  Optional<CacheRef> createPass1Cache(String pdfUri, String quizType, String language);
+  Optional<CacheRef> createPass1Cache(String pdfUri, String quizType);
 
   /** {@link #createPass1Cache}로 만든 캐시를 삭제한다(세션 종료 시). cacheRef가 null이면 무시한다. */
   void deletePass1Cache(CacheRef cacheRef);

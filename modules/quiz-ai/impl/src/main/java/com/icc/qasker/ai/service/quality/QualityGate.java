@@ -41,8 +41,8 @@ public class QualityGate {
   }
 
   /** Pass 1 원문 대조 검증 캐시를 세션당 1개 생성한다(실패 시 빈 값 → 캐시 없이 검증). */
-  public Optional<CacheRef> createPass1Cache(String pdfUri, String quizType, String language) {
-    return verifier.createPass1Cache(pdfUri, quizType, language);
+  public Optional<CacheRef> createPass1Cache(String pdfUri, String quizType) {
+    return verifier.createPass1Cache(pdfUri, quizType);
   }
 
   /** createPass1Cache로 만든 캐시를 삭제한다(세션 종료 시). */

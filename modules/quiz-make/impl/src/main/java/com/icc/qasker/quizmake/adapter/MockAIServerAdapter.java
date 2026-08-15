@@ -28,7 +28,7 @@ public class MockAIServerAdapter extends AIServerAdapter {
 
     // REAL_BLANK는 선택형과 산출물 형태가 달라(정답 1선지 + acceptedAnswers 2차원, 오답 선지 없음) 전용 목업을 낸다.
     // 단일 빈칸 + 다중 빈칸(≥2)을 모두 포함해 빈칸별 인정 목록 노출(FR-008) E2E를 실 Gemini 없이 검증한다.
-    if ("REAL_BLANK".equals(request.strategyValue())) {
+    if ("REAL_BLANK".equals(request.quizType())) {
       realBlankMocks(quizCount, pages).forEach(request.sink()::saveProblem);
       return;
     }

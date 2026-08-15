@@ -92,7 +92,7 @@ class GenerationCommandServiceImplTest {
   }
 
   @Test
-  @DisplayName("REAL_BLANK 요청은 AI 서버에 strategyValue=REAL_BLANK로 전달한다 (전용 전략)")
+  @DisplayName("REAL_BLANK 요청은 AI 서버에 quizType=REAL_BLANK로 전달한다 (전용 전략)")
   void real_blank_request_calls_ai_with_real_blank_strategy() {
     GenerationRequest request = request(QuizType.REAL_BLANK);
 
@@ -101,11 +101,11 @@ class GenerationCommandServiceImplTest {
     ArgumentCaptor<GenerationRequestToAI> captor =
         ArgumentCaptor.forClass(GenerationRequestToAI.class);
     verify(aiServerAdapter, timeout(2000)).streamRequest(captor.capture());
-    assertThat(captor.getValue().strategyValue()).isEqualTo("REAL_BLANK");
+    assertThat(captor.getValue().quizType()).isEqualTo("REAL_BLANK");
   }
 
   @Test
-  @DisplayName("BLANK 요청은 AI 서버에 strategyValue=BLANK로 전달한다 (회귀 방지)")
+  @DisplayName("BLANK 요청은 AI 서버에 quizType=BLANK로 전달한다 (회귀 방지)")
   void blank_request_calls_ai_with_blank_strategy() {
     GenerationRequest request = request(QuizType.BLANK);
 
@@ -114,11 +114,11 @@ class GenerationCommandServiceImplTest {
     ArgumentCaptor<GenerationRequestToAI> captor =
         ArgumentCaptor.forClass(GenerationRequestToAI.class);
     verify(aiServerAdapter, timeout(2000)).streamRequest(captor.capture());
-    assertThat(captor.getValue().strategyValue()).isEqualTo("BLANK");
+    assertThat(captor.getValue().quizType()).isEqualTo("BLANK");
   }
 
   @Test
-  @DisplayName("MULTIPLE 요청은 AI 서버에 strategyValue=MULTIPLE로 전달한다 (회귀 방지)")
+  @DisplayName("MULTIPLE 요청은 AI 서버에 quizType=MULTIPLE로 전달한다 (회귀 방지)")
   void multiple_request_calls_ai_with_multiple_strategy() {
     GenerationRequest request = request(QuizType.MULTIPLE);
 
@@ -127,7 +127,7 @@ class GenerationCommandServiceImplTest {
     ArgumentCaptor<GenerationRequestToAI> captor =
         ArgumentCaptor.forClass(GenerationRequestToAI.class);
     verify(aiServerAdapter, timeout(2000)).streamRequest(captor.capture());
-    assertThat(captor.getValue().strategyValue()).isEqualTo("MULTIPLE");
+    assertThat(captor.getValue().quizType()).isEqualTo("MULTIPLE");
   }
 
   @Test

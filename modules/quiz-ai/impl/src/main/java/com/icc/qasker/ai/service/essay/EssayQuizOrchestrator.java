@@ -8,6 +8,7 @@ import com.icc.qasker.ai.service.AbstractChunkedQuizOrchestrator;
 import com.icc.qasker.ai.service.essay.prompt.EssayRequestPrompt;
 import com.icc.qasker.ai.service.quality.QualityGate;
 import com.icc.qasker.ai.service.support.GeminiMetricsRecorder;
+import com.icc.qasker.ai.strategy.QuizType;
 import com.icc.qasker.ai.structure.GeminiEssayQuestion;
 import com.icc.qasker.ai.structure.GeminiEssayResponse;
 import com.icc.qasker.ai.structure.GeminiEssayResponseSchema;
@@ -38,8 +39,8 @@ public class EssayQuizOrchestrator extends AbstractChunkedQuizOrchestrator<Gemin
   }
 
   @Override
-  public String getSupportedType() {
-    return "ESSAY";
+  public QuizType getSupportedType() {
+    return QuizType.ESSAY;
   }
 
   @Override

@@ -8,6 +8,7 @@ import com.icc.qasker.ai.service.blank.prompt.BlankRequestPrompt;
 import com.icc.qasker.ai.service.quality.QualityGate;
 import com.icc.qasker.ai.service.support.GeminiMetricsRecorder;
 import com.icc.qasker.ai.service.support.SelectionArrangement;
+import com.icc.qasker.ai.strategy.QuizType;
 import java.util.List;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.stereotype.Component;
@@ -28,8 +29,8 @@ public class BlankQuizOrchestrator extends SelectionChunkedQuizOrchestrator {
   }
 
   @Override
-  public String getSupportedType() {
-    return "BLANK";
+  public QuizType getSupportedType() {
+    return QuizType.BLANK;
   }
 
   @Override

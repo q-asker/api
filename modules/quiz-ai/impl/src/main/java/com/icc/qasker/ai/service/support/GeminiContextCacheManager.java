@@ -20,9 +20,11 @@ import org.springframework.ai.google.genai.cache.GoogleGenAiCachedContent;
 public final class GeminiContextCacheManager {
 
   private final ChatModel chatModel;
+  private final GeminiMetricsRecorder metricsRecorder;
 
-  public GeminiContextCacheManager(ChatModel chatModel) {
+  public GeminiContextCacheManager(ChatModel chatModel, GeminiMetricsRecorder metricsRecorder) {
     this.chatModel = chatModel;
+    this.metricsRecorder = metricsRecorder;
   }
 
   /** ChatModel의 기본 모델. GoogleGenAiChatModel이 아니거나 모델이 비었으면 empty. */
@@ -51,9 +53,11 @@ public final class GeminiContextCacheManager {
   public Optional<CacheRef> create(
       String label, String model, String systemInstruction, String pdfUri, Duration ttl) {
     if (!(chatModel instanceof GoogleGenAiChatModel genAiModel)) {
+      metricsRecorder.recordCacheCreate(false);
       return Optional.empty();
     }
     if (model == null || model.isBlank()) {
+      metricsRecorder.recordCacheCreate(false);
       return Optional.empty();
     }
     try {
@@ -66,9 +70,11 @@ public final class GeminiContextCacheManager {
               .ttl(ttl)
               .build();
       GoogleGenAiCachedContent created = genAiModel.getCachedContentService().create(request);
+      metricsRecorder.recordCacheCreate(true);
       log.info("{} 컨텍스트 캐시 생성: name={}, model={}", label, created.getName(), model);
       return Optional.of(new CacheRef(created.getName(), model));
     } catch (Exception e) {
+      metricsRecorder.recordCacheCreate(false);
       log.warn("{} 컨텍스트 캐시 생성 실패 — 캐시 없이 진행(프리픽스 매 호출 전송).", label, e);
       return Optional.empty();
     }

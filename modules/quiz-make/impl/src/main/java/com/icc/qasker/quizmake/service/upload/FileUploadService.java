@@ -11,11 +11,15 @@ import com.icc.qasker.quizmake.dto.feresponse.FileUploadResponse;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -31,6 +35,12 @@ public class FileUploadService {
   private final FileValidateService fileValidateService;
   private final ConvertService convertService;
   private final MeterRegistry registry;
+  private final ExecutorService uploadExecutor = Executors.newVirtualThreadPerTaskExecutor();
+
+  @PreDestroy
+  void shutdownExecutor() {
+    uploadExecutor.close();
+  }
 
   @PostConstruct
   void eagerRegisterMetrics() {
@@ -85,11 +95,12 @@ public class FileUploadService {
       // 4. OCI + Gemini 동시 시작
       CompletableFuture<String> ociFuture =
           CompletableFuture.supplyAsync(
-              () -> objectStorageService.uploadPdf(finalPdfFile, originalFileName));
+              () -> objectStorageService.uploadPdf(finalPdfFile, originalFileName), uploadExecutor);
 
       // Gemini 업로드: 완료 시 geminiCopy 정리, 예외는 보존 (캐시에서 join 시 처리)
       CompletableFuture<FileMetadata> geminiFuture =
-          CompletableFuture.supplyAsync(() -> geminiFileService.uploadPdfFromFile(geminiCopy))
+          CompletableFuture.supplyAsync(
+                  () -> geminiFileService.uploadPdfFromFile(geminiCopy), uploadExecutor)
               .whenComplete(
                   (metadata, ex) -> {
                     deleteQuietly(geminiCopy);
@@ -101,13 +112,27 @@ public class FileUploadService {
                   });
 
       // OCI 업로드는 필수 — 실패 시 예외 발생
-      String cdnUrl = ociFuture.join();
+      String cdnUrl;
+      try {
+        cdnUrl = ociFuture.join();
+      } catch (Exception e) {
+        geminiFuture.thenAccept(fileMetadata -> geminiFileService.deleteFile(fileMetadata.name()));
+        throw e;
+      }
 
       // Gemini Future를 캐시에 즉시 저장 — 퀴즈 생성 시 awaitCachedFileMetadata()로 대기/조회
       geminiFileService.cacheUploadFuture(cdnUrl, geminiFuture);
 
       log.info("OCI 업로드 완료, Gemini는 백그라운드 처리 중: {}", cdnUrl);
       return new FileUploadResponse(cdnUrl);
+    } catch (CustomException e) {
+      throw e;
+    } catch (CompletionException e) {
+      if (e.getCause() instanceof CustomException ce) {
+        throw ce;
+      }
+      throw new CustomException(
+          ExceptionMessage.DEFAULT_ERROR, "파일 업로드 실패: " + originalFileName, e);
     } catch (Exception e) {
       throw new CustomException(
           ExceptionMessage.DEFAULT_ERROR, "파일 업로드 실패: " + originalFileName, e);
