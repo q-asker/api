@@ -92,7 +92,7 @@ class EssayChunkedContractTest {
   private GenerationRequestToAI request(int quizCount, QuizBatchSink sink) {
     return GenerationRequestToAI.builder()
         .fileUrl("http://f/x.pdf")
-        .strategyValue("ESSAY")
+        .quizType("ESSAY")
         .language("KO")
         .quizCount(quizCount)
         .referencePages(List.of(1, 2))

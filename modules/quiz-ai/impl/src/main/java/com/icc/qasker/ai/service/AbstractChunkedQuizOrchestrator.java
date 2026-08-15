@@ -73,7 +73,7 @@ public abstract class AbstractChunkedQuizOrchestrator<T> implements QuizTypeOrch
     this.metricsRecorder = metricsRecorder;
     this.aiProperties = aiProperties;
     this.qualityGate = qualityGate;
-    this.cacheManager = new GeminiContextCacheManager(chatModel);
+    this.cacheManager = new GeminiContextCacheManager(chatModel, metricsRecorder);
   }
 
   /** 청크 K(K≥2) 사용자 프롬프트 꼬리에 붙는 타입별 중복 회피 지침 문구. */
@@ -120,7 +120,7 @@ public abstract class AbstractChunkedQuizOrchestrator<T> implements QuizTypeOrch
     private final CacheRef genCache;
     // Pass 1 검증 캐시(검증 루브릭+PDF 원문): 세션당 1개. 실패 시 null → 원문 대조 없는 검증.
     private final CacheRef verifyCache;
-    private final String tag = getSupportedType();
+    private final String tag = getSupportedType().toString();
     private final long startNanos = System.nanoTime();
 
     // 누적 상태
@@ -147,7 +147,7 @@ public abstract class AbstractChunkedQuizOrchestrator<T> implements QuizTypeOrch
       this.request = request;
       this.sink = request.sink();
       this.quizCount = request.quizCount();
-      this.quizType = QuizType.valueOf(request.strategyValue());
+      this.quizType = getSupportedType();
       this.genGuideLine = quizType.getSystemGuideLine(request.language());
       this.metadata = resolvePdf(request);
       this.pdfMedia =
@@ -158,10 +158,7 @@ public abstract class AbstractChunkedQuizOrchestrator<T> implements QuizTypeOrch
               .create(tag, genGuideLine, metadata.uri(), aiProperties.getCacheTtl())
               .orElse(null);
       // 검증 모델이 사용하는 캐시
-      this.verifyCache =
-          qualityGate
-              .createPass1Cache(metadata.uri(), quizType.name(), request.language())
-              .orElse(null);
+      this.verifyCache = qualityGate.createPass1Cache(metadata.uri(), quizType.name()).orElse(null);
     }
 
     private void run() {

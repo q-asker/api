@@ -70,7 +70,7 @@ q-asker/api/
 │       ├── application.yml       # 설정 진입점 (config/ import)
 │       ├── application-secrets.yml  # 암호화된 시크릿
 │       ├── application-test.yml  # test 프로파일 (CI/JUnit, H2 + 더미 Jasypt/OCI)
-│       ├── db/migration/         # Flyway 마이그레이션 SQL (V1~V19)
+│       ├── db/migration/         # Flyway 마이그레이션 SQL (V1~V20)
 │       └── config/               # 분리된 설정 파일들
 │           ├── database-config.yml   # 서버, DB, JPA, 캐시
 │           ├── ai-setting.yml        # Google Gemini AI 설정 (생성/ESSAY 채점/품질 검증 모델, 토큰 단가)
@@ -88,9 +88,9 @@ q-asker/api/
 │   ├── auth/     (api + impl)    # 인증 (JWT, OAuth2, RateLimitFilter, JwtProvider, PrincipalExtractor, SecurityErrorResponder, TokenCrypto, LocalTokenController=@Profile("local") 토큰 발급 헬퍼)
 │   ├── oci/      (api + impl)    # OCI Object Storage 파일 업로드
 │   ├── board/    (api + impl)    # 게시판
-│   ├── quiz-ai/  (api + impl)    # AI 퀴즈 생성 (Gemini 호출, 청크 분할 스트리밍(ChunkPlanner/AbstractChunkedQuizOrchestrator)·컨텍스트 캐시(GeminiContextCacheManager), 메트릭, 품질 검증 QualityVerifier/QualityGate)
+│   ├── quiz-ai/  (api + impl)    # AI 퀴즈 생성 (Gemini 호출, 청크 분할 스트리밍(ChunkPlanner/AbstractChunkedQuizOrchestrator)·컨텍스트 캐시(GeminiContextCacheManager — 생성 성패를 gemini.cache.create 카운터로 기록, 실패=프리픽스 매 호출 재전송 강등), 메트릭, 품질 검증 QualityVerifier/QualityGate — 검증관 프롬프트는 생성 GuideLine이 아니라 유형별 관찰 가능 실격 사유(QualityVerifierImpl.DISQUALIFIERS)로 독립 판정하고, 검증 항목은 유형에 맞게 필터링(ESSAY 전용↔객관형 전용 분리))
 │   ├── quiz-make/(api + impl)    # 퀴즈 생성 흐름 (파일업로드, SSE, 생성결과)
-│   ├── quiz-set/ (api + impl)    # 퀴즈 세트 CRUD, 품질 리뷰(QualityReviewService, problemSetIds 배치 재검토)·해설 재검토(ExplanationReviewService/ExplanationFormatValidator)·품질 로그(QualityLogService/ProblemQualityLog, v1 생성본·v2 재생성본 함께 보관)·스테일 생성 복구 스케줄러(FAILED·10분 초과 GENERATING 세트를 ProblemSet 애그리거트로 삭제 — 자식 problem 은 FK ON DELETE CASCADE[V19]가 DB 에서 자동 삭제, mock 은 flush 후 롤백으로 순증 0)
+│   ├── quiz-set/ (api + impl)    # 퀴즈 세트 CRUD, 품질 리뷰(QualityReviewService, problemSetIds 배치 재검토)·해설 재검토(ExplanationReviewService/ExplanationFormatValidator)·품질 로그(QualityLogService/ProblemQualityLog, v1 생성본·v2 재생성본 함께 보관)·스테일 생성 복구(StaleGenerationRecovery 인터페이스 — FAILED·10분 초과 GENERATING 세트를 부모 벌크 JPQL delete 로 삭제, 자식 problem 은 FK ON DELETE CASCADE[V19]가 DB 에서 자동 삭제; mock 구현은 동일 SELECT+벌크 delete 를 태운 뒤 롤백해 순증 0)
 │   ├── quiz-history/(api + impl) # 풀이 히스토리 + 기록 폴더 분류(QuizFolder 엔티티, /folders CRUD[POST·GET·PATCH·DELETE], PATCH /history/{id}/folder 배정·해제, GET /history?scope=ALL|UNCLASSIFIED|FOLDER&folderId= 필터링; QuizFolderCommand/QueryService, QuizHistory.folder_id)
 │   ├── document/ (api + impl)    # 문서 변환 (PPT/DOCX → PDF)
 │   └── admin/                    # 관리자 전용 API

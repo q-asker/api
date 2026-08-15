@@ -64,7 +64,7 @@ spring:
         location: us-central1
         chat:
           options:
-            model: gemini-3-flash-preview
+            model: gemini-3.5-flash-lite
             thinking-budget: 0
 
 q-asker:
@@ -72,13 +72,13 @@ q-asker:
     gcs:
       bucket-name: ci-dummy
     essay:
-      grading-model: gemini-3.1-flash-lite-preview
-      price-input-per-1m: 0.25
-      price-output-per-1m: 1.50
+      grading-model: gemini-3.5-flash-lite
+      price-input-per-1m: 0.30
+      price-output-per-1m: 2.50
     generation:
-      price-input-per-1m: 0.50
-      price-cache-read-per-1m: 0.050
-      price-output-per-1m: 3.00
+      price-input-per-1m: 0.30
+      price-cache-read-per-1m: 0.030
+      price-output-per-1m: 2.50
 
   hashid:
     salt: ci-dummy-salt

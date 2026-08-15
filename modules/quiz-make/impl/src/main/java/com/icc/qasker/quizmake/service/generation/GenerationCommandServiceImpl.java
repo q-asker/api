@@ -105,7 +105,7 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
     GenerationRequestToAI requestToAI =
         GenerationRequestToAI.builder()
             .fileUrl(request.uploadedUrl())
-            .strategyValue(request.quizType().toAiStrategyName())
+            .quizType(request.quizType().toAiStrategyName())
             .language(request.language().name())
             .quizCount(request.quizCount())
             .referencePages(request.pageNumbers())
