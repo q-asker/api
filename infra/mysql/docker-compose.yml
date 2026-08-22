@@ -1,3 +1,7 @@
+# 프로젝트명을 plg-stack/monitoring/local 과 통일해 Docker Desktop 에서 한 그룹으로 묶는다.
+# 네트워크·볼륨은 name: 으로 기존 실명을 고정 — 프로젝트명 변경에도 데이터·외부 참조가 안 깨진다.
+name: q-asker
+
 services:
   q-asker-mysql:
     image: mysql:latest
@@ -17,3 +21,10 @@ services:
 
 volumes:
   q-asker-db:
+    # 기존 데이터 볼륨 실명 고정 (구 프로젝트 mysql 시절 생성)
+    name: mysql_q-asker-db
+
+networks:
+  default:
+    # plg-stack mysqld-exporter 가 external 로 참조하는 실명 고정
+    name: mysql_default
