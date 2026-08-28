@@ -39,7 +39,10 @@ PROD_CONF=(
 OBS_CONF=(
   --performance_schema_events_statements_history_long_size=100000
 )
+# compose 라벨: Docker Desktop 에서 q-asker 스택(infra/mysql·plg-stack local)과 한 그룹으로 표시.
 docker run -d --name "$NAME" --network "$NET" \
+  --label com.docker.compose.project=q-asker \
+  --label "com.docker.compose.service=$NAME" \
   -p "127.0.0.1:$PORT:3306" "${VOLOPT[@]}" \
   -e MYSQL_ROOT_PASSWORD=password mysql:8.0 "${PROD_CONF[@]}" "${OBS_CONF[@]}" >/dev/null
 
