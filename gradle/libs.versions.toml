@@ -2,14 +2,14 @@
 # ── BOMs ────────────────────────────────────────────────
 spring-boot = "4.1.0"
 spring-ai = "2.0.0"
-google-cloud = "26.84.0"
+google-cloud = "26.87.0"
 junit = "5.14.4"
 
 # ── Plugins ─────────────────────────────────────────────
 spotless = "8.8.0"
 google-java-format = "1.25.2"
 dependency-graph-generator = "0.8.0"
-jib = "3.5.3"
+jib = "3.5.4"
 foojay = "1.0.0"
 hibernate-orm = "7.4.5.Final"
 
