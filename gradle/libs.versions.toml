@@ -21,7 +21,7 @@ bucket4j = "8.19.0"
 jodconverter = "4.4.11"
 hashids = "1.0.3"
 resilience4j = "2.4.0"
-oci = "3.90.0"
+oci = "3.95.1"
 pdfbox = "3.0.8"
 httpclient5 = "5.6.2"
 
