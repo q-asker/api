@@ -23,7 +23,7 @@ hashids = "1.0.3"
 resilience4j = "2.4.0"
 oci = "3.90.0"
 pdfbox = "3.0.8"
-httpclient5 = "5.6.2"
+httpclient5 = "5.6.4"
 
 [libraries]
 # ── BOMs ────────────────────────────────────────────────
