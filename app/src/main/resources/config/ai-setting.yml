@@ -6,7 +6,7 @@ spring:
     google:
       genai:
         chat:
-          model: gemini-3-flash-preview
+          model: gemini-3.6-flash
           temperature: 1.0
           max-output-tokens: 20000
           thinking-level: MINIMAL
@@ -49,10 +49,11 @@ q-asker:
       price-input-per-1m: 0.30
       price-output-per-1m: 2.50
     generation:
-      # 생성 모델(Gemini 3.5 Flash-Lite) 토큰 단가 (USD per 1M tokens)
-      price-input-per-1m: 0.30
-      price-cache-read-per-1m: 0.030
-      price-output-per-1m: 2.50
+      # 생성 모델(Gemini 3.6 Flash) 토큰 단가 (USD per 1M tokens)
+      # 2026-12-31 까지의 가격 — 2027-01-01 부터 2배(1.50 / 0.15 / 7.50)로 인상 예정.
+      price-input-per-1m: 0.75
+      price-cache-read-per-1m: 0.075
+      price-output-per-1m: 3.75
     quality:
       # 문항 품질 검증 모델 — 경량 flash-lite 계열(저비용·저지연)
       verify-model: gemini-3.5-flash-lite
