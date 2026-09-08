@@ -49,18 +49,6 @@ import tools.jackson.databind.ObjectMapper;
 @Slf4j
 public abstract class AbstractChunkedQuizOrchestrator<T> implements QuizTypeOrchestrator {
 
-  /**
-   * 비동기 생성 게이트 검증의 동시 실행 상한. Vertex 는 generateContent 에 동시성 쿼터를 두지 않으므로(제한은 RPM·TPM) 작업 개수가 곧 상한이다
-   * — quizCount 최대 30({@code GenerationRequest.DEFAULT_ALLOWED_COUNTS})을 덮어 세마포어가 막지 않게 한다.
-   *
-   * <p>TODO: 이 값은 <b>세션 1건</b> 기준이다. 세마포어·익스큐터가 Session 인스턴스 필드라 동시 생성 요청 수만큼 곱해진다(3요청 → 최대 90). 전역
-   * 상한이 없으므로 동시 생성이 늘면 제한 계층을 추가해야 한다.
-   */
-  private static final int VERIFY_CONCURRENCY = 30;
-
-  /** 보류 문항 재생성의 동시 실행 상한. 보류 큐 최대치(= quizCount)를 덮어 한 라운드에 소진한다. 세션당 기준인 점은 위와 같다. */
-  private static final int REGENERATE_CONCURRENCY = 30;
-
   private final GeminiFileService geminiFileService;
   private final ChatModel chatModel;
   private final ObjectMapper objectMapper;
@@ -122,7 +110,7 @@ public abstract class AbstractChunkedQuizOrchestrator<T> implements QuizTypeOrch
 
     // 비동기 검증 인프라
     private final ExecutorService verifyExecutor = Executors.newVirtualThreadPerTaskExecutor();
-    private final Semaphore verifySlots = new Semaphore(VERIFY_CONCURRENCY);
+    private final Semaphore verifySlots = new Semaphore(aiProperties.getConcurrency().getVerify());
     private final List<CompletableFuture<Void>> verifyFutures = new CopyOnWriteArrayList<>();
 
     // 대화 스레드 — 청크 루프(단일 스레드)만 쓴다
@@ -267,7 +255,9 @@ public abstract class AbstractChunkedQuizOrchestrator<T> implements QuizTypeOrch
               },
               tag);
 
+      long chunkStartNanos = System.nanoTime();
       streamInto(prompt, extractor, chunkIndex);
+      metricsRecorder.recordChunkCall(chunkIndex, chunkStartNanos);
 
       conversation.add(phase1User);
       conversation.add(new AssistantMessage(serializeProblems(generated)));
@@ -361,7 +351,7 @@ public abstract class AbstractChunkedQuizOrchestrator<T> implements QuizTypeOrch
       if (heldQueue.isEmpty()) {
         return;
       }
-      int workers = Math.min(REGENERATE_CONCURRENCY, heldQueue.size());
+      int workers = Math.min(aiProperties.getConcurrency().getRegenerate(), heldQueue.size());
       log.info("{} 보류 문항 재생성 시작: {}건 (워커 {})", tag, heldQueue.size(), workers);
 
       // 목표 문항 수까지 남은 칸을 티켓으로 나눠 갖는다. 워커가 호출 전에 하나 집고 산출 실패 시 반납해

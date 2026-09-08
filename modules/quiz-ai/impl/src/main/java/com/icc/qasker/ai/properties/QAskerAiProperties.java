@@ -25,6 +25,9 @@ public class QAskerAiProperties {
   /** 청크 분할 설정 */
   private Chunk chunk = new Chunk();
 
+  /** 생성 세션 내부 동시성 상한 */
+  private Concurrency concurrency = new Concurrency();
+
   /** Google Cloud Storage 설정 */
   private Gcs gcs = new Gcs();
 
@@ -34,6 +37,25 @@ public class QAskerAiProperties {
 
     /** 한 Gemini 호출당 요청할 최대 문항 수 — q-asker.ai.chunk.chunk-size. requestedCount가 이보다 크면 청크로 분할한다. */
     private int chunkSize;
+  }
+
+  /**
+   * 생성 세션 한 건이 동시에 띄우는 작업 수의 상한. 두 값 모두 quizCount 최대 30({@code
+   * GenerationRequest.DEFAULT_ALLOWED_COUNTS})을 덮도록 잡혀 있어, 기본값에서는 세마포어가 실제로 막지 않고 한 라운드에 소진된다.
+   * Vertex 는 generateContent 에 동시성 쿼터를 두지 않으므로(제한은 RPM·TPM) 작업 개수가 곧 상한이다.
+   *
+   * <p>TODO: 이 값은 <b>세션 1건</b> 기준이다. 세마포어·익스큐터가 Session 인스턴스 필드라 동시 생성 요청 수만큼 곱해진다(3요청 → 최대 90). 전역
+   * 상한이 없으므로 동시 생성이 늘면 제한 계층을 추가해야 한다.
+   */
+  @Getter
+  @Setter
+  public static class Concurrency {
+
+    /** 비동기 생성 게이트 검증의 동시 실행 상한 — q-asker.ai.concurrency.verify. */
+    private int verify = 30;
+
+    /** 보류 문항 재생성의 동시 실행 상한 — q-asker.ai.concurrency.regenerate. */
+    private int regenerate = 30;
   }
 
   @Getter
