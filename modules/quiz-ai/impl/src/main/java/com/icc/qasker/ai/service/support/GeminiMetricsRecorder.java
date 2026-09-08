@@ -45,6 +45,9 @@ public class GeminiMetricsRecorder {
 
   private static final String[] QUIZ_TYPES = {"MULTIPLE", "OX", "BLANK", "ESSAY"};
 
+  /** 청크 호출 타이머를 미리 등록할 인덱스 — quizCount 최대 30 ÷ chunk-size 15 = 2청크. */
+  private static final int[] CHUNK_INDEXES = {0, 1};
+
   public GeminiMetricsRecorder(
       MeterRegistry registry,
       @Value("${q-asker.ai.generation.price-input-per-1m}") double priceInputPer1M,
@@ -131,6 +134,32 @@ public class GeminiMetricsRecorder {
           .tag("quiz_type", quizType)
           .register(registry);
     }
+    // 청크 호출 타이머를 청크 인덱스별로 미리 등록
+    for (int chunkIndex : CHUNK_INDEXES) {
+      chunkCallTimer(chunkIndex);
+    }
+  }
+
+  private Timer chunkCallTimer(int chunkIndex) {
+    return Timer.builder("gemini.chunk.call.duration")
+        .description("청크 생성 HTTP 호출 1건의 소요 시간 (청크 시작 → 스트림 종료)")
+        .tag("chunk_index", String.valueOf(chunkIndex))
+        .register(registry);
+  }
+
+  /**
+   * 청크 생성 HTTP 호출 1건의 소요를 기록한다.
+   *
+   * <p>gemini.chunk.duration 이 '세션 시작 → 토큰 도착'의 누적 경과를 재는 것과 달리 이쪽은 청크 시작 기준이라,
+   * gemini-http.call-timeout(단일 호출 상한 300s)과 같은 축에서 비교할 수 있다. chunk_index 태그로 첫 청크(캐시 미스 시 PDF 동봉)와
+   * 후속 청크(대화 누적)를 갈라 본다. 스트림이 예외로 끝나면 기록하지 않는다 — 성공 호출의 소요 분포만 담아 call-timeout 마진 판단의 모수를 오염시키지
+   * 않는다.
+   *
+   * @param chunkIndex 청크 순번 (0부터)
+   * @param chunkStartNanos 청크 HTTP 호출 시작 시각 (System.nanoTime)
+   */
+  public void recordChunkCall(int chunkIndex, long chunkStartNanos) {
+    chunkCallTimer(chunkIndex).record(System.nanoTime() - chunkStartNanos, TimeUnit.NANOSECONDS);
   }
 
   /**

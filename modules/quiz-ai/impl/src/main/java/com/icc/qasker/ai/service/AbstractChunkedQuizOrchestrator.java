@@ -255,7 +255,9 @@ public abstract class AbstractChunkedQuizOrchestrator<T> implements QuizTypeOrch
               },
               tag);
 
+      long chunkStartNanos = System.nanoTime();
       streamInto(prompt, extractor, chunkIndex);
+      metricsRecorder.recordChunkCall(chunkIndex, chunkStartNanos);
 
       conversation.add(phase1User);
       conversation.add(new AssistantMessage(serializeProblems(generated)));
