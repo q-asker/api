@@ -20,6 +20,8 @@ q-asker:
 
 server:
   shutdown: graceful
+  http2:
+    enabled: true
 
   # 아래 tomcat 블록은 전부 Spring Boot 4.1.0 / Tomcat 11.0.22 기본값을 그대로 적어둔 것이다.
   # 동작은 지금과 동일하며, 값을 조정할 때 출발점이 무엇이었는지 보이게 하는 것이 목적.
