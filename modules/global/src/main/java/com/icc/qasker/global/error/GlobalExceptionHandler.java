@@ -2,11 +2,14 @@ package com.icc.qasker.global.error;
 
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import java.util.Objects;
+import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.catalina.connector.ClientAbortException;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -75,6 +78,24 @@ public class GlobalExceptionHandler {
             .orElse(ExceptionMessage.INVALID_REQUEST.getMessage());
     log.warn("[요청 검증 실패] {}", message);
     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new CustomErrorResponse(message));
+  }
+
+  /**
+   * 경로 매핑은 있으나 HTTP 메서드가 다른 요청(예: POST 전용 /generation 에 GET). 클라이언트 오류이므로 405로 응답한다(미처리 시
+   * catch-all의 500으로 샘 — @ControllerAdvice가 Spring 내장 405 변환보다 먼저 돈다). RFC 9110상 405 응답은 Allow 헤더로
+   * 허용 메서드를 알려야 한다.
+   */
+  @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+  public ResponseEntity<CustomErrorResponse> handleMethodNotSupported(
+      HttpRequestMethodNotSupportedException e) {
+    log.warn("[허용되지 않은 메서드] {} 요청 거부", e.getMethod());
+
+    ResponseEntity.BodyBuilder builder = ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED);
+    Set<HttpMethod> supported = e.getSupportedHttpMethods();
+    if (supported != null && !supported.isEmpty()) {
+      builder.allow(supported.toArray(new HttpMethod[0]));
+    }
+    return builder.body(new CustomErrorResponse(ExceptionMessage.METHOD_NOT_ALLOWED.getMessage()));
   }
 
   @ExceptionHandler(MaxUploadSizeExceededException.class)
