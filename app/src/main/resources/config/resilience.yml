@@ -6,14 +6,19 @@ resilience4j:
     instances:
       aiServer:
         sliding-window-type: COUNT_BASED
+        # [서킷의 계측 단위] AIServerAdapter.streamRequest 가 @CircuitBreaker 지점이고 그 안에서
+        # generateQuiz 가 끝날 때까지 머문다 — 서킷이 재는 '한 호출'은 HTTP 호출 1건이 아니라 생성 세션 전체다.
+        # 세션 직렬 상한 = 청크 2회 600s + 검증 꼬리 300s + 보류 재생성 300s = 1200s (구간별 상한은 call-timeout 300s).
+        # 관측 최대 971s (2026-09-04). q-asker.sse.timeout-ms 와 같은 산식이므로 함께 재산정한다.
+        #
         # slow-call 경로 비활성 — 느림을 별도 모수로 잡지 않는다. 타임아웃 계층(connect 10s / read 150s /
-        # call 350s)이 병리적 느림을 GeminiInfraException(실패)으로 변환하므로, 실패율 경로가 이를 단일 실패
-        # 모수로 집계한다. call-timeout 350s가 절대 상한이라 "느린 성공"은 300~350s의 미관측 좁은 띠뿐이고
-        # (관측 최대 성공 274.3s < 300s), 그마저 실패율 경로+타임아웃과 중복이라 별도 slow 판정을 두지 않는다.
-        # slow-duration을 도달 불가능한 센티널(9999s ≫ call-timeout 350s)로 둬 어떤 호출도 slow로 라벨되지
+        # call 300s)이 병리적 느림을 GeminiInfraException(실패)으로 변환하므로, 실패율 경로가 이를 단일 실패
+        # 모수로 집계한다. 세션 소요는 100s~1200s 로 폭이 넓고 문서 크기·문항 수에 지배돼, 이 분포 위에서
+        # 하나의 slow 임계를 고르면 정상 롱테일을 자르거나(오탐) 아무것도 못 잡거나(무의미) 둘 중 하나가 된다.
+        # slow-duration 을 도달 불가능한 센티널(9999s ≫ 세션 상한 1200s)로 둬 어떤 호출도 slow 로 라벨되지
         # 않게 함 = 비활성 표식. (Resilience4j엔 slow 비활성 플래그가 없고 slowCallRateThreshold는 [1,100]만
         # 허용하므로, duration을 도달 불가로 두는 게 유일한 관용적 비활성 방법.)
-        # (이 줄을 지우면 기본값 60s로 되돌아가 정상 롱테일 110~274s가 slow 오분류 → 과거 62건 오탐 재발.)
+        # (이 줄을 지우면 기본값 60s로 되돌아가 정상 세션 전량이 slow 오분류 → 과거 62건 오탐 재발.)
         slow-call-duration-threshold:
           seconds: 9999
         # slow-call-rate-threshold: 위 duration 센티널에 지배돼 무의미(slow_call_rate 항상 0/-1이라 어떤
