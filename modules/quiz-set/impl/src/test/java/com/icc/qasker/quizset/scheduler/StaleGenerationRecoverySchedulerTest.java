@@ -23,7 +23,7 @@ class StaleGenerationRecoverySchedulerTest extends JpaIntegrationTestBase {
   @Autowired private ProblemRepository problemRepository;
 
   @Test
-  @DisplayName("10분 초과 방치 세트 중 FAILED/GENERATING만 삭제되고 COMPLETED는 생존한다")
+  @DisplayName("15분 초과 방치 세트 중 FAILED/GENERATING만 삭제되고 COMPLETED는 생존한다")
   void scheduler_keeps_completed_sets() {
     persistSet("s-failed", GenerationStatus.FAILED);
     persistSet("s-generating", GenerationStatus.GENERATING);

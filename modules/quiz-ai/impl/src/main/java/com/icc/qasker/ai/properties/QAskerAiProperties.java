@@ -10,9 +10,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "q-asker.ai")
 public class QAskerAiProperties {
 
-  /** Gemini Chat API 타임아웃 (ms) — q-asker.ai.chat-timeout-ms */
-  private int chatTimeoutMs;
-
   /** 컨텍스트 캐시 TTL — q-asker.ai.cache-ttl. 한 세트 생성 세션(인터리빙 전체)을 커버하고, 종료 시 명시적으로 삭제한다. */
   private Duration cacheTtl;
 

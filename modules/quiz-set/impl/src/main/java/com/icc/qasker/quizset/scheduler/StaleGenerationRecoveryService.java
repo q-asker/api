@@ -17,13 +17,18 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class StaleGenerationRecoveryService implements StaleGenerationRecovery {
 
-  private static final long STALE_THRESHOLD_MINUTES = 10;
+  /**
+   * 세션 시한(10분)보다 길게 잡는다. 같은 값이면 진행 중인 생성이 저장 직전에 삭제된다 — 스케줄러는 세트 createdAt 기준이고 세션 시계는 PDF 업로드 뒤에
+   * 출발해 항상 늦으며, 주기가 1분이라 판정도 최대 1분 늦게 온다.
+   */
+  private static final long STALE_THRESHOLD_MINUTES = 15;
+
   private static final List<GenerationStatus> TARGET_STATUSES =
       List.of(GenerationStatus.FAILED, GenerationStatus.GENERATING);
 
   private final ProblemSetRepository problemSetRepository;
 
-  /** FAILED 또는 10분 이상 GENERATING 상태로 방치된 ProblemSet을 삭제하고 삭제 건수를 반환한다. */
+  /** FAILED 또는 15분 이상 GENERATING 상태로 방치된 ProblemSet을 삭제하고 삭제 건수를 반환한다. */
   @Override
   @Transactional
   public int purgeStaleProblemSets() {

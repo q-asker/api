@@ -28,7 +28,7 @@
 | 컨테이너          | Jib (Docker)                                                          | 3.5.3          |
 | 포맷터           | Spotless + Google Java Format                                         | 8.8.0 / 1.25.2 |
 | DB 마이그레이션     | Flyway                                                                | (Boot BOM)     |
-| 테스트           | JUnit 5                                                               | (Boot BOM)     |
+| 테스트           | JUnit 5                                                               | 5.14.4         |
 
 ## 명령어 (Scripts)
 
@@ -72,13 +72,13 @@ q-asker/api/
 │       ├── application-test.yml  # test 프로파일 (CI/JUnit, H2 + 더미 Jasypt/OCI)
 │       ├── db/migration/         # Flyway 마이그레이션 SQL (V1~V20)
 │       └── config/               # 분리된 설정 파일들
-│           ├── database-config.yml   # 서버, DB, JPA, 캐시
-│           ├── ai-setting.yml        # Google Gemini AI 설정 (생성/ESSAY 채점/품질 검증 모델, 토큰 단가)
+│           ├── database-config.yml   # DB(HikariCP), JPA, 캐시, Flyway (hikari 블록은 대부분 기본값을 명시만 한 것 — 가상 스레드라 요청 동시성엔 상한이 없어 실질 처리량은 maximum-pool-size(10)가 결정하고, minimum-idle 이 숫자로 박혀 있어 풀을 키울 땐 둘을 함께 올려야 고정 크기 성질이 유지된다. prod 만 keepalive-time 60s 로 오버라이드)
+│           ├── ai-setting.yml        # Google Gemini AI 설정 (생성/ESSAY 채점/품질 검증 모델, 토큰 단가 — 모델을 바꾸면 같은 계층의 price-*-per-1m 도 그 모델 실단가로 함께 고쳐야 GeminiMetricsRecorder 비용 카운터가 맞는다)
 │           ├── spring-security.yml   # JWT, OAuth2, CORS
 │           ├── oci-bucket-config.yml # OCI Object Storage, CDN
 │           ├── jodconverter.yml      # LibreOffice 문서변환
 │           ├── actuator.yml          # Actuator, Prometheus
-│           ├── app-common.yml        # 앱 커스텀 설정
+│           ├── app-common.yml        # 앱 커스텀 설정 + 서버(graceful shutdown, server.tomcat)·멀티파트·가상 스레드 활성화 (tomcat 블록은 전부 기본값을 명시만 한 것 — 가상 스레드가 켜져 있어 threads.max/min-spare 는 적용되지 않는다)
 │           ├── github.yml            # 피드백 → GitHub 이슈 자동 등록 (owner/repo/토큰/라벨)
 │           ├── resilience.yml        # Circuit Breaker
 │           ├── spring-doc.yml        # Swagger/OpenAPI

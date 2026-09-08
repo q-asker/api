@@ -49,8 +49,17 @@ import tools.jackson.databind.ObjectMapper;
 @Slf4j
 public abstract class AbstractChunkedQuizOrchestrator<T> implements QuizTypeOrchestrator {
 
-  /** 비동기 생성 게이트 검증의 동시 실행 상한(외부 검증 모델 호출 버스트를 제한). */
-  private static final int VERIFY_CONCURRENCY = 8;
+  /**
+   * 비동기 생성 게이트 검증의 동시 실행 상한. Vertex 는 generateContent 에 동시성 쿼터를 두지 않으므로(제한은 RPM·TPM) 작업 개수가 곧 상한이다
+   * — quizCount 최대 30({@code GenerationRequest.DEFAULT_ALLOWED_COUNTS})을 덮어 세마포어가 막지 않게 한다.
+   *
+   * <p>TODO: 이 값은 <b>세션 1건</b> 기준이다. 세마포어·익스큐터가 Session 인스턴스 필드라 동시 생성 요청 수만큼 곱해진다(3요청 → 최대 90). 전역
+   * 상한이 없으므로 동시 생성이 늘면 제한 계층을 추가해야 한다.
+   */
+  private static final int VERIFY_CONCURRENCY = 30;
+
+  /** 보류 문항 재생성의 동시 실행 상한. 보류 큐 최대치(= quizCount)를 덮어 한 라운드에 소진한다. 세션당 기준인 점은 위와 같다. */
+  private static final int REGENERATE_CONCURRENCY = 30;
 
   private final GeminiFileService geminiFileService;
   private final ChatModel chatModel;
@@ -76,25 +85,16 @@ public abstract class AbstractChunkedQuizOrchestrator<T> implements QuizTypeOrch
     this.cacheManager = new GeminiContextCacheManager(chatModel, metricsRecorder);
   }
 
-  /** 청크 K(K≥2) 사용자 프롬프트 꼬리에 붙는 타입별 중복 회피 지침 문구. */
   protected abstract String dedupInstruction();
 
-  /** 스트리밍 JSON 배열 요소 타입 — {@link StreamingJsonArrayExtractor} 구성용(제네릭 타입 소거 우회). */
   protected abstract Class<T> elementType();
 
-  /** 응답 JSON 스키마. customInstruction 반영(선지형/서술형별). */
   protected abstract String responseSchema(String customInstruction);
 
-  /**
-   * 파싱된 질문 1개를 저장용 {@link AIProblem}으로 변환한다. 선지형은 선지 정렬을 흡수하고, 서술형은 항등 매핑한다. 저장 순서 = 대화 히스토리 순서
-   * 기준이므로 이 시점에 확정한다.
-   */
   protected abstract AIProblem toProblem(T question, List<Integer> sourcePages);
 
-  /** 이 질문을 채택할지 판단한다. 선지형: 선지 수 ≤ 상한. 서술형: 항상 true. 미달 시 drop. */
   protected abstract boolean accept(T question);
 
-  /** 재생성 응답 텍스트에서 첫 질문을 파싱한다. 구체 응답타입({@code BeanOutputConverter})은 하위가 안다. */
   protected abstract Optional<T> parseFirst(String text);
 
   @Override
@@ -102,46 +102,46 @@ public abstract class AbstractChunkedQuizOrchestrator<T> implements QuizTypeOrch
     new Session(request).run();
   }
 
-  /**
-   * 한 요청분의 인터리빙 실행 상태. 협력 빈은 바깥 인스턴스에서, 요청별 상태(캐시·대화 스레드·보류 큐·누적 메트릭)는 이 인스턴스에서 관리한다. {@code
-   * generateQuiz} 호출마다 새로 만들어지므로 오케스트레이터 빈은 무상태로 유지된다.
-   */
   private final class Session {
 
-    // 협력 객체·불변 설정 (생성자에서 1회 확정)
+    // 요청 파라미터
     private final GenerationRequestToAI request;
     private final QuizBatchSink sink;
     private final int quizCount;
     private final QuizType quizType;
+    private final String tag = getSupportedType().toString();
     private final String genGuideLine;
+
+    // PDF (외부 자원 핸들)
     private final FileMetadata metadata;
     private final Media pdfMedia;
-    // 컨텍스트 캐시: 전체 지침(문제+해설)+PDF를 1개 캐시. 생성·재생성이 공유한다. 실패 시 null → 폴백.
-    private final CacheRef genCache;
-    // Pass 1 검증 캐시(검증 루브릭+PDF 원문): 세션당 1개. 실패 시 null → 원문 대조 없는 검증.
-    private final CacheRef verifyCache;
-    private final String tag = getSupportedType().toString();
-    private final long startNanos = System.nanoTime();
 
-    // 누적 상태
-    // 멀티턴 대화 스레드 — U/A 턴만 누적. 캐시 사용 시 system·PDF는 캐시에, 폴백 시 각 요청이 phase별 system(+PDF)을 붙인다.
-    private final List<Message> conversation = new ArrayList<>();
-    // 생성 게이트에서 미달 판정된 문항의 보류 큐. 여러 검증 워커가 동시에 add 하므로 락프리 동시 큐를 쓰고,
-    // 청크 루프 종료(배리어) 후 단일 스레드에서 FIFO로 1회 재생성 소진한다.
-    private final Queue<HeldProblem> heldQueue = new ConcurrentLinkedQueue<>();
-    private final DoubleAdder totalCost = new DoubleAdder();
-    private final AtomicLong firstNanos = new AtomicLong(0);
-    private final AtomicLong lastNanos = new AtomicLong(0);
-    // delivered = 검증 통과·저장된 문항 수. submitted = 검증에 제출한(생성) 문항 수(파싱 중단·청크 진행 판단 기준).
-    private final AtomicInteger delivered = new AtomicInteger(0);
-    private final AtomicInteger submitted = new AtomicInteger(0);
+    // 컨텍스트 캐시 — ① 캐시 생성 단계가 채우고 finally 에서 해제한다
+    private CacheRef genCache;
+    private CacheRef verifyCache;
 
-    // 생성 스트림 소비와 게이트 검증을 분리하는 비동기 인프라.
-    // 스트림 콜백은 문항을 verifyExecutor에 제출하고 즉시 리턴한다(스트림 논블로킹).
-    // 워커는 verifySlots로 동시성을 제한한 채 검증→통과: 저장·통지 / 미달: 보류 큐.
+    // 비동기 검증 인프라
     private final ExecutorService verifyExecutor = Executors.newVirtualThreadPerTaskExecutor();
     private final Semaphore verifySlots = new Semaphore(VERIFY_CONCURRENCY);
     private final List<CompletableFuture<Void>> verifyFutures = new CopyOnWriteArrayList<>();
+
+    // 대화 스레드 — 청크 루프(단일 스레드)만 쓴다
+    private final List<Message> conversation = new ArrayList<>();
+
+    // 진행 상태 — 검증·재생성 워커가 동시에 갱신한다
+    private final Queue<HeldProblem> heldQueue = new ConcurrentLinkedQueue<>();
+    private final AtomicInteger delivered = new AtomicInteger(0);
+    private final AtomicInteger submitted = new AtomicInteger(0);
+
+    // 청크 진행 — ② 퀴즈 생성 단계(단일 스레드)만 쓴다
+    private int chunkTotal;
+    private int chunksDone;
+
+    // 계측
+    private final long startNanos = System.nanoTime();
+    private final AtomicLong firstNanos = new AtomicLong(0);
+    private final AtomicLong lastNanos = new AtomicLong(0);
+    private final DoubleAdder totalCost = new DoubleAdder();
 
     private Session(GenerationRequestToAI request) {
       this.request = request;
@@ -152,79 +152,79 @@ public abstract class AbstractChunkedQuizOrchestrator<T> implements QuizTypeOrch
       this.metadata = resolvePdf(request);
       this.pdfMedia =
           new Media(MimeTypeUtils.parseMimeType("application/pdf"), URI.create(metadata.uri()));
-      // PDF + 시스템 가이드라인은 어떤 세션이든 공유하는 캐시, 메인 모델이 사용하는 캐시
+    }
+
+    private void run() {
+      try {
+        // 1. 캐시 생성
+        createCaches();
+        // 2. 퀴즈 생성 — 문항을 스트림으로 받으며 평가를 비동기로 제출한다
+        generateChunks();
+        // 3. 평가 — 제출된 평가가 모두 정착할 때까지 기다린다
+        awaitVerifications();
+        // 4. 재생성 — 평가에서 탈락한 문항을 1문제씩 다시 만든다
+        regenerateHeld();
+      } catch (CustomException e) {
+        awaitVerifications();
+        if (delivered.get() == 0) throw e;
+        log.warn("{} 퀴즈 생성 중 비즈니스 오류. {}문항 보존.", tag, delivered.get(), e);
+      } catch (Exception e) {
+        awaitVerifications();
+        if (delivered.get() == 0) throw new GeminiInfraException("Gemini 인프라 장애", e);
+        log.warn("{} 퀴즈 생성 중 인프라 오류. {}문항 보존.", tag, delivered.get(), e);
+        metricsRecorder.recordStreamingTimeout(tag);
+      } finally {
+        awaitVerifications();
+        verifyExecutor.shutdown();
+        releaseCaches();
+      }
+      recordOutcome();
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    //  1. 캐시 생성
+    // ══════════════════════════════════════════════════════════════════
+    private void createCaches() {
       this.genCache =
           cacheManager
               .create(tag, genGuideLine, metadata.uri(), aiProperties.getCacheTtl())
               .orElse(null);
-      // 검증 모델이 사용하는 캐시
       this.verifyCache = qualityGate.createPass1Cache(metadata.uri(), quizType.name()).orElse(null);
     }
 
-    private void run() {
+    private void releaseCaches() {
+      cacheManager.delete(tag, genCache == null ? null : genCache.name());
+      qualityGate.deletePass1Cache(verifyCache);
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    //  2. 퀴즈 생성
+    // ══════════════════════════════════════════════════════════════════
+    private void generateChunks() {
       List<Integer> chunkPlan =
           ChunkPlanner.plan(quizCount, aiProperties.getChunk().getChunkSize());
+      chunkTotal = chunkPlan.size();
       log.info(
           "{} 문제 수에 맞게 청크 분할 완료: 요청={}문항, chunk-size={}, 청크={}개",
           tag,
           quizCount,
           aiProperties.getChunk().getChunkSize(),
-          chunkPlan.size());
+          chunkTotal);
 
-      int chunksDone = 0;
-      try {
-        for (int chunkIndex = 0; chunkIndex < chunkPlan.size(); chunkIndex++) {
-          if (submitted.get() >= quizCount) break;
-          int chunkSize = chunkPlan.get(chunkIndex);
+      for (int chunkIndex = 0; chunkIndex < chunkTotal; chunkIndex++) {
+        if (submitted.get() >= quizCount) break;
 
-          List<AIProblem> generated = runGenerationPhase(chunkIndex, chunkSize);
+        List<AIProblem> generated = generateChunk(chunkIndex, chunkPlan.get(chunkIndex));
 
-          if (generated.isEmpty()) {
-            log.warn("{} 청크 #{} 산출물 없음 — 부분 저장·완료.", tag, chunkIndex);
-            break;
-          }
-          chunksDone++;
+        if (generated.isEmpty()) {
+          log.warn("{} 청크 #{} 산출물 없음 — 부분 저장·완료.", tag, chunkIndex);
+          break;
         }
-
-        // 배리어: 비동기 검증이 모두 정착해야 heldQueue·delivered가 확정된다.
-        awaitVerifications();
-
-        // 보류된 미달 문항을 세션 내에서 1회 재생성해 통과분을 채운다(원문 컨텍스트·대화 스레드 활용).
-        processHeldQueue();
-      } catch (CustomException e) {
-        awaitVerifications();
-        if (delivered.get() == 0) throw e;
-        log.warn("{} 인터리빙 도중 비즈니스 오류. {}문항 보존.", tag, delivered.get(), e);
-      } catch (Exception e) {
-        awaitVerifications();
-        if (delivered.get() == 0) throw new GeminiInfraException("Gemini 인프라 장애", e);
-        log.warn("{} 인터리빙 도중 인프라 오류. {}문항 보존.", tag, delivered.get(), e);
-        metricsRecorder.recordStreamingTimeout(tag);
-      } finally {
-        // 예외로 중단됐어도 인플라이트 검증을 마저 정착시킨 뒤(멱등) 캐시를 삭제한다.
-        awaitVerifications();
-        verifyExecutor.shutdown();
-        cacheManager.delete(tag, genCache == null ? null : genCache.name());
-        qualityGate.deletePass1Cache(verifyCache);
+        chunksDone++;
       }
-
-      log.info(
-          "{} 청크 생성 완료: 전달={}문항(목표 {}), 배치 완료={}/{}, 총 소요={}ms",
-          tag,
-          delivered.get(),
-          quizCount,
-          chunksDone,
-          chunkPlan.size(),
-          (System.nanoTime() - startNanos) / 1_000_000);
-
-      Long first = firstNanos.get() == 0 ? null : firstNanos.get();
-      Long last = lastNanos.get() == 0 ? null : lastNanos.get();
-      metricsRecorder.recordRequestDuration(chunksDone, startNanos, first, last, totalCost.sum());
-      metricsRecorder.recordQuizCounts(tag, quizCount, delivered.get(), chunksDone);
     }
 
-    /** 1단계 생성 */
-    private List<AIProblem> runGenerationPhase(int chunkIndex, int chunkSize) {
+    private List<AIProblem> generateChunk(int chunkIndex, int chunkSize) {
       String userPrompt =
           quizType.generateRequestPrompt(
               request.referencePages(), chunkSize, request.customInstruction());
@@ -233,27 +233,20 @@ public abstract class AbstractChunkedQuizOrchestrator<T> implements QuizTypeOrch
         userPrompt = userPrompt + dedupInstruction();
       }
 
-      // 캐시가 있으면 PDF는 캐시 프리픽스에 있으므로 첨부하지 않는다. 폴백(캐시 없음) 시 첫 사용자 턴에만 첨부한다.
       UserMessage.Builder ub = UserMessage.builder().text(userPrompt);
       if (genCache == null && chunkIndex == 0) {
         ub.media(pdfMedia);
       }
       UserMessage phase1User = ub.build();
 
-      // 캐시 사용 시 system·PDF는 캐시에 있으므로 요청엔 대화 턴만. 폴백 시 전체 지침(문제+해설)을 prepend.
       List<Message> messages = new ArrayList<>();
       if (genCache == null) {
         messages.add(new SystemMessage(genGuideLine));
       }
       messages.addAll(conversation);
       messages.add(phase1User);
-
-      // 전체 스키마(선지별 해설 포함) — 문제·해설을 한 응답에 생성한다. 저장 시 sink가 인라인 해설을 마크다운으로 조립한다.
       String schema = responseSchema(request.customInstruction());
       Prompt prompt = new Prompt(messages, buildOptions(schema, genCache));
-
-      // 이 청크에서 생성된(검증 이전) 문항 — 생성 순서. 대화 히스토리 구성과 청크 진행 판단에 쓴다.
-      // 스트림 콜백(단일 리액터 스레드)에서만 add 하고, streamInto 종료(blockLast) 이후 읽으므로 가시성이 보장된다.
       List<AIProblem> generated = new ArrayList<>();
       StreamingJsonArrayExtractor<T> extractor =
           new StreamingJsonArrayExtractor<>(
@@ -266,9 +259,6 @@ public abstract class AbstractChunkedQuizOrchestrator<T> implements QuizTypeOrch
                 AIProblem arranged = toProblem(question, metadata.sourcePages());
                 int order = submitted.incrementAndGet();
                 generated.add(arranged);
-
-                // 처음 fast-serve-count개는 생성 게이트 없이 즉시 저장한다(즉석 서빙 — 사후 Pass 2가 판정).
-                // 그 외엔 생성 게이트를 비동기로 제출하고 즉시 리턴한다 — 스트림 소비를 검증이 붙잡지 않는다.
                 if (order <= aiProperties.getFastServeCount()) {
                   verifyFutures.add(submitFastServe(arranged));
                 } else {
@@ -279,13 +269,27 @@ public abstract class AbstractChunkedQuizOrchestrator<T> implements QuizTypeOrch
 
       streamInto(prompt, extractor, chunkIndex);
 
-      // 어시스턴트 턴 = 이 청크에서 생성된 전체 문항(검증 결과와 무관). 검증을 기다리지 않고 다음 청크의 중복 회피 컨텍스트를 확정한다.
       conversation.add(phase1User);
       conversation.add(new AssistantMessage(serializeProblems(generated)));
       return generated;
     }
 
-    /** 즉석 서빙: 생성 게이트 검증 없이 저장·통지한다. 처음 문항들의 체감 지연(TTFQ)에서 검증 콜 지연을 제거한다. */
+    private void streamInto(
+        Prompt prompt, StreamingJsonArrayExtractor<T> extractor, int chunkIndex) {
+      Flux<ChatResponse> stream = chatModel.stream(prompt);
+      stream
+          .doOnNext(
+              response -> {
+                String text = extractText(response);
+                if (text != null) extractor.feed(text);
+                recordUsage(response, tag + " chunk #" + chunkIndex);
+              })
+          .blockLast();
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    //  3. 평가
+    // ══════════════════════════════════════════════════════════════════
     private CompletableFuture<Void> submitFastServe(AIProblem problem) {
       return CompletableFuture.runAsync(
           () -> {
@@ -298,11 +302,6 @@ public abstract class AbstractChunkedQuizOrchestrator<T> implements QuizTypeOrch
           verifyExecutor);
     }
 
-    /**
-     * 생성 게이트 검증을 비동기로 수행한다. 통과·검증불가면 저장·통지하고, 미달(v1)이면 보류 큐에 넣는다(청크 루프 종료 후 1회 재생성).
-     *
-     * <p>저장 순번은 이 워커가 saveProblem을 호출하는 순서 = 검증 통과 순서이므로, 먼저 통과한 문항이 낮은 번호를 받는다.
-     */
     private CompletableFuture<Void> submitVerification(AIProblem problem) {
       return CompletableFuture.runAsync(
           () -> {
@@ -334,7 +333,6 @@ public abstract class AbstractChunkedQuizOrchestrator<T> implements QuizTypeOrch
           verifyExecutor);
     }
 
-    /** 통과 문항을 저장·통지하고 v1 로그를 기록한다. 여러 검증 워커가 동시에 호출하므로 sink는 스레드 안전해야 한다(consumerLock 직렬화). */
     private void store(AIProblem problem, String v1Feedback) {
       int number = sink.saveProblem(problem);
       sink.recordV1(number, problem, v1Feedback);
@@ -348,7 +346,6 @@ public abstract class AbstractChunkedQuizOrchestrator<T> implements QuizTypeOrch
       }
     }
 
-    /** 제출된 모든 비동기 검증이 정착할 때까지 대기한다(멱등 — 여러 번 호출해도 안전). */
     private void awaitVerifications() {
       try {
         CompletableFuture.allOf(verifyFutures.toArray(CompletableFuture[]::new)).join();
@@ -357,60 +354,55 @@ public abstract class AbstractChunkedQuizOrchestrator<T> implements QuizTypeOrch
       }
     }
 
-    private void streamInto(
-        Prompt prompt, StreamingJsonArrayExtractor<T> extractor, int chunkIndex) {
-      Flux<ChatResponse> stream = chatModel.stream(prompt);
-      stream
-          .doOnNext(
-              response -> {
-                String text = extractText(response);
-                if (text != null) extractor.feed(text);
-                recordUsage(response, tag + " chunk #" + chunkIndex);
-              })
-          // 대기 상한은 OkHttp 시한(connect/read/call, gemini-http 설정)이 전담한다 — 동기 풀 구조라
-          // blockLast의 Duration은 발화 불능이므로 두지 않는다.
-          .blockLast();
-    }
-
-    private void recordUsage(ChatResponse response, String label) {
-      if (response.getMetadata().getUsage().getCompletionTokens() > 0) {
-        double cost =
-            metricsRecorder.recordChunkUsage(label, startNanos, response.getMetadata().getUsage());
-        totalCost.add(cost);
-      }
-    }
-
-    /**
-     * 보류된 미달 문항을 세션 내에서 1회씩 재생성한다(FR: 1회 캡). 개선본(v2)은 검증 없이 저장하고, 품질 로그엔 v1·v2를 함께 기록한다(사후 Pass 2가
-     * v2를 판정). 재생성 불가→제외. 이미 목표 문항 수를 채웠으면 중단한다.
-     */
-    private void processHeldQueue() {
+    // ══════════════════════════════════════════════════════════════════
+    //  4. 재생성 (1문제씩)
+    // ══════════════════════════════════════════════════════════════════
+    private void regenerateHeld() {
       if (heldQueue.isEmpty()) {
         return;
       }
-      log.info("{} 보류 문항 재생성 시작: {}건", tag, heldQueue.size());
-      for (HeldProblem held : heldQueue) {
-        if (delivered.get() >= quizCount) {
-          break;
+      int workers = Math.min(REGENERATE_CONCURRENCY, heldQueue.size());
+      log.info("{} 보류 문항 재생성 시작: {}건 (워커 {})", tag, heldQueue.size(), workers);
+
+      // 목표 문항 수까지 남은 칸을 티켓으로 나눠 갖는다. 워커가 호출 전에 하나 집고 산출 실패 시 반납해
+      // 다음 항목이 쓰게 한다 — 동시에 돌아도 목표 문항 수를 초과 저장하지 않는다.
+      Semaphore budget = new Semaphore(Math.max(0, quizCount - delivered.get()));
+
+      List<CompletableFuture<Void>> tasks = new ArrayList<>();
+      for (int i = 0; i < workers; i++) {
+        tasks.add(CompletableFuture.runAsync(() -> drainHeldQueue(budget), verifyExecutor));
+      }
+      CompletableFuture.allOf(tasks.toArray(CompletableFuture[]::new)).join();
+    }
+
+    private void drainHeldQueue(Semaphore budget) {
+      while (budget.tryAcquire()) {
+        HeldProblem held = heldQueue.poll();
+        if (held == null) {
+          budget.release();
+          return;
         }
+        boolean produced = false;
         try {
           AIProblem v2 = regenerateOne(held);
-          if (v2 == null) {
-            continue;
+          if (v2 != null) {
+            // v2는 검증 없이 저장한다
+            int number = sink.saveProblem(v2);
+            sink.recordV1(number, held.problem(), held.feedback());
+            sink.recordV2(number, v2);
+            delivered.incrementAndGet();
+            produced = true;
           }
-          // v2는 검증 없이 저장한다(사후 Pass 2가 판정). 품질 로그엔 미달 원본(v1)과 개선본(v2)을 함께 기록해 전후 비교를 남긴다.
-          int number = sink.saveProblem(v2);
-          sink.recordV1(number, held.problem(), held.feedback());
-          sink.recordV2(number, v2);
-          delivered.incrementAndGet();
         } catch (Exception e) {
           // 재생성 불가 → 제외(문항 수 축소).
           log.warn("{} 보류 문항 재생성 실패 — 제외", tag, e);
         }
+        if (!produced) {
+          budget.release();
+        }
       }
     }
 
-    /** 보류 문항 1건을 재생성한다. 살아있는 대화 스레드(원문 컨텍스트)에 개선 지시를 얹어 개선 문항 1개를 산출한다. */
     private AIProblem regenerateOne(HeldProblem held) {
       List<Message> messages = new ArrayList<>();
       if (genCache == null) {
@@ -437,9 +429,35 @@ public abstract class AbstractChunkedQuizOrchestrator<T> implements QuizTypeOrch
       }
       return toProblem(q, metadata.sourcePages());
     }
+
+    // ══════════════════════════════════════════════════════════════════
+    //  계측 (단계 아님 — 각 단계가 호출)
+    // ══════════════════════════════════════════════════════════════════
+    private void recordUsage(ChatResponse response, String label) {
+      if (response.getMetadata().getUsage().getCompletionTokens() > 0) {
+        double cost =
+            metricsRecorder.recordChunkUsage(label, startNanos, response.getMetadata().getUsage());
+        totalCost.add(cost);
+      }
+    }
+
+    private void recordOutcome() {
+      log.info(
+          "{} 청크 생성 완료: 전달={}문항(목표 {}), 배치 완료={}/{}, 총 소요={}ms",
+          tag,
+          delivered.get(),
+          quizCount,
+          chunksDone,
+          chunkTotal,
+          (System.nanoTime() - startNanos) / 1_000_000);
+
+      Long first = firstNanos.get() == 0 ? null : firstNanos.get();
+      Long last = lastNanos.get() == 0 ? null : lastNanos.get();
+      metricsRecorder.recordRequestDuration(chunksDone, startNanos, first, last, totalCost.sum());
+      metricsRecorder.recordQuizCounts(tag, quizCount, delivered.get(), chunksDone);
+    }
   }
 
-  /** PDF 업로드(캐시) 후 FileMetadata를 확보한다. */
   private FileMetadata resolvePdf(GenerationRequestToAI request) {
     String cacheKey =
         geminiFileService.generateCacheKey(request.fileUrl(), request.referencePages());
@@ -464,10 +482,6 @@ public abstract class AbstractChunkedQuizOrchestrator<T> implements QuizTypeOrch
     return response.getResult().getOutput().getText();
   }
 
-  /**
-   * JSON 응답 옵션을 만든다. cacheName이 있으면 해당 컨텍스트 캐시를 참조한다({@code useCachedContent}는 {@code
-   * cachedContentName}과 함께여야 ChatModel이 실제로 적용한다 — Spring AI 2.0.0의 {@code autoCache*}는 미소비 휴면 옵션).
-   */
   private GoogleGenAiChatOptions buildOptions(String responseSchema, CacheRef cacheRef) {
     GoogleGenAiChatOptions.Builder builder =
         GoogleGenAiChatOptions.builder()
@@ -480,7 +494,6 @@ public abstract class AbstractChunkedQuizOrchestrator<T> implements QuizTypeOrch
     return builder.build();
   }
 
-  /** 생성 게이트에서 미달 판정돼 보류된 문항(v1)과 개선 피드백. */
   private record HeldProblem(AIProblem problem, String feedback) {}
 
   private String buildRegenerationPrompt(HeldProblem held) {
@@ -493,7 +506,6 @@ public abstract class AbstractChunkedQuizOrchestrator<T> implements QuizTypeOrch
     return RegenerationPrompt.forHeldProblem(problemJson, held.feedback());
   }
 
-  /** 생성된 문항을 어시스턴트 턴 JSON으로 직렬화한다({"questions":[...]}). */
   private String serializeProblems(List<AIProblem> problems) {
     try {
       return objectMapper.writeValueAsString(Map.of("questions", problems));
