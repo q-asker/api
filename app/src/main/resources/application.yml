@@ -4,6 +4,7 @@ spring:
   config:
     import:
       - config/database-config.yml
+      - config/threads.yml
       - config/ai-setting.yml
       - config/spring-security.yml
       - config/oci-bucket-config.yml

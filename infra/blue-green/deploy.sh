@@ -113,8 +113,18 @@ if [ -z "$IS_NGINX_RUNNING" ]; then
     send_slack ">>> Nginx가 실행 중이지 않습니다. Nginx 시작..."
     docker compose up -d nginx
 else
+    # 리로드 전에 검증한다. 무효한 설정으로 reload 하면 Nginx 는 옛 설정을 유지한 채 살아 있어
+    # 서비스는 멀쩡하지만 새 설정이 반영되지 않는다 — 확인하지 않으면 그대로 '배포 성공'으로 보고된다.
+    if ! docker exec nginx nginx -t; then
+        send_slack ">>> ❌ Nginx 설정 검증 실패! 리로드하지 않고 중단합니다. (트래픽은 구 설정으로 유지)"
+        exit 1
+    fi
+
     send_slack ">>> Nginx가 실행 중입니다. 설정 리로드(Reload)..."
-    docker exec nginx nginx -s reload
+    if ! docker exec nginx nginx -s reload; then
+        send_slack ">>> ❌ Nginx 리로드 실패! (트래픽은 구 설정으로 유지)"
+        exit 1
+    fi
 fi
 
 # 6. 이전 버전 컨테이너 중지

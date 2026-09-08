@@ -72,13 +72,14 @@ q-asker/api/
 │       ├── application-test.yml  # test 프로파일 (CI/JUnit, H2 + 더미 Jasypt/OCI)
 │       ├── db/migration/         # Flyway 마이그레이션 SQL (V1~V20)
 │       └── config/               # 분리된 설정 파일들
-│           ├── database-config.yml   # DB(HikariCP), JPA, 캐시, Flyway (hikari 블록은 대부분 기본값을 명시만 한 것 — 가상 스레드라 요청 동시성엔 상한이 없어 실질 처리량은 maximum-pool-size(10)가 결정하고, minimum-idle 이 숫자로 박혀 있어 풀을 키울 땐 둘을 함께 올려야 고정 크기 성질이 유지된다. prod 만 keepalive-time 60s 로 오버라이드)
+│           ├── database-config.yml   # JPA·Hibernate, 캐시, Flyway (HikariCP 는 threads.yml 로 이관)
+│           ├── threads.yml          # 스레드·스레드풀·커넥션풀 일원화 — 가상 스레드 활성화, server.tomcat 수용/워커 상한, HikariCP 블록 전체(prod 만 keepalive-time 60s 오버라이드), LibreOffice 프로세스 풀(port-numbers), q-asker.ai.concurrency(검증·재생성 동시 실행 상한), async 종료 대기. "동시에 몇 개가 도는가"는 전부 여기서 본다 — 개별 호출 시한은 각 관심사 파일에 남는다
 │           ├── ai-setting.yml        # Google Gemini AI 설정 (생성/ESSAY 채점/품질 검증 모델, 토큰 단가 — 모델을 바꾸면 같은 계층의 price-*-per-1m 도 그 모델 실단가로 함께 고쳐야 GeminiMetricsRecorder 비용 카운터가 맞는다)
 │           ├── spring-security.yml   # JWT, OAuth2, CORS
 │           ├── oci-bucket-config.yml # OCI Object Storage, CDN
 │           ├── jodconverter.yml      # LibreOffice 문서변환
 │           ├── actuator.yml          # Actuator, Prometheus
-│           ├── app-common.yml        # 앱 커스텀 설정 + 서버(graceful shutdown, server.tomcat)·멀티파트·가상 스레드 활성화 (tomcat 블록은 전부 기본값을 명시만 한 것 — 가상 스레드가 켜져 있어 threads.max/min-spare 는 적용되지 않는다)
+│           ├── app-common.yml        # 앱 커스텀 설정 + 서버(graceful shutdown, server.http2 = 평문 h2c 수신, server.tomcat 시한·크기 한도)·멀티파트·SSE emitter 시한 (동시성 관련 tomcat 설정은 threads.yml 로 이관)
 │           ├── github.yml            # 피드백 → GitHub 이슈 자동 등록 (owner/repo/토큰/라벨)
 │           ├── resilience.yml        # Circuit Breaker
 │           ├── spring-doc.yml        # Swagger/OpenAPI
@@ -90,7 +91,7 @@ q-asker/api/
 │   ├── board/    (api + impl)    # 게시판
 │   ├── quiz-ai/  (api + impl)    # AI 퀴즈 생성 (Gemini 호출, 청크 분할 스트리밍(ChunkPlanner/AbstractChunkedQuizOrchestrator)·컨텍스트 캐시(GeminiContextCacheManager — 생성 성패를 gemini.cache.create 카운터로 기록, 실패=프리픽스 매 호출 재전송 강등), 메트릭, 품질 검증 QualityVerifier/QualityGate — 검증관 프롬프트는 생성 GuideLine이 아니라 유형별 관찰 가능 실격 사유(QualityVerifierImpl.DISQUALIFIERS)로 독립 판정하고, 검증 항목은 유형에 맞게 필터링(ESSAY 전용↔객관형 전용 분리))
 │   ├── quiz-make/(api + impl)    # 퀴즈 생성 흐름 (파일업로드, SSE, 생성결과)
-│   ├── quiz-set/ (api + impl)    # 퀴즈 세트 CRUD, 품질 리뷰(QualityReviewService, problemSetIds 배치 재검토)·해설 재검토(ExplanationReviewService/ExplanationFormatValidator)·품질 로그(QualityLogService/ProblemQualityLog, v1 생성본·v2 재생성본 함께 보관)·스테일 생성 복구(StaleGenerationRecovery 인터페이스 — FAILED·10분 초과 GENERATING 세트를 부모 벌크 JPQL delete 로 삭제, 자식 problem 은 FK ON DELETE CASCADE[V19]가 DB 에서 자동 삭제; mock 구현은 동일 SELECT+벌크 delete 를 태운 뒤 롤백해 순증 0)
+│   ├── quiz-set/ (api + impl)    # 퀴즈 세트 CRUD, 품질 리뷰(QualityReviewService, problemSetIds 배치 재검토)·해설 재검토(ExplanationReviewService/ExplanationFormatValidator)·품질 로그(QualityLogService/ProblemQualityLog, v1 생성본·v2 재생성본 함께 보관)·스테일 생성 복구(StaleGenerationRecovery 인터페이스 — createdAt 이 15분 지난 FAILED·GENERATING 세트를 부모 벌크 JPQL delete 로 삭제(임계는 생성 세션 시한 10분보다 길어야 한다 — 같으면 진행 중인 생성 세트가 저장 직전에 지워진다), 자식 problem 은 FK ON DELETE CASCADE[V19]가 DB 에서 자동 삭제; mock 구현은 동일 SELECT+벌크 delete 를 태운 뒤 롤백해 순증 0)
 │   ├── quiz-history/(api + impl) # 풀이 히스토리 + 기록 폴더 분류(QuizFolder 엔티티, /folders CRUD[POST·GET·PATCH·DELETE], PATCH /history/{id}/folder 배정·해제, GET /history?scope=ALL|UNCLASSIFIED|FOLDER&folderId= 필터링; QuizFolderCommand/QueryService, QuizHistory.folder_id)
 │   ├── document/ (api + impl)    # 문서 변환 (PPT/DOCX → PDF)
 │   └── admin/                    # 관리자 전용 API
