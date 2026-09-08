@@ -22,7 +22,7 @@ public class StaleGenerationRecoveryScheduler {
   public void deleteStaleProblemSets() {
     int purged = staleGenerationRecoveryService.purgeStaleProblemSets();
     if (purged > 0) {
-      log.warn("[방치 ProblemSet 정리] FAILED/GENERATING 10분 초과 삭제 count={}", purged);
+      log.warn("[방치 ProblemSet 정리] FAILED/GENERATING 15분 초과 삭제 count={}", purged);
     }
   }
 }

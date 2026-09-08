@@ -6,6 +6,6 @@ package com.icc.qasker.quizset.scheduler;
  */
 public interface StaleGenerationRecovery {
 
-  /** FAILED 또는 10분 이상 GENERATING 상태로 방치된 ProblemSet을 정리하고 대상 건수를 반환한다. */
+  /** FAILED 또는 15분 이상 GENERATING 상태로 방치된 ProblemSet을 정리하고 대상 건수를 반환한다. */
   int purgeStaleProblemSets();
 }

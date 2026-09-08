@@ -2,7 +2,6 @@ package com.icc.qasker.ai.config;
 
 import com.google.genai.Client;
 import com.google.genai.types.ClientOptions;
-import com.google.genai.types.HttpOptions;
 import com.icc.qasker.ai.properties.QAskerAiProperties;
 import lombok.RequiredArgsConstructor;
 import okhttp3.OkHttpClient;
@@ -40,9 +39,6 @@ public class GeminiClientConfig {
   @Bean
   @org.springframework.context.annotation.Profile({"test", "mock"})
   public Client googleGenAiClientTest() {
-    return Client.builder()
-        .apiKey("ci-dummy-key")
-        .httpOptions(HttpOptions.builder().timeout(aiProperties.getChatTimeoutMs()).build())
-        .build();
+    return Client.builder().apiKey("ci-dummy-key").build();
   }
 }

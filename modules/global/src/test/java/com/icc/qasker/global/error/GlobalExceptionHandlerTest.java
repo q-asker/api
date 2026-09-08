@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -129,6 +130,19 @@ class GlobalExceptionHandlerTest {
         .perform(get("/boom"))
         .andExpect(status().isInternalServerError())
         .andExpect(jsonPath("$.message").value(ExceptionMessage.DEFAULT_ERROR.getMessage()));
+  }
+
+  @Test
+  @DisplayName("POST 전용 경로에 GET → 405 + Allow 헤더 + WARN 로그 (500 아님)")
+  void methodNotSupported() throws Exception {
+    mockMvc
+        .perform(get("/validate"))
+        .andExpect(status().isMethodNotAllowed())
+        .andExpect(header().string("Allow", "POST"))
+        .andExpect(jsonPath("$.message").value(ExceptionMessage.METHOD_NOT_ALLOWED.getMessage()));
+
+    assertThat(logAppender.list)
+        .anyMatch(e -> e.getLevel() == Level.WARN && e.getFormattedMessage().contains("GET"));
   }
 
   @Test

@@ -24,7 +24,7 @@ import org.springframework.transaction.interceptor.TransactionAspectSupport;
 @RequiredArgsConstructor
 public class MockStaleGenerationRecoveryService implements StaleGenerationRecovery {
 
-  private static final long STALE_THRESHOLD_MINUTES = 10;
+  private static final long STALE_THRESHOLD_MINUTES = 15;
   private static final List<GenerationStatus> TARGET_STATUSES =
       List.of(GenerationStatus.FAILED, GenerationStatus.GENERATING);
 
