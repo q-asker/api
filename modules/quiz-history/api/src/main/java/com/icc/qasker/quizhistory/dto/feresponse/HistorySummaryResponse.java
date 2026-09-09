@@ -1,5 +1,6 @@
 package com.icc.qasker.quizhistory.dto.feresponse;
 
+import com.icc.qasker.quizset.ProblemSetOrigin;
 import com.icc.qasker.quizset.dto.ferequest.enums.QuizType;
 import java.time.Instant;
 
@@ -14,4 +15,5 @@ public record HistorySummaryResponse(
     Integer score,
     Instant takenAt,
     String folderId,
-    String folderName) {}
+    String folderName,
+    ProblemSetOrigin origin) {}
