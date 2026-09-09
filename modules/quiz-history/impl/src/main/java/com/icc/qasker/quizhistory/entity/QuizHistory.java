@@ -10,6 +10,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import java.time.Instant;
 import java.util.List;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -55,6 +56,9 @@ public class QuizHistory extends CreatedAt {
 
   @Column private Integer score;
 
+  /** 풀이를 마친 시각. createdAt 은 기록 행이 처음 만들어진 시각이라 재풀이해도 갱신되지 않아 "가장 최근에 푼 순"을 표현하지 못한다. 미완료면 null. */
+  @Column private Instant completedAt;
+
   private String totalTime;
 
   @Enumerated(EnumType.STRING)
@@ -76,6 +80,7 @@ public class QuizHistory extends CreatedAt {
     this.score = score;
     this.totalTime = totalTime;
     this.status = QuizHistoryStatus.COMPLETED;
+    this.completedAt = Instant.now();
   }
 
   public enum QuizHistoryStatus {

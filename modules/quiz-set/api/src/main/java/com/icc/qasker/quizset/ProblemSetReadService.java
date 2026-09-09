@@ -10,6 +10,9 @@ public interface ProblemSetReadService {
 
   Optional<ProblemSetSummary> findProblemSetById(Long id);
 
+  /** 세션 식별자로 세트를 찾는다. 같은 요청이 두 번 들어왔을 때 이미 만들어진 세트를 그대로 돌려주기 위해 쓴다. */
+  Optional<ProblemSetSummary> findProblemSetBySessionId(String sessionId);
+
   List<ProblemSetSummary> findProblemSetsByIds(List<Long> ids);
 
   List<ProblemDetail> findProblemsByProblemSetId(Long problemSetId);

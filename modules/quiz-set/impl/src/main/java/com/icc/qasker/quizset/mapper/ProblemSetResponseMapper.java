@@ -62,6 +62,7 @@ public final class ProblemSetResponseMapper {
         problemSet.getGenerationStatus(),
         problemSet.getQuizType(),
         problemSet.getTotalQuizCount(),
+        problemSet.getOrigin(),
         quizzes);
   }
 }

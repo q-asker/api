@@ -10,6 +10,7 @@ import com.icc.qasker.quizhistory.dto.feresponse.ProblemWithAnswer;
 import com.icc.qasker.quizhistory.entity.AnswerSnapshotView;
 import com.icc.qasker.quizhistory.entity.EssayGradeLog;
 import com.icc.qasker.quizhistory.entity.QuizHistory;
+import com.icc.qasker.quizhistory.grading.AnswerJudge;
 import com.icc.qasker.quizset.dto.ferequest.enums.QuizType;
 import com.icc.qasker.quizset.dto.feresponse.Selection;
 import com.icc.qasker.quizset.dto.readonly.ProblemDetail;
@@ -28,7 +29,12 @@ public final class QuizHistoryMapper {
 
   private final HashUtil hashUtil;
 
-  /** QuizHistory + ProblemSetSummary → HistorySummaryResponse 변환. folderName은 미분류면 null. */
+  /**
+   * QuizHistory + ProblemSetSummary → HistorySummaryResponse 변환. folderName은 미분류면 null.
+   *
+   * <p>{@code takenAt}은 완료 시각이다. 오답 모아풀기가 미완료 기록을 폴더에 만들기 때문에, 기록 생성 시각을 쓰면 아직 풀지도 않은 문제집에 완료일이
+   * 찍힌다. 완료하지 않은 기록은 완료 시각이 없으므로 null이다.
+   */
   public HistorySummaryResponse toSummary(
       QuizHistory history, ProblemSetSummary problemSet, String folderName) {
     boolean completed =
@@ -46,9 +52,10 @@ public final class QuizHistoryMapper {
         problemSet.totalQuizCount(),
         completed,
         history.getScore(),
-        history.getCreatedAt(),
+        history.getCompletedAt(),
         folderId,
-        folderName);
+        folderName,
+        problemSet.origin());
   }
 
   /**
@@ -61,9 +68,8 @@ public final class QuizHistoryMapper {
       return toRealBlankProblemWithAnswer(problem, answers);
     }
     List<SelectionDetail> rawSelections = problem.selections();
-    int correctIndex = findCorrectIndex(rawSelections);
     int userAnswer = answers.userAnswer(problem.number());
-    boolean correct = userAnswer == correctIndex;
+    boolean correct = AnswerJudge.isCorrect(quizType, problem, answers);
     List<Selection> selections =
         IntStream.range(0, rawSelections.size())
             .mapToObj(
@@ -130,14 +136,5 @@ public final class QuizHistoryMapper {
         gradeLog.getMaxScore(),
         gradeLog.getOverallFeedback(),
         elementScores);
-  }
-
-  private int findCorrectIndex(List<SelectionDetail> selections) {
-    for (int i = 0; i < selections.size(); i++) {
-      if (selections.get(i).correct()) {
-        return i + 1;
-      }
-    }
-    return -1;
   }
 }

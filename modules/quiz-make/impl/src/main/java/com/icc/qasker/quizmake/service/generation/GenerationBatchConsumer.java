@@ -9,6 +9,7 @@ import com.icc.qasker.quizmake.SseNotificationService;
 import com.icc.qasker.quizmake.dto.ferequest.GenerationRequest;
 import com.icc.qasker.quizmake.mapper.AIProblemSetMapper;
 import com.icc.qasker.quizmake.mapper.ExplanationMarkdownBuilder;
+import com.icc.qasker.quizset.ProblemSetOrigin;
 import com.icc.qasker.quizset.QualityLogService;
 import com.icc.qasker.quizset.QuizCommandService;
 import com.icc.qasker.quizset.QuizQueryService;
@@ -160,6 +161,7 @@ class GenerationBatchConsumer implements QuizBatchSink {
             GENERATING,
             request.quizType(),
             request.quizCount(),
+            ProblemSetOrigin.DOCUMENT,
             quizForFeList));
   }
 

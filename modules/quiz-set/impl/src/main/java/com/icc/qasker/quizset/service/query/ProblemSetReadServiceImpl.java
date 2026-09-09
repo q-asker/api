@@ -28,6 +28,13 @@ public class ProblemSetReadServiceImpl implements ProblemSetReadService {
   }
 
   @Override
+  public Optional<ProblemSetSummary> findProblemSetBySessionId(String sessionId) {
+    return problemSetRepository
+        .findFirstBySessionIdOrderByCreatedAtDesc(sessionId)
+        .map(this::toSummary);
+  }
+
+  @Override
   public List<ProblemSetSummary> findProblemSetsByIds(List<Long> ids) {
     return problemSetRepository.findAllById(ids).stream().map(this::toSummary).toList();
   }
@@ -43,7 +50,12 @@ public class ProblemSetReadServiceImpl implements ProblemSetReadService {
 
   private ProblemSetSummary toSummary(ProblemSet ps) {
     return new ProblemSetSummary(
-        ps.getId(), ps.getQuizType(), ps.getTotalQuizCount(), ps.getTitle(), ps.getCreatedAt());
+        ps.getId(),
+        ps.getQuizType(),
+        ps.getTotalQuizCount(),
+        ps.getTitle(),
+        ps.getCreatedAt(),
+        ps.getOrigin());
   }
 
   private ProblemDetail toDetail(Problem p) {
@@ -52,6 +64,11 @@ public class ProblemSetReadServiceImpl implements ProblemSetReadService {
             .map(s -> new SelectionDetail(s.content(), s.correct(), s.acceptedAnswers()))
             .toList();
     return new ProblemDetail(
-        p.getId().getNumber(), p.getTitle(), selections, p.getExplanationContent());
+        p.getId().getNumber(),
+        p.getTitle(),
+        selections,
+        p.getExplanationContent(),
+        p.getOriginProblemSetId(),
+        p.getOriginNumber());
   }
 }
