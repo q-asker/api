@@ -1,6 +1,7 @@
 package com.icc.qasker.quizset.dto.feresponse;
 
 import com.icc.qasker.quizset.GenerationStatus;
+import com.icc.qasker.quizset.ProblemSetOrigin;
 import com.icc.qasker.quizset.dto.ferequest.enums.QuizType;
 import java.util.List;
 
@@ -11,6 +12,7 @@ public record ProblemSetResponse(
     GenerationStatus generationStatus,
     QuizType quizType,
     Integer totalCount,
+    ProblemSetOrigin origin,
     List<QuizForFe> quiz) {
 
   public record QuizForFe(

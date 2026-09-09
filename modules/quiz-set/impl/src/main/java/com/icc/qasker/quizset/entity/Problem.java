@@ -64,6 +64,12 @@ public class Problem extends CreatedAt {
   @Column(columnDefinition = "TEXT")
   private String appliedInstruction;
 
+  // 재출제 혈통 — 이 문항이 복제된 최초 조상(세트 id + 문항 번호). 복제 시 조상 값을 물려받으므로 세대가 반복돼도 최초 문항을 가리킨다.
+  // 자료로 생성된 원본 문항은 둘 다 null.
+  @Column private Long originProblemSetId;
+
+  @Column private Integer originNumber;
+
   // Phase 1: 문제 생성 시 선택지와 참조 페이지를 바인딩
   public void bindQuizData(List<Selection> selections, List<Integer> referencedPages) {
     this.selections = selections == null ? List.of() : List.copyOf(selections);

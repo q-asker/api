@@ -2,6 +2,7 @@ package com.icc.qasker.quizset.entity;
 
 import com.icc.qasker.global.entity.CreatedAt;
 import com.icc.qasker.quizset.GenerationStatus;
+import com.icc.qasker.quizset.ProblemSetOrigin;
 import com.icc.qasker.quizset.converter.IntegerListConverter;
 import com.icc.qasker.quizset.dto.ferequest.enums.QuizType;
 import jakarta.persistence.CascadeType;
@@ -50,6 +51,15 @@ public class ProblemSet extends CreatedAt {
 
   @Enumerated(EnumType.STRING)
   private QuizType quizType;
+
+  // 세트 출처. 오답 모아풀기로 만들어진 세트는 원본 자료가 없어, 자료를 전제로 하는 후속 동작의 노출 여부를 이 값으로 가른다.
+  @Enumerated(EnumType.STRING)
+  @Builder.Default
+  @Column(nullable = false, length = 20)
+  private ProblemSetOrigin origin = ProblemSetOrigin.DOCUMENT;
+
+  // 오답 모아풀기로 만든 세트가 어느 폴더에서 모였는지. 자료 기반 세트는 null.
+  @Column private Long sourceFolderId;
 
   @PositiveOrZero
   @Column(nullable = false)

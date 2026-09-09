@@ -10,6 +10,7 @@ import com.icc.qasker.quizhistory.dto.feresponse.ProblemWithAnswer;
 import com.icc.qasker.quizhistory.entity.AnswerSnapshotView;
 import com.icc.qasker.quizhistory.entity.EssayGradeLog;
 import com.icc.qasker.quizhistory.entity.QuizHistory;
+import com.icc.qasker.quizhistory.grading.AnswerJudge;
 import com.icc.qasker.quizset.dto.ferequest.enums.QuizType;
 import com.icc.qasker.quizset.dto.feresponse.Selection;
 import com.icc.qasker.quizset.dto.readonly.ProblemDetail;
@@ -48,7 +49,8 @@ public final class QuizHistoryMapper {
         history.getScore(),
         history.getCreatedAt(),
         folderId,
-        folderName);
+        folderName,
+        problemSet.origin());
   }
 
   /**
@@ -61,9 +63,8 @@ public final class QuizHistoryMapper {
       return toRealBlankProblemWithAnswer(problem, answers);
     }
     List<SelectionDetail> rawSelections = problem.selections();
-    int correctIndex = findCorrectIndex(rawSelections);
     int userAnswer = answers.userAnswer(problem.number());
-    boolean correct = userAnswer == correctIndex;
+    boolean correct = AnswerJudge.isCorrect(quizType, problem, answers);
     List<Selection> selections =
         IntStream.range(0, rawSelections.size())
             .mapToObj(
@@ -130,14 +131,5 @@ public final class QuizHistoryMapper {
         gradeLog.getMaxScore(),
         gradeLog.getOverallFeedback(),
         elementScores);
-  }
-
-  private int findCorrectIndex(List<SelectionDetail> selections) {
-    for (int i = 0; i < selections.size(); i++) {
-      if (selections.get(i).correct()) {
-        return i + 1;
-      }
-    }
-    return -1;
   }
 }

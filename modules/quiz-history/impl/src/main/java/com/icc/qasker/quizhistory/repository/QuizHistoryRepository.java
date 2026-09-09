@@ -27,6 +27,10 @@ public interface QuizHistoryRepository extends JpaRepository<QuizHistory, Long> 
 
   Optional<QuizHistory> findByUserIdAndProblemSetId(String userId, Long problemSetId);
 
+  /** 폴더 하나에 든 내 기록. 오답 모아풀기의 수집 범위가 이 한 줄로 닫힌다(폴더 밖·타인 기록이 섞일 자리가 없다). */
+  List<QuizHistory> findAllByUserIdAndFolderIdAndStatusOrderByCreatedAtDesc(
+      String userId, Long folderId, QuizHistory.QuizHistoryStatus status);
+
   /** 사용자의 폴더별 기록 수(미분류 제외). */
   @Query(
       "SELECT h.folderId AS folderId, COUNT(h) AS count FROM QuizHistory h"

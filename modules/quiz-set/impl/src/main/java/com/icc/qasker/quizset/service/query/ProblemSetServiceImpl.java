@@ -3,6 +3,7 @@ package com.icc.qasker.quizset.service.query;
 import com.icc.qasker.global.component.HashUtil;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
+import com.icc.qasker.quizset.ProblemSetOrigin;
 import com.icc.qasker.quizset.ProblemSetService;
 import com.icc.qasker.quizset.dto.ferequest.ChangeTitleRequest;
 import com.icc.qasker.quizset.dto.feresponse.ChangeTitleResponse;
@@ -37,7 +38,10 @@ public class ProblemSetServiceImpl implements ProblemSetService {
   public RegenerationConditionResponse getRegenerationCondition(String problemSetId) {
     Assert.hasText(problemSetId, "problemSetId must not be blank");
     ProblemSet ps = getProblemSetEntityByEncoded(problemSetId);
-    // 자료 능동 만료검사는 이번 스코프 미도입 → documentAvailable 항상 true(후속에 실 판정으로 대체).
+    // 자료 능동 만료검사는 이번 스코프 미도입 → 자료 기반 세트는 documentAvailable 항상 true(후속에 실 판정으로 대체).
+    // 오답 모아풀기로 만든 세트는 근거 자료 자체가 없으므로 false. 404로 막지 않는 것은 의도다 — 프론트가 이 응답을 받아
+    // 폴백 경로로 degrade 하고, 진입점을 실제로 감추는 것은 응답의 origin 을 보는 프론트 쪽 판단이다.
+    boolean documentAvailable = ps.getOrigin() != ProblemSetOrigin.WRONG_ANSWER;
     return new RegenerationConditionResponse(
         ps.getQuizType(),
         ps.getTotalQuizCount(),
@@ -46,7 +50,7 @@ public class ProblemSetServiceImpl implements ProblemSetService {
         ps.getCustomInstruction(),
         ps.getFileUrl(),
         ps.getTitle(),
-        true);
+        documentAvailable);
   }
 
   // legacy 세트는 컬럼 NULL이 IntegerListConverter를 거쳐 빈 리스트로 읽힌다. 계약대로 null로 정규화해 프론트 폴백 판정을 명확히 한다.
