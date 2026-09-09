@@ -253,6 +253,20 @@ class WrongAnswerCollectorTest {
     }
 
     @Test
+    @DisplayName("푼 시각이 모두 같으면 문항 번호가 앞선 것부터 남는다")
+    void breaksTieByQuestionNumber() {
+      // 완료 시각 컬럼이 생기기 전 기록은 백필로 전부 같은 값이 될 수 있다. 그 구간에서 무엇이 잘려나갈지를
+      // 정하는 것은 문항 번호뿐이므로, 상한과 맞물리는 이 순서를 고정해 둔다.
+      List<TypeGroup> groups = WrongAnswerCollector.collect(List.of(setOf(1L, OLD, 101)));
+
+      List<ProblemLineage> sources = groups.getFirst().sources();
+      assertThat(sources.getFirst()).isEqualTo(new ProblemLineage(1L, 1));
+      assertThat(sources.getLast()).isEqualTo(new ProblemLineage(1L, 100));
+      // 잘려나간 것은 번호가 가장 뒤인 101번이다.
+      assertThat(sources).doesNotContain(new ProblemLineage(1L, 101));
+    }
+
+    @Test
     @DisplayName("상한은 문제집 하나마다 적용된다 — 한 유형이 잘려도 다른 유형은 영향받지 않는다")
     void capIsPerType() {
       List<Integer> numbers = IntStream.rangeClosed(1, 101).boxed().toList();
