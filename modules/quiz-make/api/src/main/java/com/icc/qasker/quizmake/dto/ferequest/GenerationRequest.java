@@ -1,7 +1,7 @@
 package com.icc.qasker.quizmake.dto.ferequest;
 
+import com.icc.qasker.global.quiz.QuizType;
 import com.icc.qasker.quizmake.dto.ferequest.enums.Language;
-import com.icc.qasker.quizset.dto.ferequest.enums.QuizType;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

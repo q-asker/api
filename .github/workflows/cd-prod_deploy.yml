@@ -108,6 +108,9 @@ jobs:
           username: ${{ env.OCI_USER }}
           key: ${{ env.OCI_KEY }}
           debug: true
+          # 기본값 10m 은 deploy.sh 의 구 컨테이너 드레인(최대 1260s)보다 짧아
+          # 정상 배포가 타임아웃으로 실패 보고된다.
+          command_timeout: 30m
           script: |
             # 1. 배포 폴더로 이동 (SCP로 전송된 위치)
             cd /home/${{ env.OCI_USER }}/deploy

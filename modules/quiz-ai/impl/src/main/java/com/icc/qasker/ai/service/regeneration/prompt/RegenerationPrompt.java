@@ -1,4 +1,4 @@
-package com.icc.qasker.ai.service.prompt;
+package com.icc.qasker.ai.service.regeneration.prompt;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;

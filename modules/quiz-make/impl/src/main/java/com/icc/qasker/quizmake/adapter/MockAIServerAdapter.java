@@ -4,6 +4,7 @@ import com.icc.qasker.ai.QuizOrchestrationService;
 import com.icc.qasker.ai.dto.AIProblem;
 import com.icc.qasker.ai.dto.AISelection;
 import com.icc.qasker.ai.dto.GenerationRequestToAI;
+import com.icc.qasker.global.quiz.QuizType;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.context.annotation.Primary;
@@ -28,8 +29,8 @@ public class MockAIServerAdapter extends AIServerAdapter {
 
     // REAL_BLANK는 선택형과 산출물 형태가 달라(정답 1선지 + acceptedAnswers 2차원, 오답 선지 없음) 전용 목업을 낸다.
     // 단일 빈칸 + 다중 빈칸(≥2)을 모두 포함해 빈칸별 인정 목록 노출(FR-008) E2E를 실 Gemini 없이 검증한다.
-    if ("REAL_BLANK".equals(request.quizType())) {
-      realBlankMocks(quizCount, pages).forEach(request.sink()::saveProblem);
+    if (request.quizType() == QuizType.REAL_BLANK) {
+      realBlankMocks(quizCount, pages).forEach(request.consumer()::saveProblem);
       return;
     }
 
@@ -46,7 +47,7 @@ public class MockAIServerAdapter extends AIServerAdapter {
         // 1번 문항은 마크다운 서식(표·인용·코드·수식)을 담은 대표 픽스처로 낸다 — 기능 005 E2E가 전 요소 렌더를 검증한다.
         problems.add(i == 1 ? markdownFixture(pages) : plainMock(i, pages));
       }
-      problems.forEach(request.sink()::saveProblem);
+      problems.forEach(request.consumer()::saveProblem);
     }
   }
 

@@ -13,6 +13,7 @@ import static org.mockito.Mockito.when;
 
 import com.icc.qasker.global.component.HashUtil;
 import com.icc.qasker.global.error.CustomException;
+import com.icc.qasker.global.quiz.QuizType;
 import com.icc.qasker.quizhistory.dto.ferequest.CreateWrongAnswerSetRequest;
 import com.icc.qasker.quizhistory.dto.feresponse.WrongAnswerSetResponse;
 import com.icc.qasker.quizhistory.dto.feresponse.WrongAnswerSetResponse.CreatedSet;
@@ -24,7 +25,6 @@ import com.icc.qasker.quizhistory.entity.QuizHistory.QuizHistoryStatus;
 import com.icc.qasker.quizhistory.repository.QuizFolderRepository;
 import com.icc.qasker.quizhistory.repository.QuizHistoryRepository;
 import com.icc.qasker.quizset.ProblemSetReadService;
-import com.icc.qasker.quizset.dto.ferequest.enums.QuizType;
 import com.icc.qasker.quizset.dto.readonly.ProblemDetail;
 import com.icc.qasker.quizset.dto.readonly.ProblemSetSummary;
 import com.icc.qasker.quizset.dto.readonly.SelectionDetail;

@@ -3,10 +3,10 @@ package com.icc.qasker.quizset.service.wronganswer;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.icc.qasker.global.quiz.QuizType;
 import com.icc.qasker.quizset.GenerationStatus;
 import com.icc.qasker.quizset.ProblemSetOrigin;
 import com.icc.qasker.quizset.dto.WrongAnswerSetCreation;
-import com.icc.qasker.quizset.dto.ferequest.enums.QuizType;
 import com.icc.qasker.quizset.dto.readonly.ProblemLineage;
 import com.icc.qasker.quizset.entity.Problem;
 import com.icc.qasker.quizset.entity.ProblemId;

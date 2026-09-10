@@ -3,5 +3,8 @@ plugins {
 }
 
 dependencies {
+    // QuizType 이 이 모듈의 공개 DTO 시그니처에 드러나므로 api
+    api project(":global")
+
     api "com.fasterxml.jackson.core:jackson-annotations"
 }

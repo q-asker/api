@@ -1,12 +1,12 @@
 package com.icc.qasker.quizhistory.service.wronganswer;
 
 import com.icc.qasker.global.component.HashUtil;
+import com.icc.qasker.global.quiz.QuizType;
 import com.icc.qasker.quizhistory.dto.feresponse.WrongAnswerSetResponse.CreatedSet;
 import com.icc.qasker.quizhistory.entity.QuizHistory;
 import com.icc.qasker.quizhistory.repository.QuizHistoryRepository;
 import com.icc.qasker.quizset.WrongAnswerSetCreationService;
 import com.icc.qasker.quizset.dto.WrongAnswerSetCreation;
-import com.icc.qasker.quizset.dto.ferequest.enums.QuizType;
 import com.icc.qasker.quizset.dto.readonly.ProblemLineage;
 import java.time.Instant;
 import java.time.ZoneId;

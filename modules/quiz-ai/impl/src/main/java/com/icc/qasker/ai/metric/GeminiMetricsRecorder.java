@@ -1,5 +1,6 @@
-package com.icc.qasker.ai.service.support;
+package com.icc.qasker.ai.metric;
 
+import com.icc.qasker.global.quiz.QuizType;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
@@ -42,8 +43,6 @@ public class GeminiMetricsRecorder {
   private final Counter verifyFailure;
   private final Counter cacheCreateSuccess;
   private final Counter cacheCreateFailure;
-
-  private static final String[] QUIZ_TYPES = {"MULTIPLE", "OX", "BLANK", "ESSAY"};
 
   /** 청크 호출 타이머를 미리 등록할 인덱스 — quizCount 최대 30 ÷ chunk-size 15 = 2청크. */
   private static final int[] CHUNK_INDEXES = {0, 1};
@@ -127,11 +126,11 @@ public class GeminiMetricsRecorder {
     this.tokensOutput =
         Counter.builder("gemini.tokens.output").description("Gemini 출력 토큰").register(registry);
 
-    // 스트리밍 타임아웃 카운터를 퀴즈 타입별로 미리 등록
-    for (String quizType : QUIZ_TYPES) {
+    // 스트리밍 타임아웃 카운터를 퀴즈 타입별로 미리 등록 — 유형이 늘면 여기도 자동으로 따라온다
+    for (QuizType quizType : QuizType.values()) {
       Counter.builder("gemini.streaming.timeout")
           .description("Gemini 스트리밍 5분 타임아웃 발생 횟수")
-          .tag("quiz_type", quizType)
+          .tag("quiz_type", quizType.name())
           .register(registry);
     }
     // 청크 호출 타이머를 청크 인덱스별로 미리 등록
@@ -266,10 +265,10 @@ public class GeminiMetricsRecorder {
   }
 
   /** 스트리밍 타임아웃 발생을 기록한다. */
-  public void recordStreamingTimeout(String quizType) {
+  public void recordStreamingTimeout(QuizType quizType) {
     Counter.builder("gemini.streaming.timeout")
         .description("Gemini 스트리밍 5분 타임아웃 발생 횟수")
-        .tag("quiz_type", quizType)
+        .tag("quiz_type", quizType.name())
         .register(registry)
         .increment();
   }
@@ -324,23 +323,23 @@ public class GeminiMetricsRecorder {
   /**
    * 요청/생성 문제 수를 퀴즈 타입 + max_chunks 축으로 기록한다. recordRequestDuration과 같은 지점(요청 종료)에서 호출된다.
    *
-   * @param quizType 퀴즈 타입 (MULTIPLE/OX/BLANK/ESSAY)
+   * @param quizType 퀴즈 타입({@link QuizType})
    * @param quizCount 요청 문항 수
    * @param generatedCount 실제 생성·전달된 문항 수
    * @param maxChunkCount 이 요청에 적용된 최대 청크 수
    */
   public void recordQuizCounts(
-      String quizType, long quizCount, long generatedCount, int maxChunkCount) {
+      QuizType quizType, long quizCount, long generatedCount, int maxChunkCount) {
     String chunks = String.valueOf(maxChunkCount);
     Counter.builder("quiz.generation.quizzes.requested")
         .description("요청된 퀴즈 문제 수 누적")
-        .tag("quiz_type", quizType)
+        .tag("quiz_type", quizType.name())
         .tag("max_chunks", chunks)
         .register(registry)
         .increment(quizCount);
     Counter.builder("quiz.generation.quizzes.generated")
         .description("실제 생성된 퀴즈 문제 수 누적")
-        .tag("quiz_type", quizType)
+        .tag("quiz_type", quizType.name())
         .tag("max_chunks", chunks)
         .register(registry)
         .increment(generatedCount);

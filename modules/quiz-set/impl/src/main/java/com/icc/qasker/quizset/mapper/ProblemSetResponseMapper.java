@@ -1,7 +1,7 @@
 package com.icc.qasker.quizset.mapper;
 
 import com.icc.qasker.global.component.HashUtil;
-import com.icc.qasker.quizset.dto.ferequest.enums.QuizType;
+import com.icc.qasker.global.quiz.QuizType;
 import com.icc.qasker.quizset.dto.feresponse.ProblemSetResponse;
 import com.icc.qasker.quizset.dto.feresponse.ProblemSetResponse.QuizForFe;
 import com.icc.qasker.quizset.dto.feresponse.ProblemSetResponse.QuizForFe.SelectionForFE;

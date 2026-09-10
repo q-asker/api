@@ -70,12 +70,12 @@ public class MockGenerationCommandService implements GenerationCommandService {
     aiServerAdapter.streamRequest(
         GenerationRequestToAI.builder()
             .fileUrl(request.uploadedUrl())
-            .quizType(request.quizType().toAiStrategyName())
+            .quizType(request.quizType())
             .language(request.language().name())
             .quizCount(request.quizCount())
             .referencePages(request.pageNumbers())
             .customInstruction(request.customInstruction())
-            .sink(batchConsumer)
+            .consumer(batchConsumer)
             .build());
 
     quizCommandService.updateStatus(problemSetId, COMPLETED);

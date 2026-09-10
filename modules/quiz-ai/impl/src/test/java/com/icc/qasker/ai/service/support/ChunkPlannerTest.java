@@ -2,6 +2,7 @@ package com.icc.qasker.ai.service.support;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.icc.qasker.ai.support.ChunkPlanner;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

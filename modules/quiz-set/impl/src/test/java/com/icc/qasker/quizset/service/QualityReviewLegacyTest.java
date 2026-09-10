@@ -10,7 +10,7 @@ import com.icc.qasker.ai.dto.QualityVerdict;
 import com.icc.qasker.ai.service.QualityVerifier;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
-import com.icc.qasker.quizset.dto.ferequest.enums.QuizType;
+import com.icc.qasker.global.quiz.QuizType;
 import com.icc.qasker.quizset.entity.Problem;
 import com.icc.qasker.quizset.entity.ProblemId;
 import com.icc.qasker.quizset.entity.ProblemQualityLog;
@@ -47,7 +47,8 @@ class QualityReviewLegacyTest extends JpaIntegrationTestBase {
             problemSetRepository,
             qualityLogRepository,
             verifier,
-            new TransactionTemplate(transactionManager));
+            new TransactionTemplate(transactionManager),
+            new org.springframework.core.task.SimpleAsyncTaskExecutor());
   }
 
   @Test

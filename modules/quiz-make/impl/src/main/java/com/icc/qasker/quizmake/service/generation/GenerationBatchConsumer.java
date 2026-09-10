@@ -2,7 +2,7 @@ package com.icc.qasker.quizmake.service.generation;
 
 import static com.icc.qasker.quizset.GenerationStatus.GENERATING;
 
-import com.icc.qasker.ai.QuizBatchSink;
+import com.icc.qasker.ai.QuizConsumer;
 import com.icc.qasker.ai.dto.AIProblem;
 import com.icc.qasker.global.component.HashUtil;
 import com.icc.qasker.quizmake.SseNotificationService;
@@ -39,7 +39,7 @@ import tools.jackson.databind.ObjectMapper;
  * <p>여러 검증 워커가 동시에 저장 콜백해도 순번과 상태가 어긋나지 않도록 {@link ReentrantLock}으로 직렬화한다.
  */
 @Slf4j
-class GenerationBatchConsumer implements QuizBatchSink {
+class GenerationBatchConsumer implements QuizConsumer {
 
   private final String sessionId;
   private final Long problemSetId;
@@ -81,6 +81,9 @@ class GenerationBatchConsumer implements QuizBatchSink {
     consumerLock.lock();
     try {
       QuizGeneratedFromAI quiz = AIProblemSetMapper.toQuiz(problem);
+
+      // 해설 조립보다 먼저 — 해설이 선지 순서를 기준으로 정렬되므로 순서를 여기서 확정한다.
+      SelectionArrangement.arrange(quiz, request.quizType());
 
       // 선지에 인라인 해설이 있으면 즉시 마크다운으로 조립한다(현행 전 타입). 없으면 비워 둔다(방어).
       if (hasInlineExplanation(quiz)) {

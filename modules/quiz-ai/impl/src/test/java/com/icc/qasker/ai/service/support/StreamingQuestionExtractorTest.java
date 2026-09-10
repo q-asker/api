@@ -3,6 +3,7 @@ package com.icc.qasker.ai.service.support;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.icc.qasker.ai.structure.GeminiQuestion;
+import com.icc.qasker.ai.support.StreamingJsonArrayExtractor;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -20,9 +21,9 @@ class StreamingQuestionExtractorTest {
   private List<GeminiQuestion> collect(String... chunks) {
     List<GeminiQuestion> out = new ArrayList<>();
     StreamingJsonArrayExtractor<GeminiQuestion> extractor =
-        new StreamingJsonArrayExtractor<>(objectMapper, GeminiQuestion.class, out::add, "MULTIPLE");
+        new StreamingJsonArrayExtractor<>(objectMapper, GeminiQuestion.class, "MULTIPLE");
     for (String c : chunks) {
-      extractor.feed(c);
+      out.addAll(extractor.feed(c));
     }
     return out;
   }

@@ -1,7 +1,7 @@
 package com.icc.qasker.quizset.dto.readonly;
 
+import com.icc.qasker.global.quiz.QuizType;
 import com.icc.qasker.quizset.ProblemSetOrigin;
-import com.icc.qasker.quizset.dto.ferequest.enums.QuizType;
 import java.time.Instant;
 
 /** ProblemSet Entity의 read-only DTO. 모듈 경계를 넘어 ProblemSet 데이터를 전달할 때 사용. */

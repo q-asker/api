@@ -8,8 +8,8 @@ import static org.mockito.Mockito.when;
 import com.icc.qasker.ai.dto.QualityVerdict;
 import com.icc.qasker.ai.dto.QualityVerificationRequest;
 import com.icc.qasker.ai.service.QualityVerifier;
+import com.icc.qasker.global.quiz.QuizType;
 import com.icc.qasker.quizset.dto.QualityReviewResult;
-import com.icc.qasker.quizset.dto.ferequest.enums.QuizType;
 import com.icc.qasker.quizset.entity.Problem;
 import com.icc.qasker.quizset.entity.ProblemId;
 import com.icc.qasker.quizset.entity.ProblemQualityLog;
@@ -48,7 +48,8 @@ class QualityReviewServiceTest extends JpaIntegrationTestBase {
             problemSetRepository,
             qualityLogRepository,
             verifier,
-            new TransactionTemplate(transactionManager));
+            new TransactionTemplate(transactionManager),
+            new org.springframework.core.task.SimpleAsyncTaskExecutor());
   }
 
   @Test
