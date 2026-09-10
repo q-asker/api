@@ -1,4 +1,4 @@
-package com.icc.qasker.ai.i18n;
+package com.icc.qasker.ai.service.i18n;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;

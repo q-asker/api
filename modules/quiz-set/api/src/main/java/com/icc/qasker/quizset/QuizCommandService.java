@@ -1,7 +1,7 @@
 package com.icc.qasker.quizset;
 
+import com.icc.qasker.global.quiz.QuizType;
 import com.icc.qasker.quizset.dto.airesponse.ProblemSetGeneratedEvent.QuizGeneratedFromAI;
-import com.icc.qasker.quizset.dto.ferequest.enums.QuizType;
 import java.util.List;
 
 public interface QuizCommandService {

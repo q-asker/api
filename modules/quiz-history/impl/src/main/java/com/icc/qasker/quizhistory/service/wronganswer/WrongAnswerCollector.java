@@ -1,8 +1,8 @@
 package com.icc.qasker.quizhistory.service.wronganswer;
 
+import com.icc.qasker.global.quiz.QuizType;
 import com.icc.qasker.quizhistory.entity.AnswerSnapshotView;
 import com.icc.qasker.quizhistory.grading.AnswerJudge;
-import com.icc.qasker.quizset.dto.ferequest.enums.QuizType;
 import com.icc.qasker.quizset.dto.readonly.ProblemDetail;
 import com.icc.qasker.quizset.dto.readonly.ProblemLineage;
 import java.time.Instant;

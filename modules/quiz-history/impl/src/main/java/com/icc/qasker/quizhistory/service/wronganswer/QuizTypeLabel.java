@@ -1,6 +1,6 @@
 package com.icc.qasker.quizhistory.service.wronganswer;
 
-import com.icc.qasker.quizset.dto.ferequest.enums.QuizType;
+import com.icc.qasker.global.quiz.QuizType;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 

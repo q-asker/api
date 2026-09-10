@@ -1,6 +1,6 @@
 package com.icc.qasker.quizset.dto;
 
-import com.icc.qasker.quizset.dto.ferequest.enums.QuizType;
+import com.icc.qasker.global.quiz.QuizType;
 import com.icc.qasker.quizset.dto.readonly.ProblemLineage;
 import java.util.List;
 

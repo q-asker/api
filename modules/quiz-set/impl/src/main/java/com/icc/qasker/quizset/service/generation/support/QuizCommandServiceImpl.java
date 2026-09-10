@@ -2,10 +2,10 @@ package com.icc.qasker.quizset.service.generation.support;
 
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
+import com.icc.qasker.global.quiz.QuizType;
 import com.icc.qasker.quizset.GenerationStatus;
 import com.icc.qasker.quizset.QuizCommandService;
 import com.icc.qasker.quizset.dto.airesponse.ProblemSetGeneratedEvent.QuizGeneratedFromAI;
-import com.icc.qasker.quizset.dto.ferequest.enums.QuizType;
 import com.icc.qasker.quizset.entity.Problem;
 import com.icc.qasker.quizset.entity.ProblemSet;
 import com.icc.qasker.quizset.mapper.ProblemMapper;

@@ -6,14 +6,18 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.icc.qasker.ai.GeminiFileService;
-import com.icc.qasker.ai.QuizBatchSink;
+import com.icc.qasker.ai.QuizConsumer;
 import com.icc.qasker.ai.dto.AIProblem;
 import com.icc.qasker.ai.dto.GeminiFileUploadResponse.FileMetadata;
 import com.icc.qasker.ai.dto.GenerationRequestToAI;
 import com.icc.qasker.ai.dto.QualityVerdict;
+import com.icc.qasker.ai.dto.QualityVerificationRequest;
+import com.icc.qasker.ai.metric.GeminiMetricsRecorder;
 import com.icc.qasker.ai.properties.QAskerAiProperties;
+import com.icc.qasker.ai.service.ChunkedQuizGenerator;
+import com.icc.qasker.ai.service.QualityVerifier;
 import com.icc.qasker.ai.service.multiple.MultipleQuizOrchestrator;
-import com.icc.qasker.ai.service.support.GeminiMetricsRecorder;
+import com.icc.qasker.global.quiz.QuizType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -40,7 +44,7 @@ class QualityGateOrchestratorTest {
   private ChatModel chatModel;
   private GeminiMetricsRecorder metricsRecorder;
   private QAskerAiProperties aiProperties;
-  private QualityGate qualityGate;
+  private QualityVerifier verifier;
 
   @BeforeEach
   void setUp() {
@@ -50,7 +54,7 @@ class QualityGateOrchestratorTest {
     aiProperties = new QAskerAiProperties();
     // @ConfigurationProperties 기본값이 제거돼 yml이 단일 출처이므로, Spring 없이 직접 생성한 이 인스턴스엔 필요한 값을 명시한다.
     aiProperties.getChunk().setChunkSize(15);
-    qualityGate = mock(QualityGate.class);
+    verifier = mock(QualityVerifier.class);
 
     FileMetadata meta =
         new FileMetadata(null, null, null, null, null, null, null, "gs://b/x.pdf", null);
@@ -60,17 +64,18 @@ class QualityGateOrchestratorTest {
 
   private MultipleQuizOrchestrator orchestrator() {
     return new MultipleQuizOrchestrator(
-        fileService, chatModel, new ObjectMapper(), metricsRecorder, aiProperties, qualityGate);
+        new ChunkedQuizGenerator(
+            fileService, chatModel, new ObjectMapper(), metricsRecorder, aiProperties, verifier));
   }
 
-  private GenerationRequestToAI request(int quizCount, QuizBatchSink sink) {
+  private GenerationRequestToAI request(int quizCount, QuizConsumer consumer) {
     return GenerationRequestToAI.builder()
         .fileUrl("http://f/x.pdf")
-        .quizType("MULTIPLE")
+        .quizType(QuizType.MULTIPLE)
         .language("KO")
         .quizCount(quizCount)
         .referencePages(List.of(1))
-        .sink(sink)
+        .consumer(consumer)
         .build();
   }
 
@@ -98,7 +103,7 @@ class QualityGateOrchestratorTest {
   @Test
   @DisplayName("미달 문항(v1)은 미저장·미노출, 재생성 v2가 저장되고 delivered는 통과분+v2만 카운트한다")
   void belowThresholdHeldAndRegenerated() {
-    FakeSink sink = new FakeSink();
+    FakeConsumer consumer = new FakeConsumer();
     // 스트림: Q0(통과), Q1(미달→보류), Q2(통과)
     when(chatModel.stream(any(Prompt.class)))
         .thenReturn(Flux.just(resp(questionsJson("Q0", "Q1", "Q2"))));
@@ -106,47 +111,47 @@ class QualityGateOrchestratorTest {
     when(chatModel.call(any(Prompt.class))).thenReturn(resp(questionsJson("Q1v2")));
 
     // Q1(v1)만 미달, 나머지(및 Q1v2)는 통과
-    when(qualityGate.verify(any(AIProblem.class), any(), any(), any(), any()))
+    when(verifier.verify(any(QualityVerificationRequest.class)))
         .thenAnswer(
             inv -> {
-              AIProblem p = inv.getArgument(0);
-              return "Q1".equals(p.content())
+              QualityVerificationRequest req = inv.getArgument(0);
+              return "Q1".equals(req.question())
                   ? QualityVerdict.below("정답 근거 불명확")
                   : QualityVerdict.pass();
             });
 
-    orchestrator().generateQuiz(request(3, sink));
+    orchestrator().generateQuiz(request(3, consumer));
 
     // v1 Q1은 저장되지 않고, 통과분(Q0,Q2) + 재생성본(Q1v2)만 저장.
     // 통과분은 비동기 검증 순서라 집합으로 검증하고, 재생성본은 배리어 이후 저장되므로 항상 마지막이다.
-    assertThat(sink.contents()).containsExactlyInAnyOrder("Q0", "Q2", "Q1v2");
-    assertThat(sink.contents()).doesNotContain("Q1");
-    assertThat(sink.contents().getLast()).isEqualTo("Q1v2");
+    assertThat(consumer.contents()).containsExactlyInAnyOrder("Q0", "Q2", "Q1v2");
+    assertThat(consumer.contents()).doesNotContain("Q1");
+    assertThat(consumer.contents().getLast()).isEqualTo("Q1v2");
   }
 
   @Test
   @DisplayName("재생성 불가 시 미달 문항은 제외되어 문항 수가 줄어든다")
   void regenerationImpossibleExcludes() {
-    FakeSink sink = new FakeSink();
+    FakeConsumer consumer = new FakeConsumer();
     when(chatModel.stream(any(Prompt.class)))
         .thenReturn(Flux.just(resp(questionsJson("Q0", "Q1", "Q2"))));
     // 재생성 응답이 비어 있음 → 재생성 불가
     when(chatModel.call(any(Prompt.class))).thenReturn(resp("{\"questions\":[]}"));
 
-    when(qualityGate.verify(any(AIProblem.class), any(), any(), any(), any()))
+    when(verifier.verify(any(QualityVerificationRequest.class)))
         .thenAnswer(
             inv ->
-                "Q1".equals(((AIProblem) inv.getArgument(0)).content())
+                "Q1".equals(((QualityVerificationRequest) inv.getArgument(0)).question())
                     ? QualityVerdict.below("미달")
                     : QualityVerdict.pass());
 
-    orchestrator().generateQuiz(request(3, sink));
+    orchestrator().generateQuiz(request(3, consumer));
 
-    assertThat(sink.contents()).containsExactlyInAnyOrder("Q0", "Q2");
+    assertThat(consumer.contents()).containsExactlyInAnyOrder("Q0", "Q2");
   }
 
-  /** 저장을 기록하는 테스트용 sink. 비동기 검증 워커들이 동시에 호출하므로 스레드 안전하게 직렬화한다. */
-  private static class FakeSink implements QuizBatchSink {
+  /** 저장을 기록하는 테스트용 consumer. 비동기 검증 워커들이 동시에 호출하므로 스레드 안전하게 직렬화한다. */
+  private static class FakeConsumer implements QuizConsumer {
     final List<AIProblem> saved = new ArrayList<>();
     final AtomicInteger counter = new AtomicInteger(1);
 

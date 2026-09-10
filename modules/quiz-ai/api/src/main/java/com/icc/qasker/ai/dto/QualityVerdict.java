@@ -9,10 +9,6 @@ public record QualityVerdict(Result result, String feedback) {
     UNVERIFIABLE
   }
 
-  public boolean passed() {
-    return result == Result.PASS;
-  }
-
   public static QualityVerdict pass() {
     return new QualityVerdict(Result.PASS, null);
   }

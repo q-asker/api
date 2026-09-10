@@ -6,6 +6,7 @@ import com.icc.qasker.ai.dto.QualityVerificationRequest.Mode;
 import com.icc.qasker.ai.service.QualityVerifier;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
+import com.icc.qasker.global.quiz.QuizType;
 import com.icc.qasker.quizset.QualityReviewService;
 import com.icc.qasker.quizset.dto.QualityReviewResult;
 import com.icc.qasker.quizset.entity.ProblemQualityLog;
@@ -23,7 +24,8 @@ import java.util.concurrent.Future;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Async;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 import tools.jackson.core.JacksonException;
@@ -47,17 +49,22 @@ public class QualityReviewServiceImpl implements QualityReviewService {
   private final TransactionTemplate transactionTemplate;
   private final Map<Long, QualityReviewResult> latestResults = new ConcurrentHashMap<>();
 
+  /** 이 executor로 비동기 스레드를 호출하면 graceful-shutdown 생명주기에 참여한다 */
+  private final SimpleAsyncTaskExecutor reviewExecutor;
+
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   public QualityReviewServiceImpl(
       ProblemSetRepository problemSetRepository,
       ProblemQualityLogRepository qualityLogRepository,
       QualityVerifier qualityVerifier,
-      TransactionTemplate transactionTemplate) {
+      TransactionTemplate transactionTemplate,
+      @Qualifier("qualityReviewTaskExecutor") SimpleAsyncTaskExecutor reviewExecutor) {
     this.problemSetRepository = problemSetRepository;
     this.qualityLogRepository = qualityLogRepository;
     this.qualityVerifier = qualityVerifier;
     this.transactionTemplate = transactionTemplate;
+    this.reviewExecutor = reviewExecutor;
   }
 
   @Override
@@ -73,14 +80,16 @@ public class QualityReviewServiceImpl implements QualityReviewService {
     transactionTemplate.executeWithoutResult(status -> applyVerdicts(verdicts));
   }
 
-  @Async
   @Override
   public void submitReviewBulk(List<Long> problemSetIds) {
-    try {
-      review(problemSetIds);
-    } catch (CustomException e) {
-      log.info("[품질 재검토] 비동기 일괄 {} 스킵/실패: {}", problemSetIds, e.getMessage());
-    }
+    reviewExecutor.execute(
+        () -> {
+          try {
+            review(problemSetIds);
+          } catch (CustomException e) {
+            log.info("[품질 재검토] 비동기 일괄 {} 스킵/실패: {}", problemSetIds, e.getMessage());
+          }
+        });
   }
 
   @Override
@@ -164,13 +173,14 @@ public class QualityReviewServiceImpl implements QualityReviewService {
 
   /** 재검토 요청을 서빙 problem이 아니라 로그 행에서 재구성한다(로그 자기완결). 개선본(v2) 우선, 없으면 첫 생성본(v1). */
   private QualityVerificationRequest toRequest(ProblemQualityLog quality, ProblemSet set) {
-    String quizType = set.getQuizType() == null ? "MULTIPLE" : set.getQuizType().toAiStrategyName();
+    // quiz_type 은 nullable(V1 baseline) — 유형이 없는 옛 세트는 MULTIPLE 기준으로 재검토한다.
+    QuizType quizType = set.getQuizType() == null ? QuizType.MULTIPLE : set.getQuizType();
     QuestionSnapshot snapshot = deserializeQuestion(quality);
     List<QualityVerificationRequest.Selection> selections =
         snapshot.selections().stream()
             .map(s -> new QualityVerificationRequest.Selection(s.content(), s.correct()))
             .toList();
-    String modelAnswer = "ESSAY".equals(quizType) ? firstCorrect(snapshot.selections()) : null;
+    String modelAnswer = QualityVerificationRequest.modelAnswerOf(quizType, selections);
     return new QualityVerificationRequest(
         quizType,
         "KO",
@@ -214,14 +224,6 @@ public class QualityReviewServiceImpl implements QualityReviewService {
     } catch (JacksonException e) {
       throw new CustomException(ExceptionMessage.DEFAULT_ERROR);
     }
-  }
-
-  private static String firstCorrect(List<SelectionSnapshot> selections) {
-    return selections.stream()
-        .filter(SelectionSnapshot::correct)
-        .map(SelectionSnapshot::content)
-        .findFirst()
-        .orElse(null);
   }
 
   private record QuestionSnapshot(

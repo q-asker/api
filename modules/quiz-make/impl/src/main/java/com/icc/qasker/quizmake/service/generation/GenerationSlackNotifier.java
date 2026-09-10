@@ -3,7 +3,7 @@ package com.icc.qasker.quizmake.service.generation;
 import com.icc.qasker.global.component.HashUtil;
 import com.icc.qasker.global.component.SlackNotifier;
 import com.icc.qasker.global.properties.QAskerProperties;
-import com.icc.qasker.quizset.dto.ferequest.enums.QuizType;
+import com.icc.qasker.global.quiz.QuizType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 

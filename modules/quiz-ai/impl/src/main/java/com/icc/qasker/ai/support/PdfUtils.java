@@ -1,4 +1,4 @@
-package com.icc.qasker.ai.util;
+package com.icc.qasker.ai.support;
 
 import com.icc.qasker.oci.FileValidateService;
 import java.io.IOException;

@@ -3,8 +3,8 @@ package com.icc.qasker.quizmake.dto.ferequest;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.icc.qasker.global.quiz.QuizType;
 import com.icc.qasker.quizmake.dto.ferequest.enums.Language;
-import com.icc.qasker.quizset.dto.ferequest.enums.QuizType;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;

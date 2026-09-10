@@ -70,17 +70,20 @@ q-asker:
       price-output-per-1m: 2.50
       # 적용 검증 항목·항목별 엄격도 — 운영자가 조절(FR-011)
       # 값: strict(엄격) / normal(보통) / off(미적용). 필수 항목은 항상 평가됨.
+      # 항목명·설명·적용 유형은 QualityCriterion enum이 정의한다 — 여기 없는 키를 쓰면 기동 실패.
       criteria:
         # 전 유형 공통 필수(FR-002b) — 항상 평가
         construction-strategy: strict     # ① 문제 구성전략이 유형별 GuideLine에 부합하는가
         instruction-application: strict    # ② 사용자 지시(customInstruction)가 정확히 반영됐는가
-        # 객관형(MULTIPLE/OX/BLANK)
-        single-correct-answer: strict      # 정답이 유일한가
+        # 전 유형
         answer-grounded-in-source: strict  # 정답이 sourceAnchor 원문 근거에 부합하는가
-        distractors-plausible: normal      # 오답이 그럴듯한가
         no-outside-knowledge: normal       # 문항 밖 지식이 불필요한가
-        shortcut-prevention: strict        # 내용 없이 선지 형태만으로 정답을 고를 수 없는가 — ①정답이 최장 ②절대어가 오답에만 편중 ③정답만 온건·위험도 비대칭
         cognitive-depth: normal            # 단일 사실 암기가 아니라 교차 대조·다단계 추론을 요구하는가
+        # 정답이 하나로 확정되는 유형(ESSAY 제외)
+        single-correct-answer: strict      # 정답이 유일한가
+        # 오답 선지가 있는 유형(MULTIPLE/OX/BLANK — REAL_BLANK는 선지가 없어 제외)
+        distractors-plausible: normal      # 오답이 그럴듯한가
+        shortcut-prevention: strict        # 내용 없이 선지 형태만으로 정답을 고를 수 없는가 — ①정답이 최장 ②절대어가 오답에만 편중 ③정답만 온건·위험도 비대칭
         # 서술형(ESSAY)
         model-answer-basis: strict         # 모범답안이 원문에 근거하는가
         rubric-consistency: strict         # 질문↔모범답안↔채점 루브릭 3자 정합

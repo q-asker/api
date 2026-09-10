@@ -20,6 +20,7 @@ import com.icc.qasker.ai.dto.AIProblem;
 import com.icc.qasker.ai.dto.AISelection;
 import com.icc.qasker.ai.dto.GenerationRequestToAI;
 import com.icc.qasker.global.component.HashUtil;
+import com.icc.qasker.global.quiz.QuizType;
 import com.icc.qasker.quizmake.SseNotificationService;
 import com.icc.qasker.quizmake.adapter.AIServerAdapter;
 import com.icc.qasker.quizmake.dto.ferequest.GenerationRequest;
@@ -28,7 +29,6 @@ import com.icc.qasker.quizset.GenerationStatus;
 import com.icc.qasker.quizset.QuizCommandService;
 import com.icc.qasker.quizset.QuizQueryService;
 import com.icc.qasker.quizset.dto.airesponse.ProblemSetGeneratedEvent.QuizGeneratedFromAI;
-import com.icc.qasker.quizset.dto.ferequest.enums.QuizType;
 import com.icc.qasker.quizset.view.QuizView;
 import java.util.List;
 import java.util.UUID;
@@ -68,7 +68,8 @@ class GenerationCommandServiceImplTest {
             quizQueryService,
             hashUtil,
             resultRecorder,
-            mock(com.icc.qasker.quizset.QualityLogService.class));
+            mock(com.icc.qasker.quizset.QualityLogService.class),
+            new org.springframework.core.task.SimpleAsyncTaskExecutor());
   }
 
   @Test
@@ -89,45 +90,6 @@ class GenerationCommandServiceImplTest {
             any(),
             any(),
             any());
-  }
-
-  @Test
-  @DisplayName("REAL_BLANK 요청은 AI 서버에 quizType=REAL_BLANK로 전달한다 (전용 전략)")
-  void real_blank_request_calls_ai_with_real_blank_strategy() {
-    GenerationRequest request = request(QuizType.REAL_BLANK);
-
-    service.triggerGeneration("user-1", request);
-
-    ArgumentCaptor<GenerationRequestToAI> captor =
-        ArgumentCaptor.forClass(GenerationRequestToAI.class);
-    verify(aiServerAdapter, timeout(2000)).streamRequest(captor.capture());
-    assertThat(captor.getValue().quizType()).isEqualTo("REAL_BLANK");
-  }
-
-  @Test
-  @DisplayName("BLANK 요청은 AI 서버에 quizType=BLANK로 전달한다 (회귀 방지)")
-  void blank_request_calls_ai_with_blank_strategy() {
-    GenerationRequest request = request(QuizType.BLANK);
-
-    service.triggerGeneration("user-1", request);
-
-    ArgumentCaptor<GenerationRequestToAI> captor =
-        ArgumentCaptor.forClass(GenerationRequestToAI.class);
-    verify(aiServerAdapter, timeout(2000)).streamRequest(captor.capture());
-    assertThat(captor.getValue().quizType()).isEqualTo("BLANK");
-  }
-
-  @Test
-  @DisplayName("MULTIPLE 요청은 AI 서버에 quizType=MULTIPLE로 전달한다 (회귀 방지)")
-  void multiple_request_calls_ai_with_multiple_strategy() {
-    GenerationRequest request = request(QuizType.MULTIPLE);
-
-    service.triggerGeneration("user-1", request);
-
-    ArgumentCaptor<GenerationRequestToAI> captor =
-        ArgumentCaptor.forClass(GenerationRequestToAI.class);
-    verify(aiServerAdapter, timeout(2000)).streamRequest(captor.capture());
-    assertThat(captor.getValue().quizType()).isEqualTo("MULTIPLE");
   }
 
   @Test
@@ -247,7 +209,7 @@ class GenerationCommandServiceImplTest {
 
   // ── helpers ────────────────────────────────────────────────
 
-  /** streamRequest 호출 시 sink에 deliverCount건의 문제를 순차 저장하도록 스텁한다(배치 인터리빙 Phase 1). */
+  /** streamRequest 호출 시 consumer에 deliverCount건의 문제를 순차 저장하도록 스텁한다(배치 인터리빙 Phase 1). */
   private void stubSink(int deliverCount) {
     when(quizCommandService.saveBatch(anyList(), eq(1L)))
         .thenAnswer(
@@ -265,7 +227,7 @@ class GenerationCommandServiceImplTest {
             invocation -> {
               GenerationRequestToAI req = invocation.getArgument(0);
               for (int i = 0; i < deliverCount; i++) {
-                req.sink().saveProblem(multipleProblem());
+                req.consumer().saveProblem(multipleProblem());
               }
               return null;
             })

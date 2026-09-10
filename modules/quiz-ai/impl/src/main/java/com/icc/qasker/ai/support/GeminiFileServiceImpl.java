@@ -1,4 +1,4 @@
-package com.icc.qasker.ai.service.support;
+package com.icc.qasker.ai.support;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -8,7 +8,6 @@ import com.google.cloud.storage.Storage;
 import com.icc.qasker.ai.GeminiFileService;
 import com.icc.qasker.ai.dto.GeminiFileUploadResponse.FileMetadata;
 import com.icc.qasker.ai.properties.QAskerAiProperties;
-import com.icc.qasker.ai.util.PdfUtils;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import io.micrometer.core.instrument.Counter;
@@ -40,12 +39,9 @@ public class GeminiFileServiceImpl implements GeminiFileService {
   private final Counter fileRequestNew;
   private final Counter fileRequestRepeat;
 
-  // GCS 업로드 Future 캐시 (CDN URL → CompletableFuture<FileMetadata>)
-  // TTL 47시간: GCS 수명주기 정책(1일)과 정합
   private final Cache<String, CompletableFuture<FileMetadata>> uploadFutureCache =
       Caffeine.newBuilder().maximumSize(1_000).expireAfterWrite(Duration.ofHours(47)).build();
 
-  // 같은 파일 URL로 /generation이 재요청되었는지 추적하는 seen-set
   private final ConcurrentHashMap.KeySetView<String, Boolean> seenFileUrls =
       ConcurrentHashMap.newKeySet();
 
@@ -202,8 +198,7 @@ public class GeminiFileServiceImpl implements GeminiFileService {
   }
 
   @Override
-  public FileMetadata waitForProcessing(String fileName) throws InterruptedException {
-    // GCS는 업로드 즉시 사용 가능하므로 폴링 불필요
+  public FileMetadata waitForProcessing(String fileName) {
     return new FileMetadata(
         fileName,
         null,

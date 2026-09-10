@@ -2,11 +2,11 @@ package com.icc.qasker.quizhistory.service.wronganswer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.icc.qasker.global.quiz.QuizType;
 import com.icc.qasker.quizhistory.entity.AnswerSnapshot;
 import com.icc.qasker.quizhistory.entity.AnswerSnapshotView;
 import com.icc.qasker.quizhistory.service.wronganswer.WrongAnswerCollector.AnsweredSet;
 import com.icc.qasker.quizhistory.service.wronganswer.WrongAnswerCollector.TypeGroup;
-import com.icc.qasker.quizset.dto.ferequest.enums.QuizType;
 import com.icc.qasker.quizset.dto.readonly.ProblemDetail;
 import com.icc.qasker.quizset.dto.readonly.ProblemLineage;
 import com.icc.qasker.quizset.dto.readonly.SelectionDetail;

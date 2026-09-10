@@ -7,10 +7,10 @@ import static org.mockito.Mockito.when;
 
 import com.icc.qasker.global.component.HashUtil;
 import com.icc.qasker.global.error.CustomException;
+import com.icc.qasker.global.quiz.QuizType;
 import com.icc.qasker.quizset.ProblemSetReadService;
 import com.icc.qasker.quizset.dto.ferequest.GradeRequest;
 import com.icc.qasker.quizset.dto.ferequest.GradeRequest.GradeAnswer;
-import com.icc.qasker.quizset.dto.ferequest.enums.QuizType;
 import com.icc.qasker.quizset.dto.feresponse.GradeResponse;
 import com.icc.qasker.quizset.dto.feresponse.GradeResponse.GradeResult;
 import com.icc.qasker.quizset.dto.readonly.ProblemDetail;
