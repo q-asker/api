@@ -2,16 +2,16 @@
 # ── BOMs ────────────────────────────────────────────────
 spring-boot = "4.1.0"
 spring-ai = "2.0.0"
-google-cloud = "26.84.0"
+google-cloud = "26.88.0"
 junit = "5.14.4"
 
 # ── Plugins ─────────────────────────────────────────────
-spotless = "8.8.0"
+spotless = "8.10.2"
 google-java-format = "1.25.2"
 dependency-graph-generator = "0.8.0"
-jib = "3.5.3"
+jib = "3.5.4"
 foojay = "1.0.0"
-hibernate-orm = "7.4.5.Final"
+hibernate-orm = "7.4.7.Final"
 
 # ── Libraries ───────────────────────────────────────────
 jasypt = "3.0.5"
@@ -21,9 +21,9 @@ bucket4j = "8.19.0"
 jodconverter = "4.4.11"
 hashids = "1.0.3"
 resilience4j = "2.4.0"
-oci = "3.90.0"
+oci = "3.95.1"
 pdfbox = "3.0.8"
-httpclient5 = "5.6.2"
+httpclient5 = "5.6.4"
 
 [libraries]
 # ── BOMs ────────────────────────────────────────────────
