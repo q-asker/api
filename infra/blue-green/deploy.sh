@@ -30,7 +30,9 @@ EOF
 # ==============================================================================
 MAX_RETRIES=36
 SLEEP_TIME=5
-SHUTDOWN_TIMEOUT=250
+# 앱의 spring.lifecycle.timeout-per-shutdown-phase(1200s)보다 커야 한다. 같거나 작으면
+# 앱이 종료 절차(진행 중 생성 정리·SSE 마감)를 밟기 전에 SIGKILL 당한다. 여유 60s.
+SHUTDOWN_TIMEOUT=1260
 PULL_TIMEOUT=120
 BLUE_PORT="${1:?BLUE_PORT is required}"
 GREEN_PORT="${2:?GREEN_PORT is required}"

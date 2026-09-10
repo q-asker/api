@@ -3,7 +3,6 @@ package com.icc.qasker.quizmake.service.generation;
 import static com.icc.qasker.global.error.ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR;
 
 import com.icc.qasker.quizmake.SseNotificationService;
-import com.icc.qasker.quizmake.infra.SseEmitterFactory;
 import com.icc.qasker.quizmake.properties.QAskerSseProperties;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker.State;
@@ -110,7 +109,10 @@ public class SseNotificationServiceImpl implements SseNotificationService {
   }
 
   private @NonNull SseEmitter initSseEmitter(String sessionId) {
-    SseEmitter emitter = SseEmitterFactory.createThreadSafeEmitter(sseTimeoutMs);
+    // 동시 전송은 Spring 이 막는다 — SseEmitter 의 모든 send 오버로드가 send(SseEventBuilder) 로 모이고,
+    // 거기서 ResponseBodyEmitter.writeLock 을 잡은 뒤 쓴다(complete·completeWithError 도 같은 락).
+    // 예전엔 이 자리에 직렬화 래퍼를 뒀는데 Spring 7 이 같은 일을 하므로 걷어냈다 — 다시 감싸지 말 것.
+    SseEmitter emitter = new SseEmitter(sseTimeoutMs);
 
     emitter.onCompletion(
         () -> {
@@ -141,20 +143,27 @@ public class SseNotificationServiceImpl implements SseNotificationService {
 
   @Override
   public void sendFinishWithError(String sessionId, String message) {
-    safeSend(sessionId, SseEmitter.event().name("error-finish").data(message), null);
+    finishStream(sessionId, SseEmitter.event().name("error-finish").data(message));
   }
 
   @Override
   public void sendComplete(String sessionId) {
-    safeSend(sessionId, SseEmitter.event().name("complete").data("complete"), null);
+    finishStream(sessionId, SseEmitter.event().name("complete").data("complete"));
   }
 
-  /**
-   * 세션에 연결된 emitter로 이벤트를 전송한다. emitter가 없으면 no-op, {@link IOException} 발생 시 해당 emitter를 에러로 마감하며
-   * 예외를 밖으로 전파하지 않는다.
-   *
-   * @param warnMessage 전송 실패 시 남길 경고 로그 (null이면 로그 생략)
-   */
+  private void finishStream(String sessionId, SseEmitter.SseEventBuilder event) {
+    SseEmitter emitter = emitterMap.get(sessionId);
+    if (emitter == null) {
+      return;
+    }
+    try {
+      emitter.send(event);
+      emitter.complete();
+    } catch (IOException e) {
+      emitter.completeWithError(e);
+    }
+  }
+
   private void safeSend(String sessionId, SseEmitter.SseEventBuilder event, String warnMessage) {
     SseEmitter emitter = emitterMap.get(sessionId);
     if (emitter == null) {

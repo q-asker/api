@@ -6,6 +6,7 @@ import static com.icc.qasker.quizset.GenerationStatus.FAILED;
 import com.icc.qasker.ai.dto.GenerationRequestToAI;
 import com.icc.qasker.global.component.HashUtil;
 import com.icc.qasker.global.error.ExceptionMessage;
+import com.icc.qasker.global.quiz.QuizType;
 import com.icc.qasker.quizmake.GenerationCommandService;
 import com.icc.qasker.quizmake.SseNotificationService;
 import com.icc.qasker.quizmake.adapter.AIServerAdapter;
@@ -13,10 +14,11 @@ import com.icc.qasker.quizmake.dto.ferequest.GenerationRequest;
 import com.icc.qasker.quizset.QualityLogService;
 import com.icc.qasker.quizset.QuizCommandService;
 import com.icc.qasker.quizset.QuizQueryService;
-import com.icc.qasker.quizset.dto.ferequest.enums.QuizType;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
@@ -32,6 +34,9 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
   private final GenerationResultRecorder resultRecorder;
   private final QualityLogService qualityLogService;
 
+  /** 이 executor로 비동기 스레드를 호출하면 graceful-shutdown 생명주기에 참여한다 */
+  private final SimpleAsyncTaskExecutor generationExecutor;
+
   public GenerationCommandServiceImpl(
       AIServerAdapter aiServerAdapter,
       SseNotificationService notificationService,
@@ -39,7 +44,8 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
       QuizQueryService quizQueryService,
       HashUtil hashUtil,
       GenerationResultRecorder resultRecorder,
-      QualityLogService qualityLogService) {
+      QualityLogService qualityLogService,
+      @Qualifier("generationTaskExecutor") SimpleAsyncTaskExecutor generationExecutor) {
     this.aiServerAdapter = aiServerAdapter;
     this.notificationService = notificationService;
     this.quizCommandService = quizCommandService;
@@ -47,6 +53,7 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
     this.hashUtil = hashUtil;
     this.resultRecorder = resultRecorder;
     this.qualityLogService = qualityLogService;
+    this.generationExecutor = generationExecutor;
   }
 
   @Override
@@ -65,26 +72,22 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
               request.pageNumbers(),
               request.language().name());
     } catch (DataIntegrityViolationException e) {
-      // 같은 sessionId 재-POST는 멱등 no-op으로 흡수한다(sessionId unique 위반). SSE 재연결 시 클라이언트가
-      // onopen에서 생성을 재발사할 수 있는데, 최초 요청의 생성이 이미 진행/완료 중이므로 새 생성을 시작하지 않는다.
-      // 재연결된 스트림은 subscribe의 재부착 + Last-Event-ID 리플레이로 남은 이벤트를 이어받아 정상 완료된다.
       log.info("[생성 멱등] 같은 sessionId 재요청 무시 — 진행 중 생성 유지 sessionId={}", request.sessionId());
       return;
     }
 
     Map<String, String> contextMap = MDC.getCopyOfContextMap();
-    Thread.ofVirtual()
-        .start(
-            () -> {
-              if (contextMap != null) {
-                MDC.setContextMap(contextMap);
-              }
-              try {
-                processGenerationAsync(request.sessionId(), problemSetId, request);
-              } finally {
-                MDC.clear();
-              }
-            });
+    generationExecutor.execute(
+        () -> {
+          if (contextMap != null) {
+            MDC.setContextMap(contextMap);
+          }
+          try {
+            processGenerationAsync(request.sessionId(), problemSetId, request);
+          } finally {
+            MDC.clear();
+          }
+        });
   }
 
   private void processGenerationAsync(
@@ -105,12 +108,12 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
     GenerationRequestToAI requestToAI =
         GenerationRequestToAI.builder()
             .fileUrl(request.uploadedUrl())
-            .quizType(request.quizType().toAiStrategyName())
+            .quizType(request.quizType())
             .language(request.language().name())
             .quizCount(request.quizCount())
             .referencePages(request.pageNumbers())
             .customInstruction(request.customInstruction())
-            .sink(batchConsumer)
+            .consumer(batchConsumer)
             .build();
 
     try {

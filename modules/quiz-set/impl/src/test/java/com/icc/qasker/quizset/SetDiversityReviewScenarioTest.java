@@ -2,7 +2,7 @@ package com.icc.qasker.quizset;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.icc.qasker.quizset.dto.ferequest.enums.QuizType;
+import com.icc.qasker.global.quiz.QuizType;
 import com.icc.qasker.quizset.entity.Problem;
 import com.icc.qasker.quizset.entity.ProblemId;
 import com.icc.qasker.quizset.entity.ProblemQualityLog;

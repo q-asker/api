@@ -4,9 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 import com.icc.qasker.global.component.HashUtil;
+import com.icc.qasker.global.quiz.QuizType;
 import com.icc.qasker.quizset.GenerationStatus;
 import com.icc.qasker.quizset.TestEntityFactory;
-import com.icc.qasker.quizset.dto.ferequest.enums.QuizType;
 import com.icc.qasker.quizset.dto.feresponse.ProblemSetResponse;
 import com.icc.qasker.quizset.dto.feresponse.ProblemSetResponse.QuizForFe;
 import com.icc.qasker.quizset.dto.feresponse.ProblemSetResponse.QuizForFe.SelectionForFE;

@@ -1,6 +1,6 @@
 package com.icc.qasker.quizmake.service.generation;
 
-import com.icc.qasker.quizset.dto.ferequest.enums.QuizType;
+import com.icc.qasker.global.quiz.QuizType;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.stereotype.Component;

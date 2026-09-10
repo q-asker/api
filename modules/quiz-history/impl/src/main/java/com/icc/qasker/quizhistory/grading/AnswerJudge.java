@@ -1,7 +1,7 @@
 package com.icc.qasker.quizhistory.grading;
 
+import com.icc.qasker.global.quiz.QuizType;
 import com.icc.qasker.quizhistory.entity.AnswerSnapshotView;
-import com.icc.qasker.quizset.dto.ferequest.enums.QuizType;
 import com.icc.qasker.quizset.dto.readonly.ProblemDetail;
 import com.icc.qasker.quizset.dto.readonly.SelectionDetail;
 import com.icc.qasker.quizset.grading.RealBlankGrader;

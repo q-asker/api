@@ -12,18 +12,19 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.icc.qasker.ai.GeminiFileService;
-import com.icc.qasker.ai.QuizBatchSink;
+import com.icc.qasker.ai.QuizConsumer;
 import com.icc.qasker.ai.dto.AIProblem;
 import com.icc.qasker.ai.dto.GeminiFileUploadResponse.FileMetadata;
 import com.icc.qasker.ai.dto.GenerationRequestToAI;
 import com.icc.qasker.ai.dto.QualityVerdict;
+import com.icc.qasker.ai.dto.QualityVerificationRequest;
 import com.icc.qasker.ai.exception.GeminiInfraException;
+import com.icc.qasker.ai.metric.GeminiMetricsRecorder;
 import com.icc.qasker.ai.properties.QAskerAiProperties;
 import com.icc.qasker.ai.service.blank.BlankQuizOrchestrator;
 import com.icc.qasker.ai.service.multiple.MultipleQuizOrchestrator;
 import com.icc.qasker.ai.service.ox.OXQuizOrchestrator;
-import com.icc.qasker.ai.service.quality.QualityGate;
-import com.icc.qasker.ai.service.support.GeminiMetricsRecorder;
+import com.icc.qasker.global.quiz.QuizType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -56,7 +57,7 @@ class ChunkedQuizOrchestratorContractTest {
   private ObjectMapper objectMapper;
   private GeminiMetricsRecorder metricsRecorder;
   private QAskerAiProperties aiProperties;
-  private QualityGate qualityGate;
+  private QualityVerifier verifier;
 
   @BeforeEach
   void setUp() {
@@ -68,8 +69,8 @@ class ChunkedQuizOrchestratorContractTest {
     // @ConfigurationProperties 기본값이 제거돼 yml이 단일 출처이므로, Spring 없이 직접 생성한 이 인스턴스엔 필요한 값을 명시한다.
     aiProperties.getChunk().setChunkSize(15);
     // 게이트는 이 계약 테스트 범위 밖 — 전량 통과로 스텁해 Phase 1 전달 계약만 검증한다.
-    qualityGate = mock(QualityGate.class);
-    when(qualityGate.verify(any(), any(), any(), any(), any())).thenReturn(QualityVerdict.pass());
+    verifier = mock(QualityVerifier.class);
+    when(verifier.verify(any(QualityVerificationRequest.class))).thenReturn(QualityVerdict.pass());
 
     FileMetadata meta =
         new FileMetadata(null, null, null, null, null, null, null, "gs://b/x.pdf", null);
@@ -78,8 +79,8 @@ class ChunkedQuizOrchestratorContractTest {
     when(metricsRecorder.recordChunkResult(anyLong(), any())).thenReturn(0.0);
   }
 
-  /** 저장을 기록하는 테스트용 sink. 비동기 검증 워커들이 동시에 호출하므로 스레드 안전하게 직렬화한다. */
-  private static class FakeSink implements QuizBatchSink {
+  /** 저장을 기록하는 테스트용 consumer. 비동기 검증 워커들이 동시에 호출하므로 스레드 안전하게 직렬화한다. */
+  private static class FakeConsumer implements QuizConsumer {
     final List<AIProblem> saved = new ArrayList<>();
     final AtomicInteger counter = new AtomicInteger(1);
 
@@ -95,16 +96,13 @@ class ChunkedQuizOrchestratorContractTest {
   }
 
   private QuizTypeOrchestrator orchestrator(String type) {
+    ChunkedQuizGenerator generator =
+        new ChunkedQuizGenerator(
+            fileService, chatModel, objectMapper, metricsRecorder, aiProperties, verifier);
     return switch (type) {
-      case "MULTIPLE" ->
-          new MultipleQuizOrchestrator(
-              fileService, chatModel, objectMapper, metricsRecorder, aiProperties, qualityGate);
-      case "BLANK" ->
-          new BlankQuizOrchestrator(
-              fileService, chatModel, objectMapper, metricsRecorder, aiProperties, qualityGate);
-      case "OX" ->
-          new OXQuizOrchestrator(
-              fileService, chatModel, objectMapper, metricsRecorder, aiProperties, qualityGate);
+      case "MULTIPLE" -> new MultipleQuizOrchestrator(generator);
+      case "BLANK" -> new BlankQuizOrchestrator(generator);
+      case "OX" -> new OXQuizOrchestrator(generator);
       default -> throw new IllegalArgumentException(type);
     };
   }
@@ -113,14 +111,14 @@ class ChunkedQuizOrchestratorContractTest {
     return "OX".equals(type) ? 2 : 4;
   }
 
-  private GenerationRequestToAI request(String type, int quizCount, QuizBatchSink sink) {
+  private GenerationRequestToAI request(String type, int quizCount, QuizConsumer consumer) {
     return GenerationRequestToAI.builder()
         .fileUrl("http://f/x.pdf")
-        .quizType(type)
+        .quizType(QuizType.valueOf(type))
         .language("KO")
         .quizCount(quizCount)
         .referencePages(List.of(1, 2))
-        .sink(sink)
+        .consumer(consumer)
         .build();
   }
 
@@ -158,75 +156,75 @@ class ChunkedQuizOrchestratorContractTest {
   @ParameterizedTest
   @ValueSource(strings = {"MULTIPLE", "BLANK", "OX"})
   void deliversExactlyQuizCount(String type) {
-    FakeSink sink = new FakeSink();
+    FakeConsumer consumer = new FakeConsumer();
     when(chatModel.stream(any(Prompt.class))).thenReturn(fluxOf(questionsJson(List.of(1, 1, 1))));
 
-    orchestrator(type).generateQuiz(request(type, 3, sink));
+    orchestrator(type).generateQuiz(request(type, 3, consumer));
 
     // 검증이 비동기·병렬이라 저장 순서는 통과 순서(비결정적) → 집합으로만 검증한다.
-    assertThat(sink.contents()).containsExactlyInAnyOrder("Q0", "Q1", "Q2");
+    assertThat(consumer.contents()).containsExactlyInAnyOrder("Q0", "Q1", "Q2");
   }
 
   @ParameterizedTest
   @ValueSource(strings = {"MULTIPLE", "BLANK", "OX"})
   void truncatesWhenChunkOverProduces(String type) {
-    FakeSink sink = new FakeSink();
+    FakeConsumer consumer = new FakeConsumer();
     when(chatModel.stream(any(Prompt.class)))
         .thenReturn(fluxOf(questionsJson(List.of(1, 1, 1, 1))));
 
     // quizCount=2 이지만 4문항 방출 → 앞 2개(Q0,Q1)만 제출되고 Q2,Q3은 파싱 단계에서 잘림
-    orchestrator(type).generateQuiz(request(type, 2, sink));
+    orchestrator(type).generateQuiz(request(type, 2, consumer));
 
-    assertThat(sink.contents()).containsExactlyInAnyOrder("Q0", "Q1");
+    assertThat(consumer.contents()).containsExactlyInAnyOrder("Q0", "Q1");
   }
 
   @ParameterizedTest
   @ValueSource(strings = {"MULTIPLE", "BLANK", "OX"})
   void dropsQuestionsExceedingMaxSelectionCount(String type) {
-    FakeSink sink = new FakeSink();
+    FakeConsumer consumer = new FakeConsumer();
     int oversize = maxSelection(type) + 1;
     // idx0은 초과 선택지 → drop. idx1, idx2만 전달.
     when(chatModel.stream(any(Prompt.class)))
         .thenReturn(fluxOf(questionsJson(List.of(oversize, 1, 1))));
 
-    orchestrator(type).generateQuiz(request(type, 3, sink));
+    orchestrator(type).generateQuiz(request(type, 3, consumer));
 
-    assertThat(sink.contents()).containsExactlyInAnyOrder("Q1", "Q2");
+    assertThat(consumer.contents()).containsExactlyInAnyOrder("Q1", "Q2");
   }
 
   @ParameterizedTest
   @ValueSource(strings = {"MULTIPLE", "BLANK", "OX"})
   void preservesEarlierChunk_whenLaterChunkFails(String type) {
     aiProperties.getChunk().setChunkSize(1); // quizCount=2 → 청크 2개
-    FakeSink sink = new FakeSink();
+    FakeConsumer consumer = new FakeConsumer();
     when(chatModel.stream(any(Prompt.class)))
         .thenReturn(fluxOf(questionsJson(List.of(1))), Flux.error(new RuntimeException("boom")));
 
-    orchestrator(type).generateQuiz(request(type, 2, sink));
+    orchestrator(type).generateQuiz(request(type, 2, consumer));
 
-    assertThat(sink.contents()).containsExactly("Q0");
+    assertThat(consumer.contents()).containsExactly("Q0");
   }
 
   @ParameterizedTest
   @ValueSource(strings = {"MULTIPLE", "BLANK", "OX"})
   void rethrows_whenNothingDelivered(String type) {
-    FakeSink sink = new FakeSink();
+    FakeConsumer consumer = new FakeConsumer();
     when(chatModel.stream(any(Prompt.class))).thenReturn(Flux.error(new RuntimeException("boom")));
 
-    assertThatThrownBy(() -> orchestrator(type).generateQuiz(request(type, 1, sink)))
+    assertThatThrownBy(() -> orchestrator(type).generateQuiz(request(type, 1, consumer)))
         .isInstanceOf(GeminiInfraException.class);
-    assertThat(sink.saved).isEmpty();
+    assertThat(consumer.saved).isEmpty();
   }
 
   @ParameterizedTest
   @ValueSource(strings = {"MULTIPLE", "BLANK", "OX"})
   void injectsDedupInstructionOnSecondChunkUserPromptOnly(String type) {
     aiProperties.getChunk().setChunkSize(1); // quizCount=2 → 청크 2개
-    FakeSink sink = new FakeSink();
+    FakeConsumer consumer = new FakeConsumer();
     when(chatModel.stream(any(Prompt.class)))
         .thenReturn(fluxOf(questionsJson(List.of(1))), fluxOf(questionsJson(List.of(1))));
 
-    orchestrator(type).generateQuiz(request(type, 2, sink));
+    orchestrator(type).generateQuiz(request(type, 2, consumer));
 
     // Phase 1(문제)·Phase 2(해설) 모두 stream을 사용하므로 청크당 2회씩 호출된다. 각 요청의 마지막 메시지 = 사용자 프롬프트.
     ArgumentCaptor<Prompt> captor = ArgumentCaptor.forClass(Prompt.class);
@@ -243,14 +241,14 @@ class ChunkedQuizOrchestratorContractTest {
   @ValueSource(strings = {"MULTIPLE", "BLANK", "OX"})
   void fastServesFirstNWithoutGate(String type) {
     aiProperties.setFastServeCount(2);
-    FakeSink sink = new FakeSink();
+    FakeConsumer consumer = new FakeConsumer();
     when(chatModel.stream(any(Prompt.class))).thenReturn(fluxOf(questionsJson(List.of(1, 1, 1))));
 
-    orchestrator(type).generateQuiz(request(type, 3, sink));
+    orchestrator(type).generateQuiz(request(type, 3, consumer));
 
-    assertThat(sink.contents()).containsExactlyInAnyOrder("Q0", "Q1", "Q2");
+    assertThat(consumer.contents()).containsExactlyInAnyOrder("Q0", "Q1", "Q2");
     // 처음 2문항은 게이트를 우회하므로 검증 콜은 3번째 문항 1건뿐이다.
-    verify(qualityGate, times(1)).verify(any(), any(), any(), any(), any());
+    verify(verifier, times(1)).verify(any(QualityVerificationRequest.class));
   }
 
   @ParameterizedTest
@@ -258,15 +256,15 @@ class ChunkedQuizOrchestratorContractTest {
   void fastServedProblemsAreStoredEvenIfGateWouldReject(String type) {
     // 게이트가 전량 미달 판정을 내려도 즉석 서빙분은 게이트를 타지 않으므로 그대로 저장된다.
     aiProperties.setFastServeCount(3);
-    when(qualityGate.verify(any(), any(), any(), any(), any()))
+    when(verifier.verify(any(QualityVerificationRequest.class)))
         .thenReturn(QualityVerdict.below("bad"));
-    FakeSink sink = new FakeSink();
+    FakeConsumer consumer = new FakeConsumer();
     when(chatModel.stream(any(Prompt.class))).thenReturn(fluxOf(questionsJson(List.of(1, 1, 1))));
 
-    orchestrator(type).generateQuiz(request(type, 3, sink));
+    orchestrator(type).generateQuiz(request(type, 3, consumer));
 
-    assertThat(sink.contents()).containsExactlyInAnyOrder("Q0", "Q1", "Q2");
-    verify(qualityGate, never()).verify(any(), any(), any(), any(), any());
+    assertThat(consumer.contents()).containsExactlyInAnyOrder("Q0", "Q1", "Q2");
+    verify(verifier, never()).verify(any(QualityVerificationRequest.class));
   }
 
   private String typeSpecificDedupMarker(String type) {

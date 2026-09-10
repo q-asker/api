@@ -52,7 +52,6 @@ public class FileUploadService {
     }
   }
 
-  /** 파일(PDF, PPT, DOCX)을 PDF로 변환 후 OCI와 Gemini에 동시 업로드한다. */
   public FileUploadResponse upload(MultipartFile file) {
     String originalFileName = file.getOriginalFilename();
 
@@ -82,22 +81,14 @@ public class FileUploadService {
         pdfFile = convertService.convertToPdf(tempFile);
       }
 
-      // 이펙티블리 파이널
-      final Path finalPdfFile = pdfFile;
-
       // 3. Gemini용 임시 파일 복사 (백그라운드 업로드가 끝날 때까지 유지)
       Path geminiCopy =
           Files.copy(
-              finalPdfFile,
+              pdfFile,
               Files.createTempFile("gemini-upload-", ".pdf"),
               StandardCopyOption.REPLACE_EXISTING);
 
-      // 4. OCI + Gemini 동시 시작
-      CompletableFuture<String> ociFuture =
-          CompletableFuture.supplyAsync(
-              () -> objectStorageService.uploadPdf(finalPdfFile, originalFileName), uploadExecutor);
-
-      // Gemini 업로드: 완료 시 geminiCopy 정리, 예외는 보존 (캐시에서 join 시 처리)
+      // 4. GCS 업로드용 CompletableFuture - 비동기로 뺀다
       CompletableFuture<FileMetadata> geminiFuture =
           CompletableFuture.supplyAsync(
                   () -> geminiFileService.uploadPdfFromFile(geminiCopy), uploadExecutor)
@@ -111,37 +102,30 @@ public class FileUploadService {
                     }
                   });
 
-      // OCI 업로드는 필수 — 실패 시 예외 발생
+      // 5. OCI 파일 업로드는 동기적으로 수행됨
       String cdnUrl;
       try {
-        cdnUrl = ociFuture.join();
+        cdnUrl = objectStorageService.uploadPdf(pdfFile, originalFileName);
       } catch (Exception e) {
         geminiFuture.thenAccept(fileMetadata -> geminiFileService.deleteFile(fileMetadata.name()));
         throw e;
       }
 
-      // Gemini Future를 캐시에 즉시 저장 — 퀴즈 생성 시 awaitCachedFileMetadata()로 대기/조회
+      // 6. Gemini Future를 캐시에 즉시 저장 — 퀴즈 생성 시 awaitCachedFileMetadata()로 대기/조회
       geminiFileService.cacheUploadFuture(cdnUrl, geminiFuture);
 
       log.info("OCI 업로드 완료, Gemini는 백그라운드 처리 중: {}", cdnUrl);
       return new FileUploadResponse(cdnUrl);
-    } catch (CustomException e) {
-      throw e;
-    } catch (CompletionException e) {
-      if (e.getCause() instanceof CustomException ce) {
+    } catch (Exception e) {
+      Throwable cause = e instanceof CompletionException ? e.getCause() : e;
+      if (cause instanceof CustomException ce) {
         throw ce;
       }
       throw new CustomException(
           ExceptionMessage.DEFAULT_ERROR, "파일 업로드 실패: " + originalFileName, e);
-    } catch (Exception e) {
-      throw new CustomException(
-          ExceptionMessage.DEFAULT_ERROR, "파일 업로드 실패: " + originalFileName, e);
     } finally {
       deleteQuietly(tempFile);
-      // pdfFile이 tempFile과 다른 경우에만 삭제 (변환이 발생한 경우)
-      if (pdfFile != null && !pdfFile.equals(tempFile)) {
-        deleteQuietly(pdfFile);
-      }
+      deleteQuietly(pdfFile);
     }
   }
 

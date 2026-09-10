@@ -1,25 +1,16 @@
-package com.icc.qasker.ai.service.support;
+package com.icc.qasker.ai.support;
 
-import java.util.function.Consumer;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import tools.jackson.databind.ObjectMapper;
 
-/**
- * 스트리밍 JSON 응답에서 배열 원소 객체가 완성될 때마다 콜백을 호출하는 제네릭 추출기.
- *
- * <p>Gemini 응답 형식: {"questions": [{Q1}, {Q2}, ...]}
- *
- * <p>배열 내부의 각 객체({...})가 완성되면 즉시 파싱하여 consumer에 전달한다. 문자열 내부의 중괄호를 무시하기 위해 JSON 문자열 이스케이프를 추적한다.
- *
- * @param <T> 배열 원소 타입 (예: GeminiQuestion, GeminiEssayQuestion)
- */
 @Slf4j
 public class StreamingJsonArrayExtractor<T> {
 
   private final ObjectMapper objectMapper;
   private final Class<T> elementType;
-  private final Consumer<T> elementConsumer;
   private final String logTag;
 
   private final StringBuilder buffer = new StringBuilder();
@@ -29,20 +20,19 @@ public class StreamingJsonArrayExtractor<T> {
   private boolean inString = false;
   private boolean escaped = false;
 
-  /** -- GETTER -- 추출된 원소 수를 반환한다. */
   @Getter private int questionCount = 0;
 
   public StreamingJsonArrayExtractor(
-      ObjectMapper objectMapper, Class<T> elementType, Consumer<T> elementConsumer, String logTag) {
+      ObjectMapper objectMapper, Class<T> elementType, String logTag) {
     this.objectMapper = objectMapper;
     this.elementType = elementType;
-    this.elementConsumer = elementConsumer;
     this.logTag = logTag;
   }
 
-  /** 스트리밍 텍스트 청크를 받아 처리한다. 원소 객체가 완성되면 consumer가 호출된다. */
-  public void feed(String chunk) {
-    if (chunk == null) return;
+  public List<T> feed(String chunk) {
+    if (chunk == null) return List.of();
+
+    List<T> completed = new ArrayList<>();
 
     for (int i = 0; i < chunk.length(); i++) {
       char c = chunk.charAt(i);
@@ -81,14 +71,16 @@ public class StreamingJsonArrayExtractor<T> {
         braceDepth--;
         if (braceDepth == 0 && objectStart >= 0) {
           String objectJson = buffer.substring(objectStart, buffer.length());
-          emitElement(objectJson);
+          T element = parseElement(objectJson);
+          if (element != null) completed.add(element);
           objectStart = -1;
         }
       }
     }
+    return completed;
   }
 
-  private void emitElement(String json) {
+  private T parseElement(String json) {
     T element;
     try {
       element = objectMapper.readValue(json, elementType);
@@ -99,13 +91,9 @@ public class StreamingJsonArrayExtractor<T> {
           json.length(),
           json.length() > 300 ? json.substring(0, 300) : json,
           e);
-      return;
+      return null;
     }
-    try {
-      questionCount++;
-      elementConsumer.accept(element);
-    } catch (Exception e) {
-      log.warn("[{} 문항 처리 실패] 문항 소비자 호출 중 오류 발생", logTag, e);
-    }
+    questionCount++;
+    return element;
   }
 }

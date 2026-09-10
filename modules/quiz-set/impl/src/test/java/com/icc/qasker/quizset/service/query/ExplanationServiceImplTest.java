@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 import com.icc.qasker.global.component.HashUtil;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
+import com.icc.qasker.global.quiz.QuizType;
 import com.icc.qasker.quizset.TestEntityFactory;
 import com.icc.qasker.quizset.dto.feresponse.ExplanationResponse;
 import com.icc.qasker.quizset.entity.Problem;
@@ -44,7 +45,7 @@ class ExplanationServiceImplTest {
         "sess",
         "t",
         com.icc.qasker.quizset.GenerationStatus.COMPLETED,
-        com.icc.qasker.quizset.dto.ferequest.enums.QuizType.MULTIPLE,
+        QuizType.MULTIPLE,
         1,
         "u",
         List.of());
@@ -82,7 +83,7 @@ class ExplanationServiceImplTest {
             "sess",
             "t",
             com.icc.qasker.quizset.GenerationStatus.GENERATING,
-            com.icc.qasker.quizset.dto.ferequest.enums.QuizType.MULTIPLE,
+            QuizType.MULTIPLE,
             1,
             "u",
             List.of());
@@ -106,7 +107,7 @@ class ExplanationServiceImplTest {
             "sess",
             "t",
             com.icc.qasker.quizset.GenerationStatus.GENERATING,
-            com.icc.qasker.quizset.dto.ferequest.enums.QuizType.MULTIPLE,
+            QuizType.MULTIPLE,
             1,
             "u",
             List.of());

@@ -3,7 +3,8 @@ package com.icc.qasker.ai.util;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
-import com.icc.qasker.ai.util.PdfUtils.SlicedPdf;
+import com.icc.qasker.ai.support.PdfUtils;
+import com.icc.qasker.ai.support.PdfUtils.SlicedPdf;
 import com.icc.qasker.oci.FileValidateService;
 import java.nio.file.Files;
 import java.nio.file.Path;

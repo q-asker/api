@@ -1,7 +1,7 @@
 package com.icc.qasker.quizhistory.dto.feresponse;
 
+import com.icc.qasker.global.quiz.QuizType;
 import com.icc.qasker.quizset.ProblemSetOrigin;
-import com.icc.qasker.quizset.dto.ferequest.enums.QuizType;
 import java.time.Instant;
 
 public record HistorySummaryResponse(

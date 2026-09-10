@@ -1,5 +1,6 @@
 package com.icc.qasker.ai.dto;
 
+import com.icc.qasker.global.quiz.QuizType;
 import java.util.List;
 
 /**
@@ -8,7 +9,7 @@ import java.util.List;
  * 사유로, 검증기가 개선본이 그 지적을 어떻게 해소했는지 함께 판정·서술하게 한다(없으면 null).
  */
 public record QualityVerificationRequest(
-    String quizType,
+    QuizType quizType,
     String language,
     String question,
     List<Selection> selections,
@@ -24,7 +25,7 @@ public record QualityVerificationRequest(
    * 사용한다.
    */
   public QualityVerificationRequest(
-      String quizType,
+      QuizType quizType,
       String language,
       String question,
       List<Selection> selections,
@@ -48,7 +49,7 @@ public record QualityVerificationRequest(
 
   /** 캐시·priorFeedback 없는 검증용 편의 생성자(Pass 1 캐시 미생성 폴백). */
   public QualityVerificationRequest(
-      String quizType,
+      QuizType quizType,
       String language,
       String question,
       List<Selection> selections,
@@ -66,6 +67,22 @@ public record QualityVerificationRequest(
         appliedInstruction,
         mode,
         null);
+  }
+
+  /**
+   * 검증관에게 넘길 모범답안. ESSAY 는 정답(correct=true) 선지 내용이 모범답안이고, 객관형은 모범답안 개념이 없어 null 이다.
+   *
+   * <p>생성 게이트(Pass 1, quiz-ai)와 승인 재검토(Pass 2, quiz-set)가 같은 규칙을 써야 판정이 갈리지 않으므로 이 계약에 둔다.
+   */
+  public static String modelAnswerOf(QuizType quizType, List<Selection> selections) {
+    if (quizType != QuizType.ESSAY || selections == null) {
+      return null;
+    }
+    return selections.stream()
+        .filter(Selection::correct)
+        .map(Selection::content)
+        .findFirst()
+        .orElse(null);
   }
 
   public record Selection(String content, boolean correct) {}

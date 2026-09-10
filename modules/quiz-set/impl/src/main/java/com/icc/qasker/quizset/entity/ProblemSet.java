@@ -1,10 +1,10 @@
 package com.icc.qasker.quizset.entity;
 
 import com.icc.qasker.global.entity.CreatedAt;
+import com.icc.qasker.global.quiz.QuizType;
 import com.icc.qasker.quizset.GenerationStatus;
 import com.icc.qasker.quizset.ProblemSetOrigin;
 import com.icc.qasker.quizset.converter.IntegerListConverter;
-import com.icc.qasker.quizset.dto.ferequest.enums.QuizType;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;

@@ -1,32 +1,33 @@
 package com.icc.qasker.ai.service.ox;
 
-import com.icc.qasker.ai.GeminiFileService;
-import com.icc.qasker.ai.dto.AISelection;
-import com.icc.qasker.ai.properties.QAskerAiProperties;
-import com.icc.qasker.ai.service.SelectionChunkedQuizOrchestrator;
+import com.icc.qasker.ai.dto.AIProblem;
+import com.icc.qasker.ai.dto.GenerationRequestToAI;
+import com.icc.qasker.ai.service.ChunkedQuizGenerator;
+import com.icc.qasker.ai.service.QuizTypeOrchestrator;
+import com.icc.qasker.ai.service.QuizTypeSpec;
+import com.icc.qasker.ai.service.SelectionQuizSupport;
+import com.icc.qasker.ai.service.i18n.GuideLines;
+import com.icc.qasker.ai.service.ox.prompt.OXGuideLine;
 import com.icc.qasker.ai.service.ox.prompt.OXRequestPrompt;
-import com.icc.qasker.ai.service.quality.QualityGate;
-import com.icc.qasker.ai.service.support.GeminiMetricsRecorder;
-import com.icc.qasker.ai.service.support.SelectionArrangement;
-import com.icc.qasker.ai.strategy.QuizType;
+import com.icc.qasker.ai.structure.GeminiQuestion;
+import com.icc.qasker.global.quiz.QuizType;
 import java.util.List;
-import org.springframework.ai.chat.model.ChatModel;
+import java.util.Optional;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-import tools.jackson.databind.ObjectMapper;
 
-/** OX 퀴즈 오케스트레이터. */
+/**
+ * OX 퀴즈 유형. 선지는 항상 2개이고 O 가 앞에 오도록 정규화한다. 생성 엔진은 {@link ChunkedQuizGenerator} 하나를 공유하고, 이 클래스는 이
+ * 유형의 차이만 정의한다.
+ */
 @Component
-public class OXQuizOrchestrator extends SelectionChunkedQuizOrchestrator {
+@RequiredArgsConstructor
+public class OXQuizOrchestrator implements QuizTypeOrchestrator, QuizTypeSpec<GeminiQuestion> {
 
-  public OXQuizOrchestrator(
-      GeminiFileService geminiFileService,
-      ChatModel chatModel,
-      ObjectMapper objectMapper,
-      GeminiMetricsRecorder metricsRecorder,
-      QAskerAiProperties aiProperties,
-      QualityGate qualityGate) {
-    super(geminiFileService, chatModel, objectMapper, metricsRecorder, aiProperties, qualityGate);
-  }
+  /** 이 유형에서 허용하는 최대 선지 수. 초과 문항은 채택하지 않는다. */
+  private static final int MAX_SELECTION_COUNT = 2;
+
+  private final ChunkedQuizGenerator generator;
 
   @Override
   public QuizType getSupportedType() {
@@ -34,17 +35,48 @@ public class OXQuizOrchestrator extends SelectionChunkedQuizOrchestrator {
   }
 
   @Override
-  protected int maxSelectionCount() {
-    return 2;
+  public void generateQuiz(GenerationRequestToAI request) {
+    generator.generate(request, this);
   }
 
   @Override
-  protected String dedupInstruction() {
+  public String systemGuideLine(String language) {
+    return GuideLines.withLanguage(OXGuideLine.content, language);
+  }
+
+  @Override
+  public String requestPrompt(int quizCount, String customInstruction) {
+    // customInstruction 이 있으면 XML 태그로 감싸 유저 프롬프트 끝에 우선 삽입
+    return OXRequestPrompt.generate(quizCount, customInstruction);
+  }
+
+  @Override
+  public Class<GeminiQuestion> elementType() {
+    return SelectionQuizSupport.elementType();
+  }
+
+  @Override
+  public String dedupInstruction() {
     return OXRequestPrompt.DEDUP_INSTRUCTION;
   }
 
   @Override
-  protected List<AISelection> arrangeSelections(List<AISelection> selections) {
-    return SelectionArrangement.normalizeOxOrder(selections);
+  public String responseSchema(String customInstruction) {
+    return SelectionQuizSupport.responseSchema(customInstruction);
+  }
+
+  @Override
+  public boolean accept(GeminiQuestion question) {
+    return SelectionQuizSupport.accept(question, MAX_SELECTION_COUNT);
+  }
+
+  @Override
+  public AIProblem toProblem(GeminiQuestion question, List<Integer> sourcePages) {
+    return SelectionQuizSupport.toProblem(question, sourcePages);
+  }
+
+  @Override
+  public Optional<GeminiQuestion> parseFirst(String text) {
+    return SelectionQuizSupport.parseFirst(text);
   }
 }

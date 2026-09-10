@@ -11,4 +11,7 @@ public class QAskerAsyncProperties {
 
   /** 비동기 태스크 종료 대기 타임아웃 (ms) */
   private long taskTerminationTimeoutMs = 10_000;
+
+  /** AI 생성 관련 태스크 대기 타임아웃(ms) */
+  private long managedTaskTerminationTimeoutMs = 1_200_000;
 }

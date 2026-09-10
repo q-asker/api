@@ -20,7 +20,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 @AllArgsConstructor
 public class GenerationQueryServiceImpl implements GenerationQueryService {
 
-  private final SseNotificationService notificationService;
+  private final SseNotificationService sseNotificationService;
   private final QuizQueryService quizQueryService;
 
   @Override
@@ -29,13 +29,13 @@ public class GenerationQueryServiceImpl implements GenerationQueryService {
     Optional<GenerationStatus> statusOptional =
         quizQueryService.getGenerationStatusBySessionId(sessionId);
 
-    SseEmitter emitter = notificationService.createSseEmitter(sessionId);
+    SseEmitter emitter = sseNotificationService.createSseEmitter(sessionId);
 
     statusOptional.ifPresent(
         status -> {
           switch (status) {
             case FAILED ->
-                notificationService.sendFinishWithError(
+                sseNotificationService.sendFinishWithError(
                     sessionId, ExceptionMessage.AI_GENERATION_FAILED.getMessage());
 
             case GENERATING, COMPLETED -> {
@@ -43,12 +43,12 @@ public class GenerationQueryServiceImpl implements GenerationQueryService {
               ProblemSetResponse ps =
                   quizQueryService.getMissedProblems(sessionId, lastEventNumber);
 
-              notificationService.sendCreatedMessageWithId(
+              sseNotificationService.sendCreatedMessageWithId(
                   sessionId, String.valueOf(lastEventNumber + ps.quiz().size()), ps);
 
               // COMPLETE 상태일 경우 완료 메시지 전송
               if (status == COMPLETED) {
-                notificationService.sendComplete(sessionId);
+                sseNotificationService.sendComplete(sessionId);
               }
             }
           }

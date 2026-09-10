@@ -1,6 +1,7 @@
 package com.icc.qasker.quizhistory.mapper;
 
 import com.icc.qasker.global.component.HashUtil;
+import com.icc.qasker.global.quiz.QuizType;
 import com.icc.qasker.quizhistory.dto.feresponse.EssayHistoryDetailResponse.ElementScoreDetail;
 import com.icc.qasker.quizhistory.dto.feresponse.EssayHistoryDetailResponse.EssayProblemWithGrade;
 import com.icc.qasker.quizhistory.dto.feresponse.EssayHistoryDetailResponse.EssaySelection;
@@ -11,7 +12,6 @@ import com.icc.qasker.quizhistory.entity.AnswerSnapshotView;
 import com.icc.qasker.quizhistory.entity.EssayGradeLog;
 import com.icc.qasker.quizhistory.entity.QuizHistory;
 import com.icc.qasker.quizhistory.grading.AnswerJudge;
-import com.icc.qasker.quizset.dto.ferequest.enums.QuizType;
 import com.icc.qasker.quizset.dto.feresponse.Selection;
 import com.icc.qasker.quizset.dto.readonly.ProblemDetail;
 import com.icc.qasker.quizset.dto.readonly.ProblemSetSummary;

@@ -8,16 +8,19 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.icc.qasker.ai.GeminiFileService;
-import com.icc.qasker.ai.QuizBatchSink;
+import com.icc.qasker.ai.QuizConsumer;
 import com.icc.qasker.ai.dto.AIProblem;
 import com.icc.qasker.ai.dto.AISelection;
 import com.icc.qasker.ai.dto.GeminiFileUploadResponse.FileMetadata;
 import com.icc.qasker.ai.dto.GenerationRequestToAI;
 import com.icc.qasker.ai.dto.QualityVerdict;
+import com.icc.qasker.ai.dto.QualityVerificationRequest;
 import com.icc.qasker.ai.exception.GeminiInfraException;
+import com.icc.qasker.ai.metric.GeminiMetricsRecorder;
 import com.icc.qasker.ai.properties.QAskerAiProperties;
-import com.icc.qasker.ai.service.quality.QualityGate;
-import com.icc.qasker.ai.service.support.GeminiMetricsRecorder;
+import com.icc.qasker.ai.service.ChunkedQuizGenerator;
+import com.icc.qasker.ai.service.QualityVerifier;
+import com.icc.qasker.global.quiz.QuizType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -48,7 +51,7 @@ class EssayChunkedContractTest {
   private ObjectMapper objectMapper;
   private GeminiMetricsRecorder metricsRecorder;
   private QAskerAiProperties aiProperties;
-  private QualityGate qualityGate;
+  private QualityVerifier verifier;
 
   @BeforeEach
   void setUp() {
@@ -58,8 +61,8 @@ class EssayChunkedContractTest {
     metricsRecorder = mock(GeminiMetricsRecorder.class);
     aiProperties = new QAskerAiProperties();
     aiProperties.getChunk().setChunkSize(15);
-    qualityGate = mock(QualityGate.class);
-    when(qualityGate.verify(any(), any(), any(), any(), any())).thenReturn(QualityVerdict.pass());
+    verifier = mock(QualityVerifier.class);
+    when(verifier.verify(any(QualityVerificationRequest.class))).thenReturn(QualityVerdict.pass());
 
     FileMetadata meta =
         new FileMetadata(null, null, null, null, null, null, null, "gs://b/x.pdf", null);
@@ -68,8 +71,8 @@ class EssayChunkedContractTest {
     when(metricsRecorder.recordChunkResult(anyLong(), any())).thenReturn(0.0);
   }
 
-  /** 저장을 기록하는 테스트용 sink. 비동기 검증 워커들이 동시에 호출하므로 스레드 안전하게 직렬화한다. */
-  private static class FakeSink implements QuizBatchSink {
+  /** 저장을 기록하는 테스트용 consumer. 비동기 검증 워커들이 동시에 호출하므로 스레드 안전하게 직렬화한다. */
+  private static class FakeConsumer implements QuizConsumer {
     final List<AIProblem> saved = new ArrayList<>();
     final AtomicInteger counter = new AtomicInteger(1);
 
@@ -86,17 +89,18 @@ class EssayChunkedContractTest {
 
   private EssayQuizOrchestrator orchestrator() {
     return new EssayQuizOrchestrator(
-        fileService, chatModel, objectMapper, metricsRecorder, aiProperties, qualityGate);
+        new ChunkedQuizGenerator(
+            fileService, chatModel, objectMapper, metricsRecorder, aiProperties, verifier));
   }
 
-  private GenerationRequestToAI request(int quizCount, QuizBatchSink sink) {
+  private GenerationRequestToAI request(int quizCount, QuizConsumer consumer) {
     return GenerationRequestToAI.builder()
         .fileUrl("http://f/x.pdf")
-        .quizType("ESSAY")
+        .quizType(QuizType.ESSAY)
         .language("KO")
         .quizCount(quizCount)
         .referencePages(List.of(1, 2))
-        .sink(sink)
+        .consumer(consumer)
         .build();
   }
 
@@ -129,44 +133,44 @@ class EssayChunkedContractTest {
 
   @Test
   void deliversExactlyQuizCount() {
-    FakeSink sink = new FakeSink();
+    FakeConsumer consumer = new FakeConsumer();
     when(chatModel.stream(any(Prompt.class))).thenReturn(fluxOf(essayJson(3)));
 
-    orchestrator().generateQuiz(request(3, sink));
+    orchestrator().generateQuiz(request(3, consumer));
 
-    assertThat(sink.contents()).containsExactlyInAnyOrder("Q0", "Q1", "Q2");
+    assertThat(consumer.contents()).containsExactlyInAnyOrder("Q0", "Q1", "Q2");
   }
 
   @Test
   void truncatesWhenChunkOverProduces() {
-    FakeSink sink = new FakeSink();
+    FakeConsumer consumer = new FakeConsumer();
     when(chatModel.stream(any(Prompt.class))).thenReturn(fluxOf(essayJson(4)));
 
-    orchestrator().generateQuiz(request(2, sink));
+    orchestrator().generateQuiz(request(2, consumer));
 
-    assertThat(sink.contents()).containsExactlyInAnyOrder("Q0", "Q1");
+    assertThat(consumer.contents()).containsExactlyInAnyOrder("Q0", "Q1");
   }
 
   @Test
   void preservesEarlierChunk_whenLaterChunkFails() {
     aiProperties.getChunk().setChunkSize(1); // quizCount=2 → 청크 2개
-    FakeSink sink = new FakeSink();
+    FakeConsumer consumer = new FakeConsumer();
     when(chatModel.stream(any(Prompt.class)))
         .thenReturn(fluxOf(essayJson(1)), Flux.error(new RuntimeException("boom")));
 
-    orchestrator().generateQuiz(request(2, sink));
+    orchestrator().generateQuiz(request(2, consumer));
 
-    assertThat(sink.contents()).containsExactly("Q0");
+    assertThat(consumer.contents()).containsExactly("Q0");
   }
 
   @Test
   void rethrows_whenNothingDelivered() {
-    FakeSink sink = new FakeSink();
+    FakeConsumer consumer = new FakeConsumer();
     when(chatModel.stream(any(Prompt.class))).thenReturn(Flux.error(new RuntimeException("boom")));
 
-    assertThatThrownBy(() -> orchestrator().generateQuiz(request(1, sink)))
+    assertThatThrownBy(() -> orchestrator().generateQuiz(request(1, consumer)))
         .isInstanceOf(GeminiInfraException.class);
-    assertThat(sink.saved).isEmpty();
+    assertThat(consumer.saved).isEmpty();
   }
 
   /**
@@ -175,13 +179,13 @@ class EssayChunkedContractTest {
    */
   @Test
   void preservesEssayDataContract() {
-    FakeSink sink = new FakeSink();
+    FakeConsumer consumer = new FakeConsumer();
     when(chatModel.stream(any(Prompt.class))).thenReturn(fluxOf(essayJson(1)));
 
-    orchestrator().generateQuiz(request(1, sink));
+    orchestrator().generateQuiz(request(1, consumer));
 
-    assertThat(sink.saved).hasSize(1);
-    List<AISelection> selections = sink.saved.getFirst().selections();
+    assertThat(consumer.saved).hasSize(1);
+    List<AISelection> selections = consumer.saved.getFirst().selections();
     assertThat(selections).hasSize(1);
     AISelection modelAnswer = selections.getFirst();
     assertThat(modelAnswer.content()).isEqualTo("A0");
@@ -192,15 +196,15 @@ class EssayChunkedContractTest {
   /** 미달 문항은 보류됐다가 chatModel.call 재생성본(v2)이 검증 없이 저장된다. */
   @Test
   void regeneratesHeldQuestion() {
-    FakeSink sink = new FakeSink();
+    FakeConsumer consumer = new FakeConsumer();
     when(chatModel.stream(any(Prompt.class))).thenReturn(fluxOf(essayJson(1))); // Q0 → 미달 보류
     when(chatModel.call(any(Prompt.class))).thenReturn(resp(essayJson(1))); // 재생성 Q0(v2)
-    when(qualityGate.verify(any(), any(), any(), any(), any()))
+    when(verifier.verify(any(QualityVerificationRequest.class)))
         .thenReturn(QualityVerdict.below("모범답안 근거 불명확"));
 
-    orchestrator().generateQuiz(request(1, sink));
+    orchestrator().generateQuiz(request(1, consumer));
 
     // v1은 저장 안 되고 재생성 v2만 저장(검증 없이).
-    assertThat(sink.contents()).containsExactly("Q0");
+    assertThat(consumer.contents()).containsExactly("Q0");
   }
 }
