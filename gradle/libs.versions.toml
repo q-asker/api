@@ -16,7 +16,7 @@ hibernate-orm = "7.4.7.Final"
 # ── Libraries ───────────────────────────────────────────
 jasypt = "3.0.5"
 springdoc = "3.0.3"
-auth0-jwt = "4.6.0"
+auth0-jwt = "4.6.1"
 bucket4j = "8.19.0"
 jodconverter = "4.4.11"
 hashids = "1.0.3"
