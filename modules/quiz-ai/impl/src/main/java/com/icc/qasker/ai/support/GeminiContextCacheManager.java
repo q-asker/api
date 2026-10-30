@@ -63,9 +63,33 @@ public final class GeminiContextCacheManager {
       return Optional.of(new CacheRef(created.getName(), model));
     } catch (Exception e) {
       metricsRecorder.recordCacheCreate(false);
-      log.warn("{} 컨텍스트 캐시 생성 실패 — 캐시 없이 진행(프리픽스 매 호출 전송).", label, e);
+      if (isBelowMinimumTokens(e)) {
+        // 짧은 문서는 캐시 최소 토큰(4096)에 못 미쳐 거절된다 — 정상 경로라 경보 대상이 아니다
+        log.warn("{} 컨텍스트 캐시 생략 — 최소 토큰 미달, 캐시 없이 진행: {}", label, rootMessage(e));
+      } else {
+        log.error("{} 컨텍스트 캐시 생성 실패 — 캐시 없이 진행(프리픽스 매 호출 전송).", label, e);
+      }
       return Optional.empty();
     }
+  }
+
+  /** Gemini 가 캐시 내용이 최소 토큰 수에 못 미친다며 거절한 경우인지 원인 사슬에서 찾는다. */
+  static boolean isBelowMinimumTokens(Throwable t) {
+    for (Throwable c = t; c != null; c = c.getCause()) {
+      String m = c.getMessage();
+      if (m != null && m.contains("minimum token count")) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private static String rootMessage(Throwable t) {
+    Throwable root = t;
+    while (root.getCause() != null) {
+      root = root.getCause();
+    }
+    return root.getMessage();
   }
 
   public void delete(String label, String cacheName) {

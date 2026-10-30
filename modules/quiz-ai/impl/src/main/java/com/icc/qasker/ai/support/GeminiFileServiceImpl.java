@@ -1,7 +1,6 @@
 package com.icc.qasker.ai.support;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
+import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
@@ -10,46 +9,52 @@ import com.icc.qasker.ai.dto.GeminiFileUploadResponse.FileMetadata;
 import com.icc.qasker.ai.properties.QAskerAiProperties;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
+import com.icc.qasker.oci.FileValidateService;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import java.io.IOException;
-import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Duration;
-import java.util.List;
-import java.util.Optional;
+import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.web.util.UriUtils;
 
+/**
+ * PDF 원본의 단일 저장소(GCS). 업로드 시 GCS 에 저장하고 CDN URL({@code cdn.file-base-url}/객체명)을 돌려준다 —
+ * CDN(Cloudflare Worker files-hook)이 같은 객체를 GCS 에서 읽어 사용자에게 내준다. 생성 시에는 그 CDN URL 을 gs:// 경로로 되돌려
+ * Gemini 에 그대로 넘기므로 다운로드·재업로드가 없다.
+ */
 @Slf4j
 @Service
 public class GeminiFileServiceImpl implements GeminiFileService {
 
   private final Storage storage;
   private final String bucketName;
-  private final PdfUtils pdfUtils;
+  private final String fileBaseUrl;
+  private final FileValidateService fileValidateService;
   private final Timer uploadTimer;
   private final Counter fileRequestNew;
   private final Counter fileRequestRepeat;
-
-  private final Cache<String, CompletableFuture<FileMetadata>> uploadFutureCache =
-      Caffeine.newBuilder().maximumSize(1_000).expireAfterWrite(Duration.ofHours(47)).build();
 
   private final ConcurrentHashMap.KeySetView<String, Boolean> seenFileUrls =
       ConcurrentHashMap.newKeySet();
 
   public GeminiFileServiceImpl(
-      Storage storage, QAskerAiProperties aiProperties, PdfUtils pdfUtils, MeterRegistry registry) {
+      Storage storage,
+      QAskerAiProperties aiProperties,
+      @Value("${cdn.file-base-url}") String fileBaseUrl,
+      FileValidateService fileValidateService,
+      MeterRegistry registry) {
     this.storage = storage;
     this.bucketName = aiProperties.getGcs().getBucketName();
-    this.pdfUtils = pdfUtils;
+    this.fileBaseUrl = fileBaseUrl;
+    this.fileValidateService = fileValidateService;
 
     this.uploadTimer =
         Timer.builder("file.upload.gcs.duration")
@@ -68,133 +73,63 @@ public class GeminiFileServiceImpl implements GeminiFileService {
   }
 
   @Override
-  public FileMetadata uploadPdf(String pdfUrl, List<Integer> pages) {
-    Path originalTempFile = null;
-    Path slicedTempFile = null;
+  public String storePdf(Path pdfFile, String originalFileName) {
+    Timer.Sample sample = Timer.start();
+    String objectName = UUID.randomUUID() + ".pdf";
 
+    BlobInfo blobInfo =
+        BlobInfo.newBuilder(bucketName, objectName)
+            .setContentType("application/pdf")
+            .setMetadata(
+                Map.of(
+                    "original-filename", UriUtils.encode(originalFileName, StandardCharsets.UTF_8)))
+            .build();
     try {
-      originalTempFile = pdfUtils.downloadToTemp(pdfUrl);
-
-      // 페이지가 지정된 경우 페이지만 추출한 새로운 파일 생성
-      PdfUtils.SlicedPdf slicedResult = pdfUtils.extractPages(originalTempFile, pages);
-      slicedTempFile = slicedResult.path();
-      List<Integer> finalSourcePages = slicedResult.sourcePages();
-
-      FileMetadata metadata = doUpload(slicedTempFile, extractFileName(pdfUrl), finalSourcePages);
-
-      String cacheKey = generateCacheKey(pdfUrl, pages);
-      uploadFutureCache.put(cacheKey, CompletableFuture.completedFuture(metadata));
-      return metadata;
-    } catch (java.io.FileNotFoundException e) {
-      throw new CustomException(
-          ExceptionMessage.INVALID_URL_REQUEST, "PDF 파일을 찾을 수 없습니다: " + e.getMessage(), e);
+      storage.createFrom(blobInfo, pdfFile);
+      log.info(
+          "GCS PDF 업로드 완료: bucket={}, blob={}, size={}bytes",
+          bucketName,
+          objectName,
+          Files.size(pdfFile));
     } catch (IOException e) {
-      throw new CustomException(
-          ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR, "PDF 업로드 중 I/O 오류", e);
+      throw new CustomException(ExceptionMessage.FILE_UPLOAD_FAILED, "GCS PDF 업로드 실패", e);
     } finally {
-      pdfUtils.deleteTempFile(originalTempFile);
-      // 추출된 파일이 원본과 다를 경우에만 삭제 (원본이면 위에서 삭제됨)
-      if (slicedTempFile != null && !slicedTempFile.equals(originalTempFile)) {
-        pdfUtils.deleteTempFile(slicedTempFile);
-      }
+      sample.stop(uploadTimer);
     }
+    return fileBaseUrl + "/" + objectName;
   }
 
   @Override
-  public String generateCacheKey(String url, List<Integer> pages) {
-    if (pages == null || pages.isEmpty()) {
-      return url;
+  public FileMetadata resolvePdf(String cdnUrl) {
+    fileValidateService.checkCdnUrlWithThrowing(cdnUrl);
+    String prefix = fileBaseUrl + "/";
+    if (!cdnUrl.startsWith(prefix)) {
+      throw new CustomException(ExceptionMessage.INVALID_URL_REQUEST, "pdfUrl=" + cdnUrl);
     }
-    String pageSuffix = pages.stream().map(Object::toString).collect(Collectors.joining(","));
-    return url + "#pages=" + pageSuffix;
-  }
+    String objectName = stripQuery(cdnUrl.substring(prefix.length()));
 
-  @Override
-  public FileMetadata uploadPdfFromFile(Path pdfFile) {
-    try {
-      return doUpload(pdfFile, pdfFile.getFileName().toString(), null);
-    } catch (IOException e) {
-      throw new CustomException(
-          ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR, "PDF 업로드 중 I/O 오류", e);
-    }
-  }
-
-  @Override
-  public void cacheUploadFuture(String cacheKey, CompletableFuture<FileMetadata> future) {
-    uploadFutureCache.put(cacheKey, future);
-    log.info("GCS 업로드 Future 캐시 저장: key={}", cacheKey);
-  }
-
-  @Override
-  public Optional<FileMetadata> awaitCachedFileMetadata(String cacheKey) {
-    boolean isNew = seenFileUrls.add(cacheKey);
-    if (isNew) {
+    if (seenFileUrls.add(cdnUrl)) {
       fileRequestNew.increment();
     } else {
       fileRequestRepeat.increment();
     }
 
-    CompletableFuture<FileMetadata> future = uploadFutureCache.getIfPresent(cacheKey);
-    if (future == null) {
-      return Optional.empty();
+    // 객체가 없으면 보관 기한(GCS 수명 주기)이 지나 삭제된 것 — Gemini 호출 전에 확정해 사용자에게 사유를 알린다
+    Blob blob = storage.get(BlobId.of(bucketName, objectName));
+    if (blob == null) {
+      throw new CustomException(ExceptionMessage.UPLOADED_FILE_DELETED, "pdfUrl=" + cdnUrl);
     }
-
-    try {
-      FileMetadata metadata = future.join();
-      log.info("GCS 파일 캐시 히트: key={}, name={}", cacheKey, metadata.name());
-      return Optional.of(metadata);
-    } catch (CompletionException e) {
-      uploadFutureCache.invalidate(cacheKey);
-      log.warn("[GCS 캐시 실패] 캐시된 업로드 실패, 캐시 제거 key={}", cacheKey, e);
-      return Optional.empty();
-    }
-  }
-
-  private FileMetadata doUpload(Path pdfFile, String displayName, List<Integer> sourcePages)
-      throws IOException {
-    Timer.Sample sample = Timer.start();
-
-    String blobName = UUID.randomUUID() + "/" + displayName;
-
-    BlobInfo blobInfo =
-        BlobInfo.newBuilder(bucketName, blobName).setContentType("application/pdf").build();
-    try (InputStream in = Files.newInputStream(pdfFile)) {
-      storage.createFrom(blobInfo, in);
-    }
-
-    String gcsUri = "gs://" + bucketName + "/" + blobName;
-
-    sample.stop(uploadTimer);
-    log.info(
-        "GCS PDF 업로드 완료: bucket={}, blob={}, size={}bytes",
-        bucketName,
-        blobName,
-        Files.size(pdfFile));
 
     return new FileMetadata(
-        blobName,
-        displayName,
+        objectName,
+        objectName,
         "application/pdf",
-        String.valueOf(Files.size(pdfFile)),
+        String.valueOf(blob.getSize()),
         null,
         null,
         "ACTIVE",
-        gcsUri,
-        sourcePages);
-  }
-
-  @Override
-  public void deleteFile(String fileName) {
-    try {
-      boolean deleted = storage.delete(BlobId.of(bucketName, fileName));
-      if (deleted) {
-        log.info("GCS 파일 삭제 완료: name={}", fileName);
-      } else {
-        log.warn("[GCS 파일 삭제] 삭제 대상 없음 name={}", fileName);
-      }
-    } catch (Exception e) {
-      log.warn("[GCS 파일 삭제 실패] 파일 삭제 실패 name={}", fileName, e);
-    }
+        "gs://" + bucketName + "/" + objectName,
+        null);
   }
 
   @Override
@@ -211,13 +146,8 @@ public class GeminiFileServiceImpl implements GeminiFileService {
         null);
   }
 
-  private String extractFileName(String url) {
-    int lastSlash = url.lastIndexOf('/');
-    if (lastSlash >= 0 && lastSlash < url.length() - 1) {
-      String name = url.substring(lastSlash + 1);
-      int queryIdx = name.indexOf('?');
-      return queryIdx > 0 ? name.substring(0, queryIdx) : name;
-    }
-    throw new IllegalArgumentException("파일 이름을 찾을수 없음 url: " + url);
+  private static String stripQuery(String path) {
+    int queryIdx = path.indexOf('?');
+    return queryIdx >= 0 ? path.substring(0, queryIdx) : path;
   }
 }

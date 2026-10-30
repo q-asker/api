@@ -20,7 +20,6 @@ import com.icc.qasker.ai.service.multiple.MultipleQuizOrchestrator;
 import com.icc.qasker.global.quiz.QuizType;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -58,8 +57,7 @@ class QualityGateOrchestratorTest {
 
     FileMetadata meta =
         new FileMetadata(null, null, null, null, null, null, null, "gs://b/x.pdf", null);
-    when(fileService.generateCacheKey(any(), any())).thenReturn("k");
-    when(fileService.awaitCachedFileMetadata("k")).thenReturn(Optional.of(meta));
+    when(fileService.resolvePdf("http://f/x.pdf")).thenReturn(meta);
   }
 
   private MultipleQuizOrchestrator orchestrator() {

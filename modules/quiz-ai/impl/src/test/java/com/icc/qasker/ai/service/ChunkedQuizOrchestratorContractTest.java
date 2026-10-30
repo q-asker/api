@@ -28,7 +28,6 @@ import com.icc.qasker.ai.service.ox.OXQuizOrchestrator;
 import com.icc.qasker.global.quiz.QuizType;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -77,8 +76,7 @@ class ChunkedQuizOrchestratorContractTest {
 
     FileMetadata meta =
         new FileMetadata(null, null, null, null, null, null, null, "gs://b/x.pdf", null);
-    when(fileService.generateCacheKey(any(), any())).thenReturn("k");
-    when(fileService.awaitCachedFileMetadata("k")).thenReturn(Optional.of(meta));
+    when(fileService.resolvePdf("http://f/x.pdf")).thenReturn(meta);
     when(metricsRecorder.recordChunkResult(anyLong(), any())).thenReturn(0.0);
   }
 
@@ -304,6 +302,29 @@ class ChunkedQuizOrchestratorContractTest {
     Prompt first = captor.getAllValues().getFirst();
     assertThat(first.getInstructions().getFirst()).isInstanceOf(SystemMessage.class);
     assertThat(((UserMessage) first.getInstructions().getLast()).getMedia()).isNotEmpty();
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"MULTIPLE", "BLANK", "OX"})
+  void prependsPageScopeToEveryChunkPrompt(String type) {
+    // PDF 를 자르지 않으므로 고른 페이지(1,2)는 청크마다 사용자 프롬프트의 출제 범위 지시로만 전달된다.
+    aiProperties.getChunk().setChunkSize(1); // quizCount=2 → 청크 2개
+    FakeConsumer consumer = new FakeConsumer();
+    when(chatModel.stream(any(Prompt.class)))
+        .thenReturn(fluxOf(questionsJson(List.of(1))), fluxOf(questionsJson(List.of(1))));
+
+    orchestrator(type).generateQuiz(request(type, 2, consumer));
+
+    ArgumentCaptor<Prompt> captor = ArgumentCaptor.forClass(Prompt.class);
+    verify(chatModel, times(2)).stream(captor.capture());
+    assertThat(captor.getAllValues())
+        .allSatisfy(
+            p ->
+                assertThat(p.getInstructions().getLast().getText())
+                    .startsWith("[출제 범위]")
+                    .contains("1-2"));
+    // 업로드 때 GCS 에 저장된 원본을 세션마다 한 번 gs:// 로 되돌릴 뿐 다시 올리지 않는다
+    verify(fileService, times(1)).resolvePdf("http://f/x.pdf");
   }
 
   private String typeSpecificDedupMarker(String type) {
