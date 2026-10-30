@@ -3,6 +3,7 @@ package com.icc.qasker.ai.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
@@ -36,6 +37,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.ai.chat.messages.SystemMessage;
+import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.metadata.ChatResponseMetadata;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
@@ -265,6 +268,42 @@ class ChunkedQuizOrchestratorContractTest {
 
     assertThat(consumer.contents()).containsExactlyInAnyOrder("Q0", "Q1", "Q2");
     verify(verifier, never()).verify(any(QualityVerificationRequest.class));
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"MULTIPLE", "BLANK", "OX"})
+  void skipsGateEntirelyWhenDisabled(String type) {
+    // 게이트가 꺼지면 즉석 서빙 수와 무관하게 전 문항이 검증 없이 저장되고, 검증 캐시도 만들지 않는다.
+    aiProperties.setQualityGateEnabled(false);
+    when(verifier.verify(any(QualityVerificationRequest.class)))
+        .thenReturn(QualityVerdict.below("bad"));
+    FakeConsumer consumer = new FakeConsumer();
+    when(chatModel.stream(any(Prompt.class))).thenReturn(fluxOf(questionsJson(List.of(1, 1, 1))));
+
+    orchestrator(type).generateQuiz(request(type, 3, consumer));
+
+    assertThat(consumer.contents()).containsExactlyInAnyOrder("Q0", "Q1", "Q2");
+    verify(verifier, never()).verify(any(QualityVerificationRequest.class));
+    verify(verifier, never()).createPass1Cache(any(), any());
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"MULTIPLE", "BLANK", "OX"})
+  void skipsContextCacheWhenDisabled(String type) {
+    // 캐시가 꺼지면 생성 시도 자체가 없고(성패 카운터 미기록), 첫 요청에 PDF·시스템 지시문을 직접 싣는다.
+    aiProperties.setContextCacheEnabled(false);
+    FakeConsumer consumer = new FakeConsumer();
+    when(chatModel.stream(any(Prompt.class))).thenReturn(fluxOf(questionsJson(List.of(1, 1, 1))));
+
+    orchestrator(type).generateQuiz(request(type, 3, consumer));
+
+    assertThat(consumer.contents()).containsExactlyInAnyOrder("Q0", "Q1", "Q2");
+    verify(metricsRecorder, never()).recordCacheCreate(anyBoolean());
+    ArgumentCaptor<Prompt> captor = ArgumentCaptor.forClass(Prompt.class);
+    verify(chatModel, atLeast(1)).stream(captor.capture());
+    Prompt first = captor.getAllValues().getFirst();
+    assertThat(first.getInstructions().getFirst()).isInstanceOf(SystemMessage.class);
+    assertThat(((UserMessage) first.getInstructions().getLast()).getMedia()).isNotEmpty();
   }
 
   private String typeSpecificDedupMarker(String type) {
