@@ -173,12 +173,16 @@ public class ChunkedQuizGenerator {
     // ══════════════════════════════════════════════════════════════════
     private void createCaches() {
       // [④ 부수] 생성 실패는 예외가 아니라 빈 값 — null 로 두고 캐시 없는 폴백으로 강등한다
-      this.genCache =
-          cacheManager
-              .create(quizType.name(), genGuideLine, metadata.uri(), aiProperties.getCacheTtl())
-              .orElse(null);
+      if (aiProperties.isContextCacheEnabled()) {
+        this.genCache =
+            cacheManager
+                .create(quizType.name(), genGuideLine, metadata.uri(), aiProperties.getCacheTtl())
+                .orElse(null);
+      }
 
-      this.verifyCache = verifier.createPass1Cache(metadata.uri(), quizType).orElse(null);
+      if (aiProperties.isQualityGateEnabled()) {
+        this.verifyCache = verifier.createPass1Cache(metadata.uri(), quizType).orElse(null);
+      }
     }
 
     private void releaseCaches() {
@@ -256,8 +260,9 @@ public class ChunkedQuizGenerator {
                         AIProblem arranged = spec.toProblem(question, metadata.sourcePages());
                         int order = submitted.incrementAndGet();
                         streamed.add(arranged);
-                        // 앞쪽 N문항은 검증을 건너뛰고 바로 넘긴다(TTFQ 단축) — 품질은 사후 Pass 2 가 본다
-                        if (order <= aiProperties.getFastServeCount()) {
+                        // 게이트가 꺼졌거나 앞쪽 N문항이면 검증을 건너뛰고 바로 넘긴다(TTFQ 단축) — 품질은 사후 Pass 2 가 본다
+                        if (!aiProperties.isQualityGateEnabled()
+                            || order <= aiProperties.getFastServeCount()) {
                           verifyFutures.add(submitFastServe(arranged));
                         } else {
                           verifyFutures.add(submitVerification(arranged));
