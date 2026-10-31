@@ -9,11 +9,7 @@ dependencies {
 
     implementation "org.springframework.ai:spring-ai-starter-model-google-genai"
 
-    implementation "com.github.ben-manes.caffeine:caffeine"
-
     implementation "com.google.cloud:google-cloud-storage"
-
-    implementation libs.pdfbox
 
     implementation libs.resilience4j.spring.boot3
 

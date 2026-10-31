@@ -40,12 +40,7 @@ class OciObjectStorageServiceImplTest {
 
     OciObjectStorageProperties ociProperties =
         new OciObjectStorageProperties(
-            "test-namespace",
-            "test-image-bucket",
-            "test-pdf-bucket",
-            "ap-chuncheon-1",
-            "~/.oci/config",
-            "DEFAULT");
+            "test-namespace", "test-image-bucket", "ap-chuncheon-1", "~/.oci/config", "DEFAULT");
 
     CdnProperties cdnProperties = new CdnProperties(IMAGE_BASE_URL, FILE_BASE_URL);
 

@@ -22,7 +22,6 @@ jodconverter = "4.4.11"
 hashids = "1.0.3"
 resilience4j = "2.4.0"
 oci = "3.95.1"
-pdfbox = "3.0.8"
 httpclient5 = "5.6.4"
 
 [libraries]
@@ -43,7 +42,6 @@ hashids = { module = "org.hashids:hashids", version.ref = "hashids" }
 resilience4j-spring-boot3 = { module = "io.github.resilience4j:resilience4j-spring-boot4", version.ref = "resilience4j" }
 oci-objectstorage = { module = "com.oracle.oci.sdk:oci-java-sdk-objectstorage", version.ref = "oci" }
 oci-httpclient-jersey3 = { module = "com.oracle.oci.sdk:oci-java-sdk-common-httpclient-jersey3", version.ref = "oci" }
-pdfbox = { module = "org.apache.pdfbox:pdfbox", version.ref = "pdfbox" }
 httpclient5 = { module = "org.apache.httpcomponents.client5:httpclient5", version.ref = "httpclient5" }
 
 [plugins]
