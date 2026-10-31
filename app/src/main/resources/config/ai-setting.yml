@@ -9,13 +9,13 @@ spring:
           model: gemini-3.8-flash
           temperature: 1.0
           max-output-tokens: 20000
-          thinking-level: MINIMAL
+          thinking-level: LOW  # gemini-3.8-flash 는 MINIMAL 을 거부한다(400 THINKING_LEVEL_MINIMAL) — LOW 가 최저 지원 단계
 
 q-asker:
   ai:
     cache-ttl: 15m          # 컨텍스트 캐시 TTL (인터리빙 세션 커버)
     # 생성 컨텍스트 캐시 on/off. false 면 캐시 없이 PDF·시스템 지시문을 매 호출에 직접 싣는다.
-    context-cache-enabled: ${CONTEXT_CACHE_ENABLED:false}
+    context-cache-enabled: ${CONTEXT_CACHE_ENABLED:true}
     # 스트리밍 시한 계층 (connect < read < call). 안쪽 시한이 바깥보다 짧아야
     # 각 계층이 자기 실패를 자기 이름의 예외로 먼저 잡는다 — 순서가 무너지면 바깥층이
     # 안쪽 실패를 가로채 서킷 계수·로그 분류가 오염된다.
@@ -91,3 +91,9 @@ q-asker:
         # 서술형(ESSAY)
         model-answer-basis: strict         # 모범답안이 원문에 근거하는가
         rubric-consistency: strict         # 질문↔모범답안↔채점 루브릭 3자 정합
+
+# Spring AI 가 캐시 생성 실패를 ERROR 로 찍은 뒤 예외를 던진다 — 같은 실패를 GeminiContextCacheManager 가 원인과 함께 다시 기록하므로
+# 라이브러리 로그는 끈다. 그쪽에서 최소 토큰 미달(짧은 문서)은 WARN, 그 밖의 실패(결제·권한·파일 없음 등)는 ERROR 로 나눈다.
+logging:
+  level:
+    org.springframework.ai.google.genai.cache.GoogleGenAiCachedContentService: OFF

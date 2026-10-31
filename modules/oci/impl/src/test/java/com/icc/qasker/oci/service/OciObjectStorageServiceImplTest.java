@@ -16,12 +16,9 @@ import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.FilterInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -79,28 +76,6 @@ class OciObjectStorageServiceImplTest {
     assertThat(captured.getObjectName()).matches("images/[0-9a-fA-F-]{36}\\.png");
   }
 
-  @Test
-  @DisplayName("PDF 업로드 시 fileBaseUrl 기반 <UUID>.pdf URL을 반환한다")
-  void uploadPdf_returnsFileCdnUrlWithObjectNameRule() throws IOException {
-    Path pdfFile = Files.createTempFile("test", ".pdf");
-    Files.writeString(pdfFile, "dummy pdf content");
-    try {
-      String cdnUrl = service.uploadPdf(pdfFile, "document.pdf");
-
-      assertThat(cdnUrl).startsWith(FILE_BASE_URL + "/");
-      assertThat(cdnUrl).endsWith(".pdf");
-
-      PutObjectRequest captured = captureRequest();
-      assertThat(captured.getBucketName()).isEqualTo("test-pdf-bucket");
-      assertThat(captured.getContentType()).isEqualTo("application/pdf");
-      assertThat(captured.getObjectName())
-          .isEqualTo(cdnUrl.substring((FILE_BASE_URL + "/").length()));
-      assertThat(captured.getObjectName()).matches("[0-9a-fA-F-]{36}\\.pdf");
-    } finally {
-      Files.deleteIfExists(pdfFile);
-    }
-  }
-
   // ── opcMeta 인코딩 ──────────────────────────────────────────────
 
   @Test
@@ -117,23 +92,6 @@ class OciObjectStorageServiceImplTest {
     assertThat(captured.getOpcMeta()).containsEntry("original-filename", expected);
     // 인코딩되었으므로 원문 공백/특수문자가 그대로 남아있지 않다
     assertThat(expected).doesNotContain(" ");
-  }
-
-  @Test
-  @DisplayName("PDF 업로드 시 한글 파일명이 UriUtils.encode로 인코딩되어 opcMeta에 실린다")
-  void uploadPdf_encodesKoreanFileNameIntoOpcMeta() throws IOException {
-    String originalFileName = "보고서 최종본.pdf";
-    Path pdfFile = Files.createTempFile("test", ".pdf");
-    Files.writeString(pdfFile, "dummy");
-    try {
-      service.uploadPdf(pdfFile, originalFileName);
-
-      PutObjectRequest captured = captureRequest();
-      String expected = UriUtils.encode(originalFileName, StandardCharsets.UTF_8);
-      assertThat(captured.getOpcMeta()).containsEntry("original-filename", expected);
-    } finally {
-      Files.deleteIfExists(pdfFile);
-    }
   }
 
   // ── markSupported 분기 ──────────────────────────────────────────

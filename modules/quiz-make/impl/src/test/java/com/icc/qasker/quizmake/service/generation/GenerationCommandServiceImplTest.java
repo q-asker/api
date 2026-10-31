@@ -20,6 +20,8 @@ import com.icc.qasker.ai.dto.AIProblem;
 import com.icc.qasker.ai.dto.AISelection;
 import com.icc.qasker.ai.dto.GenerationRequestToAI;
 import com.icc.qasker.global.component.HashUtil;
+import com.icc.qasker.global.error.CustomException;
+import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.global.quiz.QuizType;
 import com.icc.qasker.quizmake.SseNotificationService;
 import com.icc.qasker.quizmake.adapter.AIServerAdapter;
@@ -189,6 +191,22 @@ class GenerationCommandServiceImplTest {
 
     verify(quizCommandService, timeout(2000)).updateStatus(eq(1L), eq(GenerationStatus.FAILED));
     verify(resultRecorder, timeout(2000)).recordError(eq(1L), eq(QuizType.MULTIPLE), any());
+  }
+
+  @Test
+  @DisplayName("finalize: 업로드 원본이 삭제됐으면 그 사유를 SSE 에러 메시지로 전한다")
+  void finalize_reports_deleted_source_file() {
+    GenerationRequest request = request(QuizType.MULTIPLE);
+    doThrow(new CustomException(ExceptionMessage.UPLOADED_FILE_DELETED, "pdfUrl=x"))
+        .when(aiServerAdapter)
+        .streamRequest(any());
+
+    service.triggerGeneration("user-1", request);
+
+    verify(quizCommandService, timeout(2000)).updateStatus(eq(1L), eq(GenerationStatus.FAILED));
+    verify(notificationService, timeout(2000))
+        .sendFinishWithError(
+            eq(request.sessionId()), eq(ExceptionMessage.UPLOADED_FILE_DELETED.getMessage()));
   }
 
   @Test

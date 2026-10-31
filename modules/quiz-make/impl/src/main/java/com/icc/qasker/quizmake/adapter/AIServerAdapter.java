@@ -26,6 +26,10 @@ public class AIServerAdapter {
 
   @SuppressWarnings("unused")
   private void fallback(GenerationRequestToAI request, Throwable t) {
+    // 비즈니스 오류(예: 업로드 원본 삭제)는 사용자에게 사유를 전해야 하므로 그대로 올린다
+    if (t instanceof CustomException ce) {
+      throw ce;
+    }
     if (t instanceof GeminiInfraException) {
       throw new CustomException(
           ExceptionMessage.AI_SERVER_COMMUNICATION_ERROR, t.getCause().getMessage(), t);

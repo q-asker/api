@@ -13,6 +13,7 @@ import com.icc.qasker.ai.dto.QualityVerificationRequest.Selection;
 import com.icc.qasker.ai.exception.GeminiInfraException;
 import com.icc.qasker.ai.metric.GeminiMetricsRecorder;
 import com.icc.qasker.ai.properties.QAskerAiProperties;
+import com.icc.qasker.ai.service.prompt.PageScopePrompt;
 import com.icc.qasker.ai.service.regeneration.prompt.RegenerationPrompt;
 import com.icc.qasker.ai.support.ChunkPlanner;
 import com.icc.qasker.ai.support.GeminiContextCacheManager;
@@ -214,9 +215,10 @@ public class ChunkedQuizGenerator {
         // 앞선 청크의 스트림이 이미 목표를 채웠으면 남은 청크는 요청하지 않는다
         if (submitted.get() >= quizCount) break;
 
-        // 이번 청크의 사용자 메시지 — 둘째 청크부터 중복 방지 지시를 붙이고, PDF 는 첫 청크에만 싣는다(캐시가 없을 때)
+        // 이번 청크의 사용자 메시지 — 출제 범위 지시를 앞에 두고, 둘째 청크부터 중복 방지 지시를 붙이고, PDF 는 첫 청크에만 싣는다(캐시가 없을 때)
         String userPrompt =
-            spec.requestPrompt(chunkPlan.get(chunkIndex), request.customInstruction());
+            PageScopePrompt.of(request.referencePages())
+                + spec.requestPrompt(chunkPlan.get(chunkIndex), request.customInstruction());
         if (chunkIndex > 0) {
           userPrompt = userPrompt + spec.dedupInstruction();
         }
@@ -469,13 +471,9 @@ public class ChunkedQuizGenerator {
   }
 
   private FileMetadata resolvePdf(GenerationRequestToAI request) {
-    String cacheKey =
-        geminiFileService.generateCacheKey(request.fileUrl(), request.referencePages());
+    // 페이지는 프롬프트로 지정하므로 원본 전체를 쓴다. 업로드 때 GCS 에 저장된 객체를 gs:// 경로로 그대로 넘긴다
     try {
-      return geminiFileService
-          .awaitCachedFileMetadata(cacheKey)
-          .orElseGet(
-              () -> geminiFileService.uploadPdf(request.fileUrl(), request.referencePages()));
+      return geminiFileService.resolvePdf(request.fileUrl());
     } catch (CustomException e) {
       throw e;
     } catch (Exception e) {

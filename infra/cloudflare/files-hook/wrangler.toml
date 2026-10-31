@@ -1,0 +1,21 @@
+# files.q-asker.com 프록시 Worker. 배포: infra/cloudflare/files-hook 에서 `npx wrangler deploy`
+# 아래 값은 대시보드에 있던 기존 files-hook 설정(호환 날짜·workers.dev·관측 로그·커스텀 도메인)을 그대로 옮긴 것이다.
+name = "files-hook"
+main = "worker.js"
+compatibility_date = "2026-04-02"
+workers_dev = true
+preview_urls = false
+
+routes = [
+  { pattern = "files.q-asker.com", custom_domain = true },
+]
+
+[observability]
+enabled = true
+head_sampling_rate = 1
+
+[observability.logs]
+enabled = true
+head_sampling_rate = 1
+persist = true
+invocation_logs = true

@@ -1,25 +1,17 @@
 package com.icc.qasker.quizmake.service.upload;
 
 import com.icc.qasker.ai.GeminiFileService;
-import com.icc.qasker.ai.dto.GeminiFileUploadResponse.FileMetadata;
 import com.icc.qasker.document.ConvertService;
 import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.oci.FileValidateService;
-import com.icc.qasker.oci.ObjectStorageService;
 import com.icc.qasker.quizmake.dto.feresponse.FileUploadResponse;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -30,17 +22,10 @@ import org.springframework.web.multipart.MultipartFile;
 @RequiredArgsConstructor
 public class FileUploadService {
 
-  private final ObjectStorageService objectStorageService;
   private final GeminiFileService geminiFileService;
   private final FileValidateService fileValidateService;
   private final ConvertService convertService;
   private final MeterRegistry registry;
-  private final ExecutorService uploadExecutor = Executors.newVirtualThreadPerTaskExecutor();
-
-  @PreDestroy
-  void shutdownExecutor() {
-    uploadExecutor.close();
-  }
 
   @PostConstruct
   void eagerRegisterMetrics() {
@@ -81,44 +66,11 @@ public class FileUploadService {
         pdfFile = convertService.convertToPdf(tempFile);
       }
 
-      // 3. Gemini용 임시 파일 복사 (백그라운드 업로드가 끝날 때까지 유지)
-      Path geminiCopy =
-          Files.copy(
-              pdfFile,
-              Files.createTempFile("gemini-upload-", ".pdf"),
-              StandardCopyOption.REPLACE_EXISTING);
-
-      // 4. GCS 업로드용 CompletableFuture - 비동기로 뺀다
-      CompletableFuture<FileMetadata> geminiFuture =
-          CompletableFuture.supplyAsync(
-                  () -> geminiFileService.uploadPdfFromFile(geminiCopy), uploadExecutor)
-              .whenComplete(
-                  (metadata, ex) -> {
-                    deleteQuietly(geminiCopy);
-                    if (ex != null) {
-                      log.warn("[Gemini 업로드 실패] 백그라운드 업로드 실패, 퀴즈 생성 시 재시도", ex);
-                    } else {
-                      log.info("Gemini 백그라운드 업로드 완료: name={}", metadata.name());
-                    }
-                  });
-
-      // 5. OCI 파일 업로드는 동기적으로 수행됨
-      String cdnUrl;
-      try {
-        cdnUrl = objectStorageService.uploadPdf(pdfFile, originalFileName);
-      } catch (Exception e) {
-        geminiFuture.thenAccept(fileMetadata -> geminiFileService.deleteFile(fileMetadata.name()));
-        throw e;
-      }
-
-      // 6. Gemini Future를 캐시에 즉시 저장 — 퀴즈 생성 시 awaitCachedFileMetadata()로 대기/조회
-      geminiFileService.cacheUploadFuture(cdnUrl, geminiFuture);
-
-      log.info("OCI 업로드 완료, Gemini는 백그라운드 처리 중: {}", cdnUrl);
+      // 3. GCS 업로드 — PDF 의 단일 저장소. CDN 이 같은 객체를 사용자에게, 생성 시 Gemini 가 gs:// 로 직접 읽는다
+      String cdnUrl = geminiFileService.storePdf(pdfFile, originalFileName);
       return new FileUploadResponse(cdnUrl);
     } catch (Exception e) {
-      Throwable cause = e instanceof CompletionException ? e.getCause() : e;
-      if (cause instanceof CustomException ce) {
+      if (e instanceof CustomException ce) {
         throw ce;
       }
       throw new CustomException(

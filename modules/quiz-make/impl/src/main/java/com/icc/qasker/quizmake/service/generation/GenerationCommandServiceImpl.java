@@ -5,6 +5,7 @@ import static com.icc.qasker.quizset.GenerationStatus.FAILED;
 
 import com.icc.qasker.ai.dto.GenerationRequestToAI;
 import com.icc.qasker.global.component.HashUtil;
+import com.icc.qasker.global.error.CustomException;
 import com.icc.qasker.global.error.ExceptionMessage;
 import com.icc.qasker.global.quiz.QuizType;
 import com.icc.qasker.quizmake.GenerationCommandService;
@@ -119,6 +120,13 @@ public class GenerationCommandServiceImpl implements GenerationCommandService {
     try {
       aiServerAdapter.streamRequest(requestToAI);
     } catch (Exception e) {
+      if (e instanceof CustomException ce
+          && ExceptionMessage.UPLOADED_FILE_DELETED.name().equals(ce.getCode())) {
+        // 보관 기한이 지나 원본이 삭제된 것 — 장애가 아니라 사용자에게 재업로드를 안내할 일이다
+        log.warn("[AI 생성 실패] 업로드 원본 삭제 sessionId={}, {}", sessionId, ce.getContext());
+        finalizeError(sessionId, problemSetId, request.quizType(), ce.getMessage());
+        return;
+      }
       log.error("[AI 생성 실패] 퀴즈 생성 중 오류 발생 sessionId={}", sessionId, e);
       finalizeError(
           sessionId,
