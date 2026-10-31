@@ -14,10 +14,22 @@ public class QAskerAiProperties {
   private Duration cacheTtl;
 
   /**
+   * 생성 컨텍스트 캐시 활성화 — q-asker.ai.context-cache-enabled. false 면 캐시를 만들지 않고 PDF·시스템 지시문을 매 호출에 직접
+   * 싣는다(캐시 생성 실패 시의 폴백 경로와 같다).
+   */
+  private boolean contextCacheEnabled = true;
+
+  /**
    * 즉석 서빙 문항 수 — q-asker.ai.fast-serve-count. 처음 N문항은 생성 게이트(Pass 1) 검증 없이 파싱 즉시 저장·전송한다(0=비활성).
    * 품질은 사후 Pass 2 재검토가 판정한다.
    */
   private int fastServeCount;
+
+  /**
+   * 생성 게이트(Pass 1) 활성화 — q-asker.ai.quality-gate-enabled. false 면 모든 문항을 검증 없이 즉시 저장·전송하고, 검증용 컨텍스트
+   * 캐시도 만들지 않는다(보류가 없으니 재생성도 일어나지 않는다).
+   */
+  private boolean qualityGateEnabled = true;
 
   /** Gemini HTTP 클라이언트 시한 계층 (connect < read < call) */
   private GeminiHttp geminiHttp = new GeminiHttp();

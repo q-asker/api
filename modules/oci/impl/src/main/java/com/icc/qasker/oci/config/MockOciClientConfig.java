@@ -3,7 +3,6 @@ package com.icc.qasker.oci.config;
 import com.icc.qasker.oci.ObjectStorageService;
 import com.icc.qasker.oci.properties.CdnProperties;
 import java.io.InputStream;
-import java.nio.file.Path;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
@@ -21,17 +20,6 @@ public class MockOciClientConfig {
   @Primary
   public ObjectStorageService mockObjectStorageService(CdnProperties cdnProperties) {
     return new ObjectStorageService() {
-      @Override
-      public String uploadPdf(Path pdfFile, String originalFileName) {
-        log.info("Mock OCI Upload: {}", originalFileName);
-        try {
-          Thread.sleep(2000);
-        } catch (InterruptedException e) {
-          throw new RuntimeException(e);
-        }
-        return cdnProperties.fileBaseUrl() + "/" + UUID.randomUUID() + ".pdf";
-      }
-
       @Override
       public String uploadImage(
           InputStream inputStream,

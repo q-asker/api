@@ -23,6 +23,7 @@ public enum ExceptionMessage {
   INVALID_URL_REQUEST(HttpStatus.BAD_REQUEST, "유효하지 않은 url입니다"),
   CONVERT_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "파일 변환에 실패했습니다."),
   FILE_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "파일 업로드에 실패했습니다."),
+  UPLOADED_FILE_DELETED(HttpStatus.GONE, "업로드한 파일이 삭제되었습니다. 파일을 다시 업로드해주세요."),
 
   // ## 퀴즈 (quiz-set)
   PROBLEM_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 문제를 찾을 수 없습니다."),

@@ -6,14 +6,16 @@ spring:
     google:
       genai:
         chat:
-          model: gemini-3.6-flash
+          model: gemini-3.8-flash
           temperature: 1.0
           max-output-tokens: 20000
-          thinking-level: MINIMAL
+          thinking-level: LOW  # gemini-3.8-flash 는 MINIMAL 을 거부한다(400 THINKING_LEVEL_MINIMAL) — LOW 가 최저 지원 단계
 
 q-asker:
   ai:
     cache-ttl: 15m          # 컨텍스트 캐시 TTL (인터리빙 세션 커버)
+    # 생성 컨텍스트 캐시 on/off. false 면 캐시 없이 PDF·시스템 지시문을 매 호출에 직접 싣는다.
+    context-cache-enabled: ${CONTEXT_CACHE_ENABLED:true}
     # 스트리밍 시한 계층 (connect < read < call). 안쪽 시한이 바깥보다 짧아야
     # 각 계층이 자기 실패를 자기 이름의 예외로 먼저 잡는다 — 순서가 무너지면 바깥층이
     # 안쪽 실패를 가로채 서킷 계수·로그 분류가 오염된다.
@@ -48,6 +50,8 @@ q-asker:
     # 즉석 서빙: 처음 N문항은 생성 게이트(Pass 1) 검증 없이 파싱 즉시 저장·전송한다 (0 = 비활성).
     # 첫 문항 체감 지연(TTFQ)에서 검증 콜 지연을 제거하는 목적 — 품질은 사후 Pass 2 재검토가 판정.
     fast-serve-count: ${FAST_SERVE_COUNT:3}
+    # 생성 게이트(Pass 1) 검증 on/off. false 면 전 문항을 검증 없이 즉시 저장·전송한다(검증 캐시·재생성도 생략).
+    quality-gate-enabled: ${QUALITY_GATE_ENABLED:false}
     multiple:
       chunk-mode: 1  # 1: 단일 호출, 2: 멀티턴 순차 (A→B→C 중복방지), 3: 패턴별 병렬 (A/B/C)
     essay:
@@ -56,7 +60,7 @@ q-asker:
       price-input-per-1m: 0.30
       price-output-per-1m: 2.50
     generation:
-      # 생성 모델(Gemini 3.6 Flash) 토큰 단가 (USD per 1M tokens)
+      # 생성 모델(Gemini 3.8 Flash) 토큰 단가 (USD per 1M tokens)
       # 2026-12-31 까지의 가격 — 2027-01-01 부터 2배(1.50 / 0.15 / 7.50)로 인상 예정.
       price-input-per-1m: 0.75
       price-cache-read-per-1m: 0.075
@@ -87,3 +91,9 @@ q-asker:
         # 서술형(ESSAY)
         model-answer-basis: strict         # 모범답안이 원문에 근거하는가
         rubric-consistency: strict         # 질문↔모범답안↔채점 루브릭 3자 정합
+
+# Spring AI 가 캐시 생성 실패를 ERROR 로 찍은 뒤 예외를 던진다 — 같은 실패를 GeminiContextCacheManager 가 원인과 함께 다시 기록하므로
+# 라이브러리 로그는 끈다. 그쪽에서 최소 토큰 미달(짧은 문서)은 WARN, 그 밖의 실패(결제·권한·파일 없음 등)는 ERROR 로 나눈다.
+logging:
+  level:
+    org.springframework.ai.google.genai.cache.GoogleGenAiCachedContentService: OFF

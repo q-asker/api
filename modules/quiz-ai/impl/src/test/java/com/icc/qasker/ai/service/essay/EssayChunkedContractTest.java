@@ -23,7 +23,6 @@ import com.icc.qasker.ai.service.QualityVerifier;
 import com.icc.qasker.global.quiz.QuizType;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -66,8 +65,7 @@ class EssayChunkedContractTest {
 
     FileMetadata meta =
         new FileMetadata(null, null, null, null, null, null, null, "gs://b/x.pdf", null);
-    when(fileService.generateCacheKey(any(), any())).thenReturn("k");
-    when(fileService.awaitCachedFileMetadata("k")).thenReturn(Optional.of(meta));
+    when(fileService.resolvePdf("http://f/x.pdf")).thenReturn(meta);
     when(metricsRecorder.recordChunkResult(anyLong(), any())).thenReturn(0.0);
   }
 
