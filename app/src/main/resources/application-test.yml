@@ -16,7 +16,6 @@ oci:
     profile: DEFAULT
     namespace: ci-dummy
     image-bucket-name: ci-dummy
-    pdf-bucket-name: ci-dummy
 
 spring:
   cache:

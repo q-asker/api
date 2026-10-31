@@ -6,7 +6,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public record OciObjectStorageProperties(
     String namespace,
     String imageBucketName,
-    String pdfBucketName,
     String region,
     String configFilePath,
     String profile) {}
